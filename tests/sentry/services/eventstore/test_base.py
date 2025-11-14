@@ -1,3 +1,4 @@
+from typing import int
 from sentry.services.eventstore.base import EventStorage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset

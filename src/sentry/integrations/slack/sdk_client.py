@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from functools import wraps
 from types import FunctionType

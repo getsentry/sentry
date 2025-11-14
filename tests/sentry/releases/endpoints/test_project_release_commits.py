@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import ObjectStatus
 from sentry.models.commit import Commit
 from sentry.models.release import Release

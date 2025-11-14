@@ -1,3 +1,4 @@
+from typing import int
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.codecs import Codec

@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 

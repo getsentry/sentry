@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, patch
 
 from sentry.lang.native.utils import Backoff, get_os_from_event, is_minidump_event

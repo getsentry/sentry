@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, int
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError

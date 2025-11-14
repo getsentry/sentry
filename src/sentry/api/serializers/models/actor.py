@@ -1,4 +1,4 @@
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, int
 
 from sentry.api.serializers import Serializer
 

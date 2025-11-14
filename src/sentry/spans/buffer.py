@@ -67,7 +67,7 @@ import itertools
 import logging
 import math
 from collections.abc import Generator, MutableMapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 import orjson
 import zstandard

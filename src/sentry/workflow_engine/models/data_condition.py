@@ -3,7 +3,7 @@ import operator
 import time
 from datetime import timedelta
 from enum import StrEnum
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, cast, int
 
 from django.db import models
 from django.db.models.signals import pre_save

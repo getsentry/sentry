@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.services.integration import RpcIntegration

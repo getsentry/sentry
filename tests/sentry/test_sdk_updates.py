@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates

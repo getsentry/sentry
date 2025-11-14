@@ -1,5 +1,5 @@
 import calendar
-from typing import Any
+from typing import int, Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q

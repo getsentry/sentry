@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from hashlib import sha1
-from typing import IO, TYPE_CHECKING, TypeVar
+from typing import IO, TYPE_CHECKING, TypeVar, int
 
 from django.conf import settings
 from django.core.files.storage import Storage

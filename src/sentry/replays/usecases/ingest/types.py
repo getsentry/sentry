@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.replays.lib.cache import AutoCache
 

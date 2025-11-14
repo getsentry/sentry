@@ -1,3 +1,4 @@
+from typing import int
 from enum import Enum
 
 SCIM_API_LIST = "urn:ietf:params:scim:api:messages:2.0:ListResponse"

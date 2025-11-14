@@ -1,3 +1,4 @@
+from typing import int
 from django.core.exceptions import PermissionDenied
 
 from sentry import http, options

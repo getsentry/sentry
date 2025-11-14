@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, call, patch
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider

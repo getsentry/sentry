@@ -1,3 +1,4 @@
+from typing import int
 """Tasks
 
 Async tasks are used to create asynchronous workers which communicate their tasks via kafka

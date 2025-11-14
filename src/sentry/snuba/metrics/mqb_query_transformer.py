@@ -1,3 +1,4 @@
+from typing import int
 import inspect
 
 from snuba_sdk import AliasedExpression, BooleanCondition, Column, Function, Granularity, Op

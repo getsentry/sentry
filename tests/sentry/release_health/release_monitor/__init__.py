@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.testutils.abstract import Abstract

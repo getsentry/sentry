@@ -1,3 +1,4 @@
+from typing import int
 from pydantic import BaseModel
 
 from sentry.seer.models import SeerRepoDefinition

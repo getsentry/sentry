@@ -1,3 +1,4 @@
+from typing import int
 from functools import cached_property
 
 from sentry.api.serializers import serialize

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models.query import QuerySet
 

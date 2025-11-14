@@ -1,3 +1,4 @@
+from typing import int
 from .base import QueryConditionVisitor, QueryExpressionVisitor, VisitableQueryExpression
 from .query_condition import (
     LatestReleaseTransformationVisitor,

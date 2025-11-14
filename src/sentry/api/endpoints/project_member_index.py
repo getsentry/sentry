@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request

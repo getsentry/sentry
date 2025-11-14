@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 
 CLIENT_ID = settings.GITHUB_APP_ID

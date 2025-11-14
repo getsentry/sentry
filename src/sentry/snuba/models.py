@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, override, int
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField

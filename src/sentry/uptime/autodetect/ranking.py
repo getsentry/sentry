@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry.constants import UPTIME_AUTODETECTION
 from sentry.uptime.models import get_active_auto_monitor_count_for_org

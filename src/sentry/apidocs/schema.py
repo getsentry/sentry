@@ -1,3 +1,4 @@
+from typing import int
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.plumbing import get_doc
 

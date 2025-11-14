@@ -1,3 +1,4 @@
+from typing import int
 import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager

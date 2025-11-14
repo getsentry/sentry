@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated  # noqa S012
 from rest_framework.request import Request

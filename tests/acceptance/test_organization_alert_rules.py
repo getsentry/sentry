@@ -1,3 +1,4 @@
+from typing import int
 from django.utils import timezone
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType

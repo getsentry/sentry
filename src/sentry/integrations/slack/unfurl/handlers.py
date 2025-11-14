@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.slack.unfurl.discover import discover_handler
 from sentry.integrations.slack.unfurl.issues import issues_handler

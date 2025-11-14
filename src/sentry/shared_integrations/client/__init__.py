@@ -1,3 +1,4 @@
+from typing import int
 from ..response import BaseApiResponse
 from .base import BaseApiClient
 

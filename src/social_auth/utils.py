@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from importlib import import_module
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import parse_qs as urlparse_parse_qs
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.request import urlopen

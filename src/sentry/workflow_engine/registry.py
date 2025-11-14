@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.api.serializers.models.integration import serialize_provider
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig

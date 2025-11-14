@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import int, Literal
 from unittest.mock import patch
 
 import pytest

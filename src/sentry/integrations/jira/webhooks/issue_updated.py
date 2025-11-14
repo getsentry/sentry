@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

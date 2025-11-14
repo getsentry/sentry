@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable, Sequence
-from typing import Any, override
+from typing import Any, override, int
 
 import sentry_sdk
 

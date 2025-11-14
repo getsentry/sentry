@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Callable, Collection
 from types import ModuleType
 

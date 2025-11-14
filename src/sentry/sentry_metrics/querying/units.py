@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Literal, Union
+from typing import Literal, Union, int
 
 from snuba_sdk import ArithmeticOperator, Formula
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction

@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (

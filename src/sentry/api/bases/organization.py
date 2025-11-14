@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, Literal, NotRequired, TypedDict, overload, int
 
 import sentry_sdk
 from django.core.cache import cache

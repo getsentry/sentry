@@ -11,7 +11,7 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable
 from contextvars import ContextVar
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, int
 
 from django.http import HttpResponseBase
 

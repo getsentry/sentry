@@ -1,5 +1,6 @@
 # The fake TLD used to construct email addresses when one is required,
 # for example by automatically generated SSO accounts.
+from typing import int
 FAKE_EMAIL_TLD = ".sentry-fake"
 
 

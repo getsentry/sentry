@@ -1,4 +1,5 @@
 # Export any handlers we want to include into the registry
+from typing import int
 __all__ = [
     "EventCreatedByDetectorConditionHandler",
     "EventSeenCountConditionHandler",

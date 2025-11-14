@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request

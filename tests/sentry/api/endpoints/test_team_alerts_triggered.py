@@ -1,3 +1,4 @@
+from typing import int
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,

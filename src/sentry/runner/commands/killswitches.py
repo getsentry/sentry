@@ -1,6 +1,6 @@
 import itertools
 import textwrap
-from typing import IO, Any
+from typing import IO, Any, int
 
 import click
 import yaml

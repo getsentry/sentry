@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db import connections, models
 from django.db.backends.base.base import BaseDatabaseWrapper

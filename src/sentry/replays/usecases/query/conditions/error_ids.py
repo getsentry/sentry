@@ -1,3 +1,4 @@
+from typing import int
 """Error_ids array visitors module.
 
 This module demonstrates what's already present in other files but in a more direct and succinct

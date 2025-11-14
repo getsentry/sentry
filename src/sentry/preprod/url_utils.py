@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact

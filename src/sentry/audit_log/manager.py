@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sentry.models.auditlogentry import AuditLogEntry

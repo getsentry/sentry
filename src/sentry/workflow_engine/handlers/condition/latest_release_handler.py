@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from sentry import tagstore
 from sentry.models.environment import Environment

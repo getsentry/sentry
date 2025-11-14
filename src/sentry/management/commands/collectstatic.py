@@ -1,3 +1,4 @@
+from typing import int
 import os
 from hashlib import md5
 from itertools import chain

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.commit import Commit
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject

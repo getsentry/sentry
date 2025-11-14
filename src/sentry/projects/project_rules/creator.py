@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from rest_framework.request import Request

@@ -8,7 +8,7 @@ import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 import msgpack
 import sentry_sdk

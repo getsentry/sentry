@@ -1,3 +1,4 @@
+from typing import int
 import unittest
 from collections.abc import Generator
 from unittest import mock

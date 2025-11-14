@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta, timezone
 
 from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold

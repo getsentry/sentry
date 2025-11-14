@@ -1,3 +1,4 @@
+from typing import int
 """Query utility module."""
 
 from __future__ import annotations

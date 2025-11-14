@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from rest_framework import serializers, status

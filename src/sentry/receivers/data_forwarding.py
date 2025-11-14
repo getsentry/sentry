@@ -1,3 +1,4 @@
+from typing import int
 from django.db import router, transaction
 
 from sentry.integrations.models.data_forwarder import DataForwarder

@@ -1,3 +1,4 @@
+from typing import int
 import functools
 import logging
 from collections.abc import Callable

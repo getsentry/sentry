@@ -1,3 +1,4 @@
+from typing import int
 from sentry.analytics import Analytics
 from sentry.analytics.event import EventEnvelope
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent

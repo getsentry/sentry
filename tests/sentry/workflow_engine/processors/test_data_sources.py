@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.workflow_engine.models import DataPacket

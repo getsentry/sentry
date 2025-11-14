@@ -1,3 +1,4 @@
+from typing import int
 from io import BytesIO
 from unittest.mock import patch
 

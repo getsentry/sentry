@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider

@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.incidents.utils.format_duration import format_duration_idiomatic

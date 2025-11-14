@@ -5,7 +5,7 @@ import argparse
 import dataclasses
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, int
 
 import yaml
 

@@ -1,3 +1,4 @@
+from typing import int
 from django import forms
 
 from sentry.mail.forms.member_team import MemberTeamForm

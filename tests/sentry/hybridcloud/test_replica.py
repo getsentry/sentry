@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.services.auth.serial import serialize_auth_provider
 from sentry.hybridcloud.models import ApiKeyReplica, ExternalActorReplica
 from sentry.hybridcloud.models.outbox import outbox_context

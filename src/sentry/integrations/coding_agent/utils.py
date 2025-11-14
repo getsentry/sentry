@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.integrations.coding_agent.integration import CodingAgentIntegrationProvider
 

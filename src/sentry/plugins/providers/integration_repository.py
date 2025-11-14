@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timezone
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, TypedDict, int
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status

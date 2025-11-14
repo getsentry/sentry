@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.testutils.cases import TestCase

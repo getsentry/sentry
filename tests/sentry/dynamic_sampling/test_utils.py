@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.dynamic_sampling.rules.utils import apply_dynamic_factor

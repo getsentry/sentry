@@ -1,3 +1,4 @@
+from typing import int
 class LockBackend:
     """
     Interface for providing lock behavior that is used by the

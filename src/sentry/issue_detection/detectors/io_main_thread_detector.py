@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from symbolic.proguard import ProguardMapper

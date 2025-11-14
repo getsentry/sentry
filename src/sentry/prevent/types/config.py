@@ -1,3 +1,4 @@
+from typing import int
 _TRIGGER_SCHEMA = {
     "type": "object",
     "properties": {

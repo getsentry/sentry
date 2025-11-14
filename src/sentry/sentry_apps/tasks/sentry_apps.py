@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Protocol, SupportsInt, cast
+from typing import Any, Protocol, SupportsInt, cast, int
 
 import sentry_sdk
 from django.urls import reverse

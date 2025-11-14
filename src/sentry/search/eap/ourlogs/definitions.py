@@ -1,3 +1,4 @@
+from typing import int
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.search.eap.columns import ColumnDefinitions

@@ -6,7 +6,7 @@ import os
 import shlex
 import subprocess
 import sys
-from typing import IO, NoReturn
+from typing import IO, NoReturn, int
 
 
 def _get_repo() -> str:

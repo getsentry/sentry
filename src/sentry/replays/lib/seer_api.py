@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 
 from sentry.net.http import connection_from_url

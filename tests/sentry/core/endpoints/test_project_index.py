@@ -1,3 +1,4 @@
+from typing import int
 import responses
 from django.db import router
 from django.urls import reverse

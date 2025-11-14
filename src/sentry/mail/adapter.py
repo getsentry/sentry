@@ -1,7 +1,7 @@
 import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key

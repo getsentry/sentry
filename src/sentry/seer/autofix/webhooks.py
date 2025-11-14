@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 import sentry_sdk
 from django.conf import settings

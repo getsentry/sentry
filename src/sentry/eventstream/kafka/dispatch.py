@@ -2,7 +2,7 @@ import logging
 import random
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Any
+from typing import int, Any
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message

@@ -1,5 +1,6 @@
 # Attachment colors used for issues with no actions take.
 
+from typing import int
 LEVEL_TO_COLOR = {
     "_actioned_issue": "#EDEEEF",
     "_incident_resolved": "#4DC771",

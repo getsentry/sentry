@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any
+from typing import int, Any
 
 from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images

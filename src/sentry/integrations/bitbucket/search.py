@@ -1,5 +1,5 @@
 import logging
-from typing import TypeVar
+from typing import int, TypeVar
 
 from rest_framework.response import Response
 

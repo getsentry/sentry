@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Sequence
 
 from sentry.ingest import inbound_filters

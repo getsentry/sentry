@@ -1,3 +1,4 @@
+from typing import int
 import unittest
 
 from fixtures.schema_validation import invalid_schema_with_error_message

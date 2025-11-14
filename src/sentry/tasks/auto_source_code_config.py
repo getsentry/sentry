@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.auto_source_code_config.task import process_event
 from sentry.tasks.base import instrumented_task

@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 from rest_framework import status
 from rest_framework.request import Request

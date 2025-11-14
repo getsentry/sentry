@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping, Sequence
-from typing import Any, Literal, TypedDict, cast, override
+from typing import Any, Literal, TypedDict, cast, override, int
 
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
     CheckStatus,

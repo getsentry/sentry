@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest

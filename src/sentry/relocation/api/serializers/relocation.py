@@ -1,6 +1,6 @@
 import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet

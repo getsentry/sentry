@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, patch
 
 import msgpack

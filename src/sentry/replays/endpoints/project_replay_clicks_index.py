@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError

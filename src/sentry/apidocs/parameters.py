@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes

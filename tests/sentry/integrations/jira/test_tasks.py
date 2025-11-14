@@ -1,3 +1,4 @@
+from typing import int
 import responses
 
 from sentry.integrations.jira.tasks import sync_metadata

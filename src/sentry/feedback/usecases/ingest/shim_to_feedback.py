@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist

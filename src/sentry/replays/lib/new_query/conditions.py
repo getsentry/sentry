@@ -17,7 +17,7 @@ list of supported operations can be found in the "GenericBase" visitor.
 
 from __future__ import annotations
 
-from typing import Any, NoReturn, TypeVar
+from typing import Any, NoReturn, TypeVar, int
 from uuid import UUID
 
 from snuba_sdk import And, Condition, Function, Identifier, Lambda, Op, Or

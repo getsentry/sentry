@@ -1,3 +1,4 @@
+from typing import int
 from sentry.hybridcloud.services.tombstone import (
     ControlTombstoneService,
     RegionTombstoneService,

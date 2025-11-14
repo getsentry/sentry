@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.template import engines
 from django.test import RequestFactory

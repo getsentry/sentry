@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.workflow_engine.models import (

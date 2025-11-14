@@ -1,3 +1,4 @@
+from typing import int
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 from .issue_details import IssueDetailsPage

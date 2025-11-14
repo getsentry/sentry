@@ -1,3 +1,4 @@
+from typing import int
 """
 Backward compatibility shim for getsentry.
 

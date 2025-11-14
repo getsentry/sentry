@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

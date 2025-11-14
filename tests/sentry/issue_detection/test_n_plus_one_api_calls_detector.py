@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 import pytest

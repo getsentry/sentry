@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import IntegrityError, router
 

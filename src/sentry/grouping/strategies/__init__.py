@@ -1,3 +1,4 @@
+from typing import int
 def _import_all() -> None:
     # The import order here is important due to cross dependencies
     strategy_modules = [

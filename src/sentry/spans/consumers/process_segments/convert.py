@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, cast, int
 
 import orjson
 import sentry_sdk

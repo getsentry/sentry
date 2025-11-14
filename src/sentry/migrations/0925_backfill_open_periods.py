@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.db import DataError, IntegrityError, migrations, router, transaction

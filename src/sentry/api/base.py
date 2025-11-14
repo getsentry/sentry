@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from urllib.parse import quote as urlquote
 
 import sentry_sdk

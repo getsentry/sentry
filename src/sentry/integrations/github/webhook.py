@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from datetime import timezone
-from typing import Any
+from typing import int, Any
 
 import orjson
 from dateutil.parser import parse as parse_date

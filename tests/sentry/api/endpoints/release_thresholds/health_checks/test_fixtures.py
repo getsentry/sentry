@@ -1,3 +1,4 @@
+from typing import int
 mock_sessions_data = {
     "groups": [
         {

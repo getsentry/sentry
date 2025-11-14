@@ -1,3 +1,4 @@
+from typing import int
 """
 Converts uptime results to EAP TraceItem format.
 

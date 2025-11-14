@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 import click
 from yaml import safe_dump

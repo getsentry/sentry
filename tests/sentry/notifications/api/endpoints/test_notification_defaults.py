@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test

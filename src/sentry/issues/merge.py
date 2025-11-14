@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 from uuid import uuid4
 
 import rest_framework

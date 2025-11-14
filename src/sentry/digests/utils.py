@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Q
 

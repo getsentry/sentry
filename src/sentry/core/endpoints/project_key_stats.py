@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import F
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request

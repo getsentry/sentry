@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import status
 
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE

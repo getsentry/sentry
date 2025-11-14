@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 
 class ParsedReleaseVersion(NamedTuple):

@@ -1,3 +1,4 @@
+from typing import int
 from uuid import uuid1
 
 from sentry.models.commit import Commit

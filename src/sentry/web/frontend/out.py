@@ -1,3 +1,4 @@
+from typing import int
 from django.http import Http404, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.views.generic import View

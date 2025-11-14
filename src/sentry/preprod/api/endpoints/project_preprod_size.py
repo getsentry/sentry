@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, cast, int
 
 import orjson
 import pydantic

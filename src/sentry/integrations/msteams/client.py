@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC
-from typing import TypedDict
+from typing import int, TypedDict
 from urllib.parse import urlencode
 
 from requests import PreparedRequest

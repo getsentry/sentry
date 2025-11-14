@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 import responses
 from django.urls import reverse

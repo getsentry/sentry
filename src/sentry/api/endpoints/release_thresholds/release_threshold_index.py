@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Q
 from django.http import HttpResponse

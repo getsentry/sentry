@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models

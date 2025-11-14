@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from functools import partial
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from unittest.mock import patch
 

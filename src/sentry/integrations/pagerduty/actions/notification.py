@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Sequence
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict, cast, int
 
 import sentry_sdk
 

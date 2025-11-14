@@ -1,4 +1,4 @@
-from typing import cast
+from typing import int, cast
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models.organizationmember import OrganizationMember

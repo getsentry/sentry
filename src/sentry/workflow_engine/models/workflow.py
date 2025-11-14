@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from django.conf import settings
 from django.db import models

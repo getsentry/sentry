@@ -1,5 +1,5 @@
 import uuid
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers.rest_framework.rule import (
     ACTION_UUID_KEY,

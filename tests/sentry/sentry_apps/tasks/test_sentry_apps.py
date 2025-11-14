@@ -1,3 +1,4 @@
+from typing import int
 from collections import namedtuple
 from unittest.mock import ANY, MagicMock, patch
 

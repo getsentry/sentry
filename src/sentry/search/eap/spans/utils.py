@@ -1,4 +1,4 @@
-from typing import cast
+from typing import int, cast
 
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey

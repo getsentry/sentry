@@ -1,3 +1,4 @@
+from typing import int
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 
 

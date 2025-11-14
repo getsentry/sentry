@@ -1,3 +1,4 @@
+from typing import int
 """
 Metrics Service Layer Tests for Release Health
 """

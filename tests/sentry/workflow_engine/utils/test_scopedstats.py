@@ -1,6 +1,6 @@
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 
 import pytest
 

@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import replace
 from hashlib import md5
 

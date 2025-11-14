@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast
+from typing import int, cast
 
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue

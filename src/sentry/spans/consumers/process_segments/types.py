@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, NotRequired
+from typing import Any, NotRequired, int
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
     SpanEvent,

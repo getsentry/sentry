@@ -1,3 +1,4 @@
+from typing import int
 """
 The repository classes are responsible for the interactions with the data store for the NotificationMessage data model.
 The classes help separate the query interface with the actual data store for the NotificationMessage data model.

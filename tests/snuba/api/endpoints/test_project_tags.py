@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import DS_DENYLIST
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now

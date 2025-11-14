@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 from sentry.api.serializers import Serializer, register
 from sentry.auth.superuser import is_active_superuser

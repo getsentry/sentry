@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.http import absolute_uri
 from sentry_plugins.client import ApiClient
 

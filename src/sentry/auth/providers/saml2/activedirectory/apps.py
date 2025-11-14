@@ -1,3 +1,4 @@
+from typing import int
 from django.apps import AppConfig
 
 ACTIVE_DIRECTORY_PROVIDER_NAME = "active-directory"

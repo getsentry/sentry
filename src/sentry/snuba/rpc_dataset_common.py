@@ -3,7 +3,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson

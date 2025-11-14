@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TestCase
 from sentry.utils.not_set import NOT_SET, default_if_not_set
 

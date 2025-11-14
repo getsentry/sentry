@@ -3,7 +3,7 @@ import math
 import zoneinfo
 from collections import defaultdict
 from datetime import datetime
-from typing import cast
+from typing import int, cast
 
 import sentry_sdk
 from django.utils import timezone

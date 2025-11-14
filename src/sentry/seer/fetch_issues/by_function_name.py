@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex

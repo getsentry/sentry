@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition

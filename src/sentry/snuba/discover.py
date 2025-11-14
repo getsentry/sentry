@@ -4,7 +4,7 @@ import random
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, int
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME

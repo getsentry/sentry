@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.slack.threads.activity_notifications import (
     ExternalIssueCreatedActivityNotification,
 )

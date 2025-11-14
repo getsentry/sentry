@@ -1,3 +1,4 @@
+from typing import int
 from sentry import audit_log
 from sentry.audit_log.services.log.service import log_rpc_service
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion

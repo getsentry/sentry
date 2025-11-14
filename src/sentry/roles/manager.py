@@ -4,7 +4,7 @@ import abc
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 from sentry.utils import warnings
 

@@ -1,6 +1,6 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum, auto
-from typing import Any
+from typing import int, Any
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path

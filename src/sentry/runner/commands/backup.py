@@ -6,7 +6,7 @@ from datetime import timedelta
 from io import BytesIO
 from threading import Event, Thread
 from time import sleep, time
-from typing import IO, Any
+from typing import IO, Any, int
 
 import click
 

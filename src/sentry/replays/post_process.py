@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema_serializer

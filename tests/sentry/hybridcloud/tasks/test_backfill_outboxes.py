@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 from django.apps import apps

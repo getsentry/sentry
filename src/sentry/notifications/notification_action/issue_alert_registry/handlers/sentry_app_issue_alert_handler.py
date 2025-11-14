@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.hybridcloud.rpc import RpcModel
 

@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import Mock
 
 from sentry.consumers import JoinProfilerStrategyFactoryWrapper

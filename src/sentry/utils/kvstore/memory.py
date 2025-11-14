@@ -1,7 +1,7 @@
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Generic
+from typing import int, Generic
 
 from sentry.utils.kvstore.abstract import K, KVStorage, V
 

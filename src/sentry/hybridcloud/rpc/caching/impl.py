@@ -1,5 +1,5 @@
 from collections.abc import Generator, Mapping
-from typing import TypeVar
+from typing import int, TypeVar
 
 from django.core.cache import cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT

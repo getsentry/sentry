@@ -1,3 +1,4 @@
+from typing import int
 from hashlib import sha256
 
 LOCKED_FILE = "src/sentry/sentry_metrics/indexer/strings.py"

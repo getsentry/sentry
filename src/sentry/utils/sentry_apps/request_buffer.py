@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, NotRequired, TypedDict, overload
+from typing import TYPE_CHECKING, NotRequired, TypedDict, overload, int
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings

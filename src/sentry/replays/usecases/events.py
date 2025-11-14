@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any
+from typing import int, Any
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.utils import json

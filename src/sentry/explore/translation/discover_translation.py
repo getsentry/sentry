@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import int, Any
 
 from sentry.discover.arithmetic import is_equation
 from sentry.discover.models import DiscoverSavedQuery

@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase
 
 from sentry.apidocs.hooks import custom_postprocessing_hook

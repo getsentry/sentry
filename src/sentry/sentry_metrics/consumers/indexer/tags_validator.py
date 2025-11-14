@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping
 
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH

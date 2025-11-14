@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import F
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status

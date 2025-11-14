@@ -1,3 +1,4 @@
+from typing import int
 from base64 import urlsafe_b64encode
 
 from django.urls import reverse

@@ -1,7 +1,7 @@
 """Track metadata about clusterer runs"""
 
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.models.project import Project

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, MutableMapping
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 from django.db import router, transaction

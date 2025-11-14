@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 from unittest import TestCase
 from unittest.mock import Mock, patch
 

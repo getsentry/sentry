@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.services.eventstore.models import GroupEvent

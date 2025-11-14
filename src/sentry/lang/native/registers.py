@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping
 
 # Architecture "x86" (alias "i386", "i686")

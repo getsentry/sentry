@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ("Breadcrumbs",)
 
 from sentry.interfaces.base import Interface

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.spans.grouping.strategy.base import Span
 

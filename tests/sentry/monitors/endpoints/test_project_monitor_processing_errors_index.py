@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.monitors.processing_errors.errors import ProcessingErrorType
 from sentry.monitors.processing_errors.manager import get_errors_for_monitor, store_error

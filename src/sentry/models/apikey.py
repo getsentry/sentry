@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeGuard
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeGuard, int
 
 from django.db import models
 from django.utils import timezone

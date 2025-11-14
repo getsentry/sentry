@@ -1,3 +1,4 @@
+from typing import int
 from django.template import engines
 
 from sentry.testutils.cases import TestCase

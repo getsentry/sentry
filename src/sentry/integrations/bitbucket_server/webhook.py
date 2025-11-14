@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

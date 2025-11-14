@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

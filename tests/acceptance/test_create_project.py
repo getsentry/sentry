@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase

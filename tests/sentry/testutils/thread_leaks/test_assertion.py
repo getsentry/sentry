@@ -1,3 +1,4 @@
+from typing import int
 """Integration tests for thread leak assertion utilities."""
 
 import builtins

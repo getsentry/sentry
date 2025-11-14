@@ -1,3 +1,4 @@
+from typing import int
 from django.test import SimpleTestCase
 
 from sentry.models.commitauthor import CommitAuthor

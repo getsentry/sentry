@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

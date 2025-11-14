@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str

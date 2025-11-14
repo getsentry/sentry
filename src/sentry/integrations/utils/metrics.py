@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, int
 
 import sentry_sdk
 

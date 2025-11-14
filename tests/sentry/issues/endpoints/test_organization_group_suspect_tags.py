@@ -1,7 +1,7 @@
 import datetime
 import time
 import uuid
-from typing import Any
+from typing import int, Any
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 

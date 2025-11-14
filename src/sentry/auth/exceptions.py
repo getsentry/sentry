@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ["ProviderNotRegistered"]
 
 from sentry.exceptions import NotRegistered

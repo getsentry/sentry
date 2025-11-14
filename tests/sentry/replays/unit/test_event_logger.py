@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 from collections.abc import Callable
 from unittest import mock

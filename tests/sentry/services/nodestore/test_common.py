@@ -5,7 +5,7 @@ Testsuite of backend-independent nodestore tests. Add your backend to the
 
 from collections.abc import Callable, Generator
 from contextlib import nullcontext
-from typing import ContextManager
+from typing import int, ContextManager
 
 import pytest
 

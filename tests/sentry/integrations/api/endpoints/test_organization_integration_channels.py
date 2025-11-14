@@ -1,4 +1,4 @@
-from typing import cast
+from typing import int, cast
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase

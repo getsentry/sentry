@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,

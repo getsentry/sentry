@@ -6,7 +6,7 @@ service. Most tests live in tests/symbolicator/
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

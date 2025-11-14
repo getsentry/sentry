@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
 from snuba_sdk.conditions import ConditionGroup

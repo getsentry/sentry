@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, int
 
 from rest_framework import status
 from rest_framework.request import Request

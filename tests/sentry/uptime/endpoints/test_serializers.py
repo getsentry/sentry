@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer

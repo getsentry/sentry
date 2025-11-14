@@ -1,3 +1,4 @@
+from typing import int
 from abc import ABC
 
 from sentry.integrations.messaging.linkage import IdentityLinkageView

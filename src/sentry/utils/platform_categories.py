@@ -1,3 +1,4 @@
+from typing import int
 from django.utils.translation import gettext_lazy as _
 
 # Mirrors `const frontend` in sentry/static/app/data/platformCategories.tsx

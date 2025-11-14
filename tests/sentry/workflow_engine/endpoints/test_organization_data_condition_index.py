@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase

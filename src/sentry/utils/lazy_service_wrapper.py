@@ -6,7 +6,7 @@ import enum
 import inspect
 import itertools
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import Any, Final, Generic, TypeVar
+from typing import Any, Final, Generic, TypeVar, int
 
 from sentry.utils import metrics, warnings
 from sentry.utils.imports import import_string

@@ -1,3 +1,4 @@
+from typing import int
 from django.http import Http404, HttpRequest, HttpResponse
 
 from sentry.models.group import Group, get_group_with_redirect

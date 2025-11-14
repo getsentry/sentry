@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import TypeVar
+from typing import int, TypeVar
 
 from arroyo.processing.strategies import MessageRejected, ProcessingStrategy, RunTask
 from arroyo.types import FilteredPayload, Message

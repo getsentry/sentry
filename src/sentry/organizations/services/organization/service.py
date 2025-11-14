@@ -5,7 +5,7 @@
 import abc
 from abc import abstractmethod
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from django.dispatch import Signal
 

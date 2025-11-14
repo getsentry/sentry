@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 

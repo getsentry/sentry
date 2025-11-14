@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence

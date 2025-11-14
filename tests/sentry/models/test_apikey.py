@@ -1,3 +1,4 @@
+from typing import int
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.silo.base import SiloMode

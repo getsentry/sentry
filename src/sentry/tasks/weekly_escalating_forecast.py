@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.issues.escalating.forecasts import generate_and_save_forecasts

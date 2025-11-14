@@ -7,7 +7,7 @@ import traceback
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, overload, int
 
 import sentry_sdk
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import int
 """Composite click selector visitor module.
 
 This module demonstrates how funky condition visitors can become.  We're performing multiple

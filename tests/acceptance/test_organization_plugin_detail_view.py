@@ -1,3 +1,4 @@
+from typing import int
 from functools import cached_property
 
 from fixtures.page_objects.organization_integration_settings import (

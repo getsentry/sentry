@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Generator
 from enum import IntEnum
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, int
 
 from django.db import models, router, transaction
 

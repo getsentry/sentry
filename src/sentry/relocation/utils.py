@@ -7,7 +7,7 @@ from enum import Enum, unique
 from functools import lru_cache
 from io import BytesIO
 from string import Template
-from typing import Any
+from typing import int, Any
 from uuid import UUID
 
 from django.core.files.storage import Storage

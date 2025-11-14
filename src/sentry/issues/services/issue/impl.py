@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from typing import int
 from django.db.models import Max
 
 from sentry.integrations.models.external_issue import ExternalIssue

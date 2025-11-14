@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult

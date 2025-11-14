@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
 

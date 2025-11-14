@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register
 from sentry.models.groupseen import GroupSeen
 from sentry.users.services.user.service import user_service

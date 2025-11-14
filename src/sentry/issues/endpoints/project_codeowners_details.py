@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.utils.session_store import redis_property
 

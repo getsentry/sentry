@@ -6,7 +6,7 @@ import random
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TypeVar
+from typing import int, TypeVar
 
 from django.utils.encoding import force_bytes
 

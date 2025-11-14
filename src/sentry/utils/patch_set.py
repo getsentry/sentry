@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, int
 
 import unidiff
 from unidiff.errors import UnidiffParseError

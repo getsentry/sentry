@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.eventerror import EventError
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 

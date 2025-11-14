@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Literal
+from typing import int, Literal
 
 import orjson
 from arroyo.backends.kafka import KafkaPayload

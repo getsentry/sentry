@@ -1,7 +1,7 @@
 import builtins
 import dataclasses
 import logging
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from django.db import models
 from django.db.models.signals import pre_save

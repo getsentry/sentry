@@ -1,3 +1,4 @@
+from typing import int
 query = """query GetTestResults(
   $owner: String!
   $repo: String!

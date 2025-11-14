@@ -1,5 +1,5 @@
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from django.db.models import Q

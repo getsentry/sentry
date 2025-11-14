@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict
+from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict, int
 
 from django.db.models import F, Q
 from django.http import HttpResponse

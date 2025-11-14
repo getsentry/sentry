@@ -1,3 +1,4 @@
+from typing import int
 import operator
 import sys
 from functools import reduce

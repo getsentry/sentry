@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Callable, Iterable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 import sentry_sdk
 from django.conf import settings

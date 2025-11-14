@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
 from sentry.seer.signed_seer_api import make_signed_seer_api_request

@@ -1,3 +1,4 @@
+from typing import int
 from sentry_relay.processing import is_glob_match
 
 

@@ -1,3 +1,4 @@
+from typing import int
 from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope

@@ -4,7 +4,7 @@ import zipfile
 from base64 import b64encode
 from io import BytesIO
 from os.path import join
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from unittest.mock import patch
 

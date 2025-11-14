@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import replace
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 

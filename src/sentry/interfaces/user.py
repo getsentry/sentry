@@ -1,7 +1,7 @@
 __all__ = ("User",)
 
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.geo import Geo

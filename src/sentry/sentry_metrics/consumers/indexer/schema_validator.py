@@ -1,5 +1,5 @@
 import random
-from typing import Any
+from typing import int, Any
 
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric

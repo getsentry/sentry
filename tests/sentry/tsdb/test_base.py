@@ -1,3 +1,4 @@
+from typing import int
 import itertools
 from datetime import datetime, timedelta, timezone
 from unittest import TestCase

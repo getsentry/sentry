@@ -3,7 +3,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import int, Any
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor

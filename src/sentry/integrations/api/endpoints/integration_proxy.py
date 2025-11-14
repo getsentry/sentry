@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 from urllib.parse import urljoin
 
 import sentry_sdk

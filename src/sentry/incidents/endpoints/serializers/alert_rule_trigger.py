@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict
+from typing import int, DefaultDict
 
 from django.db.models import prefetch_related_objects
 

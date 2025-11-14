@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 
 from sentry.constants import ObjectStatus

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from threading import local
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches

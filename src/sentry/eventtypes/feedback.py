@@ -1,3 +1,4 @@
+from typing import int
 from sentry.eventtypes.base import BaseEvent
 from sentry.utils.safe import get_path
 

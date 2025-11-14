@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, int
 
 # TODO: Once we're on python 3.12, we can get rid of these and change the first line of the
 # signature of `capture_results` to

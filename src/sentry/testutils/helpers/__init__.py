@@ -1,3 +1,4 @@
+from typing import int
 from .auth_header import *  # NOQA
 from .features import *  # NOQA
 from .link_header import *  # NOQA

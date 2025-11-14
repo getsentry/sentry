@@ -1,3 +1,4 @@
+from typing import int
 from random import randint
 
 from sentry import ratelimits

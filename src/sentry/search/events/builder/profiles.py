@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import int, Protocol
 
 from snuba_sdk import Column
 

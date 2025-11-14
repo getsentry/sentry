@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timezone
 from functools import lru_cache
 from io import BytesIO

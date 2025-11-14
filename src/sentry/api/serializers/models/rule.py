@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers

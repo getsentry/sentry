@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient

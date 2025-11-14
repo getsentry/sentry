@@ -1,3 +1,4 @@
+from typing import int
 from contextlib import contextmanager
 
 import sentry_sdk

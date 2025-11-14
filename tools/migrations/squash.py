@@ -3,7 +3,7 @@ import contextlib
 import os.path
 import subprocess
 from collections.abc import Generator
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 # for squash
 _SAFE_RUN_SQL_IMPORT = "from sentry.new_migrations.monkey.special import SafeRunSQL\n"

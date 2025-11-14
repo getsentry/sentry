@@ -1,5 +1,5 @@
 from enum import IntEnum, StrEnum
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 
 class Anomaly(TypedDict):

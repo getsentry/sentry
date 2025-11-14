@@ -1,3 +1,4 @@
+from typing import int
 from copy import deepcopy
 from time import time
 from unittest.mock import MagicMock, patch

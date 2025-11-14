@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail

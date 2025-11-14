@@ -1,3 +1,4 @@
+from typing import int
 from functools import wraps
 
 from .helpers import can_reconnect

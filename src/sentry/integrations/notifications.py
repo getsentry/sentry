@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service

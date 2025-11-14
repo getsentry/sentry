@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from django.db.models import QuerySet

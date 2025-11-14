@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
 from itertools import groupby
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, NamedTuple, TypeVar, int
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID

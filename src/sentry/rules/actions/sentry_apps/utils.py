@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import SENTRY_APP_ACTIONS
 from sentry.sentry_apps.services.app import app_service

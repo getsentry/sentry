@@ -1,5 +1,5 @@
 import logging
-from typing import Required, TypedDict
+from typing import Required, TypedDict, int
 
 from django.conf import settings
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 

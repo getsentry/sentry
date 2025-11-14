@@ -4,7 +4,7 @@ import logging
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import urlparse
 
 import orjson

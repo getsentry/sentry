@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TypedDict
+from typing import int, TypedDict
 
 import orjson
 import requests

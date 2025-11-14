@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.testutils.cases import TestCase

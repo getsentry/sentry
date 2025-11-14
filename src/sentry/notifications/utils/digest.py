@@ -4,7 +4,7 @@ import itertools
 from collections import Counter
 from collections.abc import Mapping
 from datetime import datetime, tzinfo
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.utils import dateformat
 

@@ -1,3 +1,4 @@
+from typing import int
 """Test configuration for thread leak tests."""
 
 from collections.abc import Generator

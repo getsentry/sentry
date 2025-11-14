@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 import pytest
 import responses

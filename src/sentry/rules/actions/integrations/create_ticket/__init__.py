@@ -1,3 +1,4 @@
+from typing import int
 from .base import TicketEventAction
 from .form import IntegrationNotifyServiceForm
 from .utils import build_description, create_issue, create_link

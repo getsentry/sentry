@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import int, Any
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse

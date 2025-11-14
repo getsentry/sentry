@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.platform.api.endpoints.internal_registered_templates import (
     serialize_slack_preview,

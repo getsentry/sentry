@@ -1,3 +1,4 @@
+from typing import int
 class EventTypeManager:
     def __init__(self):
         self.__values = []

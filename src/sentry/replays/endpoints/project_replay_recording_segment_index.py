@@ -1,5 +1,5 @@
 import functools
-from typing import Any
+from typing import int, Any
 
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema

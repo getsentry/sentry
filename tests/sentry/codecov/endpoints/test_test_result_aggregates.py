@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 from django.urls import reverse

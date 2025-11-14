@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue

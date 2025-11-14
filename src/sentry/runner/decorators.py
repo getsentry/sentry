@@ -1,6 +1,6 @@
 import os
 from collections.abc import Callable
-from typing import Concatenate, ParamSpec, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar, int
 
 import click
 

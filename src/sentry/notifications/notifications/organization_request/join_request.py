@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry import analytics
 from sentry.analytics.events.inapp_request import JoinRequestSentEvent

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.models import SafeDeleteModel
 from sentry.new_migrations.monkey.state import DeletionAction

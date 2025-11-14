@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import SlugField
 from django.db.models.lookups import Lookup
 

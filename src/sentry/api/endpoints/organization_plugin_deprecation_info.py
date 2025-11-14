@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner

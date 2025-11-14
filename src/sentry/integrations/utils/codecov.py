@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import Enum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 import requests
 from rest_framework import status

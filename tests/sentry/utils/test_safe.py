@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from collections.abc import MutableMapping
 from functools import partial
-from typing import Any
+from typing import int, Any
 
 import pytest
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.security import csp
 from sentry.utils.safe import get_path
 from sentry.utils.strings import strip

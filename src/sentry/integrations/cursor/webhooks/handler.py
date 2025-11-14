@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 import re
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 import orjson

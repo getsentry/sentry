@@ -1,3 +1,4 @@
+from typing import int
 from .guides import GUIDES
 from .manager import AssistantManager
 

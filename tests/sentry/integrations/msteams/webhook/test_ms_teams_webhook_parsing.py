@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.msteams.parsing import is_new_integration_installation_event
 

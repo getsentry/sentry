@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union, int
 
 from django.db.models import Model, QuerySet
 

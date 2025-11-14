@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.integrations.github.utils import parse_github_blob_url

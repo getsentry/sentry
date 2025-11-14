@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register

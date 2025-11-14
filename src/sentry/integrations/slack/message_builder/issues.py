@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import orjson
 from django.core.exceptions import ObjectDoesNotExist

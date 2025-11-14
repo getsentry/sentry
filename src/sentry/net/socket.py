@@ -4,7 +4,7 @@ import functools
 import ipaddress
 import socket
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 from urllib.parse import urlparse
 
 from django.conf import settings

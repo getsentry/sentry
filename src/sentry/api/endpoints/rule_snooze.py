@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser

@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta
 
 from snuba_sdk.legacy import json_to_snql

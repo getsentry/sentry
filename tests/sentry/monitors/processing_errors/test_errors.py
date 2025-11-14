@@ -1,3 +1,4 @@
+from typing import int
 from sentry.monitors.processing_errors.errors import CheckinProcessingError, ProcessingErrorType
 from sentry.monitors.testutils import build_checkin_item
 

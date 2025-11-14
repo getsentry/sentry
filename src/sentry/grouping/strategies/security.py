@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry.grouping.component import (
     CSPGroupingComponent,

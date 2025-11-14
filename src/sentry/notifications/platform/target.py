@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, Self
+from typing import Any, Self, int
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (

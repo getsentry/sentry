@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE

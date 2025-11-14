@@ -1,3 +1,4 @@
+from typing import int
 from uuid import uuid4
 
 from social_auth.django_compat import get_all_field_names

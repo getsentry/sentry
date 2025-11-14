@@ -1,3 +1,4 @@
+from typing import int
 """
 Many of our integration providers offer competing products with the same
 features. For example, both Slack and MS Teams are "communication platforms".

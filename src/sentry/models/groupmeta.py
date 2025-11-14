@@ -1,5 +1,5 @@
 import threading
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.core.signals import request_finished
 from django.db import models

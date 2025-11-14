@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request

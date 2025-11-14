@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Generator, Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Union
+from typing import int, Union
 
 import sentry_sdk
 from django.conf import settings

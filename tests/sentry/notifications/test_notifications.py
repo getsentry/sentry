@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import uuid
 from time import time

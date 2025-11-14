@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, int
 
 from django.conf import settings
 from django.db import models

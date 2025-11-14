@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, cast, overload
+from typing import Any, Final, Literal, Union, cast, overload, int
 from urllib.parse import urlparse
 
 import sentry

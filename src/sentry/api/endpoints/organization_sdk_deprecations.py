@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, TypedDict
+from typing import DefaultDict, TypedDict, int
 
 import sentry_sdk
 from packaging.version import InvalidVersion

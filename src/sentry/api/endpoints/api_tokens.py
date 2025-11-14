@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator

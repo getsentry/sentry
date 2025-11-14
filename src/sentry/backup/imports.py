@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import IO, Any
+from typing import IO, Any, int
 from uuid import uuid4
 
 import orjson

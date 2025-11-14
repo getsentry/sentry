@@ -1,3 +1,4 @@
+from typing import int
 from sentry.bgtasks.api import bgtask
 from sentry.models.debugfile import ProjectDebugFile
 

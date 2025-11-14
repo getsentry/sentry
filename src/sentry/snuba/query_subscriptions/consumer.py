@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from collections.abc import Callable
 from datetime import timezone

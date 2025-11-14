@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register
 from sentry.constants import LOG_LEVELS
 from sentry.models.grouptombstone import GroupTombstone

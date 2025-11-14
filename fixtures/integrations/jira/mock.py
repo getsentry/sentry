@@ -1,3 +1,4 @@
+from typing import int
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.mock_service import MockService
 

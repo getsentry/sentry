@@ -1,3 +1,4 @@
+from typing import int
 from urllib.parse import urlparse
 
 from django.test.client import RequestFactory

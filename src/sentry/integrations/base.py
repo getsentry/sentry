@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict, int
 
 import sentry_sdk
 from django.http.request import HttpRequest

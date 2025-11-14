@@ -1,3 +1,4 @@
+from typing import int
 import requests
 
 from sentry.http import safe_urlopen

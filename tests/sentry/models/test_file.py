@@ -1,3 +1,4 @@
+from typing import int
 import os
 from datetime import timedelta
 from io import BytesIO

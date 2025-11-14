@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response

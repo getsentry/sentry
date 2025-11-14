@@ -1,3 +1,4 @@
+from typing import int
 from social_auth.backends import PIPELINE
 from social_auth.utils import setting
 

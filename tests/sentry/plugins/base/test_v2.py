@@ -1,3 +1,4 @@
+from typing import int
 from sentry.plugins.base.v2 import Plugin2
 from sentry.testutils.cases import TestCase
 

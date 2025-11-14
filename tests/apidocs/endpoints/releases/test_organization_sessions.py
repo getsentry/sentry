@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse

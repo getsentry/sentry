@@ -2,7 +2,7 @@ import abc
 import dataclasses
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Union, int
 
 from sentry import eventstream
 from sentry.models.grouphash import GroupHash

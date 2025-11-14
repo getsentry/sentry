@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Iterable
 
 import sentry_sdk

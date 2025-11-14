@@ -1,3 +1,4 @@
+from typing import int
 from tests.sentry.integrations.slack.webhooks.actions import BaseEventTest
 
 

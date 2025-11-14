@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 import pytest

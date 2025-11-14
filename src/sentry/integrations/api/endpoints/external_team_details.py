@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status

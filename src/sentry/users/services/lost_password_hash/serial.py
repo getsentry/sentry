@@ -1,3 +1,4 @@
+from typing import int
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import operator
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, int
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import F, Model, Q

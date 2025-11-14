@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from sentry.db.pending_deletion import build_pending_deletion_key

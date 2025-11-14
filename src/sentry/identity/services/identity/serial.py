@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry.identity.services.identity import RpcIdentity, RpcIdentityProvider
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.numbers import format_bytes
 

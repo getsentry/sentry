@@ -1,3 +1,4 @@
+from typing import int
 import jsonschema
 import orjson
 import sentry_sdk

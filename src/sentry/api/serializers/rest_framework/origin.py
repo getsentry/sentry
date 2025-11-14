@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import serializers
 
 from sentry.utils.http import parse_uri_match

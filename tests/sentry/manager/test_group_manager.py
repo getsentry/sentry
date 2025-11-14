@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase

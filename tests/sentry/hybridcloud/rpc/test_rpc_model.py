@@ -1,3 +1,4 @@
+from typing import int
 from collections import deque
 
 from sentry.hybridcloud.rpc import RpcModel

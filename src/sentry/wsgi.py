@@ -1,3 +1,4 @@
+from typing import int
 import io
 import os.path
 import sys

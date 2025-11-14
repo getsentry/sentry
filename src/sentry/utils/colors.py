@@ -1,3 +1,4 @@
+from typing import int
 import colorsys
 import hashlib
 

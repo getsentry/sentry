@@ -1,3 +1,4 @@
+from typing import int
 class UnexpectedPathException(Exception):
     pass
 

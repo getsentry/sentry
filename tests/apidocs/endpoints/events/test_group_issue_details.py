@@ -1,3 +1,4 @@
+from typing import int
 from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase

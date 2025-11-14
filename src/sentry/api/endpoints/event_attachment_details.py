@@ -1,6 +1,6 @@
 import contextlib
 import posixpath
-from typing import IO, ContextManager
+from typing import IO, ContextManager, int
 
 import sentry_sdk
 from django.http import StreamingHttpResponse

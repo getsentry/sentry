@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Any
+from typing import int, Any
 
 from django.http import Http404
 from rest_framework.request import Request

@@ -1,3 +1,4 @@
+from typing import int
 import pickle
 from unittest import mock
 

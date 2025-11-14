@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, Literal, overload
+from typing import Any, Literal, overload, int
 
 from requests import PreparedRequest, Response
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.replays.usecases.pack import HEADER_OFFSET, Encoding, pack, unpack
 
 

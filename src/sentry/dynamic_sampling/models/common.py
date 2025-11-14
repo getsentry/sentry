@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

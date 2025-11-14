@@ -1,6 +1,6 @@
 import logging
 from hashlib import sha1
-from typing import Any
+from typing import int, Any
 
 import requests
 from django.conf import settings

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, int
 
 import sentry_sdk
 from django.conf import settings

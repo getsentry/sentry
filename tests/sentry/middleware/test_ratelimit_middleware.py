@@ -1,3 +1,4 @@
+from typing import int
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time

@@ -6,7 +6,7 @@ for repartitioning with less code changes per physical change.
 
 from __future__ import annotations
 
-from typing import Literal, TypeGuard
+from typing import Literal, TypeGuard, int
 
 from django.conf import settings
 

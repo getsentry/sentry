@@ -5,7 +5,7 @@ import os
 import random
 import signal
 import time
-from typing import Any
+from typing import int, Any
 
 import click
 

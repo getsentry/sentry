@@ -1,3 +1,4 @@
+from typing import int
 import unittest
 from datetime import UTC, datetime, timedelta
 from functools import cached_property

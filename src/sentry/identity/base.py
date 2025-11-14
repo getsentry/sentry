@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.pipeline.provider import PipelineProvider

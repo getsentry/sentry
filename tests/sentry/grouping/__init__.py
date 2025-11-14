@@ -4,7 +4,7 @@ import functools
 import os
 from collections.abc import Callable, Iterable, MutableMapping
 from os import path
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import orjson

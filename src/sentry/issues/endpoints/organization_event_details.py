@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from rest_framework.request import Request

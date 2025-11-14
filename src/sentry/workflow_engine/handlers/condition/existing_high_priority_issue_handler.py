@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition

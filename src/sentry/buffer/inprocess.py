@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.buffer.base import Buffer
 from sentry.db import models

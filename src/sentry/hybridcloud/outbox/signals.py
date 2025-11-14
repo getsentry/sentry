@@ -1,3 +1,4 @@
+from typing import int
 from django.dispatch import Signal
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]

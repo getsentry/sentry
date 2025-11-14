@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypedDict
+from typing import int, TypedDict
 
 
 class ChartType(Enum):

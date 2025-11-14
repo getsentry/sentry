@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.replays.usecases.delete import delete_seer_replay_data

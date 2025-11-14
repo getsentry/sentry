@@ -1,3 +1,4 @@
+from typing import int
 from ipaddress import ip_address
 
 from sentry.testutils.cases import APITestCase

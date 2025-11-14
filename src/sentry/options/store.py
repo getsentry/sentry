@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError

@@ -9,7 +9,7 @@ import time
 from collections.abc import Callable, Generator
 from multiprocessing.synchronize import Event
 from types import FrameType
-from typing import Any
+from typing import int, Any
 
 # XXX: Don't import any modules that will import django here, do those within child_process
 import orjson

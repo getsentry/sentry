@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, int
 
 from django.conf import settings
 from django.core.cache import cache

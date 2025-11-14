@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import int, Any
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse

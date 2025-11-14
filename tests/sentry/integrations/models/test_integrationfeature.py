@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

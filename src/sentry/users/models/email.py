@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db import models
 from django.forms import model_to_dict

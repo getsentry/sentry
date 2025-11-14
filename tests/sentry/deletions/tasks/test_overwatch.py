@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 import responses

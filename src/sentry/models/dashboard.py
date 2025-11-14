@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 import sentry_sdk
 from django.db import models, router, transaction

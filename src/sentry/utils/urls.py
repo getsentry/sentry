@@ -1,3 +1,4 @@
+from typing import int
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlsplit, urlunparse

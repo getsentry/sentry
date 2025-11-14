@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint

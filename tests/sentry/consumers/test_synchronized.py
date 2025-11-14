@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from datetime import datetime
 from threading import Event
-from typing import TypeVar
+from typing import int, TypeVar
 
 import pytest
 from arroyo.backends.abstract import Consumer

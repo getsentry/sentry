@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from os.path import splitext
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlsplit
 
 from sentry.stacktraces.processing import StacktraceInfo

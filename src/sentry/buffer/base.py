@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Expression, F
 

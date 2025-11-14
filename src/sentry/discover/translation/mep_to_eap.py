@@ -1,5 +1,5 @@
 import re
-from typing import TypedDict
+from typing import int, TypedDict
 
 from parsimonious import NodeVisitor
 

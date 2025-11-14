@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize

@@ -1,4 +1,5 @@
 # Port of https://github.com/samuelmeuli/anonymize-ip to Python 2
+from typing import int
 """
 MIT License
 

@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 from hashlib import sha1
 from unittest.mock import patch

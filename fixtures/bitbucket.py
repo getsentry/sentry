@@ -1,3 +1,4 @@
+from typing import int
 COMPARE_COMMITS_EXAMPLE = b"""{
 "pagelen": 30,
  "values":

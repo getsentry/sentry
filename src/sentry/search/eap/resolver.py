@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, int
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError

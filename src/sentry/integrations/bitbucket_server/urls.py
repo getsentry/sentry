@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import re_path
 
 from .webhook import BitbucketServerWebhookEndpoint

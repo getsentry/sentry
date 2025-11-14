@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timezone
 
 from django.db.models.signals import pre_save

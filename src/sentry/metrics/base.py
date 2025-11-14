@@ -3,7 +3,7 @@ __all__ = ["MetricsBackend"]
 from collections.abc import Mapping, MutableMapping
 from random import random
 from threading import local
-from typing import Union
+from typing import int, Union
 
 from django.conf import settings
 

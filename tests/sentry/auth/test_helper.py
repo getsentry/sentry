@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import int, TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser

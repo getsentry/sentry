@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.system import SystemToken, get_system_token, is_system_auth
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all

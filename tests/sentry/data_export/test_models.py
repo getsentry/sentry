@@ -1,3 +1,4 @@
+from typing import int
 import tempfile
 from datetime import timedelta
 from unittest.mock import MagicMock, patch

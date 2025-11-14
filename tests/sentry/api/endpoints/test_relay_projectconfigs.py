@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 from uuid import uuid4
 

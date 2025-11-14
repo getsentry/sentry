@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.sessions.backends.base import SessionBase
 
 

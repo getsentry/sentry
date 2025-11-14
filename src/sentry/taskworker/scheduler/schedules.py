@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from cronsim import CronSim, CronSimError
 from django.utils import timezone

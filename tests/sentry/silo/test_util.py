@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from unittest import TestCase
 from wsgiref.util import is_hop_by_hop

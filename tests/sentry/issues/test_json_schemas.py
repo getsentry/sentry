@@ -1,3 +1,4 @@
+from typing import int
 from importlib import reload
 from unittest import TestCase, mock
 

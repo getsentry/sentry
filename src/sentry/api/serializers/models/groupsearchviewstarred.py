@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.groupsearchview import (

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Generator, MutableMapping
-from typing import Any, NoReturn
+from typing import Any, NoReturn, int
 
 from sentry.services.base import Service
 

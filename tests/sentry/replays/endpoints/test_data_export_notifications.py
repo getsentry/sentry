@@ -1,3 +1,4 @@
+from typing import int
 import base64
 from unittest.mock import patch
 

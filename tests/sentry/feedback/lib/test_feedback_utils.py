@@ -1,3 +1,4 @@
+from typing import int
 from sentry.feedback.lib.utils import is_in_feedback_denylist
 from sentry.testutils.pytest.fixtures import django_db_all
 

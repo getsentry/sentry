@@ -31,7 +31,7 @@ from collections.abc import Callable, Generator, MutableMapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, TypeVar, override
+from typing import Any, TypeVar, override, int
 
 
 @dataclass

@@ -1,3 +1,4 @@
+from typing import int
 from urllib.parse import parse_qsl, urlparse
 
 from django.test import override_settings

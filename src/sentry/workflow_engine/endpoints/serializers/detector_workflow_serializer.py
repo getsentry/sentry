@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from sentry.api.serializers import Serializer, register
 from sentry.workflow_engine.models import DetectorWorkflow

@@ -1,3 +1,4 @@
+from typing import int
 SIGNATURE = "cecad6333f8652af7d4e9c7b6ad87f1c922a76d3"
 SECRET = "AiK52QASLJXmCXX3X9gO2Zyh"
 

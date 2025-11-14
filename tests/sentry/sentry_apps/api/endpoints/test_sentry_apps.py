@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 import orjson

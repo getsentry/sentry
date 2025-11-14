@@ -1,6 +1,7 @@
 # Module to evaluate if other errors happened in the same trace.
 #
 # Refer to README in module for more details.
+from typing import int
 from sentry.api.utils import default_start_end_dates
 from sentry.models.group import Group
 from sentry.models.project import Project

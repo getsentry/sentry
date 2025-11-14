@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest

@@ -1,3 +1,4 @@
+from typing import int
 from .control_file import ControlFile
 from .control_fileblob import ControlFileBlob
 from .control_fileblobindex import ControlFileBlobIndex

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from rest_framework import serializers, status
 from rest_framework.request import Request

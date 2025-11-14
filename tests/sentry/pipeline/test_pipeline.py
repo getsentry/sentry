@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Never
+from typing import int, Never
 from unittest.mock import MagicMock, patch
 
 from django.contrib.sessions.backends.base import SessionBase

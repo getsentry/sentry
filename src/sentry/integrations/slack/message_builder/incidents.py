@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.commit import get_users_for_commits

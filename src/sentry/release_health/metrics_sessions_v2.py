@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Literal, Optional, TypedDict, Union, cast
+from typing import Any, Literal, Optional, TypedDict, Union, cast, int
 
 from snuba_sdk import (
     BooleanCondition,

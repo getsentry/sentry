@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.featureadoption import FeatureAdoptionRedisBackend
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters

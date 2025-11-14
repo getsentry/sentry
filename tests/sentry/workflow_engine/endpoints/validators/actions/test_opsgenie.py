@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.silo.base import SiloMode

@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone

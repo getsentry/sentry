@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.request import Request
 
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures

@@ -2,7 +2,7 @@ import logging
 import random
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError

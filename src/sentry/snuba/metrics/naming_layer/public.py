@@ -1,3 +1,4 @@
+from typing import int
 """
 Module that contains all the public field names queryable from the API. Any time a new Enum is
 introduced here, a corresponding MRI needs to be introduced in the corresponding MRI Enum. As an

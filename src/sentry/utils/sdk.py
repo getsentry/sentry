@@ -6,7 +6,7 @@ import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, int
 
 import sentry_sdk
 from django.conf import settings

@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload, int
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError

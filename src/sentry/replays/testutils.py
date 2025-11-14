@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 
 # This __must__ match the EventType enum in RRWeb, for the version of rrweb that we are using.

@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework import status

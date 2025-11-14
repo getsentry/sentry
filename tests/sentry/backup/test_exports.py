@@ -4,7 +4,7 @@ from copy import deepcopy
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import int, Any
 
 from orjson import JSONDecodeError, dumps
 

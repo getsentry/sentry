@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionGroupValidator
 from sentry.workflow_engine.models import Condition, DataConditionGroup

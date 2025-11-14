@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 import pytest
 from drf_spectacular.openapi import AutoSchema

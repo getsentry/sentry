@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Self
+from typing import IO, ClassVar, Self, int
 from urllib.parse import urlunsplit
 
 import sentry_sdk

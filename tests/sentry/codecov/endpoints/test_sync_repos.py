@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import ANY, Mock, patch
 
 import pytest

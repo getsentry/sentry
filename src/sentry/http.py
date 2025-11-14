@@ -5,7 +5,7 @@ import logging
 import time
 import warnings
 from io import BytesIO
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 from urllib.parse import urlparse
 
 from django.conf import settings

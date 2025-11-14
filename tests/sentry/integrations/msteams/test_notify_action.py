@@ -1,3 +1,4 @@
+from typing import int
 import re
 import time
 from unittest import mock

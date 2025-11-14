@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules import rules
 
 from .actions.create_ticket import GitHubCreateTicketAction

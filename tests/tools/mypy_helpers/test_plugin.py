@@ -239,7 +239,7 @@ Found 1 error in 1 file (checked 1 source file)
 
 def test_lazy_service_wrapper() -> None:
     src = """\
-from typing import assert_type, Literal
+from typing import assert_type, Literal, int
 from sentry.utils.lazy_service_wrapper import LazyServiceWrapper, Service, _EmptyType
 
 class MyService(Service):

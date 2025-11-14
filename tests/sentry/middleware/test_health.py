@@ -1,3 +1,4 @@
+from typing import int
 from functools import cached_property
 from unittest import TestCase
 from unittest.mock import MagicMock, patch

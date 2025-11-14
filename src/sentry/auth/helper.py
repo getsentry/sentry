@@ -4,7 +4,7 @@ import logging
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from uuid import uuid4
 
 import orjson

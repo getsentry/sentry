@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from threading import Semaphore
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, int
 from uuid import uuid4
 
 import sentry_sdk

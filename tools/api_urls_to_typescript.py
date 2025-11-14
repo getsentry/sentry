@@ -2,7 +2,7 @@
 # flake8: noqa: S002
 
 import re
-from typing import Any
+from typing import int, Any
 
 from django.urls import URLPattern, URLResolver
 

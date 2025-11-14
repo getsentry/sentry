@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry import analytics, features
 from sentry.constants import ObjectStatus

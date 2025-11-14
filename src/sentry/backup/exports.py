@@ -6,7 +6,7 @@ import io
 # we still use the one from `sentry.utils`, imported as `sentry_json` below.
 import json as builtin_json  # noqa: S003
 from abc import ABC, abstractmethod
-from typing import IO
+from typing import int, IO
 
 import orjson
 

@@ -1,5 +1,5 @@
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.models.group import Group
 from sentry.utils.cursors import CursorResult

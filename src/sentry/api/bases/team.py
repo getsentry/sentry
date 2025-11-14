@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request

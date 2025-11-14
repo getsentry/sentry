@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 
 import pytest
 from django.core import mail

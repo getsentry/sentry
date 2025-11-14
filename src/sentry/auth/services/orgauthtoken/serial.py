@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.models.orgauthtoken import OrgAuthToken
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from functools import cached_property
-from typing import TypedDict
+from typing import int, TypedDict
 from unittest import mock
 from unittest.mock import MagicMock, patch
 

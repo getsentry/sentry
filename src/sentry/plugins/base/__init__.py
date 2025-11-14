@@ -1,3 +1,4 @@
+from typing import int
 from .binding_manager import BindingManager
 from .manager import PluginManager
 from .response import *  # NOQA

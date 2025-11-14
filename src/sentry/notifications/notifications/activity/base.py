@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from collections.abc import Mapping, MutableMapping
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import format_html

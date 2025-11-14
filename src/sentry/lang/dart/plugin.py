@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.lang.dart.utils import deobfuscate_exception_type, get_debug_meta_image_ids
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2

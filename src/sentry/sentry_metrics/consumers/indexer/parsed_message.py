@@ -1,4 +1,4 @@
-from typing import Required
+from typing import int, Required
 
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from re import Match
-from typing import Any, Union, cast
+from typing import Any, Union, cast, int
 
 import sentry_sdk
 from django.utils.functional import cached_property

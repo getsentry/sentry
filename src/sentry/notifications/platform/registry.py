@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.types import NotificationTemplate

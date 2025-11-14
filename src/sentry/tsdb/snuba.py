@@ -6,7 +6,7 @@ import itertools
 from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from snuba_sdk import (
     Column,

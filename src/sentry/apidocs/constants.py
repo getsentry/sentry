@@ -1,3 +1,4 @@
+from typing import int
 from drf_spectacular.utils import OpenApiResponse
 
 # 200

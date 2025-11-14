@@ -5,7 +5,7 @@
 
 import abc
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_list

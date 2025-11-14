@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any
+from typing import int, Any
 
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import MonitorTestCase

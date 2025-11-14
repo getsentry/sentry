@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import (

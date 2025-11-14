@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.utils import metrics
 from sentry.workflow_engine.processors.contexts.workflow_event_context import WorkflowEventContext

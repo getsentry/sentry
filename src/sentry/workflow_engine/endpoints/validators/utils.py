@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.forms import ValidationError
 from jsonschema import ValidationError as JsonValidationError

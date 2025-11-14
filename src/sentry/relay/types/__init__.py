@@ -1,3 +1,4 @@
+from typing import int
 from .generic_filters import GenericFilter, GenericFiltersConfig
 from .rule_condition import RuleCondition
 

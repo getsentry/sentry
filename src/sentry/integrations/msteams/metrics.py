@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 

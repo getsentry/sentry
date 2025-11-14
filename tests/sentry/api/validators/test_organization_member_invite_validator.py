@@ -1,3 +1,4 @@
+from typing import int
 from sentry import roles
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberInviteRequestValidator,

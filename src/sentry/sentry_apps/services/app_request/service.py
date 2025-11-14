@@ -1,3 +1,4 @@
+from typing import int
 import abc
 
 from sentry.hybridcloud.rpc.resolvers import ByRegionName

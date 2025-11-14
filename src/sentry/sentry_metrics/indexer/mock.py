@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict
 from collections.abc import Collection, Mapping
-from typing import DefaultDict
+from typing import int, DefaultDict
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,

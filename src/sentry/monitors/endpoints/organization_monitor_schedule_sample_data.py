@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zoneinfo
 from datetime import datetime
-from typing import cast
+from typing import int, cast
 
 from cronsim import CronSim
 from dateutil import rrule

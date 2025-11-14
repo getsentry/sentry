@@ -1,3 +1,4 @@
+from typing import int
 class TagKeyNotFound(Exception):
     pass
 

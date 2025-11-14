@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception

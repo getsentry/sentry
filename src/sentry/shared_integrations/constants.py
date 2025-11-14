@@ -1,3 +1,4 @@
+from typing import int
 ERR_INTERNAL = (
     "An internal error occurred with the integration and the Sentry team has been notified"
 )

@@ -1,3 +1,4 @@
+from typing import int
 from .bitbucket import BitbucketRequestParser
 from .bitbucket_server import BitbucketServerRequestParser
 from .discord import DiscordRequestParser

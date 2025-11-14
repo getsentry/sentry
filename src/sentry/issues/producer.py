@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
-from typing import Any, cast
+from typing import Any, cast, int
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer

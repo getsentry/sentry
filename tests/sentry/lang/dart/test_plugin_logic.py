@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.lang.dart.plugin import DartPlugin
 from sentry.testutils.cases import TestCase

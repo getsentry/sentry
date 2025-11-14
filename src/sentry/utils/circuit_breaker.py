@@ -3,7 +3,7 @@ NOTE: This circuit breaker implementation is deprecated and is slated to eventua
 the `CircuitBreaker` class found in `circuit_breaker2.py` instead.
 """
 
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.core.cache import cache
 

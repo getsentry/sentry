@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import TestCase
 

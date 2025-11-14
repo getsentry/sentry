@@ -1,3 +1,4 @@
+from typing import int
 from .service import (
     back_with_silo_cache,
     back_with_silo_cache_list,

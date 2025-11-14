@@ -1,3 +1,4 @@
+from typing import int
 from sentry.eventtypes.base import DefaultEvent
 from sentry.testutils.cases import TestCase
 

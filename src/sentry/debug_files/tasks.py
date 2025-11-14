@@ -1,3 +1,4 @@
+from typing import int
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
 

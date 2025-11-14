@@ -1,7 +1,7 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast, int
 
 from django.db.models import Count, Max, OuterRef, Subquery
 

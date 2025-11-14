@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request

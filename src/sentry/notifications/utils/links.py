@@ -1,6 +1,6 @@
 import time
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from django.utils.http import urlencode
 

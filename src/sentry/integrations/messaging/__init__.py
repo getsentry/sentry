@@ -1,3 +1,4 @@
+from typing import int
 """Support for messaging integrations.
 
 The current messaging integrations are Discord, MSTeams, and Slack.

@@ -1,3 +1,4 @@
+from typing import int
 from .datasource import *  # NOQA
 from .fields import *  # NOQA
 from .naming_layer import *  # NOQA

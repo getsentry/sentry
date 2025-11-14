@@ -8,7 +8,7 @@ https://getsentry.github.io/relay/relay_protocol/condition/enum.RuleCondition.ht
 This file provides Python type hints that correspond to the Rust types used in Relay.
 """
 
-from typing import Literal, NotRequired, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union, int
 
 # A value that can be matched against
 Value = str | float | int | list[str] | list[float] | list[int]

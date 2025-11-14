@@ -1,3 +1,4 @@
+from typing import int
 SALT = "sentry-jira-integration"
 UNABLE_TO_VERIFY_INSTALLATION = "Unable to verify installation"
 

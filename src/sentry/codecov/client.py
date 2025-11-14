@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import StrEnum
-from typing import TypeAlias
+from typing import int, TypeAlias
 
 import requests
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey
 from sentry.db.models.base import control_silo_model

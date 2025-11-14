@@ -4,7 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import IO, Any
+from typing import IO, Any, int
 
 import click
 from django.conf import settings

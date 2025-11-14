@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 GENERIC_EVENT: dict[str, Any] = {
     "serviceUrl": "https://smba.trafficmanager.net/amer/",

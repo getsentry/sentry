@@ -6,7 +6,7 @@ import inspect
 import logging
 import threading
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions

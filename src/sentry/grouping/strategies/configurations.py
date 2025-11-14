@@ -1,3 +1,4 @@
+from typing import int
 from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,

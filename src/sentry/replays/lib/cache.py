@@ -2,7 +2,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 from threading import Lock
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, int
 
 T = TypeVar("T")
 U = TypeVar("U")

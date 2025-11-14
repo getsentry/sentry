@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 
 from sentry.integrations.jira.models.create_issue_metadata import (
     JIRA_CUSTOM_FIELD_TYPES,

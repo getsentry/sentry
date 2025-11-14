@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers

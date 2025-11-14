@@ -4,7 +4,7 @@ Tests for Dart/Flutter enhancement rules on the *native* platform.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase

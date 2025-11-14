@@ -1,3 +1,4 @@
+from typing import int
 import tempfile
 from pathlib import Path
 from unittest import mock

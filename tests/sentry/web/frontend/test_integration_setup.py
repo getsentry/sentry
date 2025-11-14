@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration

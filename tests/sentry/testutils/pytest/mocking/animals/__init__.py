@@ -1,3 +1,4 @@
+from typing import int
 def get_dog() -> str:
     return "maisey"
 

@@ -1,3 +1,4 @@
+from typing import int
 from urllib.parse import parse_qs, urlparse
 
 from sentry.integrations.models.external_actor import ExternalActor

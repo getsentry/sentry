@@ -1,6 +1,6 @@
 import contextlib
 from collections.abc import Callable, Generator
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

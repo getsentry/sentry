@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Function, Identifier, Op, OrderBy

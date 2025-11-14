@@ -1,3 +1,4 @@
+from typing import int
 from django.utils import timezone
 
 from sentry.issues.escalating.escalating import manage_issue_states

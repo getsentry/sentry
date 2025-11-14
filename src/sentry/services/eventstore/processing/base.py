@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import MutableMapping
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kvstore.abstract import KVStorage

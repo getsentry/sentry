@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 logger = logging.getLogger("sentry.integrations.discord")

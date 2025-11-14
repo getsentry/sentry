@@ -1,3 +1,4 @@
+from typing import int
 from sentry.monitors.processing_errors.errors import ProcessingErrorType
 from sentry.monitors.processing_errors.manager import get_errors_for_projects, store_error
 from sentry.monitors.testutils import build_checkin_processing_error

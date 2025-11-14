@@ -1,3 +1,4 @@
+from typing import int
 from sentry import options as options_store
 from sentry.models.files.control_file import ControlFile
 from sentry.testutils.cases import TestCase

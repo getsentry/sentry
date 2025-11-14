@@ -5,7 +5,7 @@
 
 import datetime
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 

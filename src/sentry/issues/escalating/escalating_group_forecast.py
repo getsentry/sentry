@@ -9,7 +9,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry import nodestore
 from sentry.models.group import Group

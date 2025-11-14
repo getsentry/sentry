@@ -4,7 +4,7 @@ import io
 import logging
 from collections.abc import Callable, Generator
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol
+from typing import Any, Protocol, int
 
 from django.db.models import F
 from google.cloud import storage_transfer_v1

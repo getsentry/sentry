@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from django.utils.functional import cached_property

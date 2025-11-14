@@ -4,7 +4,7 @@ import contextlib
 import os
 import shutil
 import zipfile
-from typing import IO
+from typing import int, IO
 
 
 def is_unsafe_path(path: str) -> bool:

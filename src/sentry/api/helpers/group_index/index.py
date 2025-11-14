@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser

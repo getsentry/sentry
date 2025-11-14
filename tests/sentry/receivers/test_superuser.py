@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.endpoints.auth_index import PREFILLED_SU_MODAL_KEY
 from sentry.auth.superuser import is_active_superuser
 from sentry.receivers.superuser import disable_superuser, enable_superuser

@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, cast
+from typing import ClassVar, cast, int
 
 import rb
 from django.conf import settings

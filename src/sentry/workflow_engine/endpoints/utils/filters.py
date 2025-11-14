@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Model, Q, QuerySet
 
 from sentry.api.event_search import SearchFilter

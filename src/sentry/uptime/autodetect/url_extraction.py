@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError

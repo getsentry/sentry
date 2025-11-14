@@ -1,3 +1,4 @@
+from typing import int
 import base64
 import binascii
 import posixpath

@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.plugins.helpers import get_option, set_option, unset_option

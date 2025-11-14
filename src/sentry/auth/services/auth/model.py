@@ -6,7 +6,7 @@
 import contextlib
 import datetime
 from collections.abc import Collection, Generator, Mapping
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union, int
 
 from django.http.request import HttpRequest
 from pydantic.fields import Field

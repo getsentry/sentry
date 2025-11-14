@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any, TypedDict, TypeIs
+from typing import Any, TypedDict, TypeIs, int
 
 from django.utils.datastructures import OrderedSet
 

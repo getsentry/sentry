@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.integrations.discord.message_builder.base.component.action_row import (

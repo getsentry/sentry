@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import organization_service

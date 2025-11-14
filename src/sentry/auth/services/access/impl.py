@@ -1,3 +1,4 @@
+from typing import int
 from sentry import roles
 from sentry.auth.services.access.service import AccessService
 from sentry.auth.services.auth import RpcAuthIdentity, RpcAuthProvider

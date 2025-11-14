@@ -1,3 +1,4 @@
+from typing import int
 import ipaddress
 from unittest.mock import MagicMock, patch
 

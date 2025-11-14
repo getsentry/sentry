@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.provider import Provider
 from sentry.integrations.types import IntegrationProviderSlug
 

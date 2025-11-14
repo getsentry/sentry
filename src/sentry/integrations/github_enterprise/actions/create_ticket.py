@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import TicketEventAction

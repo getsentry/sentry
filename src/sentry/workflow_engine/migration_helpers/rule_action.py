@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import issue_alert_action_translator_mapping

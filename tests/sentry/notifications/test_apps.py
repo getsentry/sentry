@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.testutils.cases import TestCase

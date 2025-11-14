@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import serialize

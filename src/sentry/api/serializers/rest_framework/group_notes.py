@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import int, TypedDict
 
 from rest_framework import serializers
 from rest_framework.serializers import ListField

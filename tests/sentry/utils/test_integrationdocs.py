@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.utils.integrationdocs import SuspiciousDocPathOperation, load_doc

@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageConfig,

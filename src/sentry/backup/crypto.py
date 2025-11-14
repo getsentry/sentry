@@ -4,7 +4,7 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import IO, Any, NamedTuple
+from typing import IO, Any, NamedTuple, int
 
 import orjson
 from cryptography.fernet import Fernet

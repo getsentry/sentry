@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from datetime import datetime, timezone
 from unittest import mock

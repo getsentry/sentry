@@ -1,3 +1,4 @@
+from typing import int
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 
 

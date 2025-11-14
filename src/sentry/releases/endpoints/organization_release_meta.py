@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TypedDict
+from typing import int, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response

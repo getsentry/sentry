@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import int, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest

@@ -4,7 +4,7 @@ import itertools
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, cast, int
 from urllib.parse import quote as urlquote
 
 import sentry_sdk

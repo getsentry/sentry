@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
 from sentry.integrations.on_call.spec import OpsgenieOnCallSpec
 from sentry.integrations.utils.metrics import EventLifecycle

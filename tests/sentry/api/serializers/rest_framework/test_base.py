@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers

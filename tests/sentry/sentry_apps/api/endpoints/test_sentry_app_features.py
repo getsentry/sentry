@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import reverse
 
 from sentry.integrations.models.integration_feature import (

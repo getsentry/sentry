@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase

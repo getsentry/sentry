@@ -1,3 +1,4 @@
+from typing import int
 from _pytest.reports import BaseReport
 from _pytest.terminal import TerminalReporter
 

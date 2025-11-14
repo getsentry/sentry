@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import posixpath
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id

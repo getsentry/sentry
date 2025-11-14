@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from time import sleep
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 

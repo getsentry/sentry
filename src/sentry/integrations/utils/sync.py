@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from django.db.models.query import QuerySet
 

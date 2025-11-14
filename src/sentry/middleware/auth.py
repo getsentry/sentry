@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser

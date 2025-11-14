@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from sentry.issue_detection.performance_detection import DETECTOR_CLASSES

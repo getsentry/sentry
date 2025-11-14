@@ -1,4 +1,5 @@
 from sentry import analytics
+from typing import int
 
 
 @analytics.eventclass("advanced_search.feature_gated")

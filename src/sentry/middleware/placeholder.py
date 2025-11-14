@@ -1,4 +1,4 @@
-from typing import NoReturn
+from typing import int, NoReturn
 
 from django.http import HttpRequest
 

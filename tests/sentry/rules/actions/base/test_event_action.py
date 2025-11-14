@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.actions import EventAction
 from sentry.testutils.cases import TestCase
 

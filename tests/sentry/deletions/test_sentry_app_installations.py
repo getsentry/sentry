@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.db import router
 from django.db.transaction import get_connection

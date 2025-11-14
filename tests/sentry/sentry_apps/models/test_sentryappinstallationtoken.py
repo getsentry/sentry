@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation

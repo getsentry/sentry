@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import int, Any
 from unittest.mock import Mock, patch
 
 import grpc

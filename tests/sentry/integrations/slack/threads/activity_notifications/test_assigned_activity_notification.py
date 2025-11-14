@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import TestCase

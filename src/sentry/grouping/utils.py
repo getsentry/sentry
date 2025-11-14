@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable, Mapping
 from hashlib import md5
 from re import Match
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, int
 from uuid import UUID
 
 from django.utils.encoding import force_bytes

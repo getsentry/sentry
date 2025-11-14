@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer

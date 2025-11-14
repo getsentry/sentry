@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.auth.providers.github.views import _get_name_from_email

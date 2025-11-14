@@ -4,7 +4,7 @@ import re
 import types
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

@@ -1,3 +1,4 @@
+from typing import int
 """Aggregate query sorting configuration module.
 
 Very similar to our filtering configurations except in this module we do not need the field

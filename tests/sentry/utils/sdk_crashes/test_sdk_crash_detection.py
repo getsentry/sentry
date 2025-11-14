@@ -1,3 +1,4 @@
+from typing import int
 import abc
 from collections.abc import Callable, Collection, Sequence
 from unittest.mock import MagicMock, call, patch

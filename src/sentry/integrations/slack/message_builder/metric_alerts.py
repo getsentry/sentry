@@ -1,3 +1,4 @@
+from typing import int
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR

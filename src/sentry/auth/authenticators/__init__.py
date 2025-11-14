@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from .base import AuthenticatorInterface
 from .recovery_code import RecoveryCodeInterface

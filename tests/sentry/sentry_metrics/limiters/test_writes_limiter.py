@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from sentry.sentry_metrics.configuration import (

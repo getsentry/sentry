@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 from rest_framework.request import Request

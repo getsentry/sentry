@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now

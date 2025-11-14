@@ -1,3 +1,4 @@
+from typing import int
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions

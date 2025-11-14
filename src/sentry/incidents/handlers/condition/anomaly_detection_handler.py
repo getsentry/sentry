@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.conf import settings
 

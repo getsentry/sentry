@@ -5,7 +5,7 @@ import json  # noqa
 import os
 import sys
 from collections.abc import Generator
-from typing import TYPE_CHECKING, ContextManager
+from typing import TYPE_CHECKING, ContextManager, int
 
 import click
 

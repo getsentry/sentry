@@ -3,7 +3,7 @@ import random
 import uuid
 from collections.abc import Callable, Generator
 from hashlib import md5
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem

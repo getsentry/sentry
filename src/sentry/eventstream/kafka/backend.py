@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import KafkaError

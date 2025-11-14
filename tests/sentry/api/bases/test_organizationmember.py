@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.bases.organizationmember import MemberAndStaffPermission, MemberPermission
 from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import APITestCase
 

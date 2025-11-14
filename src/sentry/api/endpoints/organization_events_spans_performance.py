@@ -4,7 +4,7 @@ import dataclasses
 from collections.abc import Callable
 from datetime import timedelta
 from itertools import chain
-from typing import Any, Never, TypedDict
+from typing import Any, Never, TypedDict, int
 
 import sentry_sdk
 from rest_framework import serializers

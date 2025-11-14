@@ -4,7 +4,7 @@ import abc
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Protocol
+from typing import Any, Protocol, int
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME

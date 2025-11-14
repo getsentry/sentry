@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from requests.exceptions import HTTPError, SSLError

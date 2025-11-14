@@ -1,3 +1,4 @@
+from typing import int
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 from snuba_sdk.legacy import json_to_snql
 

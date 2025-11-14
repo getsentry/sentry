@@ -1,7 +1,7 @@
 import re
 import traceback
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper

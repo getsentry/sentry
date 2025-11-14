@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test

@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 
 from rest_framework.request import Request

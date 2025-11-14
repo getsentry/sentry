@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_apps.services.app_request.model import RpcSentryAppRequest
 from sentry.utils.sentry_apps.request_buffer import SentryAppRequest
 

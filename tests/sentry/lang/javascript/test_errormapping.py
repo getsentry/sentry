@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 
 import responses
 from sentry_relay.processing import StoreNormalizer

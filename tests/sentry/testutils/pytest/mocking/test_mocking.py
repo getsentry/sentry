@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 from unittest import TestCase, mock
 
 from sentry.testutils.pytest.mocking import capture_results

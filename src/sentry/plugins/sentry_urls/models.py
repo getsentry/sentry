@@ -1,3 +1,4 @@
+from typing import int
 import sentry
 from sentry.plugins.bases.tag import TagPlugin
 

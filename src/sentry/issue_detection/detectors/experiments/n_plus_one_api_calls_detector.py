@@ -4,7 +4,7 @@ import logging
 import os
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 from sentry import features

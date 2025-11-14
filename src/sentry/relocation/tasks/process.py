@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from string import Template
-from typing import Any
+from typing import int, Any
 from uuid import UUID
 from zipfile import ZipFile
 

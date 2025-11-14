@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NotRequired
+from typing import int, NotRequired
 
 from .base import DiscordMessageComponent, DiscordMessageComponentDict
 

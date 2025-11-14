@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import Any, Protocol, TypedDict, TypeGuard, int
 
 import sentry_sdk
 from django.conf import settings

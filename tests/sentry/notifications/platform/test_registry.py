@@ -1,3 +1,4 @@
+from typing import int
 from sentry.notifications.platform.discord.provider import DiscordNotificationProvider
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.msteams.provider import MSTeamsNotificationProvider

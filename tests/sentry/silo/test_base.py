@@ -1,3 +1,4 @@
+from typing import int
 import django.apps
 import django.urls
 

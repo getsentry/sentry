@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from io import BytesIO
-from typing import Any
+from typing import int, Any
 from zipfile import ZipFile
 
 import pytest

@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from sentry import options
 from sentry.constants import ObjectStatus

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organization import Organization
 from sentry.relay.types import GenericFilter
 from sentry.utils.services import Service

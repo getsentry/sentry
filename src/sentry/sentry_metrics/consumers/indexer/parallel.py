@@ -4,7 +4,7 @@ import functools
 import logging
 from collections import deque
 from collections.abc import Mapping
-from typing import Any, Deque, Union, cast
+from typing import Any, Deque, Union, cast, int
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage

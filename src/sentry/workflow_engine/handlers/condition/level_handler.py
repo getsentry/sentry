@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.rules import MatchType

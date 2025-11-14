@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.snuba.dataset import Dataset

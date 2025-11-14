@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Generator
-from typing import Any
+from typing import int, Any
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "

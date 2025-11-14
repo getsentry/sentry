@@ -6,7 +6,7 @@ from collections.abc import Collection, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE

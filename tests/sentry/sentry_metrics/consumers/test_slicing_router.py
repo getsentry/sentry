@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Generator
 from datetime import datetime
 from unittest import mock

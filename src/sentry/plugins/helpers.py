@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry import options
 from sentry.models.options.project_option import ProjectOption

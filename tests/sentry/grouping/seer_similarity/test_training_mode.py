@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from sentry.grouping.ingest.seer import maybe_send_seer_for_new_model_training

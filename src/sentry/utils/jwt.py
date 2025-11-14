@@ -7,7 +7,7 @@ central place which handles JWT in a uniform way.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey

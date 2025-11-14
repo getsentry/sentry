@@ -1,3 +1,4 @@
+from typing import int
 import math
 from enum import Enum
 

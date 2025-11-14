@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 

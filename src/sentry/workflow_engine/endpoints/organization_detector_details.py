@@ -1,3 +1,4 @@
+from typing import int
 from django.db import router, transaction
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from datetime import timedelta
 from functools import partial
-from typing import Any
+from typing import int, Any
 from unittest.mock import Mock, patch
 from uuid import uuid4
 

@@ -1,6 +1,6 @@
 import re
 from collections.abc import Generator
-from typing import Any
+from typing import int, Any
 
 from django.urls import URLPattern, URLResolver
 from django.urls.resolvers import get_resolver

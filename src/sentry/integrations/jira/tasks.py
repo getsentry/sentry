@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError, router, transaction
 
 from sentry.integrations.models.external_issue import ExternalIssue

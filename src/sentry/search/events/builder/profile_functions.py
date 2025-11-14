@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, int
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
 from snuba_sdk.function import Function

@@ -1,3 +1,4 @@
+from typing import int
 from drf_spectacular.utils import OpenApiExample
 
 GET_PROJECT_OWNERSHIP = [

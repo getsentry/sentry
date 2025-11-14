@@ -1,3 +1,4 @@
+from typing import int
 """
 This module is meant to manage the lifecycle of the UsageAccumulator
 to record shared resource usage amount.

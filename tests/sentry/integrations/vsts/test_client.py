@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from time import time
-from typing import TypedDict
+from typing import int, TypedDict
 from unittest import mock
 from unittest.mock import MagicMock, call
 from urllib.parse import parse_qs, quote_plus

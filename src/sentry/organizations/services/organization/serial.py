@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping

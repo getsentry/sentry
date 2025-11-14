@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from django.urls import reverse
 from django.utils import timezone

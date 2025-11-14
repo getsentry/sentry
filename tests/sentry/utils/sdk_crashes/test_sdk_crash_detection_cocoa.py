@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Collection
 from unittest.mock import MagicMock, patch
 

@@ -4,7 +4,7 @@ import datetime
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 
 import sentry_sdk
 from django.db.models import Model

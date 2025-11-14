@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.helpers.datetime import freeze_time
 from tests.sentry.monitors.endpoints.test_base import BaseProjectMonitorTest
 from tests.sentry.monitors.endpoints.test_base_monitor_details import (

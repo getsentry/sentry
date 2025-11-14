@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABCMeta
 from collections.abc import MutableMapping
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from django.db.models import QuerySet
 

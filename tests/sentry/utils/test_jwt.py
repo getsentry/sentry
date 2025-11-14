@@ -1,3 +1,4 @@
+from typing import int
 import jwt as pyjwt
 import pytest
 

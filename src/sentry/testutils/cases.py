@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, Literal, TypedDict, Union, int
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4

@@ -1,3 +1,4 @@
+from typing import int
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 from urllib.parse import ParseResult, ParseResultBytes, urlparse
 
 from django.utils.encoding import force_bytes, force_str

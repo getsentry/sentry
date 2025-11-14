@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser

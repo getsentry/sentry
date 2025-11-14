@@ -4,7 +4,7 @@ import ast
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import int, Any
 
 # Allowlist of files (relative to repo root) that may still use legacy method
 # create_or_update. Instead, use Django's update_or_create.

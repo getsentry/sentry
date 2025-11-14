@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_avatar

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.db import IntegrityError, router, transaction
 from django.urls import reverse

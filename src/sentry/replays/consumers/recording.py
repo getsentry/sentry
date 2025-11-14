@@ -1,7 +1,7 @@
 import logging
 import zlib
 from collections.abc import Mapping
-from typing import cast
+from typing import int, cast
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload

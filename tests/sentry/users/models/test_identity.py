@@ -1,3 +1,4 @@
+from typing import int
 from sentry.identity import register
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils.cases import TestCase

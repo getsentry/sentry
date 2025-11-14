@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from .base import SlackNotificationsMessageBuilder
 from .daily_summary import SlackDailySummaryMessageBuilder

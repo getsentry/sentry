@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError, router, transaction
 from django.db.models.signals import post_delete, post_save
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Literal
+from typing import int, Literal
 from uuid import uuid4
 
 import sentry_sdk

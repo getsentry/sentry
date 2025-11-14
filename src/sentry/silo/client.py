@@ -5,7 +5,7 @@ import logging
 import socket
 from collections.abc import Mapping
 from hashlib import sha256
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 import urllib3

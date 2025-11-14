@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib import admin
 
 from social_auth.django_compat import get_all_field_names

@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase
 
 import orjson

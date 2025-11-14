@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint

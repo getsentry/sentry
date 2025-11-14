@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from fido2.ctap2 import AuthenticatorData

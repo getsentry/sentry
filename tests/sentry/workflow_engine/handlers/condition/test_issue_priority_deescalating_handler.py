@@ -1,3 +1,4 @@
+from typing import int
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod

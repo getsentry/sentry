@@ -1,3 +1,4 @@
+from typing import int
 import math
 
 from sentry.seer.vendored import entr, rel_entr

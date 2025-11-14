@@ -3,7 +3,7 @@ import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from django.db.models import Q

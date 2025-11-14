@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy

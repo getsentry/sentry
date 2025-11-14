@@ -1,3 +1,4 @@
+from typing import int
 """Generate readable diffs showing thread creation locations for debugging leaks."""
 
 import sys

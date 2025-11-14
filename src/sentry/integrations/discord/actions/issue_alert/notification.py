@@ -1,5 +1,5 @@
 from collections.abc import Generator, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient

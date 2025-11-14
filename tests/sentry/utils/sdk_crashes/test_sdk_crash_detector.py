@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (

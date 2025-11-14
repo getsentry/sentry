@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import int, ClassVar
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.plugins.base.v2 import Plugin2

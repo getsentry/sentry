@@ -3,7 +3,7 @@ Release Serializer.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project

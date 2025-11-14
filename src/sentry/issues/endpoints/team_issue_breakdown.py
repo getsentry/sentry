@@ -1,3 +1,4 @@
+from typing import int
 import copy
 from datetime import timedelta
 from itertools import chain

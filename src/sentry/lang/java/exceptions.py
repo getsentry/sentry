@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import int, Any
 
 from sentry.utils.safe import get_path
 

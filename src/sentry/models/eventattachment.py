@@ -4,7 +4,7 @@ import mimetypes
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
-from typing import IO, Any
+from typing import IO, Any, int
 
 import sentry_sdk
 import zstandard

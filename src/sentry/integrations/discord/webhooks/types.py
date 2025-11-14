@@ -1,3 +1,4 @@
+from typing import int
 class DiscordResponseTypes:
     """
     For more description of these types see

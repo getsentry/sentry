@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Q
 from django.db.models.fields import BigIntegerField, CharField
 from django.db.models.functions import Cast

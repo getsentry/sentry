@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.http import Http404
 from django.http.response import HttpResponseBase

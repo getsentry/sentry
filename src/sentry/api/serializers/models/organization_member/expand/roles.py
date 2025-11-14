@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any, cast, int
 
 from django.contrib.auth.models import AnonymousUser
 

@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ["default_cache"]
 
 from django.conf import settings

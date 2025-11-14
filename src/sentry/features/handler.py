@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.rule_validator import RuleValidator
 

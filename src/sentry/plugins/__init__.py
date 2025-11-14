@@ -1,3 +1,4 @@
+from typing import int
 HIDDEN_PLUGINS = (
     "bitbucket",
     "gitlab",

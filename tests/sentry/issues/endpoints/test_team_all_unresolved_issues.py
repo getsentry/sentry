@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta, timezone
 
 from django.utils.timezone import now

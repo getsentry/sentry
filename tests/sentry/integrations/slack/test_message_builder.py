@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.grouptype import ErrorGroupType

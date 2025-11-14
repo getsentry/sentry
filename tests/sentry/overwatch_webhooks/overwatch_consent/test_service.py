@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.overwatch_webhooks.overwatch_consent.model import RpcOrganizationConsentStatus

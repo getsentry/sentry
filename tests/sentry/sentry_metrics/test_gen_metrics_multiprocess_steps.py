@@ -7,7 +7,7 @@ import time
 from collections.abc import Callable, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 from unittest.mock import Mock, call
 
 import pytest

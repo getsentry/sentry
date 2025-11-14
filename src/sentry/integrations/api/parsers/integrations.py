@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.exceptions import ParameterValidationError
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum

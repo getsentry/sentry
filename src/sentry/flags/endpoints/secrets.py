@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import int, TypedDict
 
 from rest_framework import serializers
 from rest_framework.request import Request

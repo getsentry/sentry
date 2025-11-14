@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,

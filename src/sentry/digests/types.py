@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as datetime_mod
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, int
 
 from sentry.utils.dates import to_datetime
 

@@ -1,4 +1,4 @@
-from typing import TypeGuard
+from typing import int, TypeGuard
 from unittest.mock import Mock, patch
 
 from sentry.integrations.discord.message_builder.base.component.action_row import (

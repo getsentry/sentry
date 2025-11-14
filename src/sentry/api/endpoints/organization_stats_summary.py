@@ -1,7 +1,7 @@
 import csv
 from contextlib import contextmanager
 from io import StringIO
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from django.http import HttpResponse

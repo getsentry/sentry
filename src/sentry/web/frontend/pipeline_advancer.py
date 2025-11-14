@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase

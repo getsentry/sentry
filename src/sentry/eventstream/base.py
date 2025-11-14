@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast, int
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group

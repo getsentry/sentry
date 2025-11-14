@@ -1,3 +1,4 @@
+from typing import int
 from dateutil.parser import parse as parse_date
 from django.db.models import Q
 from rest_framework import status

@@ -3,7 +3,7 @@ import datetime
 from collections import defaultdict
 from datetime import timedelta
 from itertools import chain
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Case, Count, F, Q, QuerySet, Value, When
 from django.db.models.functions import TruncDay

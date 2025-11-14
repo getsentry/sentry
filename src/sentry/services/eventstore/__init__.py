@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.services import LazyServiceWrapper
 
 from .base import EventStorage, Filter  # NOQA

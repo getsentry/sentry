@@ -1,3 +1,4 @@
+from typing import int
 import copy
 from functools import partial
 from unittest import mock

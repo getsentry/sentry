@@ -1,3 +1,4 @@
+from typing import int
 from .api import (
     get_assignee_email,
     handle_assignee_change,

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed

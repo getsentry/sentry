@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Literal, Self, overload
+from typing import Any, Literal, Self, overload, int
 
 import sentry_sdk
 from snuba_sdk import Condition

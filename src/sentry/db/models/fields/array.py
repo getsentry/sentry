@@ -1,3 +1,4 @@
+from typing import int
 """DO NOT USE ME. USE django.contrib.postgres.fields.array.ArrayField
 
 I am only here for migration compatibility

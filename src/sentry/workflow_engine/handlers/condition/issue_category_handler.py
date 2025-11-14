@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.workflow_engine.models.data_condition import Condition

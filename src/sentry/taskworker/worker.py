@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
 from pathlib import Path
-from typing import Any
+from typing import int, Any
 
 import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask

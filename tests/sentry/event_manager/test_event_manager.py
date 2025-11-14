@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 

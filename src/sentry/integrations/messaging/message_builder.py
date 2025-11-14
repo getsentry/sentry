@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 from sentry import features
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR

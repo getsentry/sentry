@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from fixtures.integrations.stub_service import StubService
 from sentry.shared_integrations.exceptions import ApiError

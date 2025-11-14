@@ -5,7 +5,7 @@ import logging
 import socket
 from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any
+from typing import int, Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import sentry_sdk

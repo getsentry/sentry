@@ -1,3 +1,4 @@
+from typing import int
 from sentry_plugins.client import ApiClient
 
 ORG_BOARD_PATH = "/organizations/%s/boards"

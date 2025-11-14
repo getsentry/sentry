@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone

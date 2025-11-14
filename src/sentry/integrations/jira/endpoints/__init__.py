@@ -1,3 +1,4 @@
+from typing import int
 from .descriptor import JiraDescriptorEndpoint
 from .search import JiraSearchEndpoint
 

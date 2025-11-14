@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from time import sleep
-from typing import Any
+from typing import int, Any
 
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks

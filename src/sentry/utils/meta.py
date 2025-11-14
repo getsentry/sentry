@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, int
 
 RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 

@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, int
 
 import sentry_sdk
 from sentry_sdk import capture_exception

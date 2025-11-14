@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from enum import Enum
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.db import models
 from django.utils import timezone

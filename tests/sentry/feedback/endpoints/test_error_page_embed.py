@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from unittest import mock
 from urllib.parse import quote, urlencode

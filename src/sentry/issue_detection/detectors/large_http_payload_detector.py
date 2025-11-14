@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType

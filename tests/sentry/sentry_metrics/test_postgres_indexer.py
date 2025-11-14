@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.cache import CachingIndexer

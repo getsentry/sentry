@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import int, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 import pydantic
 

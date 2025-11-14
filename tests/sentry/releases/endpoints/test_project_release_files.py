@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 
 from django.core.files.base import ContentFile

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.rule import Rule
 from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.testutils.cases import RuleTestCase

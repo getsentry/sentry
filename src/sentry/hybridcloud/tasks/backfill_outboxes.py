@@ -1,3 +1,4 @@
+from typing import int
 """
 Checks OutboxProducingModel classes and their replication_version.
 When the replication_version on any class is bumped, callers to process_outbox_backfill_batch

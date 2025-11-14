@@ -1,3 +1,4 @@
+from typing import int
 """Utility functions for thread operations."""
 
 from threading import Thread

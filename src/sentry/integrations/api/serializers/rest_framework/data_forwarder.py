@@ -1,6 +1,6 @@
 import re
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.db import router, transaction
 from rest_framework import serializers

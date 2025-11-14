@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.contenttypes.models import ContentType
 
 from sentry.testutils.cases import TestCase

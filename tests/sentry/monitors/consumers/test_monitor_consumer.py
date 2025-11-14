@@ -2,7 +2,7 @@ import contextlib
 import uuid
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import msgpack

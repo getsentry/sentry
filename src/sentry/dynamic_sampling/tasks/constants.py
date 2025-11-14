@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 
 # TTL in milliseconds for values persisted by the dynamic sampling tasks.

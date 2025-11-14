@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.avatar import get_letter_avatar
 
 

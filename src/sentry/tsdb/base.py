@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypedDict, TypeVar, int
 
 from django.conf import settings
 from django.utils import timezone

@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput

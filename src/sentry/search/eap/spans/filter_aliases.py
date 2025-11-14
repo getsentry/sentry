@@ -1,5 +1,5 @@
 import string
-from typing import Literal
+from typing import int, Literal
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery

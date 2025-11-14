@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 # Discord message flags.
 # See: https://discord.com/developers/docs/resources/channel#message-object-message-flags

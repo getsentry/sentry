@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.indexes import Index
 
 

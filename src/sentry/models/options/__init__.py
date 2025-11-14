@@ -1,3 +1,4 @@
+from typing import int
 from sentry.users.models.user_option import UserOption
 
 from .option import ControlOption, Option

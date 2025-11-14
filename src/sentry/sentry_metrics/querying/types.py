@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, int
 
 from snuba_sdk import BooleanCondition, Condition, Direction, Formula, Timeseries
 

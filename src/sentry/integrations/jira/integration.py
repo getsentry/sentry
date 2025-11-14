@@ -5,7 +5,7 @@ import re
 import sys
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, NoReturn, TypedDict
+from typing import Any, NoReturn, TypedDict, int
 
 import sentry_sdk
 from django.conf import settings

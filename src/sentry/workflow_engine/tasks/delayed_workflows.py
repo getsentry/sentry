@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

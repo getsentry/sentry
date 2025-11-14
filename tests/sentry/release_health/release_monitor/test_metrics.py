@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend

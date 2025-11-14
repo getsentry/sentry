@@ -4,7 +4,7 @@ import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
-from typing import Any, ClassVar, NotRequired, TypedDict
+from typing import Any, ClassVar, NotRequired, TypedDict, int
 
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"

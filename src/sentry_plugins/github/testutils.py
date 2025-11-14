@@ -1,4 +1,5 @@
 # we keep this as a raw string as order matters for hmac signing
+from typing import int
 PUSH_EVENT_EXAMPLE = r"""{
   "ref": "refs/heads/changes",
   "before": "9049f1265b7d61be4a8904a9a27120d2064dab3b",

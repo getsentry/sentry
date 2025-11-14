@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,

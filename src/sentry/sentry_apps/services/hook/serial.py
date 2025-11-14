@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import RpcServiceHook
 

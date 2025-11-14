@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from uuid import uuid4

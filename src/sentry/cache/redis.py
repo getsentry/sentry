@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, get_cluster_routing_client, redis_clusters
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.msteams.card_builder.block import (
     Action,

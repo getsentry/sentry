@@ -1,5 +1,5 @@
 import re
-from typing import TypedDict
+from typing import int, TypedDict
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field

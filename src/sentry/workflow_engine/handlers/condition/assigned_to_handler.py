@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee

@@ -1,5 +1,5 @@
 import re
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, int
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS

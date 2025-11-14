@@ -1,3 +1,4 @@
+from typing import int
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
     SessionsAggregate,

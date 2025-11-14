@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
+from typing import int, Any
 
 from sentry import features
 from sentry.issue_detection.base import DetectorType, PerformanceDetector

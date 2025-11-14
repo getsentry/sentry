@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.artifactbundle import (
     ArtifactBundle,

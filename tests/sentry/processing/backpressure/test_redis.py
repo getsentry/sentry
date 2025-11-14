@@ -1,3 +1,4 @@
+from typing import int
 from django.test.utils import override_settings
 
 from sentry.processing.backpressure.memory import iter_cluster_memory_usage

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from enum import Enum, IntEnum
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, int
 
 from django.conf import settings
 from django.db import models

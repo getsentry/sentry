@@ -2,7 +2,7 @@ import logging
 import re
 import zoneinfo
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, overload
+from typing import Any, overload, int
 
 from dateutil.parser import parse
 from django.http.request import HttpRequest

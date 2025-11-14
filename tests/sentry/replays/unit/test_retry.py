@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.retries import sigmoid_delay
 
 

@@ -5,7 +5,7 @@ from base64 import b32encode
 from binascii import hexlify
 from hashlib import sha1
 from os import urandom
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.utils.translation import gettext_lazy as _
 

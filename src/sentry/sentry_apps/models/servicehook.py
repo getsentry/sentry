@@ -2,7 +2,7 @@ import hmac
 import secrets
 from functools import cached_property
 from hashlib import sha256
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, int
 from uuid import uuid4
 
 from django.contrib.postgres.fields.array import ArrayField

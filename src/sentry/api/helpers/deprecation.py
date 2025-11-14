@@ -4,7 +4,7 @@ import functools
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Concatenate, ParamSpec, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar, int
 
 from cronsim import CronSim, CronSimError
 from django.conf import settings

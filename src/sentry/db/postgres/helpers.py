@@ -1,3 +1,4 @@
+from typing import int
 import psycopg2
 from django.db.utils import DatabaseError, InterfaceError
 

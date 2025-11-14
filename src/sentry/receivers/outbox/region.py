@@ -9,7 +9,7 @@ and perform RPC calls to propagate changes to Control Silo.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from django.dispatch import receiver
 

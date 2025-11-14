@@ -1,3 +1,4 @@
+from typing import int
 """
 The following mapping was obtained from this link: https://support.google.com/googleplay/answer/1727131
 Steps on how to generate this mapping

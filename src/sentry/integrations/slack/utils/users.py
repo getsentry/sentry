@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from slack_sdk.errors import SlackApiError
 

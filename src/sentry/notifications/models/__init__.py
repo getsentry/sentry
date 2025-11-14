@@ -1,3 +1,4 @@
+from typing import int
 from sentry.notifications.models.notificationaction import (
     ActionRegistration,
     ActionService,

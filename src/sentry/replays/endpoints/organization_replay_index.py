@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import cast
+from typing import int, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError

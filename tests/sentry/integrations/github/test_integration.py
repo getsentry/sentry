@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode, urlparse

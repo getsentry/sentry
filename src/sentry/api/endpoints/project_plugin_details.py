@@ -1,3 +1,4 @@
+from typing import int
 from django import forms
 from django.http.response import Http404
 from django.urls import reverse

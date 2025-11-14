@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.testutils.cases import TestCase
 

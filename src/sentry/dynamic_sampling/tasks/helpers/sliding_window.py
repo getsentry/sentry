@@ -1,3 +1,4 @@
+from typing import int
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime, timezone
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.testutils.cases import TestCase

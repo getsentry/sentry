@@ -2,7 +2,7 @@ import importlib
 import os
 import time
 import uuid
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 from arroyo.backends.kafka import KafkaPayload

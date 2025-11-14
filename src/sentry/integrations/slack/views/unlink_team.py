@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from sentry.api.utils import generate_region_url

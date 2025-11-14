@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any
+from typing import int, Any
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS

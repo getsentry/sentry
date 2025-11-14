@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, MutableMapping
-from typing import Self, TypeVar
+from typing import Self, TypeVar, int
 
 import orjson
 from sentry_relay.processing import StoreNormalizer

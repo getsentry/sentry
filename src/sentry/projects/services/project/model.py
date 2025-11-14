@@ -5,7 +5,7 @@
 
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from pydantic.fields import Field
 

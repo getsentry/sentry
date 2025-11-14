@@ -1,3 +1,4 @@
+from typing import int
 from sentry.runner import configure
 
 configure(skip_service_validation=True)

@@ -1,3 +1,4 @@
+from typing import int
 import os
 
 from sentry.logging import LoggingFormat

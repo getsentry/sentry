@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 from uuid import uuid4
 

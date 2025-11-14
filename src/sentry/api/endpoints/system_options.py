@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.db import router, transaction

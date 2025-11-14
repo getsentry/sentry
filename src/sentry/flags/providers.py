@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import hmac
 from collections.abc import Callable, Iterator
-from typing import Any, Protocol, TypedDict, TypeVar
+from typing import Any, Protocol, TypedDict, TypeVar, int
 
 from django.http.request import HttpHeaders
 from rest_framework import serializers

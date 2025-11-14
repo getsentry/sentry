@@ -1,3 +1,4 @@
+from typing import int
 """
 Configuration for similarity grouping model versions.
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_metrics.client.kafka import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 

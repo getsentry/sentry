@@ -1,3 +1,4 @@
+from typing import int
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse

@@ -20,7 +20,7 @@ metric that is queryable by the API.
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast
+from typing import int, cast
 
 from sentry_kafka_schemas.codecs import ValidationError
 

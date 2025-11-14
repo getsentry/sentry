@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from random import randint
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 import click

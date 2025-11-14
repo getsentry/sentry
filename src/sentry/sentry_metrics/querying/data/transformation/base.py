@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
 

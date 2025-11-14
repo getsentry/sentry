@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.group import Group
 from sentry.models.repository import Repository

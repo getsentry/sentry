@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 import secrets
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser

@@ -1,3 +1,4 @@
+from typing import int
 query = """query GetRepo(
   $owner: String!
   $repo: String!

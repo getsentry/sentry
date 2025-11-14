@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import md5
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.http.request import HttpRequest
 from django.utils.functional import classproperty

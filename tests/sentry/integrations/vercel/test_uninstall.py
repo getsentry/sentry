@@ -1,3 +1,4 @@
+from typing import int
 import responses
 
 from fixtures.vercel import SECRET

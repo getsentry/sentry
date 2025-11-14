@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 

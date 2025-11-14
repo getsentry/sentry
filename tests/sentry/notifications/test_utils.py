@@ -1,3 +1,4 @@
+from typing import int
 import types
 from unittest import TestCase
 

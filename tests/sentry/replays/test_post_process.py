@@ -1,3 +1,4 @@
+from typing import int
 from sentry.replays.post_process import _archived_row
 from sentry.replays.validators import VALID_FIELD_SET
 

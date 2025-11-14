@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
+from typing import int, Any
 
 from django.db import IntegrityError, router, transaction
 from rest_framework.exceptions import ParseError

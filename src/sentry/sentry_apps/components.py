@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.encoding import force_str

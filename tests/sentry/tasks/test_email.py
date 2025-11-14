@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.activity import Activity
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils.cases import TestCase

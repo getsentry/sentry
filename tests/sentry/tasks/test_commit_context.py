@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone

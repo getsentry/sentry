@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 
 class UserReportDict(TypedDict):

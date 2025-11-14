@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth"

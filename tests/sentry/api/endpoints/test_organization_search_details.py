@@ -1,3 +1,4 @@
+from typing import int
 from functools import cached_property
 
 from sentry.models.savedsearch import SavedSearch, Visibility

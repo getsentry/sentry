@@ -1,5 +1,6 @@
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
+from typing import int
 import logging
 import os
 import sys

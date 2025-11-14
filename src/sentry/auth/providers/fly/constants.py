@@ -1,3 +1,4 @@
+from typing import int
 AUTHORIZE_URL = "https://api.fly.io/oauth/authorize"
 
 ACCESS_TOKEN_URL = "https://api.fly.io/oauth/token"

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry.models.organizationmember import OrganizationMember

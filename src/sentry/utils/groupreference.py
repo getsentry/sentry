@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

@@ -5,7 +5,7 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from pydantic.fields import Field
 

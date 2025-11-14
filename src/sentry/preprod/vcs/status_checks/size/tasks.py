@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation

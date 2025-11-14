@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Mapping
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 import sentry_sdk
 from django.db import router, transaction

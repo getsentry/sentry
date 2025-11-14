@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Q
 from django.db.models.query import QuerySet

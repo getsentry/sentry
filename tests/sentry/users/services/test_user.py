@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import all_silo_test
 from sentry.users.services.user.service import user_service

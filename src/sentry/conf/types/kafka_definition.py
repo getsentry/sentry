@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import Any, Required, TypedDict
+from typing import Any, Required, TypedDict, int
 
 import click
 from sentry_kafka_schemas import get_codec

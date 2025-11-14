@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, StreamingHttpResponse

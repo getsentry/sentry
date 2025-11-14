@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, cast, int
 
 from sentry.utils import metrics
 from sentry.utils.safe import PathSearchable, get_path

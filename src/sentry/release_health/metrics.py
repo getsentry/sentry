@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, int
 
 from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit, Offset

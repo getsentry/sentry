@@ -1,3 +1,4 @@
+from typing import int
 from .rules.base import generate_rules
 from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias

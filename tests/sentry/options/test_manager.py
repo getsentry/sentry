@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Generator
 from functools import cached_property
 from unittest.mock import patch

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import AbstractOnboardingTask

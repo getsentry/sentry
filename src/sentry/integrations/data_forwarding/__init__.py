@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
 from sentry.integrations.data_forwarding.segment.forwarder import SegmentForwarder
 from sentry.integrations.data_forwarding.splunk.forwarder import SplunkForwarder

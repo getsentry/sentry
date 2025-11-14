@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.culprit import generate_culprit

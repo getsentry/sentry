@@ -4,7 +4,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, int
 
 from django.db import models
 

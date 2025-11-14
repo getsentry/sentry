@@ -1,6 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import int, Any
 
 import orjson
 import pytest

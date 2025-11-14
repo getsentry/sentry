@@ -1,3 +1,4 @@
+from typing import int
 pytest_plugins = [
     "sentry.testutils.skips",
     "sentry.testutils.pytest.sentry",

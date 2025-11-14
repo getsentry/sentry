@@ -1,3 +1,4 @@
+from typing import int
 """Tests for pytest plugin thread leak detection and Sentry integration."""
 
 import builtins

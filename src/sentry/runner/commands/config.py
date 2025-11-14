@@ -1,3 +1,4 @@
+from typing import int
 import click
 
 from sentry.runner.commands.init import generate_secret_key as _generate_secret_key

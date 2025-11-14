@@ -5,7 +5,7 @@
 
 import abc
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.auth.services.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method

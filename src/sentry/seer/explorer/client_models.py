@@ -5,7 +5,7 @@ Pydantic models for Seer Explorer client.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from pydantic import BaseModel
 

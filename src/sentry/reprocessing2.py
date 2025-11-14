@@ -85,7 +85,7 @@ import logging
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, overload
+from typing import Any, Literal, overload, int
 
 import sentry_sdk
 from django.conf import settings

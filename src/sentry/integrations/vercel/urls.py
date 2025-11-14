@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import re_path
 
 from sentry.integrations.web.vercel_extension_configuration import VercelExtensionConfigurationView

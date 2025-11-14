@@ -1,3 +1,4 @@
+from typing import int
 from .installed import JiraSentryInstalledWebhook
 from .issue_updated import JiraIssueUpdatedWebhook
 from .uninstalled import JiraSentryUninstalledWebhook

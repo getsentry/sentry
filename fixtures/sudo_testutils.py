@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, User
 from django.db import models
 from django.test import RequestFactory, TestCase

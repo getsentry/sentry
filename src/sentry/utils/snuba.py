@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 import sentry_sdk

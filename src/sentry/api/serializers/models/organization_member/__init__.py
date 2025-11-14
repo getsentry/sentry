@@ -1,3 +1,4 @@
+from typing import int
 from .base import OrganizationMemberSerializer
 from .expand.projects import OrganizationMemberWithProjectsSerializer
 from .response import OrganizationMemberSCIMSerializerResponse, SCIMMeta

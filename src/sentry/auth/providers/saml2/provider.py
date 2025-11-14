@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict, _TypedDict
+from typing import Any, NotRequired, TypedDict, _TypedDict, int
 from urllib.parse import urlparse
 
 import sentry_sdk

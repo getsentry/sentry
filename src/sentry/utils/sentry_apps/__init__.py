@@ -1,3 +1,4 @@
+from typing import int
 from .request_buffer import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 from .webhooks import send_and_save_webhook_request
 

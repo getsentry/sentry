@@ -1,3 +1,4 @@
+from typing import int
 from sentry.taskworker.runtime import app
 
 # Namespaces for taskworker tasks

@@ -1,3 +1,4 @@
+from typing import int
 from django import forms
 
 from sentry.auth.providers.saml2.forms import URLMetadataForm

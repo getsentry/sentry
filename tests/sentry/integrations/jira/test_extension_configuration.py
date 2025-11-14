@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.jira.views import SALT, JiraExtensionConfigurationView
 from sentry.testutils.cases import TestCase
 from sentry.utils import json

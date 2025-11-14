@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import NamedTuple, NotRequired, Self, TypedDict
+from typing import NamedTuple, NotRequired, Self, TypedDict, int
 
 from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
 from sentry.grouping.fingerprinting.utils import EventDatastore

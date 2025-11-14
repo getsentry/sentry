@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from sentry.demo_mode.utils import get_demo_org, get_demo_user, is_demo_org, is_demo_user

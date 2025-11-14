@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 

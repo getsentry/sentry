@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Literal, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar, int
 
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster

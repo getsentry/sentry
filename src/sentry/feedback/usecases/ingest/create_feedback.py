@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import UTC, datetime
-from typing import Any
+from typing import int, Any
 from uuid import UUID, uuid4
 
 import jsonschema

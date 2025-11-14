@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.profiles.utils import apply_stack_trace_rules_to_profile
 

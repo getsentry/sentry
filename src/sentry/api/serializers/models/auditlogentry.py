@@ -1,3 +1,4 @@
+from typing import int
 import re
 
 from django.db.models import prefetch_related_objects

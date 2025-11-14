@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, DefaultDict, TypedDict
+from typing import Any, DefaultDict, TypedDict, int
 from unittest import mock
 from uuid import uuid4
 

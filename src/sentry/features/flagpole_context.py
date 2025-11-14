@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 
 from django.contrib.auth.models import AnonymousUser

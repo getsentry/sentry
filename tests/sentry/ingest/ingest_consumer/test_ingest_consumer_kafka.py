@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import random
 import time

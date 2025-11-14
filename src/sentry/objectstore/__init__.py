@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 
 from objectstore_client import Client, ClientBuilder, ClientError, MetricsBackend, TimeToLive

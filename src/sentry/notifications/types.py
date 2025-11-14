@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 

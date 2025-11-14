@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import ALL_ACCESS_PROJECTS

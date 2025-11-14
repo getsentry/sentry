@@ -1,3 +1,4 @@
+from typing import int
 from concurrent.futures import TimeoutError
 from unittest.mock import Mock, patch
 from uuid import uuid4

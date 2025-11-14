@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import urljoin
 
 import sentry_sdk

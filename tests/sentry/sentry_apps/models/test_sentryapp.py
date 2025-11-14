@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory

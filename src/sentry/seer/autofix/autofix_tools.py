@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.services import eventstore

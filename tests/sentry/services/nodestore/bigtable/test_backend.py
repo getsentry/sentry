@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

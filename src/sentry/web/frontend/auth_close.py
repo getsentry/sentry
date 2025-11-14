@@ -1,3 +1,4 @@
+from typing import int
 from django.http import HttpRequest, HttpResponse
 
 from sentry.web.frontend.base import BaseView, control_silo_view

@@ -8,7 +8,7 @@ import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
 from enum import Enum
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, int
 
 from sentry.utils.env import in_test_environment
 

@@ -1,3 +1,4 @@
+from typing import int
 from hashlib import sha1
 from uuid import uuid4
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.slack.spec import SlackMessagingSpec
 
 from .actions.form import *  # noqa: F401,F403

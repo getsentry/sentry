@@ -5,7 +5,7 @@ import random
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import ContextManager
+from typing import int, ContextManager
 
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend

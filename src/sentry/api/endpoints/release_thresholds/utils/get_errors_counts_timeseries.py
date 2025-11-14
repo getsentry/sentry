@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.column import Column

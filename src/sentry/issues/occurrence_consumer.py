@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Any
+from typing import int, Any
 from uuid import UUID
 
 import jsonschema

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest

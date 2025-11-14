@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.users.services.user.service import user_service

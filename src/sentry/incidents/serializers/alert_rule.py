@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import operator
 from datetime import timedelta

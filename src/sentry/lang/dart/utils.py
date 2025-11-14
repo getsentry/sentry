@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 from collections.abc import MutableMapping
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

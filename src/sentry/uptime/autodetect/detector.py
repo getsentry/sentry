@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry import options
 from sentry.uptime.autodetect.ranking import (

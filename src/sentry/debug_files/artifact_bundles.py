@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import random
 from datetime import datetime, timedelta

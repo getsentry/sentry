@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.http import HttpResponse
 from django.http.request import HttpRequest

@@ -1,3 +1,4 @@
+from typing import int
 """
 This module is for helper functions for escalating issues forecasts.
 """

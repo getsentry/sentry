@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.match import MatchType, match_values
 
 

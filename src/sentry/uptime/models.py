@@ -1,7 +1,7 @@
 import enum
 import logging
 from datetime import timedelta
-from typing import ClassVar, Literal, Self, cast, override
+from typing import ClassVar, Literal, Self, cast, override, int
 
 from django.db import models
 from django.db.models import Count

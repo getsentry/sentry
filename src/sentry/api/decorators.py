@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Concatenate
+from typing import int, Concatenate
 
 from django.contrib.auth.models import AnonymousUser
 from django.http.response import HttpResponseBase

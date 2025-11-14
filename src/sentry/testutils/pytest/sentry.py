@@ -9,7 +9,7 @@ import sys
 import time
 from datetime import datetime
 from hashlib import sha256
-from typing import TypeVar
+from typing import int, TypeVar
 from unittest import mock
 
 import pytest

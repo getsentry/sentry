@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeGuard
+from typing import int, TypeGuard
 
 from django.http.response import HttpResponseBase, StreamingHttpResponse
 from rest_framework.response import Response

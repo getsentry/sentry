@@ -1,3 +1,4 @@
+from typing import int
 from django import template
 from django.http import HttpRequest
 

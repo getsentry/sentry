@@ -1,6 +1,6 @@
 import math
 from types import SimpleNamespace
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.utils.cursors import Cursor, KeyCallable, build_cursor
 

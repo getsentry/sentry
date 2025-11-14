@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import cast
+from typing import int, cast
 from unittest.mock import patch
 
 from django.utils import timezone

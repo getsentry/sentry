@@ -1,7 +1,7 @@
 import hmac
 import logging
 from hashlib import sha256
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse

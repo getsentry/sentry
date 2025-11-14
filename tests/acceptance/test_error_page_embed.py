@@ -1,3 +1,4 @@
+from typing import int
 from urllib.parse import quote
 from uuid import uuid4
 

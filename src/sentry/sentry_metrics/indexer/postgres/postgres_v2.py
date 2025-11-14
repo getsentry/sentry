@@ -2,7 +2,7 @@ from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster

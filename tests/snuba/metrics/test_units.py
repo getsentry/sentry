@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.snuba.metrics.units import format_value_using_unit

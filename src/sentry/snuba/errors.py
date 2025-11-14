@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import cast
+from typing import int, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Condition

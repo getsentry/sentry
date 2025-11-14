@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import Enum
-from typing import Any, Union, cast
+from typing import Any, Union, cast, int
 
 import sentry_sdk
 from snuba_sdk import Column, Direction, MetricsQuery, Request

@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 
 from sentry.users.models.lostpasswordhash import LostPasswordHash

@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from unittest.mock import patch
 from uuid import uuid4

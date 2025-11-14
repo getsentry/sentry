@@ -5,7 +5,7 @@ from collections import deque
 from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from functools import partial
-from typing import Any, Deque, NamedTuple
+from typing import Any, Deque, NamedTuple, int
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.core.signals import request_finished
 from django.db.models import Model

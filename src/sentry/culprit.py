@@ -1,3 +1,4 @@
+from typing import int
 """
 This file implements the legacy culprit system.  The culprit at this point is
 just used as a fallback if no transaction is set.  When a transaction is set

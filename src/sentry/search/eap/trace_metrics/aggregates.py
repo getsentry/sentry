@@ -1,3 +1,4 @@
+from typing import int
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants

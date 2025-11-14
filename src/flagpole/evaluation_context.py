@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 ValidContextTypes = TypeVar(
     "ValidContextTypes",

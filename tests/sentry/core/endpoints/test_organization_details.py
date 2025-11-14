@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from base64 import b64encode
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 import orjson

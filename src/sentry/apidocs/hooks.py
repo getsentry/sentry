@@ -3,7 +3,7 @@ import os
 import re
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 

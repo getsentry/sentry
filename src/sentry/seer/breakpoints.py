@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 import sentry_sdk
 from django.conf import settings

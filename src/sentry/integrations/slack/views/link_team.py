@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from django import forms
 from django.http import HttpRequest, HttpResponse

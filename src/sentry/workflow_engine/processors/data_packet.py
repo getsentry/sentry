@@ -1,3 +1,4 @@
+from typing import int
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.processors.detector import process_detectors

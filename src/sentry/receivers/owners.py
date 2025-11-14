@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.signals import pre_save
 from rest_framework.serializers import ValidationError
 

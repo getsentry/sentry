@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import call as mock_call
 from unittest.mock import patch
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import Logger
-from typing import Any
+from typing import int, Any
 
 from django.http.request import HttpRequest
 

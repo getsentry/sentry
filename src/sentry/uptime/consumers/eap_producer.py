@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from arroyo import Topic as ArroyoTopic

@@ -1,3 +1,4 @@
+from typing import int
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory

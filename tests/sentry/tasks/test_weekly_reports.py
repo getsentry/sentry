@@ -1,6 +1,6 @@
 import zoneinfo
 from datetime import timedelta
-from typing import cast
+from typing import int, cast
 from unittest import mock
 
 import pytest

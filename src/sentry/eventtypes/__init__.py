@@ -1,4 +1,4 @@
-from typing import Union
+from typing import int, Union
 
 from sentry.eventtypes.base import DefaultEvent
 from sentry.eventtypes.error import ErrorEvent

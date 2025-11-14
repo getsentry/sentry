@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import re
 from gzip import GzipFile

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Any
+from typing import int, Any
 
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule
 from sentry.models.project import Project

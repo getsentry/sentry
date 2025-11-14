@@ -1,3 +1,4 @@
+from typing import int
 """Strategies for clustering high-cardinality transaction names"""
 
 from dataclasses import dataclass

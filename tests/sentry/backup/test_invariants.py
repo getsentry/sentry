@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db.models.fields.related import ManyToManyField
 

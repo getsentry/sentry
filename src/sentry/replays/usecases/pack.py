@@ -1,3 +1,4 @@
+from typing import int
 """Packed binary encoding module.
 
 Bytes are packed in varying formats dependent on their type. The type is

@@ -1,3 +1,4 @@
+from typing import int
 """Aggregate visitor on row visitor module.
 
 This is the primary module containing our memory-optimizations.  The logic is simple: looking at

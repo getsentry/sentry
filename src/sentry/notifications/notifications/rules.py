@@ -4,7 +4,7 @@ import logging
 import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

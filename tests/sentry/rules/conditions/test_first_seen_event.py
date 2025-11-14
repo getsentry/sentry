@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.rule import Rule
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.testutils.cases import RuleTestCase

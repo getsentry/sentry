@@ -1,3 +1,4 @@
+from typing import int
 from functools import partial
 
 from drf_spectacular.utils import extend_schema

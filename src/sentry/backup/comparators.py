@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Any
+from typing import int, Any
 
 from dateutil import parser
 from django.db import models

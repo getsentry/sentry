@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus

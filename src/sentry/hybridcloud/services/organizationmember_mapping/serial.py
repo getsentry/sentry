@@ -1,3 +1,4 @@
+from typing import int
 from sentry.hybridcloud.services.organizationmember_mapping import RpcOrganizationMemberMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 

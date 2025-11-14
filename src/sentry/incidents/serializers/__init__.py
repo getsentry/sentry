@@ -1,3 +1,4 @@
+from typing import int
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 
 __all__ = (

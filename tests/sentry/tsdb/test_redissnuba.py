@@ -1,3 +1,4 @@
+from typing import int
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.redissnuba import READ, method_specifications, selector_func
 from sentry.tsdb.snuba import SnubaTSDB

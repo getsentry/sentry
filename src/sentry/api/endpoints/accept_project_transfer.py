@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from django.core.signing import BadSignature, SignatureExpired

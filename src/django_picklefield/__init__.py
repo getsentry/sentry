@@ -1,3 +1,4 @@
+from typing import int
 from .constants import DEFAULT_PROTOCOL
 from .fields import PickledObjectField
 

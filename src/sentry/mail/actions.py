@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator
-from typing import Any
+from typing import int, Any
 
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm

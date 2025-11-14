@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

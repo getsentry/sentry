@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from django.conf import settings
 from django.db.models.signals import pre_save

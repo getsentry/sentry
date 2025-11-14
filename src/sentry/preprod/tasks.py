@@ -4,7 +4,7 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.db import router, transaction

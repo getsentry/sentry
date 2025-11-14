@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import _load_default_grouping_config

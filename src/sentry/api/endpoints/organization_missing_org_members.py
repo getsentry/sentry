@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Q
 from django.utils import timezone

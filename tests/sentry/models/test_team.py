@@ -1,3 +1,4 @@
+from typing import int
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, int
 
 from django.db import models
 from django.utils import timezone

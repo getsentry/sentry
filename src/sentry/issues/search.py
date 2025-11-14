@@ -4,7 +4,7 @@ import functools
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Optional, Protocol, TypedDict, TypeGuard
+from typing import Any, Optional, Protocol, TypedDict, TypeGuard, int
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype

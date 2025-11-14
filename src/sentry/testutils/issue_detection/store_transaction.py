@@ -1,3 +1,4 @@
+from typing import int
 import random
 from collections.abc import Sequence
 from datetime import datetime, timedelta

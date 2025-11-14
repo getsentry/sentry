@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from django.db import models, router, transaction
 from django.db.models.signals import post_save

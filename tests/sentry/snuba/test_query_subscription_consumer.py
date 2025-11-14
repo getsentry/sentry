@@ -1,3 +1,4 @@
+from typing import int
 import unittest
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone

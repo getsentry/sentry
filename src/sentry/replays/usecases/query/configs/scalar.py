@@ -1,3 +1,4 @@
+from typing import int
 """Scalar query filtering configuration module."""
 
 from __future__ import annotations

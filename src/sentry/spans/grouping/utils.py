@@ -1,3 +1,4 @@
+from typing import int
 import re
 from collections.abc import Sequence
 from hashlib import md5

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

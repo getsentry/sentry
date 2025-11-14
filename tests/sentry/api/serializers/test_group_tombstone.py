@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone

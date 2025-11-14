@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request

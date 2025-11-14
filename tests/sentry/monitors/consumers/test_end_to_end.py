@@ -1,3 +1,4 @@
+from typing import int
 import contextlib
 import uuid
 from collections.abc import Generator

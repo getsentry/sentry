@@ -1,3 +1,4 @@
+from typing import int
 from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
 from sentry.organizations.services.organization import (
     RpcOrganization,

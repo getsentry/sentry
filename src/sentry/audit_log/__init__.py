@@ -1,3 +1,4 @@
+from typing import int
 from sentry.audit_log.manager import *  # NOQA
 from sentry.audit_log.register import default_manager
 

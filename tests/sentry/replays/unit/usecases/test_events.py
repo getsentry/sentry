@@ -1,3 +1,4 @@
+from typing import int
 import time
 
 from sentry.replays.usecases.events import archive_event, viewed_event

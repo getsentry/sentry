@@ -1,3 +1,4 @@
+from typing import int
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import AliasedExpression, Column, Function
 

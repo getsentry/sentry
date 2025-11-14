@@ -1,4 +1,4 @@
-from typing import NoReturn
+from typing import int, NoReturn
 
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import IntegrationProviderSlug

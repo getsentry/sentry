@@ -1,3 +1,4 @@
+from typing import int
 import contextlib
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, patch

@@ -1,3 +1,4 @@
+from typing import int
 """
 Copyright (c) 2015 Sentry Team
 Copyright (c) 2009 Mark Nottingham

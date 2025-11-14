@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import team_roles
 from sentry.testutils.cases import TestCase

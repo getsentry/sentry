@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 from sentry.constants import InsightModules
 

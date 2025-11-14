@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction

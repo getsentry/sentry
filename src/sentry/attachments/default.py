@@ -1,3 +1,4 @@
+from typing import int
 from sentry.cache import default_cache
 
 from .base import BaseAttachmentCache

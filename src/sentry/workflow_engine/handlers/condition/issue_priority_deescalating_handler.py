@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period

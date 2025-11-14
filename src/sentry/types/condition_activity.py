@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 FREQUENCY_CONDITION_BUCKET_SIZE = timedelta(minutes=5)
 

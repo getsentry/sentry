@@ -1,3 +1,4 @@
+from typing import int
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor

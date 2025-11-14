@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus

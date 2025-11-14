@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.request import Request

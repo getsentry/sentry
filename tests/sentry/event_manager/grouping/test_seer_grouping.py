@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed

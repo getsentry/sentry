@@ -1,3 +1,4 @@
+from typing import int
 from functools import partial
 
 from sentry.api.event_search import SearchConfig, default_config

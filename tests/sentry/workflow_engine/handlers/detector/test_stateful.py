@@ -1,3 +1,4 @@
+from typing import int
 import unittest.mock as mock
 
 from sentry.issues.issue_occurrence import IssueOccurrence

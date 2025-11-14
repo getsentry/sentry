@@ -18,7 +18,7 @@ import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore

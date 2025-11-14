@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.services.integration import integration_service

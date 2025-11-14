@@ -1,6 +1,6 @@
 import importlib
 from collections.abc import Iterable
-from typing import Any, Protocol
+from typing import Any, Protocol, int
 
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 

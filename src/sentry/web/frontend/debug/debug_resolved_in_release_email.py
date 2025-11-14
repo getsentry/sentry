@@ -1,3 +1,4 @@
+from typing import int
 from django.http import HttpRequest
 
 from sentry.types.activity import ActivityType

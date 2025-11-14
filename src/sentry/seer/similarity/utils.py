@@ -3,7 +3,7 @@ import os
 import threading
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypedDict, TypeVar, int
 
 import sentry_sdk
 from tokenizers import Tokenizer

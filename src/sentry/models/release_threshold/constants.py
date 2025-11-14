@@ -1,3 +1,4 @@
+from typing import int
 class ReleaseThresholdType:
     TOTAL_ERROR_COUNT = 0
     NEW_ISSUE_COUNT = 1

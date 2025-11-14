@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from django.core.mail import EmailMultiAlternatives

@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 import sentry_sdk
 from django.utils import timezone

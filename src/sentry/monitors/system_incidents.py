@@ -1,3 +1,4 @@
+from typing import int
 """
 This module contains functionality dedicated to detecting and mitigating
 "system incidents". Specifically this system is destined to detect drops in

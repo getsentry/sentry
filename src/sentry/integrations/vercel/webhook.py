@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase

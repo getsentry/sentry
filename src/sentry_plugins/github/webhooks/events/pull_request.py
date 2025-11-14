@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError
 from django.http import Http404
 

@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
+from typing import Any, Literal, NotRequired, Optional, TypedDict, Union, int
 
 from django.utils import timezone as django_timezone
 from google.protobuf.timestamp_pb2 import Timestamp

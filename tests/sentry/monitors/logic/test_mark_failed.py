@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 from itertools import cycle
 from unittest import mock

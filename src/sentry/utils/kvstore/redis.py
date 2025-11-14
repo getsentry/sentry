@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TypeVar
+from typing import int, TypeVar
 
 from redis import StrictRedis
 from rediscluster import RedisCluster

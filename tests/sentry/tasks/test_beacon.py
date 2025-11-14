@@ -1,3 +1,4 @@
+from typing import int
 import platform
 from datetime import timedelta
 from types import SimpleNamespace

@@ -6,7 +6,7 @@ from collections import defaultdict, namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from hashlib import md5
-from typing import Any, ContextManager, Generic, TypeVar
+from typing import Any, ContextManager, Generic, TypeVar, int
 
 import rb
 from django.utils import timezone

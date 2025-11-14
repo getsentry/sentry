@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import reverse
 
 from sentry.integrations.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE

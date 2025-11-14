@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from urllib.parse import urlencode
 
 import sentry_sdk

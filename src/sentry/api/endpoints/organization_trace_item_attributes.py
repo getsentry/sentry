@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, int
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 
 class VersionInfoOptional(TypedDict, total=False):

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType

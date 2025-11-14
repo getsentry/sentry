@@ -1,4 +1,4 @@
-from typing import Any, Never
+from typing import Any, Never, int
 from unittest import TestCase, mock
 
 import pytest

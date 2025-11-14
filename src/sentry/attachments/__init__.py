@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 import sentry_sdk
 from django.conf import settings

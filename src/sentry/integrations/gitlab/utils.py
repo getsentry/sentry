@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping
 from datetime import datetime
 from urllib.parse import urlencode

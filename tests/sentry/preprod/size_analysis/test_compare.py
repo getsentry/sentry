@@ -1,3 +1,4 @@
+from typing import int
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.compare import (
     _should_skip_diff_item_comparison,

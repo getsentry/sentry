@@ -6,7 +6,7 @@ import functools
 from collections.abc import Iterable
 from threading import Thread
 from traceback import FrameSummary
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 import pytest
 import sentry_sdk.scope

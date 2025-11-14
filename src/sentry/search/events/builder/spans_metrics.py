@@ -1,3 +1,4 @@
+from typing import int
 from snuba_sdk import Condition, Granularity
 
 from sentry.search.events import constants

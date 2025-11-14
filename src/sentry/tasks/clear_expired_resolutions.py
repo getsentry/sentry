@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Q
 
 from sentry.models.activity import Activity

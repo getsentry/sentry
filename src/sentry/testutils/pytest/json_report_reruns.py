@@ -1,3 +1,4 @@
+from typing import int
 """Extend the pytest-json-report plugin with a new "reruns" attribute.
 
 Each test will (if it's run more than once) store its prior results in a

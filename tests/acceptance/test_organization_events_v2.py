@@ -1,6 +1,6 @@
 import copy
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 

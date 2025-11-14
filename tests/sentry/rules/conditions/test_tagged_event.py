@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event

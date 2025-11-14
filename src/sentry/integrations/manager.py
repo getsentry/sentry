@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from typing import Any
+from typing import int, Any
 
 from sentry.exceptions import NotRegistered
 from sentry.integrations.base import IntegrationProvider

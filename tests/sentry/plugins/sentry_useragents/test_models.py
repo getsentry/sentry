@@ -1,3 +1,4 @@
+from typing import int
 from ua_parser.user_agent_parser import Parse
 
 from sentry.plugins.sentry_useragents.models import BrowserPlugin, DevicePlugin, OsPlugin

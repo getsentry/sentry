@@ -1,3 +1,4 @@
+from typing import int
 from .integration import GithubPluginIntegrationsWebhookEndpoint
 from .non_integration import GithubPluginWebhookEndpoint
 

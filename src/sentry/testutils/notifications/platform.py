@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry

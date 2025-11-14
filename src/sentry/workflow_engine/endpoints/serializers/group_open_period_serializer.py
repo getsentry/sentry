@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date

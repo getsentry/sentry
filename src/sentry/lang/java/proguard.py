@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 

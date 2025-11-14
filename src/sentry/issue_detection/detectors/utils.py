@@ -1,7 +1,7 @@
 import hashlib
 import re
 from datetime import timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 from ..types import Span

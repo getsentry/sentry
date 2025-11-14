@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 from datetime import timedelta
 from unittest import mock

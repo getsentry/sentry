@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.testutils.cases import TestCase

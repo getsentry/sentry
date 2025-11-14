@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 import random
 import time

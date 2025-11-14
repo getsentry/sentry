@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.api.serializers import Serializer
 from sentry.search.utils import convert_user_tag_to_query

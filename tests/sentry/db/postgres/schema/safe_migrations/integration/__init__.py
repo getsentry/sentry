@@ -1,3 +1,4 @@
+from typing import int
 from django.core.management.commands.migrate import Command as MigrateCommand
 
 

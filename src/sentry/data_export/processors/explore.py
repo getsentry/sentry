@@ -1,5 +1,5 @@
 import logging
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.environment import Environment

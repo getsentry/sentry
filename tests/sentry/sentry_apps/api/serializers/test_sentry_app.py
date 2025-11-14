@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize

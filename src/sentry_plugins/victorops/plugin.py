@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.shared_integrations.exceptions import ApiError

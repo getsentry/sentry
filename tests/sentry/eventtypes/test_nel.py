@@ -1,3 +1,4 @@
+from typing import int
 from sentry.eventtypes.nel import NelEvent
 from sentry.testutils.cases import TestCase
 

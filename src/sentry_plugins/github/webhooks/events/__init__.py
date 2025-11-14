@@ -1,3 +1,4 @@
+from typing import int
 class Webhook:
     def __call__(self, event, organization):
         raise NotImplementedError

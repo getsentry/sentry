@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, DefaultDict, TypedDict, cast
+from typing import Any, DefaultDict, TypedDict, cast, int
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser

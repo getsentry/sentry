@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 

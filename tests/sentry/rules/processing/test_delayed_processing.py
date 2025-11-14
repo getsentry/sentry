@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timedelta
-from typing import DefaultDict
+from typing import int, DefaultDict
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

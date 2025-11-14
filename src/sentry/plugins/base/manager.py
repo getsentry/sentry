@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Iterator
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, Literal, overload, int
 
 from sentry.utils.managers import InstanceManager
 from sentry.utils.safe import safe_execute

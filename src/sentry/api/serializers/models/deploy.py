@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment

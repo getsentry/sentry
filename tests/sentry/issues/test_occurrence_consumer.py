@@ -5,7 +5,7 @@ from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

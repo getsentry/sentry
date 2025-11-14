@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload, int
 
 from sentry.grouping.component import (
     BaseGroupingComponent,

@@ -1,6 +1,6 @@
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 import requests
 from arroyo import Topic as ArroyoTopic

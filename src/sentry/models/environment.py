@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Self
+from typing import ClassVar, Self, int
 from urllib.parse import unquote
 
 from django.db import models

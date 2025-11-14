@@ -1,5 +1,5 @@
 import re
-from typing import cast
+from typing import int, cast
 
 from django.urls import reverse
 

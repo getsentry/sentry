@@ -1,3 +1,4 @@
+from typing import int
 """
 sentry.services.filestore.s3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

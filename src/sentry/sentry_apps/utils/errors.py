@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from rest_framework.response import Response

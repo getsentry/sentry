@@ -1,4 +1,4 @@
-from typing import Union
+from typing import int, Union
 
 from cssselect import Selector, SelectorSyntaxError
 from cssselect import parse as cssselect_parse

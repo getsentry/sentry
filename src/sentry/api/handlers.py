@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from rest_framework.exceptions import Throttled
 from rest_framework.views import exception_handler

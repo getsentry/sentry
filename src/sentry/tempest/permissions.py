@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.bases.project import ProjectPermission
 
 

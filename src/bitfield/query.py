@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.lookups import Exact
 
 from bitfield.types import Bit, BitHandler

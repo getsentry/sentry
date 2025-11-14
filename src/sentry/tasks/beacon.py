@@ -4,7 +4,7 @@ import logging
 import platform
 from datetime import timedelta
 from hashlib import sha1
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 import psutil

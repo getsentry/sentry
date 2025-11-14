@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 
 from rest_framework.response import Response

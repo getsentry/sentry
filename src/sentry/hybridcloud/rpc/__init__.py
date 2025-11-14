@@ -5,7 +5,7 @@ import logging
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import Any, Generic, Self, TypeVar, cast
+from typing import Any, Generic, Self, TypeVar, cast, int
 
 import pydantic
 from django.db import router, transaction

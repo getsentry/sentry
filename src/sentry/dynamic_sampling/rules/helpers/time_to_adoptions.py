@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 
 # This static list is the first step towards a smarter implementation of the latest release boosting. The idea behind

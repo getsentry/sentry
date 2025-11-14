@@ -1,3 +1,4 @@
+from typing import int
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 
 from social_auth.exceptions import AuthException

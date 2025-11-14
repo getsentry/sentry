@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.integrations.slack.tasks.send_notifications_on_activity import (

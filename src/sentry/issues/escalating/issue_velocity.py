@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis

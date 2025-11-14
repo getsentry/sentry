@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.service import user_service

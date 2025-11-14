@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase

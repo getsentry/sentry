@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 from random import random
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 import sentry_sdk

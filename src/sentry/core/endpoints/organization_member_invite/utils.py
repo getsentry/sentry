@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 

@@ -1,3 +1,4 @@
+from typing import int
 import itertools
 
 from django import template

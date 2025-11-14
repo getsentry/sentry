@@ -4,7 +4,7 @@ import abc
 import logging
 from collections.abc import Callable, Collection, Iterable
 from enum import Enum, IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, int
 
 from django.conf import settings
 from django.core.cache import cache

@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Final
+from typing import int, Final
 
 
 class SentryAppActionType(StrEnum):

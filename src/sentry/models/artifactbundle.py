@@ -3,7 +3,7 @@ from __future__ import annotations
 import zipfile
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any
+from typing import IO, Any, int
 
 from django.db import models
 from django.db.models.signals import post_delete

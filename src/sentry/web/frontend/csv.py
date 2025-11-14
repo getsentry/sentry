@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Generator, Iterable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from django.http import StreamingHttpResponse
 

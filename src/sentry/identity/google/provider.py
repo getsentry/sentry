@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 
 from sentry import options

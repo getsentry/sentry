@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Union, int
 
 from pydantic import Field, StrictInt, StrictStr
 

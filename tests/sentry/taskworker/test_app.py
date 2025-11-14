@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.core.cache import cache
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation

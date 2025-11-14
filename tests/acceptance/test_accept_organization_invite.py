@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import F
 from django.test import override_settings
 from selenium.webdriver.common.by import By

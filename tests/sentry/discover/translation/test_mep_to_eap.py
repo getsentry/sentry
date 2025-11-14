@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap

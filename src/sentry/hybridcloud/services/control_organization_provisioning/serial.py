@@ -1,3 +1,4 @@
+from typing import int
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )

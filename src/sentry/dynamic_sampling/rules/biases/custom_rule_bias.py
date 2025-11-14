@@ -1,5 +1,5 @@
 import logging
-from typing import cast
+from typing import int, cast
 
 import orjson
 from sentry_relay.processing import validate_rule_condition

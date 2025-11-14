@@ -1,3 +1,4 @@
+from typing import int
 import unittest
 from unittest import mock
 

@@ -1,3 +1,4 @@
+from typing import int
 """
 GitHub OAuth support.
 This contribution adds support for GitHub OAuth service. The settings

@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
 from itertools import chain
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Count, DateTimeField, F, Func, Q
 from django.db.models.functions import Extract

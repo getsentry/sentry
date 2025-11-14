@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare

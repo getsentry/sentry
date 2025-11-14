@@ -1,3 +1,4 @@
+from typing import int
 from operator import itemgetter
 from unittest import mock
 from uuid import uuid4

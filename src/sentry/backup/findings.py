@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from enum import IntEnum, auto, unique
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 from sentry.utils import json
 

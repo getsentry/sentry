@@ -1,3 +1,4 @@
+from typing import int
 from sentry.preprod.pull_request.comment_types import (
     AuthorAssociation,
     IssueComment,

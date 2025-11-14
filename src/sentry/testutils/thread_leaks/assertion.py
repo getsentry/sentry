@@ -12,7 +12,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Thread
 from traceback import StackSummary
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 from ._constants import CWD

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction

@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from threading import Event, Lock
 from time import time
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload

@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 
 import jsonschema

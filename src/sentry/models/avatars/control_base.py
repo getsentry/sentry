@@ -1,3 +1,4 @@
+from typing import int
 from sentry.db.models import BoundedBigIntegerField
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.files import ControlFile

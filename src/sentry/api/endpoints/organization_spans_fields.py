@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
-from typing import Literal
+from typing import int, Literal
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp

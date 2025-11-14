@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.bitbucket.client import BITBUCKET_KEY
 from sentry.integrations.bitbucket.descriptor import BitbucketDescriptorEndpoint
 from sentry.testutils.cases import APITestCase

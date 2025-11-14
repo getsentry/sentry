@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import serializers, status

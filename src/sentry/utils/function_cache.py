@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from decimal import Decimal
 from functools import partial, update_wrapper
-from typing import Generic, TypeVar, TypeVarTuple
+from typing import Generic, TypeVar, TypeVarTuple, int
 
 from django.core.cache import cache
 from django.db import models

@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import serializers
 
 from sentry.sentry_apps.models.servicehook import SERVICE_HOOK_EVENTS

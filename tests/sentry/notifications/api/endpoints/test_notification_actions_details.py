@@ -1,5 +1,5 @@
 from collections.abc import Callable, MutableMapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 from unittest.mock import MagicMock, patch
 
 from rest_framework import serializers, status

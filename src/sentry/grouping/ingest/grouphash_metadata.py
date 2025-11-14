@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, TypeIs, cast
+from typing import Any, TypeIs, cast, int
 
 from django.utils import timezone
 

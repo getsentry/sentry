@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
 

@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",

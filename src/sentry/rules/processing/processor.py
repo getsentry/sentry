@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from random import randrange
-from typing import Any
+from typing import int, Any
 
 from django.core.cache import cache
 from django.utils import timezone

@@ -5,7 +5,7 @@ executed in a JavaScript runtime).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase

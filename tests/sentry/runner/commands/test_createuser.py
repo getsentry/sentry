@@ -1,3 +1,4 @@
+from typing import int
 from sentry import roles
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember

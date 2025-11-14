@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 from django.utils import timezone
 from rest_framework import serializers, status

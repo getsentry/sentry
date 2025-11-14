@@ -1,3 +1,4 @@
+from typing import int
 import functools
 from collections.abc import Callable
 

@@ -1,3 +1,4 @@
+from typing import int
 from base64 import b64encode
 
 from rest_framework.permissions import IsAuthenticated  # noqa S012

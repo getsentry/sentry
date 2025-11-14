@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.task import P, R, Task

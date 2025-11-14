@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.db.models import Q
 from rest_framework import serializers as rest_serializers

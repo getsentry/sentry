@@ -1,3 +1,4 @@
+from typing import int
 from sentry.workflow_engine.models import Action, WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData

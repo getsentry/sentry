@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution

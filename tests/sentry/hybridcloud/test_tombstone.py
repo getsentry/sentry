@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.tombstone import ControlTombstone, RegionTombstone
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase

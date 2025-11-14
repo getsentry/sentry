@@ -4,7 +4,7 @@ import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from sentry import options
 from sentry.issue_detection.detectors.utils import get_span_duration

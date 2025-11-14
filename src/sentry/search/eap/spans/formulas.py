@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import Literal, cast, int
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,

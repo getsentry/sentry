@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import urllib.request
-from typing import IO
+from typing import int, IO
 
 
 def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 6) -> IO[bytes]:

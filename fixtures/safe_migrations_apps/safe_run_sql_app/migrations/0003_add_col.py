@@ -1,3 +1,4 @@
+from typing import int
 from django.db import migrations
 
 from sentry.db.models import BoundedPositiveIntegerField

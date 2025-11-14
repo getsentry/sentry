@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from sentry.exceptions import PluginError
 from sentry.locks import locks

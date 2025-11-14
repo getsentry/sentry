@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 import orjson
 

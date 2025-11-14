@@ -1,3 +1,4 @@
+from typing import int
 from sentry.db.models.utils import is_model_attr_cached, slugify_instance
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase

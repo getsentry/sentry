@@ -1,3 +1,4 @@
+from typing import int
 from django.test import override_settings
 from django.urls import re_path
 from rest_framework.permissions import AllowAny

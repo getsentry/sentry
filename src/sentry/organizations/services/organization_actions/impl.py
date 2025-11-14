@@ -1,5 +1,5 @@
 import hashlib
-from typing import TypedDict
+from typing import int, TypedDict
 from uuid import uuid4
 
 from django.db import router, transaction

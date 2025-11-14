@@ -1,3 +1,4 @@
+from typing import int
 from snuba_sdk import Column, Function, Identifier, Lambda
 
 

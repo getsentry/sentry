@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.utils import timezone as django_timezone

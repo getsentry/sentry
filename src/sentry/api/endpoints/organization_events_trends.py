@@ -1,6 +1,6 @@
 from datetime import timedelta
 from re import Match
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError

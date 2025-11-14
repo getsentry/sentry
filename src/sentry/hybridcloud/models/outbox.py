@@ -5,7 +5,7 @@ import contextlib
 import datetime
 import threading
 from collections.abc import Generator, Iterable, Mapping
-from typing import Any, Self
+from typing import Any, Self, int
 
 import psycopg2.errors
 import sentry_sdk

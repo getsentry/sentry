@@ -1,3 +1,4 @@
+from typing import int
 import ipaddress
 
 # Bitbucket Cloud IP range:

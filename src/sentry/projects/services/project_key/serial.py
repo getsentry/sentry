@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.projectkey import ProjectKey
 from sentry.projects.services.project_key import RpcProjectKey
 

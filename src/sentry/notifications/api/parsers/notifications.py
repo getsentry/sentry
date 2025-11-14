@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.exceptions import ParameterValidationError
 from sentry.notifications.helpers import validate as helper_validate
 from sentry.notifications.types import (

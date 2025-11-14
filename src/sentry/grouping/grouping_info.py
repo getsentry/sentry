@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant, ComponentVariant, SaltedComponentVariant

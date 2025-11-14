@@ -1,3 +1,4 @@
+from typing import int
 from itertools import islice
 
 from rest_framework.exceptions import ParseError

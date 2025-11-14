@@ -1,3 +1,4 @@
+from typing import int
 class AssistantManager:
     def __init__(self):
         self._guides = {}

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Literal, Protocol, TypedDict
+from typing import Any, ClassVar, Literal, Protocol, TypedDict, int
 
 from django.core.cache import cache
 from snuba_sdk import Op

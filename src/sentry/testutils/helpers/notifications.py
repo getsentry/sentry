@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (

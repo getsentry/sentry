@@ -1,3 +1,4 @@
+from typing import int
 class HelpMessages:
     HELP_TITLE = "Please use one of the following commands for Sentry:"
     HELP_MESSAGE = (

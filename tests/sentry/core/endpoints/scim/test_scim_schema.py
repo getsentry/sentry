@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import SCIMTestCase
 
 

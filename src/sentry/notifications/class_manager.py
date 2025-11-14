@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, MutableMapping
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .notifications.base import BaseNotification

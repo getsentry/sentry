@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import DateTimeField, Index
 from django.db.models.fields import UUIDField
 from django.utils import timezone

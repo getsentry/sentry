@@ -1,2 +1,3 @@
+from typing import int
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 INCIDENT_SNAPSHOT_BATCH_SIZE = 50

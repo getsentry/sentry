@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase
 
 from django.test import Client, RequestFactory

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import dataclasses
 from collections.abc import Mapping, Sequence

@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Iterable
 
 from drf_spectacular.utils import extend_schema

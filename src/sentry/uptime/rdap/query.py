@@ -2,7 +2,7 @@ import ipaddress
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from socket import gethostbyname
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import requests
 from django.core.cache import cache

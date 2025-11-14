@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from typing import int
 import os
 from inspect import isclass
 

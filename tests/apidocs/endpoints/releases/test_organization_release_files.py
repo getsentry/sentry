@@ -1,3 +1,4 @@
+from typing import int
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from django.urls import reverse

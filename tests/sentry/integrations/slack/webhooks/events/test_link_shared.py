@@ -1,3 +1,4 @@
+from typing import int
 import re
 from unittest.mock import Mock, patch
 

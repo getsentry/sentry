@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request

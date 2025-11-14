@@ -1,5 +1,5 @@
 from collections.abc import Callable, MutableMapping
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypedDict, TypeVar, int
 from unittest.mock import MagicMock, patch
 
 import responses

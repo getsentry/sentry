@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError

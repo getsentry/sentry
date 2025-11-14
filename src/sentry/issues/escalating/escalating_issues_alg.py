@@ -2,7 +2,7 @@ import math
 import statistics
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 
 class IssueForecast(TypedDict):

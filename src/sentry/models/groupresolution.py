@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 from django.db import models
 from django.utils import timezone

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.db import router
 from sentry_sdk import capture_exception

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from typing import ClassVar, Self
+from typing import ClassVar, Self, int
 from urllib.parse import urljoin
 from uuid import uuid4
 

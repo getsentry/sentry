@@ -1,3 +1,4 @@
+from typing import int
 from contextvars import Token
 
 from sentry.testutils.cases import TestCase

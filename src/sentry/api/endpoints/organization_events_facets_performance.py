@@ -1,6 +1,6 @@
 import math
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.http import Http404

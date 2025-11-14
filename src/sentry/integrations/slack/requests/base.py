@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request

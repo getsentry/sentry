@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 from sentry.uptime.subscriptions.regions import get_region_config
 

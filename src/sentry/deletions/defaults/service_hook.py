@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import ModelDeletionTask
 from sentry.sentry_apps.models.servicehook import ServiceHook
 

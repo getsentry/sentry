@@ -1,3 +1,4 @@
+from typing import int
 import base64
 
 from sentry.api.serializers import Serializer

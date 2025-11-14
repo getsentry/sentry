@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 

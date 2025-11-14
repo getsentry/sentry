@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.rules.base import EventState, RuleBase
 from sentry.services.eventstore.models import GroupEvent

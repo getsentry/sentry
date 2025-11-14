@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from snuba_sdk import (

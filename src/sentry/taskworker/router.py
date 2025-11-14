@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import int, Protocol
 
 from django.conf import settings
 from sentry_sdk import capture_exception

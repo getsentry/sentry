@@ -1,3 +1,4 @@
+from typing import int
 from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.types import IntegrationProviderSlug
 
 # Supported repository providers for Seer features

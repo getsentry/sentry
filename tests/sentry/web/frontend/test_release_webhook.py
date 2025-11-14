@@ -1,3 +1,4 @@
+from typing import int
 import hmac
 from functools import cached_property
 from hashlib import sha256

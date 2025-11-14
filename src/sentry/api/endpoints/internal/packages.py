@@ -1,3 +1,4 @@
+from typing import int
 import importlib.metadata
 
 from rest_framework.request import Request

@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from sentry.incidents.action_handlers import email_users

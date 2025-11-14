@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 

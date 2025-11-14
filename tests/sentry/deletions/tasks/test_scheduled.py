@@ -1,3 +1,4 @@
+from typing import int
 import abc
 from abc import abstractmethod
 from datetime import timedelta

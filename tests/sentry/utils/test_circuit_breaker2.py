@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import int, Any
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 

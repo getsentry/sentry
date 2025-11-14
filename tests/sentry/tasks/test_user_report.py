@@ -1,3 +1,4 @@
+from typing import int
 from sentry.tasks.user_report import user_report
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

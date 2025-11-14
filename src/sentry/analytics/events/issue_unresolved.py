@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import int, Literal
 
 from sentry import analytics
 

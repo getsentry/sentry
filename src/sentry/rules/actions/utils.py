@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, int
 
 from sentry.api.serializers.models.rule import generate_rule_label
 from sentry.models.environment import Environment

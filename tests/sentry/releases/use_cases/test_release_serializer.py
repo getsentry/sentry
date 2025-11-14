@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment

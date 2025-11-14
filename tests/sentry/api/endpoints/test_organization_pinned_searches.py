@@ -1,3 +1,4 @@
+from typing import int
 from functools import cached_property
 
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME

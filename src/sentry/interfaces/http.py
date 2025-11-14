@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ("Http",)
 
 from urllib.parse import parse_qsl

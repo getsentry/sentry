@@ -4,7 +4,7 @@ import logging
 import time
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import Any, TypeAlias, TypeVar
+from typing import Any, TypeAlias, TypeVar, int
 
 import pydantic
 import rb

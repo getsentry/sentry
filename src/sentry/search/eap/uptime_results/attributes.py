@@ -1,3 +1,4 @@
+from typing import int
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute, datetime_processor
 from sentry.search.eap.common_columns import COMMON_COLUMNS

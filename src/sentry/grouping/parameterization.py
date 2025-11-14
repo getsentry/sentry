@@ -1,3 +1,4 @@
+from typing import int
 import dataclasses
 import re
 from collections import defaultdict

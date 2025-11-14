@@ -1,3 +1,4 @@
+from typing import int
 class DiscordComponentCustomIds:
     """
     Constant to track these ids across modules

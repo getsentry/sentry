@@ -1,6 +1,6 @@
 import pickle
 import zlib
-from typing import Any
+from typing import int, Any
 
 
 class Codec:

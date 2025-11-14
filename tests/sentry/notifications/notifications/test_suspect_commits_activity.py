@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import F
 from django.utils import timezone
 

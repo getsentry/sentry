@@ -1,3 +1,4 @@
+from typing import int
 from django.db.migrations import RemoveField
 from django.db.models import Field, ManyToManyField
 from django.db.models.fields import NOT_PROVIDED

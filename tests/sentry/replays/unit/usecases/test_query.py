@@ -1,3 +1,4 @@
+from typing import int
 from sentry.replays.usecases.query import _make_ordered
 
 

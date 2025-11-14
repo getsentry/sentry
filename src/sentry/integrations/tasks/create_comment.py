@@ -1,3 +1,4 @@
+from typing import int
 from sentry import analytics
 from sentry.integrations.analytics import IntegrationIssueCommentsSyncedEvent
 from sentry.integrations.models.external_issue import ExternalIssue

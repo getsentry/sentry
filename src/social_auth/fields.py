@@ -1,3 +1,4 @@
+from typing import int
 """XXX: this is unused.  remove after the next migrations squash!"""
 
 from __future__ import annotations

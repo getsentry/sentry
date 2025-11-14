@@ -1,3 +1,4 @@
+from typing import int
 query = """query ReposForOwner(
   $owner: String!
   $filters: RepositorySetFilters!

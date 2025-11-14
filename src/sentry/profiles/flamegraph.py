@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, int
 
 from rest_framework.request import Request as HttpRequest
 from snuba_sdk import (

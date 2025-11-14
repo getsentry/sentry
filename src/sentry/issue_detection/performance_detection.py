@@ -4,7 +4,7 @@ import hashlib
 import logging
 import random
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

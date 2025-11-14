@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import TypeGuard
+from typing import int, TypeGuard
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload

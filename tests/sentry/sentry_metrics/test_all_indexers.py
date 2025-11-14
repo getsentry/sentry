@@ -1,3 +1,4 @@
+from typing import int
 """
 Generic testsuite that runs against all productionized indexer backends.
 

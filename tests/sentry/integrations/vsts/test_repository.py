@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 from datetime import timezone
 from functools import cached_property

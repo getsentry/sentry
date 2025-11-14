@@ -12,7 +12,7 @@ import sys
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
-from typing import Any, ContextManager, Protocol, overload
+from typing import Any, ContextManager, Protocol, overload, int
 
 import pytest
 import requests

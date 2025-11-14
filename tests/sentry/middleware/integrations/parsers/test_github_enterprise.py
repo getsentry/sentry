@@ -1,3 +1,4 @@
+from typing import int
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse

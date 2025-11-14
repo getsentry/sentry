@@ -1,3 +1,4 @@
+from typing import int
 """
 Obtain
 VISUALSTUDIO_CLIENT_ID & VISUALSTUDIO_CLIENT_SECRET

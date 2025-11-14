@@ -1,3 +1,4 @@
+from typing import int
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 

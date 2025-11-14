@@ -1,3 +1,4 @@
+from typing import int
 from sentry.types.group import PriorityLevel
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (

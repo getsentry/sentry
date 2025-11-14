@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Q
 from django.utils import timezone

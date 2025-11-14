@@ -1,6 +1,6 @@
 __all__ = ["DatadogMetricsBackend"]
 
-from typing import Any
+from typing import int, Any
 
 from datadog import initialize
 from datadog.threadstats.base import ThreadStats

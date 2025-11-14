@@ -1,3 +1,4 @@
+from typing import int
 from sentry.audit_log import events
 from sentry.audit_log.manager import AuditLogEvent, AuditLogEventManager
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowFireHistory
 

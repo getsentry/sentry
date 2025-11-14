@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Collection
 
 from drf_spectacular.types import OpenApiTypes

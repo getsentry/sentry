@@ -1,3 +1,4 @@
+from typing import int
 import responses
 
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder

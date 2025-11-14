@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import (
     OrganizationMemberSerializer,
     OrganizationMemberWithProjectsSerializer,

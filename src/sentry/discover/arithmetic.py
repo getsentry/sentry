@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Literal, Union, overload
+from typing import Literal, Union, overload, int
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar

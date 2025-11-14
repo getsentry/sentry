@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.metrics.precise_dogstatsd import PreciseDogStatsdMetricsBackend

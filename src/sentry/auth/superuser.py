@@ -16,7 +16,7 @@ import ipaddress
 import logging
 from collections.abc import Container, Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Final, Never, TypeIs, overload
+from typing import Any, Final, Never, TypeIs, overload, int
 
 import orjson
 from django.conf import settings

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 

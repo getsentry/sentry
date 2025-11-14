@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.views import APIView
 
 from sentry.api.permissions import (

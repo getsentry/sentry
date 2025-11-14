@@ -1,3 +1,4 @@
+from typing import int
 """
 This list is tracking old api endpoints that don't correctly implement pagination.
 The goal is to eventually add pagination for all and shrink this list.

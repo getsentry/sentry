@@ -4,7 +4,7 @@ import itertools
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Generic
+from typing import int, Generic
 
 import pytest
 

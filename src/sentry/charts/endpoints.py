@@ -1,3 +1,4 @@
+from typing import int
 import os.path
 
 from django.http import HttpRequest

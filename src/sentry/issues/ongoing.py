@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.db.models.signals import post_save

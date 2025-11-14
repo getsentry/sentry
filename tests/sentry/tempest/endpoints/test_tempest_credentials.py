@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, patch
 
 from sentry.tempest.models import TempestCredentials

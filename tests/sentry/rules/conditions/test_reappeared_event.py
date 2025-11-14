@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba

@@ -1,5 +1,5 @@
 from threading import local
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.types import IntegrationProviderSlug

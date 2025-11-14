@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, NotRequired, Optional, TypedDict
+from typing import Any, NotRequired, Optional, TypedDict, int
 
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var

@@ -4,7 +4,7 @@ import importlib.resources
 import logging
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, overload
+from typing import Any, Literal, TypeGuard, TypeVar, overload, int
 
 import rb
 from django.utils.functional import SimpleLazyObject

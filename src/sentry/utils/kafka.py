@@ -4,7 +4,7 @@ import signal
 import sys
 import time
 from threading import Thread
-from typing import Any
+from typing import int, Any
 
 from arroyo.processing.processor import StreamProcessor
 

@@ -1,5 +1,5 @@
 from pathlib import PurePath, PureWindowsPath
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 from rest_framework import serializers, status

@@ -6,7 +6,7 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.db import models, router

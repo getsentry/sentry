@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.metrics.dummy import DummyMetricsBackend

@@ -6,7 +6,7 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, int
 
 import sentry_sdk
 from django.conf import settings

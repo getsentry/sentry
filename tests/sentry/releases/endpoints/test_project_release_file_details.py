@@ -1,3 +1,4 @@
+from typing import int
 import io
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from hashlib import sha1

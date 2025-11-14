@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping, Sequence
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op

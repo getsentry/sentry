@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import options
 from sentry.models.project import Project

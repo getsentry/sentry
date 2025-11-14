@@ -1,3 +1,4 @@
+from typing import int
 """
 Tests for custom tool utilities.
 """

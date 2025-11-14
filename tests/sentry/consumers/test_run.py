@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 

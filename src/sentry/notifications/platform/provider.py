@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import int, Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget

@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Any
+from typing import int, Any
 
 import lxml.html
 import toronado

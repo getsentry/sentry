@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request

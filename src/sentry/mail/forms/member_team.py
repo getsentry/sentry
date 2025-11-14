@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 from django import forms
 

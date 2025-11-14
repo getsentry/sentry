@@ -5,7 +5,7 @@ import logging
 import os
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 import google.auth
 import jsonschema

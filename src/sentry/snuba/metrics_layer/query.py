@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from typing import Any, Union, cast
+from typing import Any, Union, cast, int
 
 from snuba_sdk import (
     And,

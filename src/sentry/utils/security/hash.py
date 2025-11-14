@@ -1,3 +1,4 @@
+from typing import int
 import string
 
 from django.utils.crypto import get_random_string

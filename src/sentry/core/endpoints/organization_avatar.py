@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin

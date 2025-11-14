@@ -1,3 +1,4 @@
+from typing import int
 query = """
         mutation RegenerateRepositoryUploadToken(
             $owner: String!

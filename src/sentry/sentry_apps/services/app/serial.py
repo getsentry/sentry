@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken

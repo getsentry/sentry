@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from sentry.discover.models import DiscoverSavedQueryTypes
 from sentry.snuba import (

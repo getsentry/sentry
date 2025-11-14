@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, Union
+from typing import Any, Union, int
 
 from sentry.issues.grouptype import GroupCategory
 

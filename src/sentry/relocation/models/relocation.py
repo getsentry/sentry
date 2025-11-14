@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from enum import Enum, IntEnum, unique
 from uuid import uuid4

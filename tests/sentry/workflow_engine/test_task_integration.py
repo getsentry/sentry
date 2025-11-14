@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.issues.ingest import hash_fingerprint

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.db.models.signals import post_delete, post_save, pre_delete
 

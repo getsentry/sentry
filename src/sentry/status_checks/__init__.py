@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.warnings import seen_warnings
 
 from .base import Problem, StatusCheck, sort_by_severity

@@ -1,6 +1,6 @@
 import io
 from collections.abc import Iterator
-from typing import Protocol
+from typing import int, Protocol
 
 
 class MalformedRangeHeader(Exception):

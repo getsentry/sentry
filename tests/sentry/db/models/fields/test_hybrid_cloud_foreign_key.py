@@ -1,3 +1,4 @@
+from typing import int
 from django.apps import apps
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey

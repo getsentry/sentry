@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import int, Any
 
 from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time

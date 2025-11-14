@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import Collection, Generator, Iterable, Mapping
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, int
 
 from django.db import connections, router, transaction
 from django.dispatch import receiver

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.session_store import RedisSessionStore, redis_property
 
 

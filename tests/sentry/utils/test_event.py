@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 from unittest import TestCase
 
 from sentry.utils.event import has_stacktrace, is_handled

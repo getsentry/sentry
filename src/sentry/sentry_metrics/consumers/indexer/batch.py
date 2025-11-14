@@ -3,7 +3,7 @@ import random
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, cast, int
 
 import orjson
 import rapidjson

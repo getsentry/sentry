@@ -1,3 +1,4 @@
+from typing import int
 from bitfield.models import BitField, TypedClassBitField, typed_dict_bitfield  # NOQA
 from bitfield.types import Bit, BitHandler
 

@@ -1,7 +1,7 @@
 import datetime
 from collections.abc import Mapping, Sequence
 from functools import cached_property
-from typing import cast
+from typing import int, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.json import prune_empty_keys

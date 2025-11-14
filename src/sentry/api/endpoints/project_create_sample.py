@@ -1,3 +1,4 @@
+from typing import int
 from django.core.exceptions import SuspiciousFileOperation
 from rest_framework import status
 from rest_framework.request import Request

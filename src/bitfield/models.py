@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, cast, int
 
 from django.db.models import Model
 from django.db.models.fields import BigIntegerField

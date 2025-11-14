@@ -1,3 +1,4 @@
+from typing import int
 from django import template
 
 from sentry.utils.avatar import get_letter_avatar, get_platform_avatar

@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry.options
 from sentry.relay.config.ai_model_costs import AIModelCosts, ai_model_costs_config

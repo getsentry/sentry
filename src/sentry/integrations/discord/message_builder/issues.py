@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry import features, tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR

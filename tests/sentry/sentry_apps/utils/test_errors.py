@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 

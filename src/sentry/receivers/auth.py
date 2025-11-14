@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from django.contrib.auth.models import update_last_login

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus

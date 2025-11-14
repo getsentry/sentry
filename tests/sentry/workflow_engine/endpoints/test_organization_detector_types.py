@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Never
+from typing import int, Never
 from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue

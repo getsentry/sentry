@@ -1,3 +1,4 @@
+from typing import int
 from collections import namedtuple
 from functools import cached_property
 from unittest import TestCase

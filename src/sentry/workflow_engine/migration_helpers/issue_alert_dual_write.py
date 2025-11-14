@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions

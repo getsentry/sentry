@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.core.exceptions import ValidationError
 from django.db import models

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar
+from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar, int
 
 import sentry_sdk
 

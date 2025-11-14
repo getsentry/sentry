@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 
 from sentry.lang.javascript.plugin import generate_modules
 from sentry.lang.javascript.utils import generate_module, trim_line

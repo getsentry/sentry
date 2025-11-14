@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.zip import is_unsafe_path
 
 

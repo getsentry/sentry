@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Callable
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, int
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component

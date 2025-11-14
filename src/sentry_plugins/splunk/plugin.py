@@ -1,6 +1,6 @@
 import logging
 from collections.abc import MutableMapping
-from typing import Any
+from typing import int, Any
 
 from sentry import tagstore
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures

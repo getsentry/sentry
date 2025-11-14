@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.db.models import Count
 from django.db.models.functions import TruncHour

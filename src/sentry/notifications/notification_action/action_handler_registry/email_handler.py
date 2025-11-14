@@ -1,3 +1,4 @@
+from typing import int
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.notifications.types import FallthroughChoiceType

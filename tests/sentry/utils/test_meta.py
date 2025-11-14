@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 from unittest import TestCase
 
 from sentry.utils.meta import Meta

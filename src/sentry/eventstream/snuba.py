@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from uuid import uuid4
 
 import urllib3

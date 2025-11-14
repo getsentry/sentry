@@ -1,3 +1,4 @@
+from typing import int
 import ipaddress
 import socket
 from hashlib import sha256

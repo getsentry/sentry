@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.action_handler_registry.base import (

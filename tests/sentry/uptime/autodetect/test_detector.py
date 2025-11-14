@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organization import Organization
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.options import override_options

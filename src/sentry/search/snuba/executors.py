@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict, cast, int
 
 import sentry_sdk
 from django.db.models import Q

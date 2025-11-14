@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied

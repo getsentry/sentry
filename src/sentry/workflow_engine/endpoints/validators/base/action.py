@@ -1,5 +1,5 @@
 import builtins
-from typing import Any
+from typing import int, Any
 
 from rest_framework import serializers
 

@@ -1,3 +1,4 @@
+from typing import int
 from .manager import ProjectOptionsManager
 
 __all__ = ("get", "set", "delete", "register", "isset", "LATEST_EPOCH")

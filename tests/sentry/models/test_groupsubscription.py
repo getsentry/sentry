@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.group import Group

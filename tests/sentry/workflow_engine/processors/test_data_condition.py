@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import int, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction

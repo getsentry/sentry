@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 from uuid import uuid4

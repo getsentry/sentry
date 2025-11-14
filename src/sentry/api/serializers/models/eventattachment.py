@@ -1,3 +1,4 @@
+from typing import int
 import mimetypes
 
 from sentry.api.serializers import Serializer, register

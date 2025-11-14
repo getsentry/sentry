@@ -1,3 +1,4 @@
+from typing import int
 from sentry.adoption import manager as adoption_manager
 from sentry.auth.services.auth import (
     RpcAuthProvider,

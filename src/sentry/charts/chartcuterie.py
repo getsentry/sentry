@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any
+from typing import int, Any
 from urllib.parse import urljoin
 from uuid import uuid4
 

@@ -4,7 +4,7 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, NotRequired, Protocol, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict, int
 
 from snuba_sdk import BooleanCondition, Column, Condition, Function
 

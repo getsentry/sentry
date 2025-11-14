@@ -1,5 +1,5 @@
 import tempfile
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 from sentry.lang.dart.utils import (

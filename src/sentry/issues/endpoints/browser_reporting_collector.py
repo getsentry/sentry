@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from django.core.validators import URLValidator
 from django.views.decorators.csrf import csrf_exempt

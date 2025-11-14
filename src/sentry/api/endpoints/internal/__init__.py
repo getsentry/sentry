@@ -1,3 +1,4 @@
+from typing import int
 from .beacon import InternalBeaconEndpoint
 from .environment import InternalEnvironmentEndpoint
 from .feature_flags import InternalFeatureFlagsEndpoint

@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 from time import sleep
 from unittest.mock import patch

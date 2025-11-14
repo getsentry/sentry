@@ -4,7 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, int
 
 from django.db import models
 from django.db.models import Case, F, Func, Q, Subquery, Value, When

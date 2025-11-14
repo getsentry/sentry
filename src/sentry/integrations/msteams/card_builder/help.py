@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import ActionType, AdaptiveCard, OpenUrlAction
 

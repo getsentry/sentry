@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict
+from typing import int, DefaultDict
 
 import sentry_sdk
 

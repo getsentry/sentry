@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import orjson

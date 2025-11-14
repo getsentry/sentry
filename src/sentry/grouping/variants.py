@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, int
 
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.fingerprinting.rules import FingerprintRule

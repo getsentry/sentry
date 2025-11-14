@@ -1,3 +1,4 @@
+from typing import int
 query = """query RepoTokensForOwner(
   $owner: String!
   $ordering: RepositoryOrdering!

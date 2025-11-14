@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed

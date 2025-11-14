@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.rule import Rule, RuleSource
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, int
 
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification

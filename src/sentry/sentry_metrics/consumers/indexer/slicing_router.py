@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping, Sequence
-from typing import Final
+from typing import int, Final
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer

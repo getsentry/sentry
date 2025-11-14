@@ -1,3 +1,4 @@
+from typing import int
 from .bounded import *  # NOQA
 from .citext import *  # NOQA
 from .encryption import *  # NOQA

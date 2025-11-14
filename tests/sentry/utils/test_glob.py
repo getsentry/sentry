@@ -1,4 +1,4 @@
-from typing import NamedTuple, Self
+from typing import NamedTuple, Self, int
 
 import pytest
 

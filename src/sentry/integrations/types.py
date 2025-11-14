@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 

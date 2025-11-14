@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import cast
+from typing import int, cast
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoostedReleases

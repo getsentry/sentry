@@ -2,7 +2,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 from django.contrib.auth.models import AnonymousUser
 

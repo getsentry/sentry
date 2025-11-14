@@ -1,3 +1,4 @@
+from typing import int
 from sentry.plugins.base.group_api_urls import load_plugin_urls
 from sentry_plugins.asana.plugin import AsanaPlugin
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin

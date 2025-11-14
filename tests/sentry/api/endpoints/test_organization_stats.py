@@ -1,3 +1,4 @@
+from typing import int
 import sys
 
 from django.urls import reverse

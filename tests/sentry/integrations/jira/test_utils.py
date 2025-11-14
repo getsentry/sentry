@@ -1,3 +1,4 @@
+from typing import int
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.utils import build_user_choice
 from sentry.testutils.cases import TestCase

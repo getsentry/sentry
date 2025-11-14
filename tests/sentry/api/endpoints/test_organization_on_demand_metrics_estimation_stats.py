@@ -1,6 +1,6 @@
 from datetime import timedelta
 from random import choice
-from typing import cast
+from typing import int, cast
 
 import pytest
 from django.utils import timezone

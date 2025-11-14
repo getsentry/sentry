@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.expressions import Combinable

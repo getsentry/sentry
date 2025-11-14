@@ -1,3 +1,4 @@
+from typing import int
 from django.db.migrations import executor, writer
 from django.db.models import Field
 

@@ -1,3 +1,4 @@
+from typing import int
 from .codecov_account_link import codecov_account_link
 from .codecov_account_unlink import codecov_account_unlink
 from .link_all_repos import link_all_repos

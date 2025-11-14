@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import TestCase

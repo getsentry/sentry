@@ -1,3 +1,4 @@
+from typing import int
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable

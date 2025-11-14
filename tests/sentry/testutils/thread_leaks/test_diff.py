@@ -1,3 +1,4 @@
+from typing import int
 from traceback import FrameSummary
 
 from sentry.testutils.thread_leaks import diff

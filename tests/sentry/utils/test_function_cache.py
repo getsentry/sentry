@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import create_autospec
 
 from django.db import models

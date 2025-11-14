@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Protocol, TypeVar, Union
+from typing import Any, Protocol, TypeVar, Union, int
 
 T = TypeVar("T")
 CursorValue = Union[float, int, str]

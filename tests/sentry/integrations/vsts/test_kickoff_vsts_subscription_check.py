@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from time import time
-from typing import Any
+from typing import int, Any
 
 import responses
 

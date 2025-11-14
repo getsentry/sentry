@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 

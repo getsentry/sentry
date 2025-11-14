@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import BaseRelation, ModelDeletionTask
 from sentry.models.organizationmember import OrganizationMember
 

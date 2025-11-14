@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 from dataclasses import asdict
 from unittest import mock

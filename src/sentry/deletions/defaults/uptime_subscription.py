@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import ModelDeletionTask
 from sentry.uptime.models import UptimeSubscription, get_detector
 from sentry.uptime.subscriptions.subscriptions import delete_uptime_subscription, remove_uptime_seat

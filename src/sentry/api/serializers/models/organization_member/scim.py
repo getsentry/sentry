@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer
 from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_USER

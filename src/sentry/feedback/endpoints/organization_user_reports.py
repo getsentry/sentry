@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from rest_framework.request import Request
 from rest_framework.response import Response

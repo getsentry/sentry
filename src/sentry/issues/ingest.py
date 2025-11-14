@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime
 from hashlib import md5
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from django.conf import settings

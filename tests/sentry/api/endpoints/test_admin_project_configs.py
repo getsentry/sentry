@@ -1,3 +1,4 @@
+from typing import int
 from urllib import parse
 
 from django.urls import reverse

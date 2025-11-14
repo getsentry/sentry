@@ -1,3 +1,4 @@
+from typing import int
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.explore.translation.discover_translation import (

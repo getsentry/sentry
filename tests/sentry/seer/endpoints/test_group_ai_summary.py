@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry.seer.autofix.constants import SeerAutomationSource

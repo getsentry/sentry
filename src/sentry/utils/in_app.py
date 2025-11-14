@@ -1,3 +1,4 @@
+from typing import int
 import re
 
 # Absolute paths where iOS mounts application files.

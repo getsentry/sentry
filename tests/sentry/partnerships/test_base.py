@@ -1,3 +1,4 @@
+from typing import int
 from sentry.partnerships.base import Partnership
 from sentry.testutils.cases import TestCase
 

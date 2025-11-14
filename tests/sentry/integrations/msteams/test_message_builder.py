@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TypeGuard
+from typing import int, TypeGuard
 
 import orjson
 

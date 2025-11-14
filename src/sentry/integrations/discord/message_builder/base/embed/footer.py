@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 
 class DiscordMessageEmbedFooterDict(TypedDict):

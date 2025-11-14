@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 
 def build_user_choice(user_response: dict[str, Any], user_id_field: str) -> tuple[str, str] | None:

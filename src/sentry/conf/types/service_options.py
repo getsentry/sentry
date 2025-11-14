@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import int, TypedDict
 
 
 class ServiceOptions(TypedDict, total=False):

@@ -6,7 +6,7 @@ and thus cannot (yet) be refactored to use the new span schema.
 
 import uuid
 from copy import deepcopy
-from typing import Any, cast
+from typing import Any, cast, int
 
 import sentry_sdk
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent

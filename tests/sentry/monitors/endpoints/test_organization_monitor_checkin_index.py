@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.monitors.endpoints.test_base_monitor_checkin_index import (

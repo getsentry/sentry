@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any, cast, int
 
 from django.contrib.postgres.aggregates import BitOr
 from django.db import models, router, transaction

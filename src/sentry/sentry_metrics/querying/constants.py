@@ -1,3 +1,4 @@
+from typing import int
 from snuba_sdk import ArithmeticOperator
 
 # Snuba can return at most 10.000 rows.

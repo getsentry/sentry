@@ -4,7 +4,7 @@ import logging
 import tempfile
 from hashlib import sha1
 from io import BufferedRandom
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.core.files.base import ContentFile

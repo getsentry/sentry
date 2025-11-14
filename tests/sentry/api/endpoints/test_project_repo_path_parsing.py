@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import reverse
 from rest_framework.response import Response
 

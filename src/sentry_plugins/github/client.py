@@ -1,3 +1,4 @@
+from typing import int
 import calendar
 import datetime
 import time

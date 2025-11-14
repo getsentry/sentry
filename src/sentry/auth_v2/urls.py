@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import re_path
 
 from sentry.auth_v2.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint

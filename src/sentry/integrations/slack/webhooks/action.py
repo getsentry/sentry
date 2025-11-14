@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 import orjson
 import requests as requests_

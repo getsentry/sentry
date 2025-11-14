@@ -1,3 +1,4 @@
+from typing import int
 from sentry.db.models.manager.base import flush_manager_local_cache
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase

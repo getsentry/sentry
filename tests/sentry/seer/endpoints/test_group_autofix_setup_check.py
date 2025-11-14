@@ -1,3 +1,4 @@
+from typing import int
 import calendar
 from unittest.mock import MagicMock, patch
 

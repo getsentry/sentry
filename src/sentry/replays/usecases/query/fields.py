@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from snuba_sdk import Condition
 

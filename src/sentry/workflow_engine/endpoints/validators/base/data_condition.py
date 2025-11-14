@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, int
 
 from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers

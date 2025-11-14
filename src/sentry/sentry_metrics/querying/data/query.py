@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
 from sentry.sentry_metrics.querying.data.transformation.base import (

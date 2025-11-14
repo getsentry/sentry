@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import status
 
 from sentry.api.validators.project_codeowners import build_codeowners_associations

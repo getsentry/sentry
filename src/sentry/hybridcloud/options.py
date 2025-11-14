@@ -1,3 +1,4 @@
+from typing import int
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
 from sentry.utils.types import Bool, Int, Sequence
 

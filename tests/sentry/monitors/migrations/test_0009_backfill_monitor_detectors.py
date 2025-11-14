@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 import pytest
 from django.conf import settings

@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, int
 
 from django.db import models
 

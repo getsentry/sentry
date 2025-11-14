@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Deque, Optional, Union
+from typing import TYPE_CHECKING, Any, Deque, Optional, Union, int
 
 from django.db.models import QuerySet
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request

@@ -1,3 +1,4 @@
+from typing import int
 from sentry import features
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds

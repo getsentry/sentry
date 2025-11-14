@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.signals import post_save, pre_delete
 
 from sentry.models.rulesnooze import RuleSnooze

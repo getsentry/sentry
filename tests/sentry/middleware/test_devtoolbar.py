@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import cast
+from typing import int, cast
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponse

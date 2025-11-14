@@ -2,7 +2,7 @@ import base64
 import binascii
 import time
 import uuid
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 from django.conf import settings
 

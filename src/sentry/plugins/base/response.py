@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from django.http import HttpRequest, HttpResponse
 from django.template.context_processors import csrf

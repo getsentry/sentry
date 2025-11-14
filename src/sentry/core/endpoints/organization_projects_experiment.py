@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import TypedDict, TypeIs
+from typing import TypedDict, TypeIs, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction

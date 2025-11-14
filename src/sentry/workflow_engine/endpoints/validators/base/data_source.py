@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 from rest_framework import serializers
 

@@ -4,7 +4,7 @@ import enum
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 
 from django.dispatch.dispatcher import Signal
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.discord.message_builder.base.component.button import (
     DiscordButton,
     DiscordButtonStyle,

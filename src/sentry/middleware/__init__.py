@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import Union
+from typing import int, Union
 
 from django.views import View
 from rest_framework.request import Request

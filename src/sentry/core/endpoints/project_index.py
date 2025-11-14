@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
 from rest_framework.exceptions import AuthenticationFailed

@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload

@@ -1,3 +1,4 @@
+from typing import int
 """
 Obtain
 ASANA_CLIENT_ID & ASANA_CLIENT_SECRET

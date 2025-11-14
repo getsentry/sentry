@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ("Annotation", "Notification")
 
 import warnings

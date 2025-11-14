@@ -1,7 +1,7 @@
 import math
 import uuid
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

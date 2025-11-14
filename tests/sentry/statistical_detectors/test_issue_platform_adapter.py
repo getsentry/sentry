@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType

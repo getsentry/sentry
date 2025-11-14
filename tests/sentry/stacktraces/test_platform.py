@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Generator, Mapping
 from copy import copy
 from logging import Logger, getLogger
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

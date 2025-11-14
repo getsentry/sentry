@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries

@@ -1,6 +1,6 @@
 import secrets
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.conf import settings
 from django.core.cache import cache

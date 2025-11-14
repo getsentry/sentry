@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption

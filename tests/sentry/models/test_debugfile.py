@@ -5,7 +5,7 @@ import tempfile
 import time
 import zipfile
 from io import BytesIO
-from typing import Any
+from typing import int, Any
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile

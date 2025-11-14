@@ -1,3 +1,4 @@
+from typing import int
 from django.conf import settings
 
 from sentry.utils.locking.backends import LockBackend

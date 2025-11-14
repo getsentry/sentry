@@ -1,3 +1,4 @@
+from typing import int
 from enum import StrEnum
 
 GITHUB_WEBHOOK_TYPE_HEADER = "HTTP_X_GITHUB_EVENT"

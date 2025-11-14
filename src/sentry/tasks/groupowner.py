@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, cast, int
 
 import sentry_sdk
 from django.utils import timezone

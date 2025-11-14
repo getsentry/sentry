@@ -1,3 +1,4 @@
+from typing import int
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
 
 

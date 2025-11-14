@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.event_logger import (

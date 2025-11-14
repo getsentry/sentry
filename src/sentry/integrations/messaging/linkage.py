@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser

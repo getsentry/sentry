@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.utils.providers import get_provider_string
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {

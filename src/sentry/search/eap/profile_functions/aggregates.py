@@ -1,3 +1,4 @@
+from typing import int
 from sentry.search.eap.ourlogs.aggregates import LOG_AGGREGATE_DEFINITIONS
 
 # For now, profile functions uses the same aggregates as logs

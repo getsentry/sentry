@@ -1,3 +1,4 @@
+from typing import int
 from django.db import connections
 
 from sentry.hybridcloud.models import ApiKeyReplica

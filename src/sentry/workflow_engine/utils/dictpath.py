@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, cast
+from typing import Protocol, cast, int
 
 
 def _tname(t: type | tuple[type, ...]) -> str:

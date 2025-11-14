@@ -1,3 +1,4 @@
+from typing import int
 from warnings import warn
 
 from sentry.utils.safe import get_path

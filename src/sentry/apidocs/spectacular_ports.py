@@ -34,7 +34,7 @@ import typing
 from collections import defaultdict
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Union
+from typing import Any, Literal, Union, int
 from typing import get_type_hints as _get_type_hints
 from typing import is_typeddict
 

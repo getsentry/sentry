@@ -6,7 +6,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from uuid import UUID, uuid4
 
 import sentry_sdk

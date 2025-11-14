@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, int
 
 import sentry_sdk
 from django.utils.encoding import force_bytes, force_str

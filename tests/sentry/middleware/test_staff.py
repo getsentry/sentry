@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.test import override_settings
 from django.urls import re_path

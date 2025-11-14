@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, int
 
 from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
 

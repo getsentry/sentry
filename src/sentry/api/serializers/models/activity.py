@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity

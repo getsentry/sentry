@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path

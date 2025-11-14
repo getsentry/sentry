@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now

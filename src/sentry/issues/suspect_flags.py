@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request

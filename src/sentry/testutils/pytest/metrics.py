@@ -1,3 +1,4 @@
+from typing import int
 import contextlib
 import dataclasses
 import functools

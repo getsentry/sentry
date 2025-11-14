@@ -1,3 +1,4 @@
+from typing import int
 import jwt
 import pytest
 import responses

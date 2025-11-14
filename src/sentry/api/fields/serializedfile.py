@@ -1,3 +1,4 @@
+from typing import int
 from base64 import b64decode, b64encode
 from dataclasses import dataclass
 from io import BytesIO

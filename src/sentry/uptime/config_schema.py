@@ -1,3 +1,4 @@
+from typing import int
 CHECK_CONFIG_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "uptime_config",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, NotRequired, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union, int
 
 from django.utils.functional import cached_property
 from django.utils.text import slugify

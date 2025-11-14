@@ -1,6 +1,6 @@
 import time
 from time import sleep
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import orjson

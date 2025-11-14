@@ -1,3 +1,4 @@
+from typing import int
 import copy
 
 from sentry.attachments.base import BaseAttachmentCache, CachedAttachment

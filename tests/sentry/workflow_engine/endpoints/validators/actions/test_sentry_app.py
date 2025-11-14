@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from rest_framework.serializers import ErrorDetail

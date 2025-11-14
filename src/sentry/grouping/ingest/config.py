@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import MutableMapping
 from random import random
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.core.cache import cache

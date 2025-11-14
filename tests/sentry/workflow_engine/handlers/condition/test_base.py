@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType

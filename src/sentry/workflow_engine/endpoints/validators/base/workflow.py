@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 
 from django.conf import settings
 from django.db import router, transaction

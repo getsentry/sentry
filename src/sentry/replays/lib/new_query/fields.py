@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Callable
-from typing import Generic, Protocol
+from typing import Generic, Protocol, int
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function

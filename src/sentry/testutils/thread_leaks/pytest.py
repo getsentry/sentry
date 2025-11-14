@@ -3,7 +3,7 @@
 from collections.abc import Generator
 from os import environ
 from threading import Thread
-from typing import Any
+from typing import int, Any
 
 import pytest
 

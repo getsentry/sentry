@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypeVar
+from typing import int, TypeVar
 
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode

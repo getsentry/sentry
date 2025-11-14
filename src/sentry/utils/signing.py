@@ -3,7 +3,7 @@ Generic way to sign and unsign data for use in urls.
 """
 
 import base64
-from typing import Any
+from typing import int, Any
 
 from django.core.signing import TimestampSigner
 

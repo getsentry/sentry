@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

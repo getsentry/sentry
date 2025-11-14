@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import status
 
 from sentry.testutils.asserts import assert_status_code

@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 

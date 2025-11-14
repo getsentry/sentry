@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.incidents.models.alert_rule import AlertRule
 

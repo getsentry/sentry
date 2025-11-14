@@ -1,3 +1,4 @@
+from typing import int
 from .manager import AdoptionManager
 
 manager = AdoptionManager()

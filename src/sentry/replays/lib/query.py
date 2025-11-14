@@ -1,3 +1,4 @@
+from typing import int
 """Dynamic query parsing library."""
 
 import uuid

@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from functools import partial
-from typing import assert_never
+from typing import int, assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository

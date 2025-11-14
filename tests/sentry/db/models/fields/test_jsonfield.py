@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django import forms
 from django.db import models

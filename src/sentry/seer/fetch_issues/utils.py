@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 

@@ -1,3 +1,4 @@
+from typing import int
 """Helper functions for sentry.options"""
 
 import logging

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Generator
-from typing import Any, ContextManager, Self
+from typing import Any, ContextManager, Self, int
 from unittest import mock
 
 from django.conf import settings

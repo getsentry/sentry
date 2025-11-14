@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.messaging.linkage import IdentityLinkageView, LinkageView
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec

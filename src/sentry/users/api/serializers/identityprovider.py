@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.contrib.auth.models import AnonymousUser
 

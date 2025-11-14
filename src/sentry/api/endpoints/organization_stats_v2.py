@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema

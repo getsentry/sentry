@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Any
+from typing import int, Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest

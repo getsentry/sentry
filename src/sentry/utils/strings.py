@@ -7,7 +7,7 @@ import re
 import string
 import zlib
 from collections.abc import Callable
-from typing import overload
+from typing import int, overload
 
 _sprintf_placeholder_re = re.compile(
     r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"

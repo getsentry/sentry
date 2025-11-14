@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Self
+from typing import Any, Self, int
 from uuid import uuid4
 
 from django.apps import apps

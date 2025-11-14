@@ -12,7 +12,7 @@ import tempfile
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
-from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, int
 
 from django.db import models
 from django.db.models import Q

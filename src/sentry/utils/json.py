@@ -7,7 +7,7 @@ import decimal
 import uuid
 from collections.abc import Generator, Mapping
 from enum import Enum
-from typing import IO, Any, NoReturn, TypeVar, overload
+from typing import IO, Any, NoReturn, TypeVar, overload, int
 
 import orjson
 import rapidjson

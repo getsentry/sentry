@@ -2,7 +2,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data.execution import QueryResult

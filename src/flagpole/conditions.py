@@ -2,7 +2,7 @@ import dataclasses
 from abc import abstractmethod
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Self, TypeVar
+from typing import Any, Self, TypeVar, int
 
 from flagpole.evaluation_context import EvaluationContext
 

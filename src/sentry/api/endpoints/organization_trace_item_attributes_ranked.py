@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from typing import Any, cast, int
 
 from rest_framework.request import Request
 from rest_framework.response import Response

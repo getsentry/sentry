@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.services.eventstore.models import GroupEvent

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.services.integration import integration_service
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError

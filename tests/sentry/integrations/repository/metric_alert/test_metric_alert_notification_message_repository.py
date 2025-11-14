@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessage,
     MetricAlertNotificationMessageRepository,

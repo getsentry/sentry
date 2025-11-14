@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase

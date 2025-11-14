@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.api.serializers.models.data_forwarder import *  # noqa: F401,F403
 from sentry.integrations.api.serializers.models.doc_integration import *  # noqa: F401,F403
 from sentry.integrations.api.serializers.models.doc_integration_avatar import *  # noqa: F401,F403

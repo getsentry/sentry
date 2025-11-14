@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Self
+from typing import Any, Self, int
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.utils import bool_from_string

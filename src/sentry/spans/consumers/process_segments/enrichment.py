@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 

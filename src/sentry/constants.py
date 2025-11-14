@@ -9,7 +9,7 @@ from collections import namedtuple
 from collections.abc import Sequence
 from datetime import timedelta
 from enum import Enum
-from typing import cast
+from typing import int, cast
 
 import sentry_relay.consts
 import sentry_relay.processing

@@ -1,3 +1,4 @@
+from typing import int
 from sentry_plugins.anonymizeip import anonymize_ip
 
 

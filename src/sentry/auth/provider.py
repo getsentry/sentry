@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str

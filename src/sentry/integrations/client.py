@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from sentry.shared_integrations.client import BaseApiClient

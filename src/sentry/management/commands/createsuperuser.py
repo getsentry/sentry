@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.auth.management.commands.createsuperuser import Command as DjangoCommand
 
 

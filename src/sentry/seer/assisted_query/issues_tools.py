@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.api import client
 from sentry.issues.grouptype import registry as group_type_registry

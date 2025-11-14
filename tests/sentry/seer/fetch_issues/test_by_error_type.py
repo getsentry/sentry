@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.group import Group
 from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_error_type import _fetch_issues_from_repo_projects, fetch_issues

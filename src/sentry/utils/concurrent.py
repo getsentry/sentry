@@ -9,7 +9,7 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 import sentry_sdk
 import sentry_sdk.scope

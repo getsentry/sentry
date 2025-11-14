@@ -1,3 +1,4 @@
+from typing import int
 """Shared constants for thread leak detection."""
 
 import os

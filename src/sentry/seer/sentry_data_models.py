@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from pydantic import BaseModel, Field
 

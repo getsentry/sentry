@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from typing import Any, Never, TypedDict
+from typing import Any, Never, TypedDict, int
 
 from django.db import IntegrityError
 from django.http.response import HttpResponseBase, HttpResponseRedirect

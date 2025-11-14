@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from typing import Any
+from typing import int, Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response

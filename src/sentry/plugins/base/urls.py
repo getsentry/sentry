@@ -1,3 +1,4 @@
+from typing import int
 import re
 
 from django.conf.urls import include

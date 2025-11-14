@@ -18,7 +18,7 @@ normalize it first.
 
 from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
-from typing import Any
+from typing import int, Any
 from typing import Literal as TLiteral
 from typing import NotRequired, Required, TypedDict, cast
 

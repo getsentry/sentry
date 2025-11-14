@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.projectownership import ProjectOwnership

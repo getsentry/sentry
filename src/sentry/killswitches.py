@@ -9,7 +9,7 @@ features and more performant.
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, int
 
 import click
 

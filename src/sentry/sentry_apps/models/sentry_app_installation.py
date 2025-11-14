@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any, ClassVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, overload, int
 
 from django.db import models, router, transaction
 from django.utils import timezone

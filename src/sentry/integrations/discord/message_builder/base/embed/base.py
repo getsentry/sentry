@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from sentry.integrations.discord.message_builder.base.embed.field import (
     DiscordMessageEmbedField,

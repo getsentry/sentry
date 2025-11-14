@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.api.serializers.models.repository_project_path_config import (

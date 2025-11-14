@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import http
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from rest_framework.permissions import BasePermission

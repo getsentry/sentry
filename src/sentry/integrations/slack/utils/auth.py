@@ -2,7 +2,7 @@ import hmac
 import time
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, int
 
 if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember

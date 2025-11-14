@@ -1,4 +1,4 @@
-from typing import cast
+from typing import int, cast
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask
 from sentry.workflow_engine.models.data_source import DataSource

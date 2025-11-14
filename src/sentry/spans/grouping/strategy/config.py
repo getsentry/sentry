@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from sentry.spans.grouping.result import SpanGroupingResults
 from sentry.spans.grouping.strategy.base import (

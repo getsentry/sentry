@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema

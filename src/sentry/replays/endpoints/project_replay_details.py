@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 
 from drf_spectacular.utils import extend_schema

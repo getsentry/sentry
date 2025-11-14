@@ -1,3 +1,4 @@
+from typing import int
 import hashlib
 import hmac
 

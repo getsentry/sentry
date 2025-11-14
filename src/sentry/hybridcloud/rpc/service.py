@@ -19,7 +19,7 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast, int
 
 import django.urls
 import pydantic

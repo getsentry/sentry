@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 

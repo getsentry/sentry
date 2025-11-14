@@ -1,3 +1,4 @@
+from typing import int
 import errno
 import os
 from unittest import TestCase, mock

@@ -9,7 +9,7 @@ import tempfile
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, int
 
 import sentry_sdk
 from django.core.files.base import ContentFile

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request

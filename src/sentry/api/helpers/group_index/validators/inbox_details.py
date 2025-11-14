@@ -1,4 +1,4 @@
-from typing import Never
+from typing import int, Never
 
 from rest_framework import serializers
 

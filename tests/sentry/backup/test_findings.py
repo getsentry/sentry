@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import auto, unique
-from typing import Any
+from typing import int, Any
 
 from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import (

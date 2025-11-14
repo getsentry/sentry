@@ -1,7 +1,7 @@
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, int
 from urllib.parse import urlencode, urlparse
 
 import brotli

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase

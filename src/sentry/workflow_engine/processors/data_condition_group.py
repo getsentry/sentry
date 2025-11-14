@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 from collections.abc import Callable, Iterable
-from typing import ClassVar, NoReturn, TypeVar
+from typing import ClassVar, NoReturn, TypeVar, int
 
 import sentry_sdk
 

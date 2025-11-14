@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.notifications.class_manager import (

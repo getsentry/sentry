@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from tools.pin_github_action import ACTION_VERSION_RE

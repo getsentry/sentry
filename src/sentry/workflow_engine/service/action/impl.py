@@ -1,3 +1,4 @@
+from typing import int
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier

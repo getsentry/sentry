@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Iterable, Mapping
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.db.models import Q

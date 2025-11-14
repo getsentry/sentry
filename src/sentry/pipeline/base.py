@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Protocol, Self
+from typing import Any, Protocol, Self, int
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase

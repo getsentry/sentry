@@ -1,3 +1,4 @@
+from typing import int
 """
 A class for tracking specific source map errors, based on EventError
 """

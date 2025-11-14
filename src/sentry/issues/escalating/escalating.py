@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.db.models.signals import post_save
 from snuba_sdk import (

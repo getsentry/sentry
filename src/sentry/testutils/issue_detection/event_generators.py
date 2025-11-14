@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json

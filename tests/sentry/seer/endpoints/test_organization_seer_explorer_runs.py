@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 from unittest.mock import ANY, MagicMock, patch
 

@@ -1,3 +1,4 @@
+from typing import int
 from selenium.webdriver.common.keys import Keys
 
 from sentry.testutils.cases import AcceptanceTestCase

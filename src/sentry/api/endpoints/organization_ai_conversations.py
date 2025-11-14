@@ -2,7 +2,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from typing import Any, cast, int
 
 from rest_framework import serializers
 from rest_framework.request import Request

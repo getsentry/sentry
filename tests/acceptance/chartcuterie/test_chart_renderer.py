@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.response import close_streaming_response
 

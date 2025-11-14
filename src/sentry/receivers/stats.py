@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.signals import post_save
 
 from sentry.utils import metrics

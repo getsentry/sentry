@@ -1,3 +1,4 @@
+from typing import int
 import os
 import signal
 import sys

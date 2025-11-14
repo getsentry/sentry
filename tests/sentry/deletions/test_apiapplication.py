@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control

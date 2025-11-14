@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import islice
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar, Protocol, int
 
 from sentry import options
 from sentry.buffer.base import BufferField

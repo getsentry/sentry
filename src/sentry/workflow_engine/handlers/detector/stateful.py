@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import Any, Generic, cast
+from typing import Any, Generic, cast, int
 from uuid import uuid4
 
 from django.conf import settings

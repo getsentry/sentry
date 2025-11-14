@@ -1,3 +1,4 @@
+from typing import int
 from sentry.monitors.testutils import build_checkin_item
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase

@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import compute_adjusted_factor

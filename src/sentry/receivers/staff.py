@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.auth.signals import user_logged_out
 
 

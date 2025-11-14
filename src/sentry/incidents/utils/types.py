@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 
 class QuerySubscriptionUpdate(TypedDict):

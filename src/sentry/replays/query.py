@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from snuba_sdk import (
     Column,

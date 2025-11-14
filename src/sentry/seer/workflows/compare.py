@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, Sequence
-from typing import TypeVar
+from typing import int, TypeVar
 
 from sentry.seer.math import (
     boxcox_transform,

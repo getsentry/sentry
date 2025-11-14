@@ -48,7 +48,7 @@ The replacement rules are interpreted by Relay to match and replace `*`, and to 
 import logging
 from collections import UserDict, defaultdict
 from collections.abc import Iterable
-from typing import TypeAlias, Union
+from typing import TypeAlias, Union, int
 
 import sentry_sdk
 

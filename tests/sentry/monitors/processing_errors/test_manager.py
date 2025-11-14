@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored

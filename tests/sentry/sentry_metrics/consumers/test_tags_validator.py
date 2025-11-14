@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.sentry_metrics.consumers.indexer.tags_validator import (

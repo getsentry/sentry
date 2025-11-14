@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import dataclass
 from datetime import timedelta
 from unittest.mock import patch

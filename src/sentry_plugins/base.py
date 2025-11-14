@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, int
 
 import sentry_plugins
 from sentry.exceptions import InvalidIdentity, PluginError

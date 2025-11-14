@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict, TypeIs
+from typing import NotRequired, TypedDict, TypeIs, int
 
 # NOTE: The structure in these metadata types is intentionaly flat, to make it easier to query in
 # Redash or BigQuery, and they are all merged into a single flat JSON blob (which is then stored in

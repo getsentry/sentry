@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase

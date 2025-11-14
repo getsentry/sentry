@@ -1,3 +1,4 @@
+from typing import int
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore

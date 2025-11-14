@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor, ActorType

@@ -6,6 +6,7 @@
 # Guide UI elements are configured on the frontend in `getGuideContent.tsx`.
 
 
+from typing import int
 GUIDES = {
     "issue": 1,
     "issue_stream": 3,

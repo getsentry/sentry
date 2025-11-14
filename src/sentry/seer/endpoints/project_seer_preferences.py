@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import Literal
+from typing import int, Literal
 
 import orjson
 import requests

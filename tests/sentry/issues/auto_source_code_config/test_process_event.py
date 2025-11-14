@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict, cast, int
 from unittest.mock import patch
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration

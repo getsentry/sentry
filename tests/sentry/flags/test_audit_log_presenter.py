@@ -1,3 +1,4 @@
+from typing import int
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresenter
 from sentry.testutils.cases import APITestCase

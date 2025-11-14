@@ -1,3 +1,4 @@
+from typing import int
 import random
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch

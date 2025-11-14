@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.dispatch import Signal
 from django.utils import timezone

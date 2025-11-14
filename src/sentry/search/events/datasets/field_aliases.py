@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Function

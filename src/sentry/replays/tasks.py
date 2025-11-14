@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 import logging
-from typing import Any
+from typing import int, Any
 
 from google.cloud.exceptions import NotFound
 

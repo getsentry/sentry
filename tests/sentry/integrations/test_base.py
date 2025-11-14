@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.identity.services.identity.serial import serialize_identity

@@ -1,3 +1,4 @@
+from typing import int
 from pathlib import Path
 
 from tools.mypy_helpers.sort_stronger_modules import main

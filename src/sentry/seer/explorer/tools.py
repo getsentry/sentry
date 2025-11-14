@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from django.urls import reverse
 

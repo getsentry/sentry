@@ -7,7 +7,7 @@ __all__ = (
 )
 
 from enum import Enum
-from typing import cast
+from typing import int, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (

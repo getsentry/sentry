@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 # Discord likes colors as decimal integers
 LEVEL_TO_COLOR = {

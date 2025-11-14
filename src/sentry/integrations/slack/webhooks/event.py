@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

@@ -1,5 +1,5 @@
 import time
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema

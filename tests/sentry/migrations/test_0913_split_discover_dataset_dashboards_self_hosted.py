@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.hybridcloud.models.outbox import outbox_context

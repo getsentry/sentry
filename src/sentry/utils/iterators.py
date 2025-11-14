@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Generator, Iterable
-from typing import TypeVar
+from typing import int, TypeVar
 
 T = TypeVar("T")
 

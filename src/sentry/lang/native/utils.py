@@ -2,7 +2,7 @@ import logging
 import re
 import time
 from collections.abc import Mapping
-from typing import Any, overload
+from typing import Any, overload, int
 
 from sentry.attachments import CachedAttachment, get_attachments_for_event
 from sentry.stacktraces.processing import StacktraceInfo

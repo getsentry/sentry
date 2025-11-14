@@ -1,3 +1,4 @@
+from typing import int
 """Replays storage blob driver module.
 
 Blob drivers are polymorphic on the service abstractions provided by Sentry.  Blob drivers are

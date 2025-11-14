@@ -1,3 +1,4 @@
+from typing import int
 from time import time
 
 import orjson

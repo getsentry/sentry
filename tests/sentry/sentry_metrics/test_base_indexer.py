@@ -1,3 +1,4 @@
+from typing import int
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import TestCase

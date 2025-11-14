@@ -1,3 +1,4 @@
+from typing import int
 import django.contrib.messages.storage.fallback
 import django.contrib.sessions.serializers
 import django.db.models.sql.compiler  # NOQA

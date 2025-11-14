@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 import responses
 from django.test import override_settings

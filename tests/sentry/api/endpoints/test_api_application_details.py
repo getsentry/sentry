@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import reverse
 
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion

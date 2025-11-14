@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Mapping, Sequence
 
 from sentry_redis_tools.cardinality_limiter import CardinalityLimiter as CardinalityLimiterBase

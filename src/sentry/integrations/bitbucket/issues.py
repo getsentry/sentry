@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, NoReturn
+from typing import Any, NoReturn, int
 
 from django.urls import reverse
 

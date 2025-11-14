@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Final
+from typing import Any, Final, int
 
 import sentry_sdk
 from django.conf import settings

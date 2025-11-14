@@ -1,3 +1,4 @@
+from typing import int
 import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4

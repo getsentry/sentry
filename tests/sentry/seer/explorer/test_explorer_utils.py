@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.autodetect.url_extraction import extract_base_url
 

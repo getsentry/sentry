@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any, Final
+from typing import Any, Final, int
 
 import sentry_sdk
 

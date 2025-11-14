@@ -1,3 +1,4 @@
+from typing import int
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 """
 Contains data blobs that we store in the Rule.action json field.

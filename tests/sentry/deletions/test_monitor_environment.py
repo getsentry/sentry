@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions

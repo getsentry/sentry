@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView

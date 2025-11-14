@@ -1,3 +1,4 @@
+from typing import int
 from sentry.hybridcloud.services.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,

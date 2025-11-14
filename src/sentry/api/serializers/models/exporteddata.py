@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData

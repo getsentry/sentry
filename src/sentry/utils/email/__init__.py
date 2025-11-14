@@ -1,3 +1,4 @@
+from typing import int
 __all__ = (
     "_CaseInsensitiveSigner",
     "create_fake_email",

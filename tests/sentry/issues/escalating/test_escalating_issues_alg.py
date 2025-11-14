@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 
 from sentry.issues.escalating.escalating_issues_alg import generate_issue_forecast

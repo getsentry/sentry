@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.utils.avatar import get_gravatar_url

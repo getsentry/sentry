@@ -1,3 +1,4 @@
+from typing import int
 """
 Task for sending notifications when custom rules have gathered enough samples.
 """

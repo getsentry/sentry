@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, override
+from typing import Any, override, int
 
 import jsonschema
 from django.db import router

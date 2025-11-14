@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from unittest.mock import ANY, MagicMock, Mock, patch

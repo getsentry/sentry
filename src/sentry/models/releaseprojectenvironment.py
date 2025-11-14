@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import models
 from django.utils import timezone

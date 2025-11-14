@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsResult
 from sentry.api.serializers.models.actor import ActorSerializerResponse

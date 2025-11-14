@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum, unique
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry import options
 from sentry.utils.sdk_crashes.path_replacer import (

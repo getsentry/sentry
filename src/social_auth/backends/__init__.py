@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any
+from typing import int, Any
 from urllib.error import HTTPError
 from urllib.parse import parse_qsl, urlencode
 from urllib.request import Request

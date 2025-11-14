@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import Mock, patch
 
 from sentry.integrations.msteams.card_builder.block import (

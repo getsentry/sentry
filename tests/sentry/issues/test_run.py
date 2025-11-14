@@ -1,7 +1,7 @@
 import sys
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload

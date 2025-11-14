@@ -1,3 +1,4 @@
+from typing import int
 import responses
 from responses import matchers
 

@@ -1,3 +1,4 @@
+from typing import int
 from drf_spectacular.utils import OpenApiExample
 
 EXPLORE_SAVED_QUERY_OBJ = {

@@ -1,3 +1,4 @@
+from typing import int
 """
 This is the Utilities Module. It is the home to small, self-contained classes and functions that do
 useful things. This description is intentionally general because there are basically no limits to

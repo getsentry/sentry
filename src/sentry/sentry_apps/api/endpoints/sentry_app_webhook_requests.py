@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta, timezone
 
 from dateutil.parser import parse as parse_date

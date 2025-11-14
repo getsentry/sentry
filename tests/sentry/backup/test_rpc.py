@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 

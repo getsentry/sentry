@@ -1,6 +1,6 @@
 import base64
 import binascii
-from typing import Any
+from typing import int, Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization

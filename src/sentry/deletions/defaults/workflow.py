@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 

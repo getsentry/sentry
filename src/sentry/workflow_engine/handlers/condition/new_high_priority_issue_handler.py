@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.condition.first_seen_event_handler import is_new_event

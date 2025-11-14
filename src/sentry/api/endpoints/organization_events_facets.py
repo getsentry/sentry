@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from rest_framework.request import Request

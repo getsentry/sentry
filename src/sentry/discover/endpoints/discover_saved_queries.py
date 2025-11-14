@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db.models import Case, IntegerField, When
 from drf_spectacular.utils import extend_schema

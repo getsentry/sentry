@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from uuid import uuid4
 

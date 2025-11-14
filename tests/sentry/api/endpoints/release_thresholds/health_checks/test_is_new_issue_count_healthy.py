@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 

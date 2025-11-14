@@ -1,3 +1,4 @@
+from typing import int
 import os
 
 from django.test.utils import override_settings

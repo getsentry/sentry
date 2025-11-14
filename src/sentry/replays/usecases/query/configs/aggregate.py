@@ -1,3 +1,4 @@
+from typing import int
 """Aggregate query filtering configuration module.
 
 Every field present in the configuration is filterable.  If its not in the configuration then the

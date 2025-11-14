@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timezone
 
 from sentry.incidents.models.alert_rule import AlertRuleTrigger

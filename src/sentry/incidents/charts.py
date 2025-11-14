@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 

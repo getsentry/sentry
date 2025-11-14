@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router

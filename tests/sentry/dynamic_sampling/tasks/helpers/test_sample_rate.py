@@ -1,3 +1,4 @@
+from typing import int
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase

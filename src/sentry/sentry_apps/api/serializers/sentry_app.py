@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone

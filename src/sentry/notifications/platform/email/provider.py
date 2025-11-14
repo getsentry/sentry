@@ -1,3 +1,4 @@
+from typing import int
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.message import make_msgid
 from django.utils.html import escape

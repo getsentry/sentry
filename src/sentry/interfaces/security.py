@@ -1,3 +1,4 @@
+from typing import int
 import orjson
 from django.utils.functional import cached_property
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.conf import settings
 from django.core.cache import cache

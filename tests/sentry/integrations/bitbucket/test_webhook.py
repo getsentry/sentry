@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, patch
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE

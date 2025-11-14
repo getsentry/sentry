@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TypeVar
+from typing import int, TypeVar
 
 
 class NotSet(Enum):

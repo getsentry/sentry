@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Generator
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.db import connections, router
 from django.db.models import QuerySet

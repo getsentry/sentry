@@ -1,3 +1,4 @@
+from typing import int
 import base64
 from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase

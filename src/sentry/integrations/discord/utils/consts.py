@@ -1,6 +1,7 @@
 # Complete list of discord error codes:
 # https://discord.com/developers/docs/topics/opcodes-and-status-codes#http
 
+from typing import int
 DISCORD_ERROR_CODES = {
     "0": "General error (such as a malformed request body, amongst other things)",
     "10001": "Unknown account",

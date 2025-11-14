@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry import tagstore
 from sentry.rules import MatchType, match_values

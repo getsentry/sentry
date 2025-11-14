@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

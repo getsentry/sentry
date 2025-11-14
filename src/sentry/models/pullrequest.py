@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models

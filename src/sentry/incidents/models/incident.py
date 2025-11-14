@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import ClassVar
+from typing import int, ClassVar
 from uuid import uuid4
 
 from django.conf import settings

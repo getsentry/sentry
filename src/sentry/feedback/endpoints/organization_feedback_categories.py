@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request

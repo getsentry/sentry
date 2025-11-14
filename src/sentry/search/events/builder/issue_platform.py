@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder.discover import TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams

@@ -3,7 +3,7 @@
 import dataclasses
 import logging
 from enum import Enum, IntEnum, StrEnum
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from attr import dataclass

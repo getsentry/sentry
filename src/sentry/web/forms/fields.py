@@ -1,3 +1,4 @@
+from typing import int
 from django.forms import CharField, EmailField, Field, TypedChoiceField, ValidationError
 from django.forms.utils import flatatt
 from django.forms.widgets import TextInput, Widget

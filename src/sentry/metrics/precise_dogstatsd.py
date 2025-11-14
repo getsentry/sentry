@@ -1,5 +1,5 @@
 import atexit
-from typing import Any
+from typing import int, Any
 
 from datadog.dogstatsd.base import DogStatsd
 

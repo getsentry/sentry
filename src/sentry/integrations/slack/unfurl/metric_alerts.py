@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 import sentry_sdk

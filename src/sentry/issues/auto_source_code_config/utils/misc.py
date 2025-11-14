@@ -1,4 +1,5 @@
 # List of file paths prefixes that should become stack trace roots
+from typing import int
 FILE_PATH_PREFIX_LENGTH = {
     "app:///": 7,
     "../": 3,

@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import replace
 
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery, PreparationStep

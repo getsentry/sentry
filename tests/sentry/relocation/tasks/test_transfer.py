@@ -1,3 +1,4 @@
+from typing import int
 from datetime import timedelta
 from io import BytesIO
 from unittest.mock import MagicMock, patch

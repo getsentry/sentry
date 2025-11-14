@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.validators import is_event_id, is_span_id, normalize_event_id
 
 

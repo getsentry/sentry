@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.query import QuerySet
 
 from sentry.integrations.types import ExternalProviders

@@ -1,3 +1,4 @@
+from typing import int
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity

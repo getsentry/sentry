@@ -9,7 +9,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
 from time import time
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from uuid import UUID
 
 import msgpack

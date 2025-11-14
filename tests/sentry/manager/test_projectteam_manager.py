@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase

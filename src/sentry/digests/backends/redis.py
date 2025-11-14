@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any
+from typing import int, Any
 
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError

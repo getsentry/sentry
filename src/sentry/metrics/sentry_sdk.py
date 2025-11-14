@@ -1,5 +1,5 @@
 from random import random
-from typing import Any
+from typing import int, Any
 
 from sentry_sdk import metrics
 

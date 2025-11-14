@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import namedtuple
 from collections.abc import Callable, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, int
 
 from django import forms
 

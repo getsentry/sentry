@@ -1,3 +1,4 @@
+from typing import int
 import django_picklefield
 from sentry.utils import json
 

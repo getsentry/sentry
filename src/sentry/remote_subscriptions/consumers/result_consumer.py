@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
-from typing import Generic, Literal, TypeVar
+from typing import Generic, Literal, TypeVar, int
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload

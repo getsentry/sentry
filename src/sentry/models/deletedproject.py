@@ -1,3 +1,4 @@
+from typing import int
 from django.db import models
 
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH

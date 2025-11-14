@@ -1,3 +1,4 @@
+from typing import int
 from sentry.features.permanent import register_permanent_features
 from sentry.features.temporary import register_temporary_features
 

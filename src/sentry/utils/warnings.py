@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Iterator
-from typing import Protocol
+from typing import int, Protocol
 
 
 class UnsupportedBackend(RuntimeWarning):

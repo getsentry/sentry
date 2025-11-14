@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector

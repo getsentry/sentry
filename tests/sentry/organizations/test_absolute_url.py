@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.organizations.absolute_url import customer_domain_path

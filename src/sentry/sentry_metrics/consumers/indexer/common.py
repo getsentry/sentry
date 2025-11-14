@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Mapping, MutableSequence
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload

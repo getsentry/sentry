@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any
+from typing import int, Any
 from uuid import UUID
 
 from sentry.constants import MAX_CULPRIT_LENGTH

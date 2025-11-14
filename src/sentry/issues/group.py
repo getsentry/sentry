@@ -1,3 +1,4 @@
+from typing import int
 from sentry.issues.ingest import hash_fingerprint
 from sentry.models.group import Group
 

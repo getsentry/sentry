@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.http import StreamingHttpResponse

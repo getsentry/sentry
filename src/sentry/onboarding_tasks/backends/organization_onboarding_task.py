@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 
 import sentry_sdk

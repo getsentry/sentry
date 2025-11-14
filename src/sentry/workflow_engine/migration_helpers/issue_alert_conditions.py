@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.types import AssigneeTargetType
 from sentry.rules.age import AgeComparisonType

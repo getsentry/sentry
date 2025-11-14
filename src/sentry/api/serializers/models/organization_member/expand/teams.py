@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any, cast, int
 
 from django.contrib.auth.models import AnonymousUser
 

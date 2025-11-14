@@ -1,6 +1,6 @@
 import uuid
 from hashlib import md5
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

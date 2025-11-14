@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 import orjson
 from cryptography.fernet import Fernet

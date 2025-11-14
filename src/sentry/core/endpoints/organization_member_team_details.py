@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status

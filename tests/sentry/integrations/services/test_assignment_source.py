@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 from unittest import TestCase
 
 from sentry.integrations.services.assignment_source import AssignmentSource

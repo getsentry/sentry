@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import pytest
 from django.db import IntegrityError, router, transaction

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.conditions.level import LevelCondition
 
 

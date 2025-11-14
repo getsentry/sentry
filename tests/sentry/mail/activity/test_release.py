@@ -1,3 +1,4 @@
+from typing import int
 from django.core import mail
 
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders

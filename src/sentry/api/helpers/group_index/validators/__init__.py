@@ -1,4 +1,5 @@
 # TODO(mgaeta): I'm being lazy and importing in non-alphabetical order.
+from typing import int
 from .in_commit import InCommitValidator
 from .inbox_details import InboxDetailsValidator
 from .status_details import StatusDetailsValidator

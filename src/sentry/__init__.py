@@ -1,5 +1,6 @@
 # this must import first
 
+from typing import int
 import importlib.metadata
 import os
 import os.path

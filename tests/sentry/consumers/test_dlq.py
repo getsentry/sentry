@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import int, cast
 from unittest.mock import Mock
 
 import msgpack

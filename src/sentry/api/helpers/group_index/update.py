@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, int
 from urllib.parse import urlparse
 
 import rest_framework

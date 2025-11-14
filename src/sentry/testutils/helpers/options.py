@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ["override_options"]
 
 from contextlib import contextmanager

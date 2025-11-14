@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption

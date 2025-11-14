@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 

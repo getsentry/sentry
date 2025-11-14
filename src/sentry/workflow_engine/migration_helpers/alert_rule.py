@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from django.forms import ValidationError

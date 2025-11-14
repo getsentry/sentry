@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from django.http import HttpRequest, HttpResponse
 from django.template import loader

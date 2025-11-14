@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.integrations.api.bases.external_actor import (
     STRICT_NAME_PROVIDERS,

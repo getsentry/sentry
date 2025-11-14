@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 
 from django.test import override_settings

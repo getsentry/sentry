@@ -1,3 +1,4 @@
+from typing import int
 from enum import IntEnum
 from uuid import UUID, uuid4
 

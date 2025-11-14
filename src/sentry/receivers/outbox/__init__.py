@@ -50,7 +50,7 @@ See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import int, TypeVar
 
 from sentry.db.models import Model
 from sentry.hybridcloud.services.tombstone import (

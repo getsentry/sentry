@@ -1,3 +1,4 @@
+from typing import int
 """
 Tests to ensure all models with group foreign keys are properly registered
 in group deletion configuration.

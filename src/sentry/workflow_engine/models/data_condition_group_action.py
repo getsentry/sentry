@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import Index
 
 from sentry.backup.scopes import RelocationScope

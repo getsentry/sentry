@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.models.project import Project
 

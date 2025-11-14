@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 

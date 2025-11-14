@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, overload, int
 
 import sentry_sdk
 from django.utils import timezone

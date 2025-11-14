@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection
-from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
+from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload, int
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import int
 import pydantic
 
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature

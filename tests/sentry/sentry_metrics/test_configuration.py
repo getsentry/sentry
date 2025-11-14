@@ -1,3 +1,4 @@
+from typing import int
 from sentry.sentry_metrics.configuration import (
     _METRICS_INGEST_CONFIG_BY_USE_CASE,
     IndexerStorage,

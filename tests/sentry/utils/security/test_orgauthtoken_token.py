@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase
 
 from sentry.utils import json

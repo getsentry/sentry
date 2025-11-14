@@ -5,7 +5,7 @@ import zlib
 from collections.abc import Generator, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

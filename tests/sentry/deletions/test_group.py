@@ -2,7 +2,7 @@ import os
 import random
 from datetime import datetime, timedelta
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest import mock
 from uuid import uuid4
 

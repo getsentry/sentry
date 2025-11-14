@@ -1,3 +1,4 @@
+from typing import int
 from sentry.dynamic_sampling.rules.biases.minimum_sample_rate_bias import MinimumSampleRateBias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, RuleType
 from sentry.testutils.pytest.fixtures import django_db_all

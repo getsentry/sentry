@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from snuba_sdk import Limit, Offset
 

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
+from typing import int, DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction

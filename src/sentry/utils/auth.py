@@ -4,7 +4,7 @@ import logging
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings

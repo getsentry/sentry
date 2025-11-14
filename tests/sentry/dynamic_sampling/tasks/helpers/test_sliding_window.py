@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import int, Literal
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter, Column

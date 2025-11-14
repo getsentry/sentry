@@ -1,3 +1,4 @@
+from typing import int
 import itertools
 import logging
 from datetime import datetime, timezone

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar, int
 
 from sentry.types.group import PriorityLevel
 

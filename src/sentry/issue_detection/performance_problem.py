@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, Self, int
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueEvidence

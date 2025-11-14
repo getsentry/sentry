@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from django.db.models import F
 from django.http.response import FileResponse, HttpResponse, HttpResponseBase

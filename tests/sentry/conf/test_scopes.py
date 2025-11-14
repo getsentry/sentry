@@ -1,3 +1,4 @@
+from typing import int
 from sentry.conf.server import SENTRY_READONLY_SCOPES, SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.testutils.cases import TestCase
 

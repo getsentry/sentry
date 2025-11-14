@@ -12,7 +12,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, int
 
 _current_collector: ContextVar[_StatsCollector | None] = ContextVar(
     "current_collector", default=None

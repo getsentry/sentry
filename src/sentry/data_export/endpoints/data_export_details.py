@@ -1,3 +1,4 @@
+from typing import int
 from django.http import StreamingHttpResponse
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request

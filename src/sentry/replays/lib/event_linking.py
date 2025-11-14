@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import uuid
 from hashlib import md5
-from typing import TYPE_CHECKING, TypedDict, Union
+from typing import TYPE_CHECKING, TypedDict, Union, int
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import BaseEvent

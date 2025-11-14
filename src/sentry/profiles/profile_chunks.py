@@ -1,3 +1,4 @@
+from typing import int
 from snuba_sdk import Column, Condition, Direction, Op, OrderBy, Query, Request, Storage
 
 from sentry import options

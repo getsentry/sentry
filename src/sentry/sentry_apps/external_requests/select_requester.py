@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, int
 from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SdkName,

@@ -8,7 +8,7 @@ sudo.utils
 
 from __future__ import annotations
 
-from typing import cast
+from typing import int, cast
 
 from django.core.signing import BadSignature
 from django.http.request import HttpRequest

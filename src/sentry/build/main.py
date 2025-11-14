@@ -1,3 +1,4 @@
+from typing import int
 import argparse
 
 from sentry.build import _integration_docs, _js_sdk_registry, _static_assets

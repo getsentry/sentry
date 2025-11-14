@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec

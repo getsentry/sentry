@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError

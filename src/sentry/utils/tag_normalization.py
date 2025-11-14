@@ -4,7 +4,7 @@ import functools
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 logger = logging.getLogger(__name__)
 

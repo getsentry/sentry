@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

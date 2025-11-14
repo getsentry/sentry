@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema

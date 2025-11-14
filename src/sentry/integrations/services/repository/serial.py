@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.integrations.services.repository import RpcRepository
 from sentry.models.repository import Repository

@@ -1,3 +1,4 @@
+from typing import int
 import datetime
 
 from sentry.integrations.models.external_issue import ExternalIssue

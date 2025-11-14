@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase

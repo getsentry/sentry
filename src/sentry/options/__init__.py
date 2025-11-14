@@ -1,3 +1,4 @@
+from typing import int
 from django.core.signals import request_finished
 
 from .manager import (

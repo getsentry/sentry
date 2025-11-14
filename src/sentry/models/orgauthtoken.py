@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Self, TypeGuard
+from typing import TYPE_CHECKING, ClassVar, Self, TypeGuard, int
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.cache import cache

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 

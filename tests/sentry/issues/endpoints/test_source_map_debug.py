@@ -1,3 +1,4 @@
+from typing import int
 from django.core.files.base import ContentFile
 from rest_framework import status
 

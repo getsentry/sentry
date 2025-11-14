@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute

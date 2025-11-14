@@ -1,4 +1,4 @@
-from typing import Any, get_type_hints
+from typing import Any, get_type_hints, int
 
 from drf_spectacular.extensions import (
     OpenApiAuthenticationExtension,

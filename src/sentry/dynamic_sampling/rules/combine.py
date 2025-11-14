@@ -1,3 +1,4 @@
+from typing import int
 from sentry import features
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias

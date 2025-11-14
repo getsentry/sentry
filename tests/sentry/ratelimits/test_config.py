@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase, mock
 
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group

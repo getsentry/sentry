@@ -1,3 +1,4 @@
+from typing import int
 """
 Adapted from https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/uuid.py
 

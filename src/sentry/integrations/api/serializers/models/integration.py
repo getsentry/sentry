@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.contrib.auth.models import AnonymousUser
 

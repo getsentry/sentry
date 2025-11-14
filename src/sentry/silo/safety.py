@@ -4,7 +4,7 @@ import contextlib
 import re
 from collections import defaultdict
 from collections.abc import Generator, MutableMapping
-from typing import Any
+from typing import int, Any
 
 from django.db.transaction import get_connection
 

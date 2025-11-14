@@ -1,3 +1,4 @@
+from typing import int
 from csp.middleware import CSPMiddleware
 from django.conf import settings
 from django.views.generic import View

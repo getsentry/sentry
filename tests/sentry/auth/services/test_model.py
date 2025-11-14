@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.services.auth.serial import serialize_api_key, serialize_api_token
 from sentry.models.apikey import ApiKey
 from sentry.testutils.cases import TestCase

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.models.sentry_app import SentryApp

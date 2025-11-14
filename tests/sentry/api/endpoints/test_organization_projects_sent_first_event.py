@@ -1,3 +1,4 @@
+from typing import int
 from datetime import UTC, datetime
 
 from django.urls import reverse

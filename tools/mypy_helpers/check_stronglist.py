@@ -1,3 +1,4 @@
+from typing import int
 import argparse
 import glob
 import os.path

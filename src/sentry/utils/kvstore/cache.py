@@ -1,6 +1,6 @@
 from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 

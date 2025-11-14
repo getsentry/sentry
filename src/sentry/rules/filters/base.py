@@ -1,3 +1,4 @@
+from typing import int
 import abc
 
 from sentry.rules.base import EventState, RuleBase

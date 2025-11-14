@@ -4,7 +4,7 @@ import dataclasses
 import uuid
 from collections import defaultdict
 from collections.abc import Generator, Sequence
-from typing import Any, Literal, overload
+from typing import Any, Literal, overload, int
 
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group

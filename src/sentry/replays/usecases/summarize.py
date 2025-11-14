@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from urllib.parse import urlparse
 
 import sentry_sdk

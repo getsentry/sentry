@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from dataclasses import asdict
 from datetime import datetime, timezone

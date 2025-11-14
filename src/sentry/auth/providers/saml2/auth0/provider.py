@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.providers.saml2.forms import URLMetadataForm
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.providers.saml2.views import make_simple_setup

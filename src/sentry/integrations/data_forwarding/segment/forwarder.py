@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from sentry import VERSION, http
 from sentry.integrations.data_forwarding.base import BaseDataForwarder

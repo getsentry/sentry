@@ -4,7 +4,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Self, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Self, TypedDict, Union, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models.base import Model

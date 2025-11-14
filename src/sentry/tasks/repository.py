@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions import get_manager
 from sentry.deletions.base import _delete_children
 from sentry.deletions.defaults.repository import _get_repository_child_relations

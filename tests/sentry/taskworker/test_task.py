@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 import pytest

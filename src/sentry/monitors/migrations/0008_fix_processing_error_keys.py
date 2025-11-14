@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import chain
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.conf import settings
 from django.db import migrations

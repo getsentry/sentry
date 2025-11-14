@@ -1,3 +1,4 @@
+from typing import int
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request

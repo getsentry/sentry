@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.auth.access import from_request
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (

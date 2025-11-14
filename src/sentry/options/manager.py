@@ -4,7 +4,7 @@ import logging
 import sys
 from collections.abc import Sequence
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from django.conf import settings
 

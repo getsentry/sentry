@@ -7,7 +7,7 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, TypedDict, int
 from urllib.parse import urljoin
 
 from pydantic.fields import Field

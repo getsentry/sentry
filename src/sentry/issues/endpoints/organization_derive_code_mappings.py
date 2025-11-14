@@ -1,5 +1,5 @@
 import logging
-from typing import Literal
+from typing import int, Literal
 
 from rest_framework import status
 from rest_framework.request import Request

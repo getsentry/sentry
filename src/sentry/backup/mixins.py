@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.backup.dependencies import ImportKind, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags

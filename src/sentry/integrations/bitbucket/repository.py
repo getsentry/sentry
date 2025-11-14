@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks

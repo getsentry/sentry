@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import overload
+from typing import int, overload
 
 from django.contrib.auth.models import AnonymousUser
 

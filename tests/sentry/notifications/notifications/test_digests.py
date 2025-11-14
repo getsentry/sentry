@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch

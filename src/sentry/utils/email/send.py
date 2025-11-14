@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives

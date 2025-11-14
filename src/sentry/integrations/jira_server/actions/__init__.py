@@ -1,3 +1,4 @@
+from typing import int
 from .create_ticket import JiraServerCreateTicketAction
 from .form import JiraServerNotifyServiceForm
 

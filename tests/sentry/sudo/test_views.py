@@ -1,3 +1,4 @@
+from typing import int
 from django.template.response import TemplateResponse
 from django.test import override_settings
 

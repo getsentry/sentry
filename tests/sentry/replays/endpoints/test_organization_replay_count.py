@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Any
+from typing import int, Any
 
 import pytest
 from django.db.models import F

@@ -8,7 +8,7 @@ and get rid of the old one, at which point this can lose the `2`.
 import logging
 import time
 from enum import Enum
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, Literal, NotRequired, TypedDict, overload, int
 
 from django.conf import settings
 

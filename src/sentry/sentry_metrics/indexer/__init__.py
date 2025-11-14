@@ -11,7 +11,7 @@ backend = LazyServiceWrapper(
 )
 backend.expose(locals())
 
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     bulk_record = StringIndexer().bulk_record

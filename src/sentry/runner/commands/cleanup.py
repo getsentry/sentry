@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
-from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar, int
 from uuid import uuid4
 
 import click

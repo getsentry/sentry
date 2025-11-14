@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
 from django.db import router, transaction

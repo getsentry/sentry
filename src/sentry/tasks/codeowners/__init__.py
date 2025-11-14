@@ -1,3 +1,4 @@
+from typing import int
 __all__ = (
     "code_owners_auto_sync",
     "update_code_owners_schema",

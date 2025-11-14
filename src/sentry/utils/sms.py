@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from urllib.parse import quote
 

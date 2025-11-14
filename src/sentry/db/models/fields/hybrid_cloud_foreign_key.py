@@ -47,7 +47,7 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any
+from typing import int, Any
 
 from django.apps import apps
 from django.db import models

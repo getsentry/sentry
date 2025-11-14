@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import int, Any
 
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema

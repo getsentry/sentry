@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import NoReturn
+from typing import int, NoReturn
 from unittest.mock import MagicMock, patch
 
 import pytest

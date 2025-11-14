@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, patch

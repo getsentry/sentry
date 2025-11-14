@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 
 from arroyo.backends.kafka import ConfluentProducer
 from confluent_kafka import Producer

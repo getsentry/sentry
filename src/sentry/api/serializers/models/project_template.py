@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers

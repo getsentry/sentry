@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user_option import UserOption

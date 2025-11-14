@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, Optional
+from typing import Any, Optional, int
 from unittest.mock import patch
 from urllib.parse import urlencode
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 

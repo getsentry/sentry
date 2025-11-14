@@ -1,3 +1,4 @@
+from typing import int
 from .form import MsTeamsNotifyServiceForm
 from .notification import MsTeamsNotifyServiceAction
 

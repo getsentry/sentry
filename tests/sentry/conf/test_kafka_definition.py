@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 import sentry_kafka_schemas
 from django.conf import settings

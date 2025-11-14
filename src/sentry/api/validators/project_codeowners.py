@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Subquery
 from django.db.models.query_utils import Q

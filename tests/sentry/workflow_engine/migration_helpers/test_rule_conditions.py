@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,

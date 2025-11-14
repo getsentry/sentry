@@ -1,5 +1,5 @@
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import int, cast
 
 from rest_framework import serializers
 

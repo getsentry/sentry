@@ -1,3 +1,4 @@
+from typing import int
 import zoneinfo
 
 from django.utils.safestring import mark_safe

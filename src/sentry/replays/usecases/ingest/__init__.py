@@ -3,7 +3,7 @@ import logging
 import time
 import zlib
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import msgspec
 import sentry_sdk

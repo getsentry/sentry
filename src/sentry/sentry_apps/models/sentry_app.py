@@ -2,7 +2,7 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction

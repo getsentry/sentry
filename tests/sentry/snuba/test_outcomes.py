@@ -1,3 +1,4 @@
+from typing import int
 import urllib.parse
 from datetime import timedelta
 

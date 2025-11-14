@@ -1,3 +1,4 @@
+from typing import int
 from django.db import router, transaction
 from django.http import Http404
 from rest_framework import status

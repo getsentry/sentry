@@ -1,3 +1,4 @@
+from typing import int
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.discord.spec import DiscordMessagingSpec
 
 from .actions import *  # noqa: F401,F403

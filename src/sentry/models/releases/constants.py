@@ -1,3 +1,4 @@
+from typing import int
 DB_VERSION_LENGTH = 250
 
 

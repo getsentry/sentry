@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organizationmemberinvite import (
     OrganizationMemberInviteSerializer,

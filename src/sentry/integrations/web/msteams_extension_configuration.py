@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.web.integration_extension_configuration import (

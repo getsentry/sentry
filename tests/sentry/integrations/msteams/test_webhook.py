@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Generator
 from copy import deepcopy
 from unittest import mock

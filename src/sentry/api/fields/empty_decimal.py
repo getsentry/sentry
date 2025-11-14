@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework import serializers
 from rest_framework.fields import empty
 

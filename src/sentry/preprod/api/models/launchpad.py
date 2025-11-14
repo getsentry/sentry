@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, int
 
 from pydantic import BaseModel, ConfigDict, Field
 

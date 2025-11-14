@@ -1,3 +1,4 @@
+from typing import int
 from .api import run_queries
 from .query import MQLQueriesResult, MQLQuery
 from .transformation.metrics_api import MetricsAPIQueryResultsTransformer

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry.data_secrecy.service.model import RpcEffectiveGrantStatus
 

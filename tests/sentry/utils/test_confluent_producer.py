@@ -1,3 +1,4 @@
+from typing import int
 from arroyo.backends.kafka import ConfluentProducer
 from confluent_kafka import Producer
 

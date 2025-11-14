@@ -5,7 +5,7 @@ import logging
 import secrets
 from collections.abc import Mapping
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import parse_qsl, urlencode
 
 import orjson

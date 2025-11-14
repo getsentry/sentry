@@ -1,3 +1,4 @@
+from typing import int
 from unittest import mock
 
 import sentry.hybridcloud.rpc.caching as caching_module

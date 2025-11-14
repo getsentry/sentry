@@ -1,3 +1,4 @@
+from typing import int
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 

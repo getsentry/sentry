@@ -1,3 +1,4 @@
+from typing import int
 from sentry.exceptions import PluginError
 from sentry.net.socket import is_valid_url
 

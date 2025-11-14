@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToDict

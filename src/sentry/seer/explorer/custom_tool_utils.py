@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from pydantic import BaseModel
 

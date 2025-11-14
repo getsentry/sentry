@@ -1,3 +1,4 @@
+from typing import int
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.slack.message_builder.routing import decode_action_id, encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.testutils.cases import TestCase

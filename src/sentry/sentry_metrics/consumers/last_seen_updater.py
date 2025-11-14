@@ -3,7 +3,7 @@ import functools
 from abc import abstractmethod
 from collections.abc import Callable, Mapping
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload

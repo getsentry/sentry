@@ -1,6 +1,6 @@
 import logging
 from base64 import b64encode
-from typing import Any
+from typing import int, Any
 
 import petname
 from django.http import HttpResponse

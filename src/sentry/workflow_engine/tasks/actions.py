@@ -1,3 +1,4 @@
+from typing import int
 from dataclasses import asdict
 
 from django.db.models import Value

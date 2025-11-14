@@ -1,3 +1,4 @@
+from typing import int
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation

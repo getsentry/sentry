@@ -1,3 +1,4 @@
+from typing import int
 from django.http import Http404, HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404

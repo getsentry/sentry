@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, int
 
 from pydantic import BaseModel, Field
 

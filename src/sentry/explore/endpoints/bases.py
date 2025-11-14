@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.explore.models import ExploreSavedQuery
 from sentry.models.organization import Organization

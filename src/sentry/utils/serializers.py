@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable, MutableMapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 
 from django.db.models import Model, QuerySet
 

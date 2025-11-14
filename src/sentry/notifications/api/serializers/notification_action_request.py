@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema_serializer

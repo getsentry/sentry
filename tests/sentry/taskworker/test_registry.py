@@ -1,3 +1,4 @@
+from typing import int
 import base64
 from concurrent.futures import Future
 from unittest.mock import Mock

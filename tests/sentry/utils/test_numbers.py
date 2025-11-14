@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils.numbers import (
     base32_decode,
     base32_encode,

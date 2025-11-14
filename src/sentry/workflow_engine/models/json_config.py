@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import int, Any
 
 from django.db import models
 from jsonschema import ValidationError, validate

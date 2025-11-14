@@ -1,3 +1,4 @@
+from typing import int
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
 
 

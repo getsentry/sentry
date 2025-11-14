@@ -1,3 +1,4 @@
+from typing import int
 import responses
 
 from fixtures.integrations.stub_service import StubService

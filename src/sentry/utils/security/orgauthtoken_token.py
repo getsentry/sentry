@@ -1,7 +1,7 @@
 import secrets
 from base64 import b64decode, b64encode
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 from sentry import options
 from sentry.utils import hashlib, json

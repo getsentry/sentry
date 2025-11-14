@@ -1,3 +1,4 @@
+from typing import int
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus

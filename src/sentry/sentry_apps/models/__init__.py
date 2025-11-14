@@ -1,3 +1,4 @@
+from typing import int
 from .platformexternalissue import PlatformExternalIssue
 from .sentry_app import SentryApp
 from .sentry_app_avatar import SentryAppAvatar

@@ -4,7 +4,7 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, NamedTuple
+from typing import IO, TYPE_CHECKING, NamedTuple, int
 
 import orjson
 import sentry_sdk

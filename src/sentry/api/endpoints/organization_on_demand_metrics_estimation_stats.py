@@ -2,7 +2,7 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from enum import Enum
 from types import ModuleType
-from typing import TypedDict, Union, cast
+from typing import TypedDict, Union, cast, int
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError

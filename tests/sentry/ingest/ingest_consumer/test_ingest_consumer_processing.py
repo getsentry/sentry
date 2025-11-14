@@ -5,7 +5,7 @@ import time
 import uuid
 import zipfile
 from io import BytesIO
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 import orjson

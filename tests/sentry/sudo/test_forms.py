@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.forms import ValidationError
 from django.test import override_settings

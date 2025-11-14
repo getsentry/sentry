@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.http import HttpResponse
 from rest_framework import serializers

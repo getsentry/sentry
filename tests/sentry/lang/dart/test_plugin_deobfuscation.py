@@ -1,3 +1,4 @@
+from typing import int
 """Tests for Dart plugin deobfuscation functionality."""
 
 from __future__ import annotations

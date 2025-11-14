@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.source_code_management.repo_trees import get_extension
 

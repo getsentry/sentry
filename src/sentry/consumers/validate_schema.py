@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any
+from typing import int, Any
 
 import sentry_kafka_schemas
 import sentry_sdk

@@ -1,3 +1,4 @@
+from typing import int
 from selenium.webdriver.common.by import By
 
 from sentry.testutils.pytest.selenium import Browser

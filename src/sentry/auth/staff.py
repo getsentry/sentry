@@ -5,7 +5,7 @@ import ipaddress
 import logging
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Final
+from typing import Any, Final, int
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser

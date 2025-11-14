@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 import sentry_sdk
 

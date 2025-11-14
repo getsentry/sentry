@@ -1,3 +1,4 @@
+from typing import int
 import re
 
 from tools.mypy_helpers.check_stronglist import _glob_to_re, main

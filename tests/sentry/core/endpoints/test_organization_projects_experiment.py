@@ -1,3 +1,4 @@
+from typing import int
 import re
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch

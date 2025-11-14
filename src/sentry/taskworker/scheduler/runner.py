@@ -4,7 +4,7 @@ import heapq
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from django.utils import timezone
 from redis.client import StrictRedis

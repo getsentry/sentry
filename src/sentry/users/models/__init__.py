@@ -1,3 +1,4 @@
+from typing import int
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.email import Email
 from sentry.users.models.identity import Identity

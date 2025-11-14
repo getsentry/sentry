@@ -4,7 +4,7 @@ import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import features
 from sentry.issues.grouptype import (

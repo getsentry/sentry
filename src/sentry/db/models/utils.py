@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Container
-from typing import TYPE_CHECKING, Any, Generic, Self, overload
+from typing import TYPE_CHECKING, Any, Generic, Self, overload, int
 from uuid import uuid4
 
 from django.db.models import Field, Model

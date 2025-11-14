@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from slack_sdk.models.blocks import (
     ActionsBlock,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Avg, F, Q
 from django.db.models.functions import Coalesce, TruncDay

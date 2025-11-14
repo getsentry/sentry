@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import Any, cast, int
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser

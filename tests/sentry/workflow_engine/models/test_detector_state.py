@@ -1,3 +1,4 @@
+from typing import int
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.detector_state import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel

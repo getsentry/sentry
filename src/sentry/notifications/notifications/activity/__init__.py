@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification

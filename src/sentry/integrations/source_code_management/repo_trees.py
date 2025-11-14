@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, int
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions

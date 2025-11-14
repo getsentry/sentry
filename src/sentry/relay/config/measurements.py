@@ -1,7 +1,7 @@
 """Relay configuration related to transaction measurements."""
 
 from collections.abc import Sequence
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, int
 
 #: The maximum number of custom measurements to be extracted from transactions.
 CUSTOM_MEASUREMENT_LIMIT = 10

@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection

@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from rest_framework.request import Request
 from rest_framework.response import Response

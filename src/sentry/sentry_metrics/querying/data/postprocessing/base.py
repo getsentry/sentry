@@ -1,3 +1,4 @@
+from typing import int
 from abc import ABC, abstractmethod
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult

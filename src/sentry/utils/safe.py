@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Any, ParamSpec, TypeVar, Union
+from typing import Any, ParamSpec, TypeVar, Union, int
 
 from django.conf import settings
 from django.utils.encoding import force_str

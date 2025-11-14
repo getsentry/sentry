@@ -4,7 +4,7 @@ import os
 import re
 import threading
 from collections.abc import MutableSequence, Sequence
-from typing import NoReturn
+from typing import int, NoReturn
 
 import click
 import sentry_sdk

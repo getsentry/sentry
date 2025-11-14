@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import int, TypeVar
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration

@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Literal, TypedDict, Union
+from typing import Literal, TypedDict, Union, int
 
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem, CheckinItemData

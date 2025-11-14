@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import Any, Deque, Optional, TypedDict, TypeVar, cast, int
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse

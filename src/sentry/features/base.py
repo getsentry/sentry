@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

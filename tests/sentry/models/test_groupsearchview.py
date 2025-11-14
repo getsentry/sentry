@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.testutils.cases import TestCase
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request

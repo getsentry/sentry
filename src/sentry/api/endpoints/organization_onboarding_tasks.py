@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request

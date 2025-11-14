@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlencode
 
 import orjson

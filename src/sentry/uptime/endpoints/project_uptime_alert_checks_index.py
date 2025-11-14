@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, cast
+from typing import Any, cast, int
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request

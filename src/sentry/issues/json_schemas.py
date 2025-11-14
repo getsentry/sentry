@@ -1,7 +1,7 @@
 import logging
 import pathlib
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.utils import json
 

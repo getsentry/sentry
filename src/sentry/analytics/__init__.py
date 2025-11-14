@@ -1,3 +1,4 @@
+from typing import int
 from sentry import options
 from sentry.utils.services import LazyServiceWrapper
 

@@ -1,3 +1,4 @@
+from typing import int
 from redis import Redis
 
 from sentry.cache.redis import CommonRedisCache

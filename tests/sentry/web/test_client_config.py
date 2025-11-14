@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any
+from typing import int, Any
 
 import pytest
 from django.conf import settings

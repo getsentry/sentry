@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.db.models import Q

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
-from typing import Any, TypeVar
+from typing import Any, TypeVar, int
 
 import rb
 from django.utils.encoding import force_bytes, force_str

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer

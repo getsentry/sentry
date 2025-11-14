@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.backup.dependencies import dependencies, get_exportable_sentry_models, get_model_name
 from sentry.backup.scopes import RelocationScope

@@ -5,7 +5,7 @@ import uuid
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload

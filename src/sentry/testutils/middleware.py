@@ -1,3 +1,4 @@
+from typing import int
 from django.http.request import HttpRequest
 
 from sentry.middleware.sudo import SudoMiddleware as BaseSudoMiddleware

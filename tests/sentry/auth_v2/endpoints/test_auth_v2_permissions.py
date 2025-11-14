@@ -1,3 +1,4 @@
+from typing import int
 from django.test import override_settings
 from rest_framework.request import Request
 from rest_framework.views import APIView

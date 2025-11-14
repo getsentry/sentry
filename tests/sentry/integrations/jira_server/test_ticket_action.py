@@ -1,3 +1,4 @@
+from typing import int
 import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase

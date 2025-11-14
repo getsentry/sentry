@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 
 from attr import dataclass
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import string
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, int
 
 import sentry_sdk
 from django.utils.encoding import force_str

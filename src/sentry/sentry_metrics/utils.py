@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping, Sequence
-from typing import Union, cast
+from typing import Union, cast, int
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer

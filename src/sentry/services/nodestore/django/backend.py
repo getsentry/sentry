@@ -4,7 +4,7 @@ import logging
 import math
 import pickle
 from datetime import datetime, timedelta
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 

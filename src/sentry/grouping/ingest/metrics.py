@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry import options
 from sentry.grouping.api import GroupingConfig

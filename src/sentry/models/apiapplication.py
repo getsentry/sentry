@@ -2,7 +2,7 @@ import logging
 import os
 import secrets
 from enum import Enum
-from typing import Any, ClassVar, Literal, Self, TypeIs
+from typing import Any, ClassVar, Literal, Self, TypeIs, int
 from urllib.parse import urlparse, urlunparse
 
 import petname

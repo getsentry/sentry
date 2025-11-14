@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from snuba_sdk import Column, Condition

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 

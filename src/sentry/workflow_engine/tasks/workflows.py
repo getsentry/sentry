@@ -1,7 +1,7 @@
 import random
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError

@@ -1,6 +1,6 @@
 import uuid
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 from django.utils import timezone

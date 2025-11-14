@@ -1,7 +1,7 @@
 import importlib.metadata
 import os.path
 import types
-from typing import Any
+from typing import int, Any
 
 DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
 SENTRY_CONF_PY = os.path.expanduser("~/.sentry/sentry.conf.py")

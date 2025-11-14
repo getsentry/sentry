@@ -1,3 +1,4 @@
+from typing import int
 import pydantic
 import sentry_sdk
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError

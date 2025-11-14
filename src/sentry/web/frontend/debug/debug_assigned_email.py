@@ -1,3 +1,4 @@
+from typing import int
 from sentry.types.activity import ActivityType
 from sentry.utils.auth import AuthenticatedHttpRequest
 

@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta, timezone
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter

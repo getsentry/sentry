@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.processing.strategies.run_task import RunTask

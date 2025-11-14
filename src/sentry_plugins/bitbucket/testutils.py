@@ -1,3 +1,4 @@
+from typing import int
 PUSH_EVENT_EXAMPLE = b"""{
     "push": {
         "changes": [

@@ -4,7 +4,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, int
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk

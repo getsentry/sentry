@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import prefetch_related_objects
 

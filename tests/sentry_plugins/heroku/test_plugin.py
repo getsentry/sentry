@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, patch
 
 import orjson

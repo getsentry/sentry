@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, int
 from urllib.parse import urlencode
 
 from django.conf import settings

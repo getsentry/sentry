@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope

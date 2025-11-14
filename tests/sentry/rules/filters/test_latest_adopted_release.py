@@ -1,3 +1,4 @@
+from typing import int
 from datetime import UTC, datetime, timedelta
 
 from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter

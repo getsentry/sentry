@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sentry.models.environment import Environment

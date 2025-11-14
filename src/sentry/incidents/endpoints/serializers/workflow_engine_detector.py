@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery

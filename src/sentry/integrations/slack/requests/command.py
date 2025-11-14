@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 from urllib.parse import parse_qs
 
 from rest_framework import status

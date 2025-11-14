@@ -4,7 +4,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
+from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict, int
 
 import sentry_sdk
 from django.db.models import OuterRef, Subquery

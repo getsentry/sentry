@@ -1,3 +1,4 @@
+from typing import int
 from django.test.utils import override_settings
 
 from sentry.testutils.cases import TestCase

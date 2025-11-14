@@ -1,3 +1,4 @@
+from typing import int
 from sentry.options import FLAG_PRIORITIZE_DISK, register
 
 register("github.integration-private-key", default="", flags=FLAG_PRIORITIZE_DISK)

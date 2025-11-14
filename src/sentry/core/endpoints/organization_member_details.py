@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import int, Literal
 
 from django.db import router, transaction
 from django.db.models import Q

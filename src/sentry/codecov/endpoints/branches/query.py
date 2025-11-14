@@ -1,3 +1,4 @@
+from typing import int
 query = """query GetBranches(
   $owner: String!
   $repo: String!

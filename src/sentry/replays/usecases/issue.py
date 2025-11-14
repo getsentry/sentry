@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence

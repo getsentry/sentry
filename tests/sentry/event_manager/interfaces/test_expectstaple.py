@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata

@@ -1,3 +1,4 @@
+from typing import int
 import uuid
 
 import confluent_kafka as kafka

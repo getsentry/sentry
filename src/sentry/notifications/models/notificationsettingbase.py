@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.conf import settings
 from django.db import models

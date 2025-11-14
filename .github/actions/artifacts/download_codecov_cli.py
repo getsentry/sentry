@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing import int
 import os
 import subprocess
 import urllib.request

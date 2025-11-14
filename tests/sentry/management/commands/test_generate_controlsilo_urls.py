@@ -1,3 +1,4 @@
+from typing import int
 import os.path
 import tempfile
 from io import StringIO

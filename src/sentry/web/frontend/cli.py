@@ -1,3 +1,4 @@
+from typing import int
 from urllib.parse import quote_plus
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect

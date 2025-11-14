@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, int
 
 
 class StatsMeta(TypedDict):

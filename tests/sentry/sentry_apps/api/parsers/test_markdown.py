@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from typing import Any
+from typing import int, Any
 
 from fixtures.schema_validation import invalid_schema
 from sentry.sentry_apps.api.parsers.schema import validate_component

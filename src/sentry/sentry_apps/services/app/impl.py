@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Q, QuerySet
 

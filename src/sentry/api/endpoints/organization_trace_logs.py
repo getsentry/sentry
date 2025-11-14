@@ -1,3 +1,4 @@
+from typing import int
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError

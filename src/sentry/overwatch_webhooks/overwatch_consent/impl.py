@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from typing import int
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.overwatch_webhooks.overwatch_consent.model import RpcOrganizationConsentStatus

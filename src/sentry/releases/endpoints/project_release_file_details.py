@@ -1,3 +1,4 @@
+from typing import int
 import posixpath
 from zipfile import ZipFile
 

@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from collections.abc import Callable, Generator, Mapping
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, int
 
 import pydantic
 

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db.models import Case, Count, IntegerField, When
 from drf_spectacular.utils import extend_schema

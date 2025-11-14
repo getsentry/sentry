@@ -1,3 +1,4 @@
+from typing import int
 from collections import namedtuple
 from dataclasses import dataclass
 

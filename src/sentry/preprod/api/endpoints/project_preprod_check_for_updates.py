@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from packaging.version import parse as parse_version
 from pydantic import BaseModel

@@ -1,3 +1,4 @@
+from typing import int
 from django.core.cache import cache
 
 from .base import BaseCache

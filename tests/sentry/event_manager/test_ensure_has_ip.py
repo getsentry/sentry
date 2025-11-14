@@ -1,3 +1,4 @@
+from typing import int
 from sentry.event_manager import EventManager
 from sentry.testutils.pytest.fixtures import django_db_all
 

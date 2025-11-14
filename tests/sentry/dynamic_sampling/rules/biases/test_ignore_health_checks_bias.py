@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
     IgnoreHealthChecksTraceBias,

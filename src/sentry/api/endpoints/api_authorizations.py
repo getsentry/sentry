@@ -1,3 +1,4 @@
+from typing import int
 from django.db import router, transaction
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request

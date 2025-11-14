@@ -2,7 +2,7 @@ import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
-from typing import Any
+from typing import int, Any
 
 from django.db.models import Count, DateTimeField, F, Func, Q
 from django.db.models.functions import Extract

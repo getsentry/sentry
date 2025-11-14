@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, int
 
 if TYPE_CHECKING:
     from sentry.search.events.builder.base import BaseQueryBuilder

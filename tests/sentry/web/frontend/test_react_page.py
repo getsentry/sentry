@@ -1,3 +1,4 @@
+from typing import int
 from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse

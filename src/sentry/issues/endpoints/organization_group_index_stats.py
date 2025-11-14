@@ -1,3 +1,4 @@
+from typing import int
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response

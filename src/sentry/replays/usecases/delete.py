@@ -4,7 +4,7 @@ import concurrent.futures as cf
 import functools
 import logging
 from datetime import datetime
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.conf import settings
 from google.cloud.exceptions import NotFound

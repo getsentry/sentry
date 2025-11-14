@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import orjson
 from django.http.response import HttpResponseBase

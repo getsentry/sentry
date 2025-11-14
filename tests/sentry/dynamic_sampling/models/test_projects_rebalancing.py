@@ -1,3 +1,4 @@
+from typing import int
 from operator import attrgetter
 
 import pytest

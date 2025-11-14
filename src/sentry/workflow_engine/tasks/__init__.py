@@ -1,3 +1,4 @@
+from typing import int
 __all__ = [
     "process_delayed_workflows",
     "process_workflow_activity",

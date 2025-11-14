@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
-from typing import Any
+from typing import int, Any
 
 from django.utils import timezone
 

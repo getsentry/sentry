@@ -1,3 +1,4 @@
+from typing import int
 from base64 import b64encode
 
 from django.utils.encoding import force_bytes

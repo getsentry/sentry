@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 from collections.abc import Callable
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, int
 
 import sentry_sdk
 from cryptography.fernet import Fernet, InvalidToken

@@ -1,3 +1,4 @@
+from typing import int
 from django.core.management.base import BaseCommand, CommandError
 
 from sentry.mail import mail_adapter

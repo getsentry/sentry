@@ -1,3 +1,4 @@
+from typing import int
 from sentry.hybridcloud.models.cacheversion import RegionCacheVersion
 from sentry.testutils.pytest.fixtures import django_db_all
 

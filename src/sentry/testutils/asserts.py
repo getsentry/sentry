@@ -1,3 +1,4 @@
+from typing import int
 from functools import reduce
 
 from django.db import models

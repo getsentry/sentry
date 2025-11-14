@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse

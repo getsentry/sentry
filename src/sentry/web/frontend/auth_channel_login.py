@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache

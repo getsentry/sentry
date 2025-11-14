@@ -1,3 +1,4 @@
+from typing import int
 from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .ai_autofix_pr_events import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403

@@ -1,4 +1,4 @@
-from typing import ContextManager
+from typing import int, ContextManager
 
 import pytest
 

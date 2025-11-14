@@ -1,3 +1,4 @@
+from typing import int
 from unittest import TestCase
 
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option

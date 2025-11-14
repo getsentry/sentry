@@ -1,3 +1,4 @@
+from typing import int
 class ServerlessMixin:
     def get_serverless_functions(self):
         """

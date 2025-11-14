@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Generator, Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.rule import Rule

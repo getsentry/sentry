@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from typing import Any, cast
+from typing import Any, cast, int
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryResult

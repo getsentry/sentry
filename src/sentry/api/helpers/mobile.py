@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 from sentry.api.helpers.android_models import ANDROID_MODELS
 from sentry.api.helpers.ios_models import IOS_MODELS

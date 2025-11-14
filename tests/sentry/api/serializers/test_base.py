@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, serialize
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

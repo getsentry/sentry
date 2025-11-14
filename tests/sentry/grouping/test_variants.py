@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, cast, int
 from unittest.mock import MagicMock, patch
 
 from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON

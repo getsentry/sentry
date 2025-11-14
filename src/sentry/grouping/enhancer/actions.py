@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer.matchers import MatchFrame

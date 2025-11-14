@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import re
 import secrets
-from typing import ClassVar
+from typing import int, ClassVar
 from urllib.parse import urlparse
 
 import petname

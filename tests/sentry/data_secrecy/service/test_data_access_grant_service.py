@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime, timedelta, timezone
 
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant

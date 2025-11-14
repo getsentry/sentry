@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import contextmanager

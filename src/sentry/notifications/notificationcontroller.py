@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Union
+from typing import int, Union
 
 from django.db.models import Q
 

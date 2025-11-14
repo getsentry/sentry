@@ -1,3 +1,4 @@
+from typing import int
 from sentry import analytics
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse

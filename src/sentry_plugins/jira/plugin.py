@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import re
 from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit

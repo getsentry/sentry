@@ -1,3 +1,4 @@
+from typing import int
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.testutils.cases import TestCase

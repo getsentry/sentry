@@ -1,3 +1,4 @@
+from typing import int
 """
 Analysis of INC-1184.  Production backlog of four partitions (two consumers) of the
 ingest-replay-recordings Kafka consumer.

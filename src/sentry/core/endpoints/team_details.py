@@ -1,3 +1,4 @@
+from typing import int
 from uuid import uuid4
 
 from django.db import router, transaction

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 from dateutil.parser import parse as parse_datetime
 

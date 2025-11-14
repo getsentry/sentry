@@ -3,7 +3,7 @@ import logging
 import time
 from collections.abc import Mapping, MutableMapping
 from functools import partial
-from typing import Any
+from typing import int, Any
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload

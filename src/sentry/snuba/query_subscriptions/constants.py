@@ -1,3 +1,4 @@
+from typing import int
 from sentry.conf.types.kafka_definition import Topic
 from sentry.snuba.dataset import Dataset
 from sentry.utils.kafka_config import get_topic_definition

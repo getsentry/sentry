@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import int, Any
 
 
 class OptionsPresenter(ABC):

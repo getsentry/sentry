@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent

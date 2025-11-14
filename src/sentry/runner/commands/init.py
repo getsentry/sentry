@@ -1,3 +1,4 @@
+from typing import int
 import importlib.resources
 import os
 

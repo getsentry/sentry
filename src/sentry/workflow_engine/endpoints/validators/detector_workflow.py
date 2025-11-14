@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Literal
+from typing import int, Literal
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import QuerySet

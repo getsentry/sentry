@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.apitoken import ApiToken
 from sentry.types.token import AuthTokenType

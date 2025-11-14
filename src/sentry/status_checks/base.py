@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import Final, Literal
+from typing import Final, Literal, int
 
 
 def sort_by_severity(problems: Iterable[Problem]) -> list[Problem]:

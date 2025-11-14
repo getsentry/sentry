@@ -1,3 +1,4 @@
+from typing import int
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 from sentry.models.project import Project

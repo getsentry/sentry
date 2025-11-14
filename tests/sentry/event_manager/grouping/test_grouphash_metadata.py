@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from time import time
-from typing import Any
+from typing import int, Any
 from unittest.mock import ANY, MagicMock, patch
 
 from django.utils import timezone

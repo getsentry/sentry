@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeAlias
+from typing import int, TypeAlias
 
 import orjson
 from django.conf import settings

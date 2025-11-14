@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.db import models
 from django.db.models import CheckConstraint, Q, UniqueConstraint

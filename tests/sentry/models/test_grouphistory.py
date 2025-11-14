@@ -1,3 +1,4 @@
+from typing import int
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, get_prev_history
 from sentry.testutils.cases import TestCase

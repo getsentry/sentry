@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry import analytics
 from sentry.analytics.events.missing_members_nudge import MissingMembersNudgeEvent

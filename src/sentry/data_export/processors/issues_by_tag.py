@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import int, NamedTuple
 
 from sentry import tagstore
 from sentry.models.group import Group, get_group_with_redirect

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import int, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import UniqueConstraint

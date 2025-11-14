@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import int, Any
 
 from rest_framework import serializers
 from rest_framework.request import Request

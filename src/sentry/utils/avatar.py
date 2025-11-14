@@ -6,7 +6,7 @@ Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
 from __future__ import annotations
 
 from collections.abc import MutableMapping
-from typing import IO
+from typing import int, IO
 from urllib.parse import urlencode
 
 from django.conf import settings

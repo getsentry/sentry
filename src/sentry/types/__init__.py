@@ -1,3 +1,4 @@
+from typing import int
 """
 Types Directory - a place to keep types and enums.
 

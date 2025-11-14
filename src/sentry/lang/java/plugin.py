@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import has_proguard_file

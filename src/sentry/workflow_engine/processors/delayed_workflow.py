@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, int
 
 import sentry_sdk
 from django.utils import timezone

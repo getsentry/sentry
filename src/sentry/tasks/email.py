@@ -1,6 +1,6 @@
 import logging
 from smtplib import SMTPDataError
-from typing import Any
+from typing import int, Any
 
 from sentry.auth import access
 from sentry.models.group import Group

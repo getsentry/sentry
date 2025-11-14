@@ -1,3 +1,4 @@
+from typing import int
 import logging
 
 from sentry.issues.status_change_consumer import group_status_update_registry

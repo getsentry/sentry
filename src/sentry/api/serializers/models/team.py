@@ -4,7 +4,7 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, int
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count

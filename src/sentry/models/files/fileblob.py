@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.db.models import region_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob

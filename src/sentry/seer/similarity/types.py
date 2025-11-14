@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, NotRequired, Self, TypedDict
+from typing import Any, ClassVar, NotRequired, Self, TypedDict, int
 
 from sentry.models.grouphash import GroupHash
 

@@ -1,3 +1,4 @@
+from typing import int
 from sentry.constants import SentryAppInstallationStatus
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Required, TypedDict
+from typing import Any, Required, TypedDict, int
 
 # Ideally this would be fully aligned with sentry_kafka_schemas, but many mutations
 # happen in the ingestion pipeline (adding new attributes and removing required

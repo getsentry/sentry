@@ -5,7 +5,7 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,

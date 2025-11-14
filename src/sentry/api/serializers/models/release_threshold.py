@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_INT_TO_STR,

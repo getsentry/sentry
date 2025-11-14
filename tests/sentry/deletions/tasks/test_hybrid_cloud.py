@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator
 from operator import itemgetter
-from typing import Any, ContextManager, NotRequired, TypedDict
+from typing import Any, ContextManager, NotRequired, TypedDict, int
 from unittest.mock import patch
 
 import pytest

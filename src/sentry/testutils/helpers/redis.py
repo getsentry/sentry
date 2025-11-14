@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+from typing import int, Any
 from unittest.mock import patch
 
 from django.test.utils import override_settings

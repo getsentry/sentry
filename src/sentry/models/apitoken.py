@@ -4,7 +4,7 @@ import hashlib
 import secrets
 from collections.abc import Collection, Mapping
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, int
 
 from django.db import models, router, transaction
 from django.utils import timezone

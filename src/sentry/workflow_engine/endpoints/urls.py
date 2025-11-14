@@ -1,3 +1,4 @@
+from typing import int
 from django.urls import re_path
 
 from sentry.workflow_engine.endpoints.organization_alertrule_workflow_index import (

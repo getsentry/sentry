@@ -2,7 +2,7 @@ import sys
 import traceback
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 import click
 from django.urls import reverse

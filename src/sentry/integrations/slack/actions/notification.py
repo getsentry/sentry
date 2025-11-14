@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Generator, Sequence
 from datetime import datetime
 from logging import Logger, getLogger
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

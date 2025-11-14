@@ -1,3 +1,4 @@
+from typing import int
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.signals import project_created

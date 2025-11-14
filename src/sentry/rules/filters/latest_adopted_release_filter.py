@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from itertools import product
-from typing import Any
+from typing import int, Any
 
 from django import forms
 from django.db.models.signals import post_delete, post_save

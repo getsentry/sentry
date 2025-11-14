@@ -1,3 +1,4 @@
+from typing import int
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from rest_framework import status

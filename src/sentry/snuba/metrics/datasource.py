@@ -15,7 +15,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from rest_framework.exceptions import NotFound

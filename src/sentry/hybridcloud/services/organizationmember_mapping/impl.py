@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from typing import int
 from django.db import IntegrityError, router, transaction
 
 from sentry.hybridcloud.models.outbox import outbox_context

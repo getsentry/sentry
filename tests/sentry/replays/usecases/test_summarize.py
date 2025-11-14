@@ -2,7 +2,7 @@ import uuid
 import zlib
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import int, Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

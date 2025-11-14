@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import int, Literal
 
 from sentry import features
 from sentry.integrations.client import ApiClient

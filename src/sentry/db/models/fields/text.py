@@ -1,3 +1,4 @@
+from typing import int
 """
 Traditional Django model fields, except their type is
 explicitly `text` as opposed to `varchar`. All other

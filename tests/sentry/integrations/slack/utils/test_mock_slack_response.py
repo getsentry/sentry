@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import patch
 
 from slack_sdk.web.slack_response import SlackResponse

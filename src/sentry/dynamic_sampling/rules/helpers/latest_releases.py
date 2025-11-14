@@ -1,3 +1,4 @@
+from typing import int
 import re
 from collections import namedtuple
 from collections.abc import Callable

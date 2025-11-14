@@ -1,3 +1,4 @@
+from typing import int
 from .sentry_apps import (
     broadcast_webhooks_for_organization,
     build_comment_webhook,

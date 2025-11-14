@@ -4,7 +4,7 @@ import datetime
 import logging
 from collections.abc import Callable
 from concurrent import futures
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer

@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from enum import StrEnum
 from time import time
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from uuid import uuid4
 
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation

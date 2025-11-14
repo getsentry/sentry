@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, int
 
 K = TypeVar("K")
 V = TypeVar("V")

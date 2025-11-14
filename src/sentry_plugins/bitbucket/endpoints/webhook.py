@@ -1,3 +1,4 @@
+from typing import int
 import ipaddress
 import logging
 from datetime import timezone

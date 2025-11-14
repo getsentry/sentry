@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict, Union, int
 
 import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE

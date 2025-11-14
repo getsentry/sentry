@@ -1,4 +1,4 @@
-from typing import Literal, Required, TypedDict
+from typing import Literal, Required, TypedDict, int
 
 AI_OPERATION_TYPE_VALUE = Literal["agent", "ai_client", "tool", "handoff"]
 

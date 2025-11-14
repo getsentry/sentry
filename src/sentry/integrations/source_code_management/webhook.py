@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.utils.metrics import IntegrationWebhookEventType
 from sentry.models.repository import Repository

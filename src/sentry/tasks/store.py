@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from time import time
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

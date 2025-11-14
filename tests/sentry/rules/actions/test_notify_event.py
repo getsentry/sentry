@@ -1,3 +1,4 @@
+from typing import int
 from unittest.mock import MagicMock
 
 from sentry.rules.actions.notify_event import NotifyEventAction

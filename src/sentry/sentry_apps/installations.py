@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 from functools import cached_property
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.db import router, transaction
 from django.http.request import HttpRequest

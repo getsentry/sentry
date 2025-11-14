@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import int, Any
 
 from sentry import http, tagstore
 from sentry.integrations.data_forwarding.base import BaseDataForwarder

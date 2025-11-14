@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import int, Any
 
 from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 

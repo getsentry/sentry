@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.pipeline.views.base import PipelineView
 

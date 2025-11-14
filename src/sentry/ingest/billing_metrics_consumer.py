@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import Any, cast, int
 
 import orjson
 from arroyo.backends.kafka import KafkaPayload

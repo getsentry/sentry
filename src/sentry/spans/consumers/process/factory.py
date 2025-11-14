@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import cast
+from typing import int, cast
 
 import orjson
 import sentry_sdk

@@ -1,3 +1,4 @@
+from typing import int
 from collections import defaultdict, namedtuple
 
 FEATURE_LOCATION = {"language", "integration", "code", "web", "admin", "api"}

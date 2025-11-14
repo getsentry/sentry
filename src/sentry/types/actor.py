@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol, Union, overload
+from typing import TYPE_CHECKING, Any, Protocol, Union, overload, int
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers

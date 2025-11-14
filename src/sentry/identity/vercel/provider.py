@@ -1,3 +1,4 @@
+from typing import int
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline

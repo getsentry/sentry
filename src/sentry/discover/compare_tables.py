@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import TypedDict
+from typing import int, TypedDict
 
 import sentry_sdk
 

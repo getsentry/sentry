@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from rest_framework import serializers

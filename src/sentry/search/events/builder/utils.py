@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Callable
 from datetime import datetime, timedelta
 

@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import time
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, int
 
 from django.conf import settings
 

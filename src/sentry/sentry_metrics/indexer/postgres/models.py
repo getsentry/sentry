@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, Self
+from typing import ClassVar, Self, int
 
 from django.conf import settings
 from django.db import models

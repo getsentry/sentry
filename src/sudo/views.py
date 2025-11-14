@@ -8,7 +8,7 @@ sudo.views
 
 from __future__ import annotations
 
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse, urlunparse
 
 from django.contrib.auth.decorators import login_required

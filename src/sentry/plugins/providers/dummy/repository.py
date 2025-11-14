@@ -1,3 +1,4 @@
+from typing import int
 from sentry.plugins.providers.repository import RepositoryProvider
 
 

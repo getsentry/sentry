@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
-from typing import Any, Literal, Self, TypedDict, overload
+from typing import Any, Literal, Self, TypedDict, overload, int
 
 import sentry_sdk
 from django.core.cache import cache

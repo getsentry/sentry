@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 
 
 class MatchType(StrEnum):

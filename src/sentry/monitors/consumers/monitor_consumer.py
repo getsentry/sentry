@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
 from datetime import UTC, datetime
 from functools import partial
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, int
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload

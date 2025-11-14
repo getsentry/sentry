@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any, cast
+from typing import Any, cast, int
 from unittest.mock import MagicMock, patch
 
 import orjson

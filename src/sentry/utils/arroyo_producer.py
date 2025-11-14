@@ -3,7 +3,7 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
-from typing import Deque
+from typing import int, Deque
 
 from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration

@@ -1,3 +1,4 @@
+from typing import int
 from symbolic.sourcemap import SourceView
 
 from sentry.utils.strings import codec_lookup

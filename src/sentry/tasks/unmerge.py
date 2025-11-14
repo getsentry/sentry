@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any
+from typing import int, Any
 
 from django.db import router, transaction
 from django.db.models.base import Model

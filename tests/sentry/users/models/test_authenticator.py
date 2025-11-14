@@ -1,3 +1,4 @@
+from typing import int
 from django.db import connection
 from django.db.models.expressions import Expression
 from fido2.ctap2 import AuthenticatorData

@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any
+from typing import int, Any
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django import forms

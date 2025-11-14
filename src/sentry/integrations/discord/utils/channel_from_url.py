@@ -1,3 +1,4 @@
+from typing import int
 from venv import logger
 
 from django.core.exceptions import ValidationError

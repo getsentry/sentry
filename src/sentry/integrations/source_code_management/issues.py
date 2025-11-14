@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.source_code_management.metrics import (

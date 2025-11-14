@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, int
 
 import sentry_sdk
 from django.utils import timezone

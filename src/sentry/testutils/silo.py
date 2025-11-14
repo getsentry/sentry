@@ -11,7 +11,7 @@ import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Literal, cast, overload
+from typing import Any, Literal, cast, overload, int
 from unittest import TestCase
 
 import pytest

@@ -2,7 +2,7 @@ import abc
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
-from typing import Literal
+from typing import int, Literal
 from unittest import mock
 from unittest.mock import MagicMock, call
 

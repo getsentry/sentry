@@ -1,3 +1,4 @@
+from typing import int
 import time
 from functools import cached_property
 

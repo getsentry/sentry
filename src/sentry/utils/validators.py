@@ -1,6 +1,6 @@
 import re
 import uuid
-from typing import TypeGuard
+from typing import int, TypeGuard
 
 from django.utils.encoding import force_str
 

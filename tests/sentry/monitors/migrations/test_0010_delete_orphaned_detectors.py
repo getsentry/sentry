@@ -1,3 +1,4 @@
+from typing import int
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.testutils.cases import TestMigrations

@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.replays.lib.cache import AutoCache, BoundedFifoCache, BoundedLRUCache, TimeLimitedCache

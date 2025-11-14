@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 import sentry_sdk
 import sqlparse

@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 from urllib.parse import parse_qsl
 
 from django.http import HttpResponse

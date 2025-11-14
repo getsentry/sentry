@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Optional, Union
+from typing import Optional, Union, int
 
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils.locking.backends import LockBackend

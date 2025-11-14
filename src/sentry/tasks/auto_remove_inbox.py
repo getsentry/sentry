@@ -1,3 +1,4 @@
+from typing import int
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models.groupinbox import GroupInbox
 from sentry.silo.base import SiloMode

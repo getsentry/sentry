@@ -1,7 +1,7 @@
 from base64 import b64decode, b64encode
 from copy import deepcopy
 from pickle import dumps, loads
-from typing import Any
+from typing import int, Any
 from zlib import compress, decompress
 
 from django.conf import settings

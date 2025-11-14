@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import int, Any
 
 from django.core.cache import cache
 from django.urls import reverse

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import re
-from typing import Any
+from typing import int, Any
 
 from django.utils.timezone import now
 from structlog import get_logger

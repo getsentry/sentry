@@ -1,3 +1,4 @@
+from typing import int
 from tests.sentry.monitors.endpoints.test_base_monitor_details import (
     BaseDeleteMonitorTest,
     BaseMonitorDetailsTest,

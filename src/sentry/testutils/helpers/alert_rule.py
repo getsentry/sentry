@@ -1,3 +1,4 @@
+from typing import int
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass

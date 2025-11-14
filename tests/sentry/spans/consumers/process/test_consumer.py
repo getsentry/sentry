@@ -1,3 +1,4 @@
+from typing import int
 from datetime import datetime
 from time import sleep as real_sleep  # Import before monkeypatch
 from unittest import mock

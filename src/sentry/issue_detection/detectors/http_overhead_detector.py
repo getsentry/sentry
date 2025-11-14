@@ -3,7 +3,7 @@ from __future__ import annotations
 import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any
+from typing import int, Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (

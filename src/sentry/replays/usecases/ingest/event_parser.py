@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar, int
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem

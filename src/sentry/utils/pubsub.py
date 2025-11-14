@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from arroyo.backends.kafka import build_kafka_producer_configuration
 

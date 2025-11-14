@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features

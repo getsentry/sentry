@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.webhookpresenter import WebhookPresenter

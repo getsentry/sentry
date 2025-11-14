@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Self
+from typing import Any, Self, int
 
 from django.db import models
 from django.db.models import Case, ExpressionWrapper, F, IntegerField, Q, TextChoices, Value, When

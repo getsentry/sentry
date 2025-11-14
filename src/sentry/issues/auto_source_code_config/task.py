@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
+from typing import int, Any
 
 from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user

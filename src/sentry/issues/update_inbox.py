@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.event_manager import EventManager
 from sentry.models.project import Project

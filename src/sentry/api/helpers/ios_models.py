@@ -1,3 +1,4 @@
+from typing import int
 IPHONE4 = "iPhone 4"
 IPHONE5 = "iPhone 5"
 IPHONE5C = "iPhone 5c"

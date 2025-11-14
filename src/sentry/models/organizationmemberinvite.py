@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.conf import settings
 from django.db import models, router, transaction

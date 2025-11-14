@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from threading import Thread
 from traceback import FrameSummary
-from typing import Any
+from typing import int, Any
 from unittest.mock import Mock
 
 from sentry.testutils.thread_leaks.sentry import event_from_stack

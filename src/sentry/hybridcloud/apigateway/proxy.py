@@ -1,3 +1,4 @@
+from typing import int
 """
 Utilities related to proxying a request to a region silo
 """

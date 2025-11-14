@@ -1,3 +1,4 @@
+from typing import int
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator

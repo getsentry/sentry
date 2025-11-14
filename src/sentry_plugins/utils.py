@@ -1,3 +1,4 @@
+from typing import int
 def get_secret_field_config(secret, help_text=None, include_prefix=False, **kwargs):
     has_saved_value = bool(secret)
     saved_text = "Only enter a new value if you wish to update the existing one. "

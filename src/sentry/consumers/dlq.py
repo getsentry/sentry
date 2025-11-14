@@ -1,3 +1,4 @@
+from typing import int
 import logging
 import time
 from collections.abc import Mapping, MutableMapping

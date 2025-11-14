@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from django.http import HttpResponse
 from rest_framework import serializers

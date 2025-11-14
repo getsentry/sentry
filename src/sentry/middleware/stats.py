@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import int, Any
 
 from django.conf import settings
 from django.http import Http404

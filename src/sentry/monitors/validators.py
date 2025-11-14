@@ -1,5 +1,5 @@
 import re
-from typing import Any, Literal
+from typing import Any, Literal, int
 
 import jsonschema
 import sentry_sdk

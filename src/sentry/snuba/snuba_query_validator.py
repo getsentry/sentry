@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import override
+from typing import int, override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _

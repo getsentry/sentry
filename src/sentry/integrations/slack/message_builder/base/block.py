@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import int, Any
 
 import orjson
 

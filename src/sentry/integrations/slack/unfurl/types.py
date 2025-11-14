@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Callable, Mapping
 from re import Pattern
-from typing import Any, NamedTuple, Optional, Protocol
+from typing import Any, NamedTuple, Optional, Protocol, int
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration

@@ -1,3 +1,4 @@
+from typing import int
 """Django-Social-Auth Pipeline.
 
 Pipelines must return a dictionary with values that will be passed as parameter

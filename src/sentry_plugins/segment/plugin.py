@@ -1,3 +1,4 @@
+from typing import int
 from sentry import http
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin

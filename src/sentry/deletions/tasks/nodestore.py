@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request

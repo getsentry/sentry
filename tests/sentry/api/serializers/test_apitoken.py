@@ -1,3 +1,4 @@
+from typing import int
 from sentry.api.serializers import ApiTokenSerializer
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode

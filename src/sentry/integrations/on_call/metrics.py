@@ -1,3 +1,4 @@
+from typing import int
 from enum import Enum, StrEnum
 
 from attr import dataclass

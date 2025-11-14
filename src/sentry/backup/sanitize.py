@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from random import choice, randint
-from typing import Any
+from typing import int, Any
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID, uuid4
 

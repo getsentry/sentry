@@ -1,3 +1,4 @@
+from typing import int
 from google.protobuf.json_format import MessageToDict
 from rest_framework import serializers
 from rest_framework.request import Request

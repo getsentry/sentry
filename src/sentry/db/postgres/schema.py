@@ -1,3 +1,4 @@
+from typing import int
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,

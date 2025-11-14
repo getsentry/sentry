@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast, int
 
 from django.db.models import prefetch_related_objects
 

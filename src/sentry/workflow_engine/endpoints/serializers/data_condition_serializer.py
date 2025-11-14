@@ -1,4 +1,4 @@
-from typing import Any
+from typing import int, Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case

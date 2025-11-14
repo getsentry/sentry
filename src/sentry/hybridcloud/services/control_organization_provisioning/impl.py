@@ -1,3 +1,4 @@
+from typing import int
 from copy import deepcopy
 
 from django.db import router, transaction

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import int, TypedDict
 
 from sentry import projectoptions
 from sentry.models.project import Project

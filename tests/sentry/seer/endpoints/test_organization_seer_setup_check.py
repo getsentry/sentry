@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import int
 
 import calendar
 from unittest.mock import MagicMock, patch

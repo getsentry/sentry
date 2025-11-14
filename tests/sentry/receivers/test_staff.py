@@ -1,3 +1,4 @@
+from typing import int
 from sentry.auth.staff import is_active_staff
 from sentry.receivers.staff import disable_staff
 from sentry.testutils.cases import TestCase

@@ -1,4 +1,4 @@
-from typing import cast
+from typing import int, cast
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 

@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Never, Protocol, TypedDict
+from typing import Any, Never, Protocol, TypedDict, int
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime

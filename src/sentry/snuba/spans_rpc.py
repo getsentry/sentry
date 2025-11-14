@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest

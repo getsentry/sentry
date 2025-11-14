@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from html import escape
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, int
 
 from django.conf import settings
 from django.utils.functional import classproperty

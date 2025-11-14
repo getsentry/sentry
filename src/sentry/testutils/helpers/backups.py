@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
-from typing import Any
+from typing import int, Any
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend

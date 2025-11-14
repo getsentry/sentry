@@ -1,3 +1,4 @@
+from typing import int
 from snuba_sdk import Query
 
 from sentry.replays.lib.eap.snuba_transpiler import (

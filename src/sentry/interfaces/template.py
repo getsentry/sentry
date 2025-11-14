@@ -1,3 +1,4 @@
+from typing import int
 __all__ = ("Template",)
 
 from sentry.interfaces.base import Interface

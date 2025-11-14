@@ -1,6 +1,6 @@
 from collections.abc import Generator, Mapping
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Union, int
 
 import rb
 from redis import StrictRedis

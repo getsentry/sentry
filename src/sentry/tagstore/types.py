@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, TypedDict, int
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query

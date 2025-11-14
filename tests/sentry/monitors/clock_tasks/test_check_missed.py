@@ -1,3 +1,4 @@
+from typing import int
 from datetime import UTC, timedelta
 from unittest import mock
 from zoneinfo import ZoneInfo

@@ -1,3 +1,4 @@
+from typing import int
 from sentry_redis_tools.metrics import Metrics, Tags
 
 from sentry.metrics.base import MetricsBackend

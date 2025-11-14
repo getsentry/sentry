@@ -1,3 +1,4 @@
+from typing import int
 NATIVE_PLATFORMS = frozenset(("objc", "cocoa", "swift", "native", "c"))
 JAVASCRIPT_PLATFORMS = frozenset(("javascript", "node"))
 

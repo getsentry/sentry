@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, int
 
 from django.conf import settings
 from django.http import HttpResponse

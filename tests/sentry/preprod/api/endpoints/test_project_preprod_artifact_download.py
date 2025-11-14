@@ -1,3 +1,4 @@
+from typing import int
 from io import BytesIO
 
 from django.test import override_settings

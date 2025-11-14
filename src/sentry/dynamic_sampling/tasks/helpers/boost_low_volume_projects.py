@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import overload
+from typing import int, overload
 
 import sentry_sdk
 

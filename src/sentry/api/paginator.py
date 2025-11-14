@@ -5,7 +5,7 @@ import logging
 import math
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Protocol
+from typing import Any, Protocol, int
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist

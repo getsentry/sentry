@@ -1,3 +1,4 @@
+from typing import int
 import logging
 from string import Template
 

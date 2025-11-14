@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.conf import settings

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import int, Any
 
 from jsonschema import validate
 from rest_framework.request import Request

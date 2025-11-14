@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any
+from typing import int, Any
 
 
 def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:

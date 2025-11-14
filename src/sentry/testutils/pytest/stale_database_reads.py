@@ -1,6 +1,6 @@
 import dataclasses
 from threading import local
-from typing import Any
+from typing import int, Any
 from unittest import mock
 
 import pytest

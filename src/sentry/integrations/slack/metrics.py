@@ -1,5 +1,6 @@
 # metrics constants
 
+from typing import int
 from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.slack.utils.errors import (

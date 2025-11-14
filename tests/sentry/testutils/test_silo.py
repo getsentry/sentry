@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.testutils.silo import strip_silo_mode_test_suffix, validate_protected_queries

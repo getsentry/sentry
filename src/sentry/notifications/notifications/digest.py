@@ -5,7 +5,7 @@ import zoneinfo
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, tzinfo
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, int
 from urllib.parse import urlencode
 
 import sentry_sdk

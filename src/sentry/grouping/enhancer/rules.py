@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, int
 
 from .actions import EnhancementAction
 from .matchers import EnhancementMatch, ExceptionFieldMatch, MatchFrame, ReturnValueCache

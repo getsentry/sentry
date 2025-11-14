@@ -1,3 +1,4 @@
+from typing import int
 OFFSET = 10**9
 
 

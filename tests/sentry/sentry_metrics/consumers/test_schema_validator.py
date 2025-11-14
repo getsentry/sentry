@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import int, Any
 
 import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError

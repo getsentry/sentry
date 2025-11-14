@@ -1,3 +1,4 @@
+from typing import int
 import pytest
 
 from sentry.spans.grouping.utils import parse_fingerprint_var

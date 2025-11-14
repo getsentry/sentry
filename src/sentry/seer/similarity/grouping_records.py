@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import int, TypedDict
 
 from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError

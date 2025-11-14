@@ -1,3 +1,4 @@
+from typing import int
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register

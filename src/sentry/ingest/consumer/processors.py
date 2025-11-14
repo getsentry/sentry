@@ -2,7 +2,7 @@ import functools
 import logging
 import os
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import int, Any
 
 import orjson
 import sentry_sdk

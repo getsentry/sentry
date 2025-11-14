@@ -1,3 +1,4 @@
+from typing import int
 from sentry import tsdb
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.testutils.cases import APITestCase

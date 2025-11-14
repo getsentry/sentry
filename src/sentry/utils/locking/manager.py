@@ -1,3 +1,4 @@
+from typing import int
 from sentry.utils import metrics
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock

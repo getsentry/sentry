@@ -2,7 +2,7 @@ import logging
 import types
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import int, Any
 
 import sentry_sdk
 from django.core.exceptions import ValidationError

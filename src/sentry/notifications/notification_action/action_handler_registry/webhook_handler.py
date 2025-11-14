@@ -1,3 +1,4 @@
+from typing import int
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry

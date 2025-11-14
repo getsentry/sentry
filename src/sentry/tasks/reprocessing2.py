@@ -1,5 +1,5 @@
 import time
-from typing import TYPE_CHECKING
+from typing import int, TYPE_CHECKING
 
 import sentry_sdk
 from django.conf import settings
