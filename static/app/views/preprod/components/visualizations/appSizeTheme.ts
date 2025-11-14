@@ -76,7 +76,7 @@ export function getAppSizeCategoryInfo(
     [TreemapType.DYLD]: {
       color: groupColor1,
       headerColor: createHeaderColor(groupColor1),
-      displayName: t('Dynamic Libraries'),
+      displayName: t('DYLD'),
     },
     [TreemapType.MACHO]: {
       color: groupColor2,
