@@ -17,7 +17,10 @@ from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -342,13 +345,68 @@ def _get_github_username_for_user(user: User | RpcUser, organization_id: int) ->
     """
     Get GitHub username for a user by checking multiple sources.
 
-    This delegates to the shared helper function that checks:
-    1. ExternalActor for direct user→GitHub mappings
-    2. CommitAuthor records matched by email (like suspect commits)
+    This function attempts to resolve a Sentry user to their GitHub username by:
+    1. Checking ExternalActor for explicit user→GitHub mappings
+    2. Falling back to CommitAuthor records matched by email (like suspect commits)
+    3. Extracting the GitHub username from the CommitAuthor external_id
     """
-    from sentry.utils.committers import get_github_username_for_user
+    from sentry.users.services.user.service import user_service
 
-    return get_github_username_for_user(user, organization_id)
+    # Method 1: Check ExternalActor for direct user→GitHub mapping
+    external_actor: ExternalActor | None = (
+        ExternalActor.objects.filter(
+            user_id=user.id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        .order_by("-date_added")
+        .first()
+    )
+
+    if external_actor and external_actor.external_name:
+        username = external_actor.external_name
+        return username[1:] if username.startswith("@") else username
+
+    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
+    # Get all verified emails for this user
+    user_emails = [user.email] if hasattr(user, "email") and user.email else []
+    try:
+        # For RpcUser, get verified emails directly from the object
+        if hasattr(user, "get_verified_emails"):
+            verified_emails = user.get_verified_emails()
+            user_emails.extend([e.email for e in verified_emails])
+        else:
+            # For ORM User, fetch from service
+            user_details = user_service.get_user(user_id=user.id)
+            if user_details and hasattr(user_details, "get_verified_emails"):
+                verified_emails = user_details.get_verified_emails()
+                user_emails.extend([e.email for e in verified_emails])
+    except Exception:
+        # If we can't get verified emails, continue with just the primary email
+        pass
+
+    if user_emails:
+        # Find CommitAuthors with matching emails that have GitHub external_id
+        commit_author = (
+            CommitAuthor.objects.filter(
+                organization_id=organization_id,
+                email__in=[email.lower() for email in user_emails],
+                external_id__isnull=False,
+            )
+            .exclude(external_id="")
+            .order_by("-id")
+            .first()
+        )
+
+        if commit_author:
+            commit_username = commit_author.get_username_from_external_id()
+            if commit_username:
+                return commit_username
+
+    return None
 
 
 def _call_autofix(
