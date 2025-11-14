@@ -435,3 +435,112 @@ def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None
     frame: Event frame
     """
     return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
+
+
+def get_github_username_for_user(user: Any, organization_id: int) -> str | None:
+    """
+    Get GitHub username for a Sentry user by checking multiple sources.
+
+    This function attempts to resolve a Sentry user to their GitHub username by:
+    1. Checking ExternalActor for explicit user→GitHub mappings
+    2. Falling back to CommitAuthor records matched by email (like suspect commits)
+    3. Extracting the GitHub username from the CommitAuthor external_id
+
+    Args:
+        user: Sentry User or RpcUser object
+        organization_id: Organization ID to scope the lookup
+
+    Returns:
+        GitHub username (without @ prefix) or None if no mapping found
+    """
+    import logging
+
+    from sentry.integrations.models.external_actor import ExternalActor
+    from sentry.integrations.types import ExternalProviders
+    from sentry.models.commitauthor import CommitAuthor
+    from sentry.users.services.user.service import user_service
+
+    logger = logging.getLogger(__name__)
+
+    # Method 1: Check ExternalActor for direct user→GitHub mapping
+    external_actor: ExternalActor | None = (
+        ExternalActor.objects.filter(
+            user_id=user.id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        .order_by("-date_added")
+        .first()
+    )
+
+    if external_actor and external_actor.external_name:
+        username = external_actor.external_name
+        username = username[1:] if username.startswith("@") else username
+        logger.info(
+            "github_username_resolved_from_external_actor",
+            extra={
+                "user_id": user.id,
+                "organization_id": organization_id,
+                "username": username,
+                "source": "external_actor",
+            },
+        )
+        return username
+
+    # Method 2: Check CommitAuthor by email matching (like suspect commits does)
+    # Get all verified emails for this user
+    user_emails = [user.email] if hasattr(user, "email") and user.email else []
+    try:
+        # For RpcUser, get verified emails directly from the object
+        if hasattr(user, "get_verified_emails"):
+            verified_emails = user.get_verified_emails()
+            user_emails.extend([e.email for e in verified_emails])
+        else:
+            # For ORM User, fetch from service
+            user_details = user_service.get_user(user_id=user.id)
+            if user_details and hasattr(user_details, "get_verified_emails"):
+                verified_emails = user_details.get_verified_emails()
+                user_emails.extend([e.email for e in verified_emails])
+    except Exception:
+        # If we can't get verified emails, continue with just the primary email
+        pass
+
+    if user_emails:
+        # Find CommitAuthors with matching emails that have GitHub external_id
+        commit_author = (
+            CommitAuthor.objects.filter(
+                organization_id=organization_id,
+                email__in=[email.lower() for email in user_emails],
+                external_id__isnull=False,
+            )
+            .exclude(external_id="")
+            .order_by("-id")
+            .first()
+        )
+
+        if commit_author:
+            commit_username = commit_author.get_username_from_external_id()
+            if commit_username:
+                logger.info(
+                    "github_username_resolved_from_commit_author",
+                    extra={
+                        "user_id": user.id,
+                        "organization_id": organization_id,
+                        "username": commit_username,
+                        "source": "commit_author",
+                    },
+                )
+                return commit_username
+
+    logger.info(
+        "github_username_not_found",
+        extra={
+            "user_id": user.id,
+            "organization_id": organization_id,
+            "source": "none",
+        },
+    )
+    return None

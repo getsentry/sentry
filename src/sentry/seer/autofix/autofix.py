@@ -17,8 +17,6 @@ from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -341,25 +339,16 @@ def _respond_with_error(reason: str, status: int):
 
 
 def _get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
-    """Get GitHub username for a user by checking ExternalActor mappings."""
-    external_actor: ExternalActor | None = (
-        ExternalActor.objects.filter(
-            user_id=user.id,
-            organization_id=organization_id,
-            provider__in=[
-                ExternalProviders.GITHUB.value,
-                ExternalProviders.GITHUB_ENTERPRISE.value,
-            ],
-        )
-        .order_by("-date_added")
-        .first()
-    )
+    """
+    Get GitHub username for a user by checking multiple sources.
 
-    if external_actor and external_actor.external_name:
-        username = external_actor.external_name
-        return username[1:] if username.startswith("@") else username
+    This delegates to the shared helper function that checks:
+    1. ExternalActor for direct user→GitHub mappings
+    2. CommitAuthor records matched by email (like suspect commits)
+    """
+    from sentry.utils.committers import get_github_username_for_user
 
-    return None
+    return get_github_username_for_user(user, organization_id)
 
 
 def _call_autofix(
