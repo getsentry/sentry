@@ -83,16 +83,13 @@ function FilterSelector({
     ? !fullTag.predefined && predefinedValues === null
     : true;
 
-  const baseQueryKey = useMemo(
-    () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
-    [tag, selection, searchQuery]
-  );
-  const queryKey = useDebouncedValue(baseQueryKey);
-
-  const queryResult = useQuery<string[]>({
-    // Disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey,
+  const queryResult = useQuery({
+    queryKey: useDebouncedValue(
+      useMemo(
+        () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
+        [tag, selection, searchQuery]
+      )
+    ),
     queryFn: async () => {
       const result = await searchBarData.getTagValues(tag, searchQuery);
       return result ?? [];
