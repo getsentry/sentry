@@ -38,9 +38,11 @@ export type MetricsAnalyticsEventParameters = {
     organization: Organization;
   };
   'metrics.nav.rendered': {
+    has_feature_flag: boolean;
+    has_metrics_supported_platform: boolean;
+    metrics_supported_platform_name: string | undefined;
     metrics_tab_visible: boolean;
     organization: Organization;
-    platforms: Array<PlatformKey | 'unknown'>;
   };
   'metrics.onboarding': {
     organization: Organization;

@@ -35,6 +35,9 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
 
     d: dict[str, Any] = {}
     for key, value in obj.__dict__.items():
+        if key == "custom_rule_strings":
+            key += " (sorted for snapshot stability - not in application order)"
+
         if key.startswith("_"):
             continue
         elif key in [
@@ -48,6 +51,8 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
             "run_split_enhancements",
         ]:
             continue
+        elif isinstance(value, set):
+            d[key] = [convert_to_dict(x) for x in sorted(value)]
         elif isinstance(value, list):
             d[key] = [convert_to_dict(x) for x in value]
         elif isinstance(value, dict):

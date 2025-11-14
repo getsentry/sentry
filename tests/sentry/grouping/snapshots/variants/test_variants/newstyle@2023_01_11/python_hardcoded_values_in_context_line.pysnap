@@ -1,7 +1,5 @@
 ---
-created: '2025-11-11T21:46:12.284330+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -164,7 +162,7 @@ app:
               "handle"
             context_line*
               "self.emit(record)"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -173,7 +171,7 @@ app:
               "connect"
             context_line*
               "sock = self._connect()"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -182,7 +180,7 @@ app:
               "_connect"
             context_line*
               "raise err"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)

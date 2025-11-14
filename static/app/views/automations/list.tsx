@@ -6,7 +6,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -25,8 +24,6 @@ import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
-  useWorkflowEngineFeatureGate({redirect: true});
-
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();

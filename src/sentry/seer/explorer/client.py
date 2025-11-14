@@ -5,6 +5,7 @@ from typing import Any
 
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel, ValidationError
@@ -17,6 +18,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     poll_until_done,
 )
+from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
@@ -32,15 +34,16 @@ class SeerExplorerClient:
     with full Sentry context.
 
     Example usage:
+    ```python
         from sentry.seer.explorer.client import SeerExplorerClient
         from pydantic import BaseModel
 
-        # Simple usage
+        # SIMPLE USAGE
         client = SeerExplorerClient(organization, user)
         run_id = client.start_run("Analyze trace XYZ and find performance issues")
         state = client.get_run(run_id)
 
-        # With artifacts
+        # WITH ARTIFACTS
         class BugAnalysis(BaseModel):
             issue_count: int
             severity: str
@@ -55,10 +58,46 @@ class SeerExplorerClient:
             artifact = cast(BugAnalysis, state.artifact)
             print(f"Found {artifact.issue_count} issues")
 
+        # WITH CUSTOM TOOLS
+        from sentry.seer.explorer.custom_tool_utils import ExplorerTool, ExplorerToolParam, StringType
+
+        class DeploymentStatusTool(ExplorerTool):
+            @classmethod
+            def get_description(cls):
+                return "Check if a service is deployed in an environment"
+
+            @classmethod
+            def get_params(cls):
+                return [
+                    ExplorerToolParam(
+                        name="environment",
+                        description="Environment name (e.g., 'production', 'staging')",
+                        type=StringType(),
+                    ),
+                    ExplorerToolParam(
+                        name="service",
+                        description="Service name",
+                        type=StringType(),
+                    ),
+                ]
+
+            @classmethod
+            def execute(cls, organization, **kwargs):
+                return "deployed" if check_deployment(organization, kwargs["environment"], kwargs["service"]) else "not deployed"
+
+        client = SeerExplorerClient(
+            organization,
+            user,
+            custom_tools=[DeploymentStatusTool]
+        )
+        run_id = client.start_run("Check if payment-service is deployed in production")
+    ```
+
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
+            custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
     """
 
     def __init__(
@@ -66,10 +105,12 @@ class SeerExplorerClient:
         organization: Organization,
         user: User | AnonymousUser | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        custom_tools: list[type[ExplorerTool]] | None = None,
     ):
         self.organization = organization
         self.user = user
         self.artifact_schema = artifact_schema
+        self.custom_tools = custom_tools or []
 
         # Validate access on init
         has_access, error = has_seer_explorer_access_with_detail(organization, user)
@@ -116,6 +157,12 @@ class SeerExplorerClient:
         # Add artifact schema if provided
         if self.artifact_schema:
             payload["artifact_schema"] = self.artifact_schema.schema()
+
+        # Extract and add custom tool definitions
+        if self.custom_tools:
+            payload["custom_tools"] = [
+                extract_tool_schema(tool).dict() for tool in self.custom_tools
+            ]
 
         if category_key or category_value:
             if not category_key or not category_value:
@@ -227,15 +274,7 @@ class SeerExplorerClient:
             except ValidationError as e:
                 # Log but don't fail - keep artifact as None
                 state.artifact = None
-                logger.warning(
-                    "Failed to parse artifact",
-                    extra={
-                        "run_id": run_id,
-                        "error": str(e),
-                        "artifact_schema": self.artifact_schema.__name__,
-                        "raw_artifact": state.raw_artifact,
-                    },
-                )
+                sentry_sdk.capture_exception(e, level="warning")
 
         return state
 
