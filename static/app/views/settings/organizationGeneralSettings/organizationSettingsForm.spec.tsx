@@ -180,7 +180,7 @@ describe('OrganizationSettingsForm', () => {
     // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
     const hiddenAiOrg = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['organizations:gen-ai-features'],
+      features: ['gen-ai-features'],
     });
     render(
       <OrganizationSettingsForm
@@ -244,7 +244,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['autofix', 'organizations:gen-ai-features'],
+          features: ['autofix', 'gen-ai-features'],
         },
       }
     );
@@ -344,7 +344,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['organizations:gen-ai-features'],
+          features: ['gen-ai-features'],
         },
       }
     );
@@ -386,7 +386,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['organizations:gen-ai-features'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -450,7 +450,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['organizations:gen-ai-features'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -489,7 +489,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:write'],
-            features: ['organizations:gen-ai-features'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -521,7 +521,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:read'],
-            features: ['organizations:gen-ai-features'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -549,7 +549,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:write'],
-            features: ['organizations:gen-ai-features'],
+            features: ['gen-ai-features'],
           },
         }
       );

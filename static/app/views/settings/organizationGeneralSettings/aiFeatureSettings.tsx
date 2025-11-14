@@ -10,7 +10,7 @@ export const defaultEnableSeerFeaturesValue = (organization: Organization) => {
 
 export const makeHideAiFeaturesField = (organization: Organization): FieldObject => {
   const isBaa = false; // TODO: add a check here once we have a way to check if the org is a BAA customer. Leave it as false for now.
-  const hasFeatureFlag = organization.features.includes('organizations:gen-ai-features');
+  const hasFeatureFlag = organization.features.includes('gen-ai-features');
 
   return {
     name: 'hideAiFeatures',
