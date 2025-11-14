@@ -344,7 +344,11 @@ def _query_using_scalar_strategy(
 
     try:
         where = handle_search_filters(scalar_search_config, search_filters)
-        orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+        orderby = handle_ordering(
+            agg_sort_config,
+            sort or "-" + DEFAULT_SORT_FIELD,
+            tiebreaker="replay_id",  # Ensure stable sort within the same score
+        )
     except RetryAggregated:
         return _query_using_aggregated_strategy(
             search_filters,
@@ -378,7 +382,11 @@ def _query_using_aggregated_strategy(
     period_start: datetime,
     period_stop: datetime,
 ):
-    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    orderby = handle_ordering(
+        agg_sort_config,
+        sort or "-" + DEFAULT_SORT_FIELD,
+        tiebreaker="replay_id",  # Ensure stable sort within the same score
+    )
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
@@ -459,14 +467,16 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
         raise
 
 
-def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
+def handle_ordering(
+    config: dict[str, Expression], sort: str, tiebreaker: str | None = None
+) -> list[OrderBy]:
     direction = Direction.DESC if sort.startswith("-") else Direction.ASC
-    column_name = sort[1:] if sort.startswith("-") else sort
+    bare_orderby = sort.lstrip("-")
 
-    return [
-        OrderBy(_get_sort_column(config, column_name), direction),
-        OrderBy(Column("replay_id"), direction),
-    ]
+    orderby = [OrderBy(_get_sort_column(config, bare_orderby), direction)]
+    if tiebreaker:
+        orderby.append(OrderBy(Column(tiebreaker), direction))
+    return orderby
 
 
 def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
