@@ -13,6 +13,7 @@ from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
@@ -37,7 +38,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    EXTRAPOLATION_MODE_MAP,
+    SAMPLING_MODE_MAP,
+    VALID_GRANULARITIES,
+)
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -519,6 +524,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             comparison_start = snuba_params.start_date - comparison_delta
             if retention and comparison_start < timezone.now() - timedelta(days=retention):
                 raise ValidationError("Comparison period is outside your retention window")
+
+    def get_extrapolation_mode(self, request: Request) -> ExtrapolationMode.ValueType | None:
+        requested_mode = request.GET.get("extrapolationMode", None)
+        if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
+            raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
+
+        extrapolation_mode = EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
+
+        return extrapolation_mode
 
     def get_event_stats_data(
         self,

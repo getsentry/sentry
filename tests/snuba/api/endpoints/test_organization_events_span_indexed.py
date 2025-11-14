@@ -6,10 +6,12 @@ from uuid import uuid4
 import pytest
 import urllib3
 from django.utils.timezone import now
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 # Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
@@ -2113,6 +2115,56 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert confidence[0]["count()"] == "low"
         assert data[1]["count()"] == 1
         assert confidence[1]["count()"] in ("high", "low")
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._make_rpc_requests",
+        wraps=_make_rpc_requests,
+    )
+    def test_extrapolation_mode_server_only(self, mock_rpc_request: mock.MagicMock) -> None:
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"server_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=True)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "orderby": "-count()",
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spans",
+                "extrapolationMode": "serverOnly",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert (
+            mock_rpc_request.call_args.kwargs["table_requests"][0]
+            .columns[1]
+            .aggregation.extrapolation_mode
+            == ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        )
+
+        # TODO: Ensure server only extrapolation actually gets applied
+        data = response.data["data"]
+        assert len(data) == 2
 
     def test_span_duration(self) -> None:
         spans = [
