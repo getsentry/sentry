@@ -14,7 +14,6 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 type DetectorListConnectedAutomationsProps = {
   automationIds: string[];
@@ -22,7 +21,6 @@ type DetectorListConnectedAutomationsProps = {
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const shownAutomations = automationIds.slice(0, 5);
   const {data, isPending, isError} = useAutomationsQuery({
     ids: automationIds.slice(0, 5),
@@ -54,11 +52,7 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
         return (
           <HovercardRow
             key={automation.id}
-            to={makeAutomationDetailsPathname(
-              organization.slug,
-              automation.id,
-              automationsLinkPrefix
-            )}
+            to={makeAutomationDetailsPathname(organization.slug, automation.id)}
           >
             <InteractionStateLayer />
             <div>

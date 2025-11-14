@@ -4,7 +4,8 @@ Pydantic models for Seer Explorer client.
 
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -49,6 +50,33 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
+    raw_artifact: dict[str, Any] | None = None
+    artifact: BaseModel | None = None
+    artifact_reason: str | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class CustomToolDefinition(BaseModel):
+    """Definition of a custom tool to be sent to Seer."""
+
+    name: str
+    module_path: str
+    description: str
+    parameters: list[dict[str, Any]]
+    required: list[str]
+
+
+class ExplorerRun(BaseModel):
+    """A single Explorer run record with metadata."""
+
+    run_id: int
+    title: str
+    last_triggered_at: datetime
+    created_at: datetime
+    category_key: str | None = None
+    category_value: str | None = None
 
     class Config:
         extra = "allow"

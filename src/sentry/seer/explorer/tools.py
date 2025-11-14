@@ -2,6 +2,8 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal
 
+from django.urls import reverse
+
 from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
@@ -507,3 +509,67 @@ def get_issue_details(
         "project_id": int(serialized_group["project"]["id"]),
         "project_slug": serialized_group["project"]["slug"],
     }
+
+
+def get_replay_metadata(
+    *,
+    replay_id: str,
+    organization_id: int,
+    project_id: int | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get the metadata for a replay through an aggregate replay event query.
+
+    Args:
+        replay_id: The ID of the replay.
+        organization_id: The ID of the organization the replay belongs to.
+        project_id: The projects to query. If not provided, all projects in the organization will be queried.
+
+    Returns:
+        A dict containing the metadata for the replay, or None if it's not found.
+        The return type should conform to ReplayDetailsResponse (may have extra fields).
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "replay_id": replay_id},
+        )
+        return None
+
+    path = reverse(
+        "sentry-api-0-organization-replay-details",
+        args=(organization.slug, replay_id),
+    )
+    path = path.strip("/")[len("api/0") :] + "/"
+
+    params = {}
+    if project_id:
+        params["project"] = project_id
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=path,
+        params=params,
+    )
+
+    if resp.status_code != 200 or not (resp.data or {}).get("data"):
+        logger.warning(
+            "Failed to get replay metadata",
+            extra={
+                "replay_id": replay_id,
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "status_code": resp.status_code,
+            },
+        )
+        return None
+
+    # Add project_slug field.
+    result = resp.data["data"]
+    project = Project.objects.get(id=result["project_id"])
+    result["project_slug"] = project.slug
+
+    return result

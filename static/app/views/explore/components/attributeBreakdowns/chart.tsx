@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsResult} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
@@ -28,6 +29,20 @@ function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number):
 
   const populatedCount = cohort.reduce((acc, curr) => acc + Number(curr.value), 0);
   return (populatedCount / cohortTotal) * 100;
+}
+
+function percentageFormatter(percentage: number): string {
+  if (isNaN(percentage) || !isFinite(percentage)) {
+    return '\u2014';
+  }
+
+  if (percentage < 0.1 && percentage > 0) {
+    return '<0.1%';
+  }
+
+  // Round whole numbers to 0 decimal places
+  const decimals = percentage % 1 === 0 ? 0 : 1;
+  return `${percentage.toFixed(decimals)}%`;
 }
 
 function cohortsToSeriesData(
@@ -138,16 +153,7 @@ export function Chart({
   const toolTipValueFormatter = useCallback(
     (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
       const percentage = Number(seriesParams?.data);
-
-      if (isNaN(percentage) || !isFinite(percentage)) {
-        return '\u2014';
-      }
-
-      if (percentage < 0.1) {
-        return `<0.1%`;
-      }
-
-      return `${percentage.toFixed(1)}%`;
+      return percentageFormatter(percentage);
     },
     []
   );
@@ -177,24 +183,15 @@ export function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedPercentage = Number(selectedParam?.data);
-      const baselinePercentage = Number(baselineParam?.data);
-
-      const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
-
-      const status = isDifferent
-        ? {adjective: 'different', message: 'This is suspicious.'}
-        : {adjective: 'similar', message: 'Nothing unusual here.'};
-
       const name = selectedParam?.name ?? baselineParam?.name ?? '';
       const truncatedName =
         name.length > TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
 
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
+      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2; color: black;">${truncatedName}</div>`;
     },
-    [theme.textColor]
+    []
   );
 
   const chartXAxisLabelFormatter = useCallback(
@@ -230,33 +227,31 @@ export function Chart({
 
   return (
     <ChartWrapper>
-      <ChartHeaderWrapper>
-        <Flex justify="between" align="center">
+      <ChartHeaderWrapper justify="between" align="center" gap="lg">
+        <Tooltip title={attribute.attributeName} showOnlyOnOverflow skipWrapper>
           <ChartTitle>{attribute.attributeName}</ChartTitle>
-          <Flex gap="sm">
-            <PopulationIndicator
-              color={cohort1Color}
-              title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
+        </Tooltip>
+        <Flex gap="sm">
+          <PopulationIndicator color={cohort1Color}>
+            <Tooltip
+              showUnderline
+              title={tct('[percent] of selected cohort has this attribute populated', {
+                percent: percentageFormatter(populationPercentages.selected),
+              })}
             >
-              <Tooltip
-                showUnderline
-                title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
-              >
-                {populationPercentages.selected.toFixed(0)}%
-              </Tooltip>
-            </PopulationIndicator>
-            <PopulationIndicator
-              color={cohort2Color}
-              title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
+              {percentageFormatter(populationPercentages.selected)}
+            </Tooltip>
+          </PopulationIndicator>
+          <PopulationIndicator color={cohort2Color}>
+            <Tooltip
+              showUnderline
+              title={tct('[percent] of baseline cohort has this attribute populated', {
+                percent: percentageFormatter(populationPercentages.baseline),
+              })}
             >
-              <Tooltip
-                showUnderline
-                title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
-              >
-                {populationPercentages.baseline.toFixed(0)}%
-              </Tooltip>
-            </PopulationIndicator>
-          </Flex>
+              {percentageFormatter(populationPercentages.baseline)}
+            </Tooltip>
+          </PopulationIndicator>
         </Flex>
       </ChartHeaderWrapper>
       <BaseChart
@@ -273,7 +268,8 @@ export function Chart({
         grid={{
           left: 2,
           right: 8,
-          containLabel: true,
+          bottom: 40,
+          containLabel: false,
         }}
         xAxis={{
           show: true,
@@ -335,16 +331,20 @@ const ChartWrapper = styled('div')`
   height: 200px;
   padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
   border: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+  min-width: 0;
 `;
 
-const ChartHeaderWrapper = styled('div')`
+const ChartHeaderWrapper = styled(Flex)`
   margin-bottom: ${space(1)};
+  max-width: 100%;
 `;
 
 const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.gray500};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const PopulationIndicator = styled('div')<{color?: string}>`

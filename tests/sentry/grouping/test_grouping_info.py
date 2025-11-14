@@ -27,9 +27,9 @@ class GroupingInfoTest(TestCase):
 
         grouping_info = get_grouping_info(default_grouping_config, self.project, event)
 
-        assert grouping_info["message"]["type"] == "component"
-        assert grouping_info["message"]["description"] == "message"
-        assert grouping_info["message"]["component"]["contributes"] is True
-        assert grouping_info["message"]["config"]["id"] == DEFAULT_GROUPING_CONFIG
-        assert grouping_info["message"]["key"] == "message"
-        assert grouping_info["message"]["contributes"] is True
+        assert grouping_info["grouping_config"] == DEFAULT_GROUPING_CONFIG
+        assert grouping_info["variants"]["message"]["type"] == "component"
+        assert grouping_info["variants"]["message"]["description"] == "message"
+        assert grouping_info["variants"]["message"]["component"]["contributes"] is True
+        assert grouping_info["variants"]["message"]["key"] == "message"
+        assert grouping_info["variants"]["message"]["contributes"] is True

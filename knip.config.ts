@@ -17,6 +17,8 @@ const productionEntryPoints = [
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
+  // Only used in stories (so far)
+  'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons

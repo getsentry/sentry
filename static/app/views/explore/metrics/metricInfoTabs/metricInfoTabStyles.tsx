@@ -51,21 +51,35 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowContainer = styled('div')`
+export const ExpandedRowContainer = styled('div')<{embedded?: boolean}>`
   grid-column: 1 / -1;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
-  hasPadding?: boolean;
+  embedded?: boolean;
+  noPadding?: boolean;
 }>`
-  padding: ${p => (p.hasPadding ? p.theme.space.xs : 0)};
+  padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
+  padding-top: ${p =>
+    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+  padding-bottom: ${p =>
+    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)`
+export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
+  embedded?: boolean;
+  noPadding?: boolean;
+}>`
   font-size: ${p => p.theme.fontSize.sm};
+  padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
+  padding-top: ${p =>
+    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
+  padding-bottom: ${p =>
+    p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
 `;
+
 export const StyledSimpleTableBody = styled('div')`
   position: relative;
   overflow-y: auto;
@@ -86,16 +100,18 @@ export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
 `;
 
 export const StickyTableRow = styled(SimpleTable.Row)<{
-  isSticky?: boolean;
+  sticky?: boolean;
 }>`
   ${p =>
-    p.isSticky &&
+    p.sticky &&
     `
     top: 0px;
     z-index: 1;
     background: ${p.theme.background};
     position: sticky;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-right: -15px;
+    padding-right: calc(15px);
   `}
 `;
 
@@ -108,6 +124,9 @@ export const DetailsContent = styled(StyledPanel)`
 
 export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   border-top: 0;
+  border-bottom: 0;
+  margin-right: -15px;
+  padding-right: calc(15px + ${p => p.theme.space.md});
 `;
 
 export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
@@ -127,4 +146,18 @@ export const BodyContainer = styled('div')`
 
 export const StyledTabPanels = styled(TabPanels)`
   overflow: auto;
+`;
+
+export const TableRowContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-auto-rows: min-content;
+  grid-column: 1 / -1;
+
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+
+  margin-right: -15px;
+  padding-right: calc(15px);
 `;

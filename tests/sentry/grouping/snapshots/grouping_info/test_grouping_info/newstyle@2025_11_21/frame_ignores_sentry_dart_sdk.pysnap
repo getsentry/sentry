@@ -1,169 +1,130 @@
 ---
-created: '2025-10-29T21:19:27.245758+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no in-app frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "marked out of app by built-in stack trace rule (path:package:sentry/** -app)",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "sentry_exception_factory.dart"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "SentryExceptionFactory.getSentryException"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "event-level stacktrace — in-app frames",
+      "hash": null,
       "hint": null,
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because it contains no in-app frames",
-          "id": "stacktrace",
-          "name": "stacktrace",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "marked out of app by stack trace rule (path:package:sentry/** -app)",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "sentry_exception_factory.dart"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "SentryExceptionFactory.getSentryException"
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
+    "fallback": {
+      "contributes": true,
+      "description": "fallback grouping",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "hint": null,
+      "key": "fallback",
+      "type": "fallback"
     },
-    "contributes": false,
-    "description": "event-level stacktrace — in-app frames",
-    "hash": null,
-    "hint": null,
-    "key": "app_stacktrace",
-    "type": "component"
-  },
-  "fallback": {
-    "contributes": true,
-    "description": "fallback grouping",
-    "hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "hint": null,
-    "key": "fallback",
-    "type": "fallback"
-  },
-  "system_stacktrace": {
-    "component": {
+    "system_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no contributing frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "ignored by built-in stack trace rule (path:package:sentry/** -group)",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "sentry_exception_factory.dart"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "SentryExceptionFactory.getSentryException"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "event-level stacktrace — all frames",
+      "hash": null,
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because it contains no contributing frames",
-          "id": "stacktrace",
-          "name": "stacktrace",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "ignored by stack trace rule (path:package:sentry/** -group)",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "sentry_exception_factory.dart"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "SentryExceptionFactory.getSentryException"
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "event-level stacktrace — all frames",
-    "hash": null,
-    "hint": null,
-    "key": "system_stacktrace",
-    "type": "component"
+      "key": "system_stacktrace",
+      "type": "component"
+    }
   }
 }

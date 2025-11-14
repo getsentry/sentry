@@ -35,6 +35,31 @@ SUPPORTED_VCS_PROVIDERS = [
 ]
 
 
+def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
+    head_sha = data.get("head_sha")
+    base_sha = data.get("base_sha")
+
+    if head_sha and base_sha and head_sha == base_sha:
+        return f"Head SHA and base SHA cannot be the same ({head_sha}). Please provide a different base SHA."
+
+    if not head_sha and base_sha:
+        return "Head SHA is required when base SHA is provided. Please provide a head SHA."
+
+    # If any VCS parameters are provided, all required ones must be present
+    vcs_params = {
+        "head_sha": head_sha,
+        "head_repo_name": data.get("head_repo_name"),
+        "provider": data.get("provider"),
+        "head_ref": data.get("head_ref"),
+    }
+
+    if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
+        missing_params = [k for k, v in vcs_params.items() if not v]
+        return f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
+
+    return None
+
+
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
@@ -53,9 +78,9 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
             # Optional metadata
             "build_configuration": {"type": "string"},
             "release_notes": {"type": "string"},
-            # VCS parameters
-            "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-            "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            # VCS parameters - allow empty strings to support clearing auto-filled values
+            "head_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
+            "base_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
             "provider": {"type": "string", "maxLength": 255},
             "head_repo_name": {"type": "string", "maxLength": 255},
             "base_repo_name": {"type": "string", "maxLength": 255},
@@ -85,7 +110,9 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
     try:
         data = orjson.loads(request_body)
         jsonschema.validate(data, schema)
-        return data, None
+        # Filter out empty strings to treat them as "not provided"
+        filtered_data = {k: v for k, v in data.items() if v != ""}
+        return filtered_data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
         # Get the field from the path if available
@@ -139,27 +166,21 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             # Support a limited subset of providers
             provider = data.get("provider")
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
-                return Response({"error": "Unsupported provider"}, status=400)
+                supported_providers = ", ".join(SUPPORTED_VCS_PROVIDERS)
+                return Response(
+                    {
+                        "error": f"Unsupported VCS provider '{provider}'. Supported providers are: {supported_providers}"
+                    },
+                    status=400,
+                )
 
             checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
 
-            # Validate VCS parameters - if any are provided, all required ones must be present
-            vcs_params = {
-                "head_sha": data.get("head_sha"),
-                "head_repo_name": data.get("head_repo_name"),
-                "provider": data.get("provider"),
-                "head_ref": data.get("head_ref"),
-            }
-
-            if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
-                missing_params = [k for k, v in vcs_params.items() if not v]
-                return Response(
-                    {
-                        "error": f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
-                    },
-                    status=400,
-                )
+            # Validate VCS parameters
+            vcs_error = validate_vcs_parameters(data)
+            if vcs_error:
+                return Response({"error": vcs_error}, status=400)
 
             # Check if all requested chunks have been uploaded
             missing_chunks = find_missing_chunks(project.organization_id, set(chunks))

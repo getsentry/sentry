@@ -183,12 +183,6 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "githubOpenPRBot",
-        "sentry:github_open_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "githubNudgeInvite",
         "sentry:github_nudge_invite",
         bool,
@@ -310,7 +304,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
@@ -891,10 +884,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
         required=False,
     )
-    githubOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
-        required=False,
-    )
     githubNudgeInvite = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
         required=False,
@@ -1152,10 +1141,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.TRANSACTIONS
-        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-            "organizations:dynamic-sampling-spans", organization
-        ):
-            measure = SamplingMeasure.SPANS
+        if options.get("dynamic-sampling.check_span_feature_flag"):
+            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+            if org_id in span_org_ids:
+                measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(

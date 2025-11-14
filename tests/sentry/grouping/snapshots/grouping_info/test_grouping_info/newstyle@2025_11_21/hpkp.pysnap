@@ -1,69 +1,50 @@
 ---
-created: '2025-10-29T21:19:28.001993+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "hpkp": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "hpkp": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "hpkp",
+            "name": null,
+            "values": [
+              {
+                "contributes": true,
+                "hint": "a static salt",
+                "id": "salt",
+                "name": null,
+                "values": [
+                  "hpkp"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "hostname",
+                "name": "hostname",
+                "values": [
+                  "example.com"
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "hostname",
+      "hash": "1e37a374cb33572622d02ff7a6237c44",
       "hint": null,
-      "id": "default",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "hpkp",
-          "name": null,
-          "values": [
-            {
-              "contributes": true,
-              "hint": "a static salt",
-              "id": "salt",
-              "name": null,
-              "values": [
-                "hpkp"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "hostname",
-              "name": "hostname",
-              "values": [
-                "example.com"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "hostname",
-    "hash": "1e37a374cb33572622d02ff7a6237c44",
-    "hint": null,
-    "key": "hpkp",
-    "type": "component"
+      "key": "hpkp",
+      "type": "component"
+    }
   }
 }

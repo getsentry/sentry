@@ -95,7 +95,6 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__to_metric_issue_workflow(self) -> None:
         """
         This test ensures that a data_source can create the correct event in Issue Platform
@@ -112,7 +111,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
             mock_producer.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__different_type(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
@@ -124,7 +122,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
             assert detectors == []
             mock_producer.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self) -> None:
         self.detector.delete()
 
@@ -142,7 +139,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:issue-metric-issue-post-process-group")
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     def test_workflow_engine__workflows(self) -> None:
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
@@ -179,19 +175,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             self.call_post_process_group(error_event.group_id)
 
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
-            mock_process_workflow.assert_not_called()
-
-    def test_workflow_engine__workflows__no_flag(self) -> None:
-        self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-
-        assert self.group
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(self.group.id)
-
-            # While this is the same test as the first one, it doesn't invoke the workflow engine because the feature flag is off.
             mock_process_workflow.assert_not_called()
 
 
@@ -273,7 +256,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             **kwargs,
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_default_workflow(self, mock_trigger: MagicMock) -> None:
         from sentry.models.group import GroupStatus
         from sentry.types.group import GroupSubStatus

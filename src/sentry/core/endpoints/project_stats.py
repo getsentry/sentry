@@ -72,8 +72,6 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
                 )
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
-        elif stat == "forwarded":
-            stat_model = TSDBModel.project_total_forwarded
         else:
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]

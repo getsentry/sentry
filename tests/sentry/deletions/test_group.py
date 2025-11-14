@@ -6,12 +6,17 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
+from sentry.deletions.defaults.group import (
+    delete_project_group_hashes,
+    update_group_hash_metadata_in_batches,
+)
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -26,6 +31,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 from sentry.utils.snuba import bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -62,6 +68,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project=self.project, group=event.group, hash=uuid4().hex)
         GroupMeta.objects.create(group=event.group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=event.group.id, previous_group_id=1)
+        Activity.objects.create(
+            group=event.group, project=self.project, type=ActivityType.SET_RESOLVED.value
+        )
 
         return event
 
@@ -86,6 +95,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not UserReport.objects.filter(event_id=event.event_id).exists()
         assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
 
+        assert not Activity.objects.filter(group_id=event.group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=event.group.id).exists()
         assert not Group.objects.filter(id=event.group.id).exists()
@@ -331,6 +341,119 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
 
+    def test_update_group_hash_metadata_in_batches(self) -> None:
+        """
+        Test that update_group_hash_metadata_in_batches correctly processes all records
+        in batches without getting stuck in an infinite loop, and that it correctly
+        updates seer_matched_grouphash to None.
+        """
+        num_additional_grouphashes = 5
+        # Create events with group hashes
+        event_a = self.store_event(data={"fingerprint": ["a"]}, project_id=self.project.id)
+        grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
+
+        # Create multiple events with different group hashes that reference grouphash_a
+        # This simulates multiple events that were matched to grouphash_a by Seer
+        additional_grouphashes = []
+        for i in range(num_additional_grouphashes):
+            event = self.store_event(data={"fingerprint": [i]}, project_id=self.project.id)
+            grouphash = GroupHash.objects.get(hash=event.get_primary_hash())
+            if grouphash.metadata is not None:
+                # Update the metadata to reference grouphash_a
+                grouphash.metadata.seer_matched_grouphash = grouphash_a
+                grouphash.metadata.save()
+            else:
+                raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
+            additional_grouphashes.append(grouphash)
+
+        # Verify setup: all metadata records should reference grouphash_a
+        assert (
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).count()
+            == num_additional_grouphashes
+        )
+
+        # Test with a small batch size to force multiple batches
+        with mock.patch("sentry.deletions.defaults.group.options.get") as mock_options:
+            # Set batch size to 2 to force multiple batches
+            mock_options.return_value = 2
+            # Call the function to update all metadata that references grouphash_a
+            update_group_hash_metadata_in_batches([grouphash_a.id])
+
+        # Verify that all metadata records that referenced grouphash_a now have None
+        assert (
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).count() == 0
+        )
+
+        # Verify that the metadata records still exist but with seer_matched_grouphash=None
+        for grouphash in additional_grouphashes:
+            if grouphash.metadata is not None:
+                grouphash.metadata.refresh_from_db()
+                assert grouphash.metadata.seer_matched_grouphash is None
+            else:
+                raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
+
+    def test_delete_project_group_hashes_specific_groups(self) -> None:
+        """Test deleting grouphashes for specific group IDs (including metadata) and empty list safety."""
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        event_1 = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error_1.py"}]}},
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error_2.py"}]}},
+            project_id=self.project.id,
+        )
+
+        grouphash_1 = GroupHash.objects.get(group=event_1.group)
+        grouphash_2 = GroupHash.objects.get(group=event_2.group)
+        assert grouphash_1.metadata is not None
+        assert grouphash_2.metadata is not None
+        metadata_1_id = grouphash_1.metadata.id
+        metadata_2_id = grouphash_2.metadata.id
+
+        assert GroupHash.objects.filter(project=self.project).count() == 2
+
+        delete_project_group_hashes(
+            project_id=self.project.id,
+            group_ids_filter=[event_1.group.id],
+        )
+
+        assert not GroupHash.objects.filter(id=grouphash_1.id).exists()
+        assert not GroupHashMetadata.objects.filter(id=metadata_1_id).exists()
+        assert GroupHash.objects.filter(id=grouphash_2.id).exists()
+        assert GroupHashMetadata.objects.filter(id=metadata_2_id).exists()
+
+        # Empty list should be a no-op
+        delete_project_group_hashes(project_id=self.project.id, group_ids_filter=[])
+        assert GroupHash.objects.filter(id=grouphash_2.id).exists()
+
+    def test_delete_project_group_hashes_all_including_orphans(self) -> None:
+        """Test deleting all grouphashes including orphans when group_ids_filter=None."""
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        event = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error.py"}]}},
+            project_id=self.project.id,
+        )
+        grouphash = GroupHash.objects.get(group=event.group)
+        assert grouphash.metadata is not None
+        metadata_id = grouphash.metadata.id
+
+        orphan_1 = GroupHash.objects.create(project=self.project, hash="a" * 32, group=None)
+        orphan_2 = GroupHash.objects.create(project=self.project, hash="b" * 32, group=None)
+
+        assert GroupHash.objects.filter(project=self.project).count() == 3
+        assert GroupHash.objects.filter(project=self.project, group__isnull=True).count() == 2
+
+        delete_project_group_hashes(project_id=self.project.id, group_ids_filter=None)
+
+        assert not GroupHash.objects.filter(id=grouphash.id).exists()
+        assert not GroupHash.objects.filter(id=orphan_1.id).exists()
+        assert not GroupHash.objects.filter(id=orphan_2.id).exists()
+        assert not GroupHashMetadata.objects.filter(id=metadata_id).exists()
+        assert GroupHash.objects.filter(project=self.project).count() == 0
+
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
@@ -384,6 +507,67 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
+    def test_simple_issue_platform(self, mock_bulk_snuba_queries: mock.Mock) -> None:
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Create initial error event and occurrence related to it; two different groups will exist
+        event = self.store_event(data={}, project_id=self.project.id)
+        # XXX: We need a different way of creating occurrences which will insert into the nodestore
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
+
+        # Assertions after creation
+        assert occurrence_event.id != event.event_id
+        assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # Assert that the occurrence event has been inserted in the nodestore & Snuba
+        expected_occurrence_event = {
+            "event_id": occurrence_event.event_id,
+            "group_id": issue_platform_group.id,
+            "occurrence_id": occurrence_event.id,
+        }
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
+
+        # This will delete the group and the events from the node store and Snuba
+        with self.tasks():
+            delete_groups_for_project(
+                object_ids=[issue_platform_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
+
+        # The original error event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # The Issue Platform group and occurrence have been deleted from Postgres
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        # assert not nodestore.backend.get(occurrence_node_id)
+
+        # Verify that a DELETE query was sent to Snuba with the correct conditions
+        mock_bulk_snuba_queries.assert_called_once()
+        requests = mock_bulk_snuba_queries.call_args[0][0]
+        assert len(requests) == 1
+        delete_request = requests[0]
+        assert isinstance(delete_request.query, DeleteQuery)
+        assert delete_request.dataset == "search_issues"
+        assert delete_request.query.column_conditions["project_id"] == [self.project.id]
+        assert delete_request.query.column_conditions["group_id"] == [issue_platform_group.id]
+
+    @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
         with (
@@ -397,18 +581,17 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             group4 = self.create_group(project=self.project)
 
             # Set times_seen for each group
-            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=FeedbackGroup.type_id)
 
             # This will delete the group and the events from the node store and Snuba
-            with self.tasks():
-                delete_groups_for_project(
-                    object_ids=[group1.id, group2.id, group3.id, group4.id],
-                    transaction_id=uuid4().hex,
-                    project_id=self.project.id,
-                )
+            delete_groups_for_project(
+                object_ids=[group1.id, group2.id, group3.id, group4.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
             assert mock_bulk_snuba_queries.call_count == 1
             # There should be two batches with max_rows_to_delete=6

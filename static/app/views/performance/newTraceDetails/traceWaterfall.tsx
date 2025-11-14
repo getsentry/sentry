@@ -430,11 +430,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       isEAPTraceNode(traceNode) &&
       props.tree.eap_spans_count !== props.meta?.data?.span_count
     ) {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
-        scope.captureMessage(
-          'EAP spans count from /trace/ and /trace-meta/ are not equal'
-        );
+      Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
+        trace_eap_span_count: props.tree.eap_spans_count,
+        trace_meta_span_count: props.meta?.data?.span_count,
       });
     }
   }, [props.tree, props.meta]);
@@ -507,10 +505,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (index === -1 || !node) {
       const hasScrollComponent = !!(path || eventId);
       if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in trace tree');
-        });
+        Sentry.logger.warn('Failed to scroll to node in trace tree');
       }
 
       return;

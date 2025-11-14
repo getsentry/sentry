@@ -49,18 +49,18 @@ interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
+  end?: string | null;
   /**
    * Extra query parameters to pass
    */
   extra?: {
     useOnDemandMetrics: 'true';
   };
-  start?: string;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 /**

@@ -51,7 +51,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
-    prefersChonkUI: boolean;
+    prefersChonkUI: boolean | null;
     prefersIssueDetailsStreamlinedUI: boolean | null;
     stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';

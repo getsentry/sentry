@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from rest_framework import serializers
 
@@ -8,10 +8,19 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
+from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
+from sentry.seer.anomaly_detection.store_data_workflow_engine import (
+    send_new_detector_data,
+    update_detector_data,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -82,7 +91,13 @@ def schedule_update_project_config(detector: Detector) -> None:
 
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
-        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+        (
+            Condition.GREATER,
+            Condition.LESS,
+            Condition.GREATER_OR_EQUAL,
+            Condition.LESS_OR_EQUAL,
+            Condition.ANOMALY_DETECTION,
+        )
     )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
@@ -132,7 +147,26 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
+        if not any(
+            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+            raise serializers.ValidationError(
+                "Resolution condition required for metric issue detector."
+            )
         return value
+
+
+def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
+    if type(new_extrapolation_mode) is int:
+        new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
+    if type(old_extrapolation_mode) is int:
+        old_extrapolation_mode = ExtrapolationMode(old_extrapolation_mode).name.lower()
+    if (
+        new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+        and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+    ):
+        return True
+    return False
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
@@ -146,7 +180,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "condition_group" in attrs:
             conditions = attrs.get("condition_group", {}).get("conditions")
-            if len(conditions) > 2:
+            if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
@@ -161,6 +195,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(
                     "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
                 )
+
+    def _validate_extrapolation_mode(self, extrapolation_mode: str) -> None:
+        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value:
+            raise serializers.ValidationError(
+                "server_weighted extrapolation mode is not supported for new detectors."
+            )
 
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
@@ -224,6 +264,30 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
             )
 
+        old_extrapolation_mode = snuba_query.extrapolation_mode
+        new_extrapolation_mode = data_source.get(
+            "extrapolation_mode", snuba_query.extrapolation_mode
+        )
+        if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+                raise serializers.ValidationError(
+                    "Invalid extrapolation mode for this detector type."
+                )
+
+        # Handle a dynamic detector's snuba query changing
+        if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+            if snuba_query.query != data_source.get(
+                "query"
+            ) or snuba_query.aggregate != data_source.get("aggregate"):
+                try:
+                    validated_data_source = cast(dict[str, Any], data_source)
+                    update_detector_data(instance, validated_data_source)
+                except Exception:
+                    # don't update the snuba query if we failed to send data to Seer
+                    raise serializers.ValidationError(
+                        "Failed to send data to Seer, cannot update detector"
+                    )
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -234,9 +298,27 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            extrapolation_mode=data_source.get(
+                "extrapolation_mode", snuba_query.extrapolation_mode
+            ),
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
+        # Handle anomaly detection changes first in case we need to exit before saving
+        if (
+            not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+            and validated_data.get("config", {}).get("detection_type")
+            == AlertRuleDetectionType.DYNAMIC
+        ):
+            # Detector has been changed to become a dynamic detector
+            try:
+                update_detector_data(instance, validated_data)
+            except Exception:
+                # Don't update if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
+
         super().update(instance, validated_data)
 
         # Handle enable/disable query subscriptions
@@ -250,6 +332,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        # Handle data sources
         data_source: SnubaQueryDataSourceType | None = None
 
         if "data_sources" in validated_data:
@@ -267,6 +350,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
+                self._validate_extrapolation_mode(validated_data_source.get("extrapolation_mode"))
 
         detector = super().create(validated_data)
 
@@ -274,11 +358,18 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             try:
                 send_new_detector_data(detector)
             except Exception:
-                # Sending historical data failed; Detector won't be save, but we
+                # Sending historical data failed; Detector won't be saved, but we
                 # need to clean up database state that has already been created.
                 detector.workflow_condition_group.delete()
-
                 raise
 
         schedule_update_project_config(detector)
         return detector
+
+    def delete(self):
+        # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
+        assert self.instance is not None
+        detector: Detector = self.instance
+        delete_data_in_seer_for_detector(detector)
+
+        super().delete()

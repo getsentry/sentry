@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import type {Block} from './types';
-import {buildToolLinkUrl, getToolsStringFromBlock} from './utils';
+import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from './utils';
 
 interface BlockProps {
   block: Block;
@@ -51,35 +51,42 @@ function getToolStatus(
     return 'loading';
   }
 
+  // Check tool_links for empty_results metadata
+  const toolLinks = block.tool_links || [];
+  const hasTools = (block.message.tool_calls?.length || 0) > 0;
+
+  if (hasTools) {
+    if (toolLinks.length === 0) {
+      // No metadata available, assume success
+      return 'success';
+    }
+
+    let hasSuccess = false;
+    let hasFailure = false;
+
+    toolLinks.forEach(link => {
+      if (link?.params?.empty_results === true) {
+        hasFailure = true;
+      } else if (link !== null) {
+        hasSuccess = true;
+      }
+    });
+
+    if (hasFailure && hasSuccess) {
+      return 'mixed';
+    }
+    if (hasFailure) {
+      return 'failure';
+    }
+    return 'success';
+  }
+
+  // No tools, check if there's content
   const hasContent = hasValidContent(block.message.content);
   if (hasContent) {
     return 'content';
   }
 
-  // Check tool_links for empty_results metadata
-  const toolLinks = block.tool_links || [];
-  if (toolLinks.length === 0) {
-    // No metadata available, assume success
-    return 'success';
-  }
-
-  let hasSuccess = false;
-  let hasFailure = false;
-
-  toolLinks.forEach(link => {
-    if (link?.params?.empty_results === true) {
-      hasFailure = true;
-    } else if (link !== null) {
-      hasSuccess = true;
-    }
-  });
-
-  if (hasFailure && hasSuccess) {
-    return 'mixed';
-  }
-  if (hasFailure) {
-    return 'failure';
-  }
   return 'success';
 }
 
@@ -104,6 +111,11 @@ function BlockComponent({
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
 
+  const processedContent = useMemo(
+    () => postProcessLLMMarkdown(block.message.content),
+    [block.message.content]
+  );
+
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
   const selectedLinkIndexRef = useRef(selectedLinkIndex);
@@ -113,40 +125,57 @@ function BlockComponent({
     selectedLinkIndexRef.current = selectedLinkIndex;
   }, [selectedLinkIndex]);
 
-  // Get valid tool links with their corresponding tool call indices
-  const validToolLinksWithIndices = (block.tool_links || [])
-    .map(link => {
-      const toolCallIndex = block.message.tool_calls?.findIndex(
-        call => link && call.function === link.kind
-      );
-      const canBuildUrl =
-        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
+  // Get valid tool links sorted by their corresponding tool call indices
+  const sortedToolLinks = useMemo(
+    () =>
+      (block.tool_links || [])
+        .map((link, idx) => {
+          if (!link) {
+            return null;
+          }
 
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        link: {kind: string; params: Record<string, any>};
-        toolCallIndex: number;
-      } => item !== null
-    );
+          // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+          const toolCallId = block.tool_results?.[idx]?.tool_call_id;
+          const toolCallIndex = block.message.tool_calls?.findIndex(
+            call => call.id === toolCallId
+          );
+          const canBuildUrl =
+            buildToolLinkUrl(link, organization.slug, projects) !== null;
 
-  const validToolLinks = validToolLinksWithIndices.map(item => item.link);
-  const hasValidLinks = validToolLinks.length > 0;
+          if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+            return {link, toolCallIndex};
+          }
+          return null;
+        })
+        .filter(
+          (
+            item
+          ): item is {
+            link: {kind: string; params: Record<string, any>};
+            toolCallIndex: number;
+          } => item !== null
+        )
+        .sort((a, b) => a.toolCallIndex - b.toolCallIndex)
+        .map(item => item.link),
+    [
+      block.tool_links,
+      block.tool_results,
+      block.message.tool_calls,
+      organization.slug,
+      projects,
+    ]
+  );
+
+  const hasValidLinks = sortedToolLinks.length > 0;
 
   // Reset selected index when block changes or when there are no valid links
   useEffect(() => {
     if (!hasValidLinks) {
       setSelectedLinkIndex(0);
-    } else if (selectedLinkIndex >= validToolLinks.length) {
+    } else if (selectedLinkIndex >= sortedToolLinks.length) {
       setSelectedLinkIndex(0);
     }
-  }, [hasValidLinks, selectedLinkIndex, validToolLinks.length]);
+  }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
   // Register the key handler with the parent
   useEffect(() => {
@@ -170,7 +199,7 @@ function BlockComponent({
       if (key === 'ArrowDown') {
         // Move to next link
         const currentIndex = selectedLinkIndexRef.current;
-        if (currentIndex < validToolLinks.length - 1) {
+        if (currentIndex < sortedToolLinks.length - 1) {
           // Can move down within this block's links
           setSelectedLinkIndex(prev => prev + 1);
           return true;
@@ -182,7 +211,7 @@ function BlockComponent({
       if (key === 'Enter') {
         // Navigate to selected link using ref to get current value
         const currentIndex = selectedLinkIndexRef.current;
-        const selectedLink = validToolLinks[currentIndex];
+        const selectedLink = sortedToolLinks[currentIndex];
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
@@ -197,7 +226,7 @@ function BlockComponent({
     onRegisterEnterHandler?.(handler);
   }, [
     hasValidLinks,
-    validToolLinks,
+    sortedToolLinks,
     organization.slug,
     projects,
     navigate,
@@ -211,12 +240,12 @@ function BlockComponent({
 
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
-    if (validToolLinks.length === 0) {
+    if (sortedToolLinks.length === 0) {
       return;
     }
 
     // Navigate to the clicked link
-    const selectedLink = validToolLinks[linkIndex];
+    const selectedLink = sortedToolLinks[linkIndex];
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
@@ -254,23 +283,40 @@ function BlockComponent({
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
-                {hasContent && <BlockContent text={block.message.content} />}
+                {hasContent && (
+                  <BlockContent
+                    text={processedContent}
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      // Intercept clicks on links to use client-side navigation
+                      const anchor = (e.target as HTMLElement).closest('a');
+                      if (anchor) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const href = anchor.getAttribute('href');
+                        if (href?.startsWith('/')) {
+                          navigate(href);
+                          onNavigate?.();
+                        }
+                      }
+                    }}
+                  />
+                )}
                 {hasTools && (
-                  <Stack gap="md">
+                  <ToolCallStack gap="md">
                     {block.message.tool_calls?.map((toolCall, idx) => {
                       const toolString = toolsUsed[idx];
                       return (
-                        <Text
+                        <ToolCallText
                           key={`${toolCall.function}-${idx}`}
                           size="xs"
                           variant="muted"
                           monospace
                         >
                           {toolString}
-                        </Text>
+                        </ToolCallText>
                       );
                     })}
-                  </Stack>
+                  </ToolCallStack>
                 )}
               </BlockContentWrapper>
             </BlockRow>
@@ -292,7 +338,7 @@ function BlockComponent({
                   )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
-                      {validToolLinks.map((_, idx) => (
+                      {sortedToolLinks.map((_, idx) => (
                         <Button
                           key={idx}
                           size="xs"
@@ -300,7 +346,7 @@ function BlockComponent({
                           onClick={e => handleNavigateClick(e, idx)}
                         >
                           {idx === 0
-                            ? validToolLinks.length === 1
+                            ? sortedToolLinks.length === 1
                               ? 'Navigate'
                               : 'Navigate #1'
                             : `#${idx + 1}`}
@@ -387,6 +433,9 @@ const ResponseDot = styled('div')<{
 const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
   padding: ${p =>
     p.hasOnlyTools ? `${p.theme.space.md} ${p.theme.space.xl}` : p.theme.space.xl};
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const BlockContent = styled(MarkedText)`
@@ -441,6 +490,20 @@ const FocusIndicator = styled('div')`
   bottom: 0;
   width: 3px;
   background: ${p => p.theme.purple400};
+`;
+
+const ToolCallStack = styled(Stack)`
+  width: 100%;
+  min-width: 0;
+  padding-right: ${p => p.theme.space.lg};
+`;
+
+const ToolCallText = styled(Text)`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const ActionButtonBar = styled(ButtonBar)`
