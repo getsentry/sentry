@@ -10,7 +10,7 @@ interface Props extends SVGIconProps {
 export function IconBookmark({isSolid = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         isSolid ? (
           <path d="M12.25 0C13.2165 0 14 0.783502 14 1.75V14.25C14 14.5429 13.8296 14.8093 13.5635 14.9316C13.2974 15.054 12.9841 15.0099 12.7617 14.8193L8 10.7373L3.23828 14.8193C3.0159 15.0099 2.70262 15.054 2.43652 14.9316C2.17042 14.8093 2 14.5429 2 14.25V1.75C2 0.783502 2.7835 0 3.75 0H12.25Z" />

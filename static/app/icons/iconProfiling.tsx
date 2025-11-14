@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 export function IconProfiling(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M12.75 0C13.4404 0 14 0.559644 14 1.25V4.75C14 5.44036 13.4404 6 12.75 6H11V9.25C11 9.94036 10.4404 10.5 9.75 10.5H8.5V13.75C8.5 14.4404 7.94036 15 7.25 15H3.25C2.55964 15 2 14.4404 2 13.75V1.25C2 0.559644 2.55964 5.03325e-09 3.25 0H12.75ZM3.5 13.5H7V10.5H3.5V13.5ZM3.5 9H9.5V6H3.5V9ZM3.5 4.5H12.5V1.5H3.5V4.5Z" />
       ) : (

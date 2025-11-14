@@ -11,7 +11,7 @@ interface Props extends SVGIconProps {
 export function IconCheckmark({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} data-test-id="icon-check-mark" kind="path">
+    <SvgIcon {...props} data-test-id="icon-check-mark">
       {theme.isChonk ? (
         <path d="M13.7201 3.22018C14.013 2.92729 14.4877 2.92729 14.7806 3.22018C15.0731 3.51311 15.0734 3.98797 14.7806 4.28073L6.53064 12.5307C6.23788 12.8234 5.763 12.8232 5.47009 12.5307L1.22009 8.28073C0.92722 7.98786 0.92726 7.51308 1.22009 7.22018C1.51299 6.92729 1.98775 6.92729 2.28064 7.22018L6.00037 10.9399L13.7201 3.22018Z" />
       ) : isCircled ? (

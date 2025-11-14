@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 export function IconTable(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M13.25 1C14.2165 1 15 1.7835 15 2.75V13.25C15 14.2165 14.2165 15 13.25 15H2.75C1.84383 15 1.0983 14.3113 1.00879 13.4287L1 13.25V2.75C1 1.7835 1.7835 1 2.75 1H13.25ZM2.5 11V13.25L2.50488 13.3008C2.52833 13.4145 2.62931 13.5 2.75 13.5H4.5V11H2.5ZM6 11V13.5H13.25C13.3881 13.5 13.5 13.3881 13.5 13.25V11H6ZM2.5 9.5H4.5V6.5H2.5V9.5ZM6 9.5H13.5V6.5H6V9.5ZM2.75 2.5C2.61193 2.5 2.5 2.61193 2.5 2.75V5H4.5V2.5H2.75ZM6 5H13.5V2.75C13.5 2.61193 13.3881 2.5 13.25 2.5H6V5Z" />
       ) : (

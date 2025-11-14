@@ -8,7 +8,7 @@ export function IconVsts(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M16 12.6895L11.9102 16L5.7002 13.7002V16L2.27051 11.4199L12.5703 12.2295V3.42969L16 2.90039V12.6895ZM12.5703 3.42969L2.26953 5.54004V11.4199L0 10.4297V5.84961L1.54004 3.80957L6.83984 2.2998V0L12.5703 3.42969Z" />
       ) : (

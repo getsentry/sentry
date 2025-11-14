@@ -62,7 +62,6 @@ export function IconChevron({isDouble, isCircled, direction = 'up', ...props}: P
   return (
     <SvgIcon
       {...props}
-      kind="path"
       css={
         direction
           ? css`

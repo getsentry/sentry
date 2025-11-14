@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 export function IconSpan(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M8.75 0.5C9.44036 0.5 10 1.05964 10 1.75V5H11.25C11.9404 5 12.5 5.55964 12.5 6.25V9.5H13.75C14.4404 9.5 15 10.0596 15 10.75V14.25C15 14.9404 14.4404 15.5 13.75 15.5H7.25C6.55964 15.5 6 14.9404 6 14.25V11H4.75C4.05964 11 3.5 10.4404 3.5 9.75V6.5H2.25C1.55964 6.5 1 5.94036 1 5.25V1.75C1 1.05964 1.55964 0.5 2.25 0.5H8.75ZM7.5 14H13.5V11H7.5V14ZM5 9.5H11V6.5H5V9.5ZM2.5 5H8.5V2H2.5V5Z" />
       ) : (

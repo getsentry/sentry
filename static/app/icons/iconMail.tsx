@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 export function IconMail(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M14.25 2C15.2165 2 16 2.7835 16 3.75V12.25C16 13.2165 15.2165 14 14.25 14H1.75C0.783501 14 1.00665e-08 13.2165 0 12.25V3.75C0 2.7835 0.783502 2 1.75 2H14.25ZM8.88379 10.1768C8.39564 10.6649 7.60436 10.6649 7.11621 10.1768L6 9.06055L2.56055 12.5H13.4395L10 9.06055L8.88379 10.1768ZM1.5 11.4395L4.93945 8L1.5 4.56055V11.4395ZM11.0605 8L14.5 11.4395V4.56055L11.0605 8ZM8 8.93945L13.4395 3.5H2.56055L8 8.93945Z" />
       ) : (

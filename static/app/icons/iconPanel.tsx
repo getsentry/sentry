@@ -13,7 +13,6 @@ export function IconPanel({direction = 'up', ...props}: Props) {
   return (
     <SvgIcon
       {...props}
-      kind="path"
       style={{
         transform: direction
           ? `rotate(${theme.iconDirections[direction]}deg)`

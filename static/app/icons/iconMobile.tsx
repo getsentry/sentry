@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 export function IconMobile(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M10.25 0C11.7688 0 13 1.23122 13 2.75V12.75C13 14.2688 11.7688 15.5 10.25 15.5H5.75C4.23122 15.5 3 14.2688 3 12.75V2.75C3 1.23122 4.23122 0 5.75 0H10.25ZM5.75 1.5C5.05964 1.5 4.5 2.05964 4.5 2.75V12.75C4.5 13.4404 5.05964 14 5.75 14H10.25C10.9404 14 11.5 13.4404 11.5 12.75V2.75C11.5 2.05964 10.9404 1.5 10.25 1.5H9.5V3C9.5 3.55228 9.05228 4 8.5 4H7.5C6.94772 4 6.5 3.55228 6.5 3V1.5H5.75Z" />
       ) : (

@@ -14,7 +14,6 @@ export function IconArrow({direction = 'up', ...props}: ArrowProps) {
   return (
     <SvgIcon
       {...props}
-      kind="path"
       css={
         direction
           ? direction === 'down'

@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 export function IconVercel(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         <path d="M15.8701 15H-0.129883L7.87012 1L15.8701 15Z" />
       ) : (

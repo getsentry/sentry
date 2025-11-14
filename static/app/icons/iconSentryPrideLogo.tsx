@@ -3,7 +3,7 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 
 export function IconSentryPrideLogo(props: Omit<SVGIconProps, 'fill'>) {
   return (
-    <SvgIcon {...props} kind="path">
+    <SvgIcon {...props}>
       <defs>
         <linearGradient id="pride" x1="0%" y1="75%" x2="100%" y2="130%">
           <stop offset="0" style={{stopColor: '#DA6B9D', stopOpacity: 1}} />

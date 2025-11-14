@@ -14,7 +14,6 @@ export function IconSliders({direction = 'up', ...props}: Props) {
   return (
     <SvgIcon
       {...props}
-      kind="path"
       css={
         direction
           ? css`

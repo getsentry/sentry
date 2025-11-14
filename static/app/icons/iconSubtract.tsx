@@ -14,7 +14,7 @@ interface Props extends SVGIconProps {
 export function IconSubtract({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} data-test-id="icon-subtract" kind="path">
+    <SvgIcon {...props} data-test-id="icon-subtract">
       {theme.isChonk ? (
         <path d="M14.25 7.25C14.6642 7.25 15 7.58579 15 8C15 8.41421 14.6642 8.75 14.25 8.75H1.75C1.33579 8.75 1 8.41421 1 8C1 7.58579 1.33579 7.25 1.75 7.25H14.25Z" />
       ) : isCircled ? (
