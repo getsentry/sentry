@@ -5,6 +5,7 @@ from typing import Any, Literal, cast
 
 from sentry import eventstore, features
 from sentry.api import client
+from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
 from sentry.api.serializers.models.group import GroupSerializer
@@ -18,7 +19,7 @@ from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
@@ -26,6 +27,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -63,7 +65,6 @@ def execute_trace_query_chart(
         "project": project_ids,
         "dataset": "spans",
         "referrer": Referrer.SEER_RPC,
-        "transformAliasToInputFormat": "1",  # Required for RPC datasets
     }
 
     # Add group_by if provided (for top events)
@@ -160,12 +161,135 @@ def execute_trace_query_table(
         "project": project_ids,
         "dataset": "spans",
         "referrer": Referrer.SEER_RPC,
-        "transformAliasToInputFormat": "1",  # Required for RPC datasets
     }
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events/",
+        params=params,
+    )
+    return resp.data
+
+
+def execute_timeseries_query(
+    *,
+    org_id: int,
+    dataset: str,
+    y_axes: list[str],
+    group_by: list[str] | None = None,
+    query: str,
+    stats_period: str,
+    interval: str | None = None,  # Stats period format, e.g. '3h'
+    project_ids: list[int] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+    """
+    Execute a query to get chart/timeseries data by calling the events-stats endpoint.
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    group_by = group_by or []
+
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "yAxis": y_axes,
+        "field": y_axes + group_by,
+        "query": query,
+        "statsPeriod": stats_period,
+        "interval": interval,
+        "project": project_ids,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_RPC,
+        "excludeOther": "0",  # Always include "Other" series
+    }
+
+    # Add top_events if group_by is provided
+    if group_by and get_dataset(dataset) in TOP_EVENTS_DATASETS:
+        params["topEvents"] = 5
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events-stats/",
+        params=params,
+    )
+    data = resp.data
+
+    # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
+    metric_is_single = len(y_axes) == 1
+    metric_name = y_axes[0] if metric_is_single else None
+    if metric_name and metric_is_single:
+        # Handle grouped data with single metric: wrap each group's data in the metric name
+        if group_by:
+            return {
+                group_value: (
+                    {metric_name: group_data}
+                    if isinstance(group_data, dict) and "data" in group_data
+                    else group_data
+                )
+                for group_value, group_data in data.items()
+            }
+
+        # Handle non-grouped data with single metric: wrap data in the metric name
+        if isinstance(data, dict) and "data" in data:
+            return {metric_name: data}
+
+    return data
+
+
+def execute_table_query(
+    *,
+    org_id: int,
+    dataset: str,
+    fields: list[str],
+    query: str,
+    sort: str,
+    per_page: int,
+    stats_period: str,
+    project_ids: list[int] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+    """
+    Execute a query to get table data by calling the events endpoint.
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    if not fields:
+        # Must pass in at least one field.
+        return None
+
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "field": fields,
+        "query": query,
+        "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
+        "per_page": per_page,
+        "statsPeriod": stats_period,
+        "project": project_ids,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_RPC,
+    }
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
     resp = client.get(
         auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
         user=None,
