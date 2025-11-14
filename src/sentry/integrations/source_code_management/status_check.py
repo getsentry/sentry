@@ -27,3 +27,7 @@ class StatusCheckClient(ABC):
     @abstractmethod
     def get_check_runs(self, repo: str, sha: str) -> Any:
         raise NotImplementedError
+
+    @abstractmethod
+    def update_check_run(self, repo: str, check_run_id: str, data: dict[str, Any]) -> Any:
+        raise NotImplementedError

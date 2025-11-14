@@ -80,7 +80,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         # Mock the status check client and provider chain
         mock_client = Mock()
         mock_provider = Mock()
-        mock_provider.create_status_check.return_value = "check_12345"
+        mock_provider.create_or_update_status_check.return_value = "check_12345"
 
         patcher_client = patch(
             "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
@@ -118,7 +118,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(99999)  # Nonexistent ID
 
             # Verify no API calls were made since artifact doesn't exist
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_no_commit_comparison(self):
         """Test task returns early when PreprodArtifact has no CommitComparison and makes no API calls."""
@@ -130,7 +130,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made since there's no commit comparison
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_missing_git_info(self):
         """Test task handles missing git info in CommitComparison and makes no API calls."""
@@ -160,7 +160,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made due to missing git info
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_missing_head_repo_name(self):
         """Test task handles missing head_repo_name in CommitComparison and makes no API calls."""
@@ -190,7 +190,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made due to missing head_repo_name
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_no_repository_integration(self):
         """Test task handles missing repository integration gracefully and makes no API calls."""
@@ -203,7 +203,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made due to missing repository integration
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_repository_no_integration_id(self):
         """Test task handles repository with no integration_id and makes no API calls."""
@@ -224,7 +224,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made due to missing integration_id
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_unsupported_provider(self):
         """Test task handles unsupported VCS provider gracefully and makes no API calls."""
@@ -240,7 +240,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 create_preprod_status_check_task(preprod_artifact.id)
 
             # Verify no API calls were made due to unsupported provider
-            mock_provider.create_status_check.assert_not_called()
+            mock_provider.create_or_update_status_check.assert_not_called()
 
     def test_create_preprod_status_check_task_all_artifact_states(self):
         """Test task handles all valid artifact states and creates correct status checks."""
@@ -278,8 +278,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                     with self.tasks():
                         create_preprod_status_check_task(preprod_artifact.id)
 
-                mock_provider.create_status_check.assert_called_once()
-                call_kwargs = mock_provider.create_status_check.call_args.kwargs
+                mock_provider.create_or_update_status_check.assert_called_once()
+                call_kwargs = mock_provider.create_or_update_status_check.call_args.kwargs
 
                 assert call_kwargs["repo"] == "owner/repo"
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
@@ -318,14 +318,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         # TODO(telkins): come up with a better error case
-        mock_provider.create_status_check.return_value = None  # Simulate API failure
+        mock_provider.create_or_update_status_check.return_value = None  # Simulate API failure
 
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(preprod_artifact.id)
 
         # Verify API was called but task completed without exception
-        mock_provider.create_status_check.assert_called_once()
+        mock_provider.create_or_update_status_check.assert_called_once()
 
     def test_create_preprod_status_check_task_multiple_artifacts_same_commit(self):
         """Test task handles multiple artifacts for the same commit (monorepo scenario)."""
@@ -371,8 +371,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 # Call with just one artifact ID - it should find all sibling artifacts
                 create_preprod_status_check_task(artifacts[0].id)
 
-        mock_provider.create_status_check.assert_called_once()
-        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+        mock_provider.create_or_update_status_check.assert_called_once()
+        call_kwargs = mock_provider.create_or_update_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "3 apps analyzed"  # All processed with completed metrics
@@ -437,8 +437,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             with self.tasks():
                 create_preprod_status_check_task(processed_artifact.id)
 
-        mock_provider.create_status_check.assert_called_once()
-        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+        mock_provider.create_or_update_status_check.assert_called_once()
+        call_kwargs = mock_provider.create_or_update_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
@@ -481,6 +481,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
+        # Mock get_check_runs to return no existing check runs
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/owner/repo/check-runs",
@@ -499,10 +507,12 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert "GitHub App lacks permissions" in str(e)
                 assert "required permissions" in str(e)
 
-        # Verify no retries due to ignore policy
-        assert len(responses.calls) == 1
+        # Verify GET to find existing check runs, then POST that fails
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[1].request.method == "POST"
         assert (
-            responses.calls[0].request.url == "https://api.github.com/repos/owner/repo/check-runs"
+            responses.calls[1].request.url == "https://api.github.com/repos/owner/repo/check-runs"
         )
 
     @responses.activate
@@ -536,6 +546,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
+        # Mock get_check_runs to return no existing check runs
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
         # 403 error that's NOT permission-related (should re-raise to allow retry)
         responses.add(
             responses.POST,
@@ -556,9 +574,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert e.__class__.__name__ == "ApiForbiddenError"
                 assert "temporarily unavailable" in str(e)
 
-        assert len(responses.calls) == 1
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[1].request.method == "POST"
         assert (
-            responses.calls[0].request.url == "https://api.github.com/repos/owner/repo/check-runs"
+            responses.calls[1].request.url == "https://api.github.com/repos/owner/repo/check-runs"
         )
 
     @responses.activate
@@ -592,6 +612,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
+        # Mock get_check_runs to return no existing check runs
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/owner/repo/check-runs",
@@ -609,8 +637,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             except IntegrationConfigurationError as e:
                 assert "400 client error" in str(e)
 
-        # Verify no retries
-        assert len(responses.calls) == 1
+        # Verify GET + POST (no retries of POST)
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[1].request.method == "POST"
 
     @responses.activate
     def test_create_preprod_status_check_task_github_429_error(self):
@@ -643,6 +673,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
+        # Mock get_check_runs to return no existing check runs
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/owner/repo/check-runs",
@@ -663,7 +701,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert e.__class__.__name__ == "ApiRateLimitedError"
                 assert "rate limit" in str(e).lower()
 
-        assert len(responses.calls) == 1
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[1].request.method == "POST"
 
     @responses.activate
     def test_create_preprod_status_check_task_truncates_long_summary(self):
@@ -706,6 +746,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
+        # Mock get_check_runs to return no existing check runs
+        assert artifacts[0].commit_comparison is not None
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{artifacts[0].commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/owner/repo/check-runs",
@@ -716,8 +765,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         with self.tasks():
             create_preprod_status_check_task(artifacts[0].id)
 
-        assert len(responses.calls) == 1
-        request_body = responses.calls[0].request.body
+        assert len(responses.calls) == 2
+        request_body = responses.calls[1].request.body
 
         payload = json.loads(request_body)
         summary = payload["output"]["summary"]
@@ -727,3 +776,207 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
         assert summary.endswith("..."), "Truncated summary should end with '...'"
+
+    @responses.activate
+    def test_create_preprod_status_check_task_updates_existing_check_run(self):
+        """Test task updates existing check run instead of creating a new one when reprocessing."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-update",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        existing_check_id = "987654321"
+        external_id = str(preprod_artifact.id)
+
+        # Mock get_check_runs to return an existing check run
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={
+                "total_count": 1,
+                "check_runs": [
+                    {
+                        "id": existing_check_id,
+                        "name": "Size Analysis",
+                        "external_id": external_id,
+                        "status": "in_progress",
+                    }
+                ],
+            },
+        )
+
+        # Mock update_check_run
+        responses.add(
+            responses.PATCH,
+            f"https://api.github.com/repos/owner/repo/check-runs/{existing_check_id}",
+            status=200,
+            json={
+                "id": existing_check_id,
+                "status": "completed",
+                "conclusion": "success",
+            },
+        )
+
+        with self.tasks():
+            create_preprod_status_check_task(preprod_artifact.id)
+
+        # Verify we called GET to find existing check run
+        assert len(responses.calls) == 2
+        assert (
+            responses.calls[0].request.url
+            == f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs"
+        )
+        assert responses.calls[0].request.method == "GET"
+
+        # Verify we called PATCH to update (not POST to create)
+        assert (
+            responses.calls[1].request.url
+            == f"https://api.github.com/repos/owner/repo/check-runs/{existing_check_id}"
+        )
+        assert responses.calls[1].request.method == "PATCH"
+
+        # Verify the update payload
+        update_payload = json.loads(responses.calls[1].request.body)
+        assert update_payload["name"] == "Size Analysis"
+        assert update_payload["external_id"] == external_id
+        assert update_payload["status"] == "completed"
+        assert update_payload["conclusion"] == "success"
+
+    @responses.activate
+    def test_create_preprod_status_check_task_creates_when_no_existing_check_run(self):
+        """Test task creates a new check run when no existing one is found."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-create",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        # Mock get_check_runs to return no existing check runs
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=200,
+            json={"total_count": 0, "check_runs": []},
+        )
+
+        # Mock create_check_run
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=201,
+            json={"id": 123456, "status": "completed", "conclusion": "success"},
+        )
+
+        with self.tasks():
+            create_preprod_status_check_task(preprod_artifact.id)
+
+        # Verify we called GET to find existing check run
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+
+        # Verify we called POST to create (not PATCH to update)
+        assert (
+            responses.calls[1].request.url == "https://api.github.com/repos/owner/repo/check-runs"
+        )
+        assert responses.calls[1].request.method == "POST"
+
+    @responses.activate
+    def test_create_preprod_status_check_task_creates_when_get_check_runs_fails(self):
+        """Test task creates a new check run when get_check_runs fails gracefully."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-get-failure",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        # Mock get_check_runs to fail with a 500 error
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/owner/repo/commits/{preprod_artifact.commit_comparison.head_sha}/check-runs",
+            status=500,
+            json={"message": "Internal server error"},
+        )
+
+        # Mock create_check_run
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=201,
+            json={"id": 123456, "status": "completed", "conclusion": "success"},
+        )
+
+        with self.tasks():
+            create_preprod_status_check_task(preprod_artifact.id)
+
+        # Verify we tried to GET, it failed, then we fell back to POST
+        assert len(responses.calls) == 2
+        assert responses.calls[0].request.method == "GET"
+        assert responses.calls[1].request.method == "POST"

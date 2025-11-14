@@ -732,6 +732,15 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/commits/{sha}/check-runs"
         return self.get(endpoint)
 
+    def update_check_run(self, repo: str, check_run_id: str, data: dict[str, Any]) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#update-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.patch(endpoint, data=data)
+
 
 class _IntegrationIdParams(TypedDict, total=False):
     integration_id: int

@@ -129,7 +129,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    check_id = provider.create_status_check(
+    check_id = provider.create_or_update_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
         status=status,
@@ -307,7 +307,7 @@ class _StatusCheckProvider(ABC):
         )
 
     @abstractmethod
-    def create_status_check(
+    def create_or_update_status_check(
         self,
         repo: str,
         sha: str,
@@ -321,12 +321,12 @@ class _StatusCheckProvider(ABC):
         completed_at: datetime | None = None,
         target_url: str | None = None,
     ) -> str | None:
-        """Create a status check using provider-specific format."""
+        """Create or update a status check using provider-specific format."""
         raise NotImplementedError
 
 
 class _GitHubStatusCheckProvider(_StatusCheckProvider):
-    def create_status_check(
+    def create_or_update_status_check(
         self,
         repo: str,
         sha: str,
@@ -409,9 +409,27 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     )
 
             try:
-                response = self.client.create_check_run(repo=repo, data=check_data)
-                check_id = response.get("id")
-                return str(check_id) if check_id else None
+                existing_check_id = self._find_existing_check_run(repo, sha, title, external_id)
+
+                if existing_check_id:
+                    logger.info(
+                        "preprod.status_checks.update.found_existing",
+                        extra={
+                            "check_id": existing_check_id,
+                            "external_id": external_id,
+                            "organization_id": self.organization_id,
+                            "organization_slug": self.organization_slug,
+                        },
+                    )
+                    response = self.client.update_check_run(
+                        repo=repo, check_run_id=existing_check_id, data=check_data
+                    )
+                    check_id = response.get("id")
+                    return str(check_id) if check_id else None
+                else:
+                    response = self.client.create_check_run(repo=repo, data=check_data)
+                    check_id = response.get("id")
+                    return str(check_id) if check_id else None
             except ApiError as e:
                 lifecycle.record_failure(e)
                 # Only convert specific permission 403s as IntegrationConfigurationError
@@ -453,6 +471,34 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
 
                 # For non-permission 403s, 429s, 5xx, and other error
                 raise
+
+    def _find_existing_check_run(
+        self, repo: str, sha: str, check_name: str, external_id: str
+    ) -> str | None:
+        """Find an existing check run by name and external_id for the given commit."""
+        try:
+            response = self.client.get_check_runs(repo=repo, sha=sha)
+            check_runs = response.get("check_runs", [])
+
+            for check_run in check_runs:
+                if (
+                    check_run.get("name") == check_name
+                    and check_run.get("external_id") == external_id
+                ):
+                    return str(check_run.get("id"))
+
+            return None
+        except ApiError as e:
+            logger.warning(
+                "preprod.status_checks.find_existing.failed",
+                extra={
+                    "repo": repo,
+                    "sha": sha,
+                    "external_id": external_id,
+                    "error": str(e),
+                },
+            )
+            return None
 
 
 # See: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
