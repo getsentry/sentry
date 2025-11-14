@@ -9,8 +9,8 @@
  */
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import {spring, type Transition} from 'framer-motion';
 import modifyColor from 'color';
+import {spring, type Transition} from 'framer-motion';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
