@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -74,7 +74,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -105,7 +105,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1442,7 +1442,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1473,7 +1473,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1504,7 +1504,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [

@@ -13,7 +13,7 @@ app:
         value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "start"
           frame (non app frame)
@@ -58,19 +58,19 @@ app:
           frame (marked out of app by built-in stack trace rule (category:system -app))
             function*
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "CFRunLoopRunSpecific"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__CFRunLoopRun"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__CFRunLoopDoSources0"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__CFRunLoopDoSource0"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
           frame (non app frame)
@@ -133,18 +133,18 @@ app:
           frame (non app frame)
             function*
               "glTexSubImage2D"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "glTexSubImage2D_Exec"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gleTextureImagePut"
-          frame (non app frame)
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gpusSubmitDataBuffers"
           frame (non app frame)
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
@@ -153,7 +153,7 @@ app:
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------

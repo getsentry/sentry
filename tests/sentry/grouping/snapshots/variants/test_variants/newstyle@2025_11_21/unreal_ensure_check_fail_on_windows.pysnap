@@ -50,7 +50,7 @@ app:
           frame (marked out of app by built-in stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
-          frame (marked out of app by built-in stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "UserCallWinProcCheckWow"
           frame* (marked in-app by built-in stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))

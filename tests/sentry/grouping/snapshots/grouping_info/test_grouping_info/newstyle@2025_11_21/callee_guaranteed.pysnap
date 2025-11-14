@@ -408,7 +408,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by built-in stack trace rule (category:internals -group)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -534,7 +534,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by built-in stack trace rule (category:internals -group)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -567,7 +567,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored due to recursion",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -631,7 +631,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by built-in stack trace rule (category:internals -group)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -726,7 +726,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by built-in stack trace rule (category:internals -group)",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -759,7 +759,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored due to recursion",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -792,7 +792,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored due to recursion",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -825,7 +825,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored due to recursion",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -858,7 +858,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored due to recursion",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
