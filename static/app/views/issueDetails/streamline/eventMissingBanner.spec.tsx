@@ -1,19 +1,16 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 
 describe('EventMissingBanner', () => {
   it('renders elements for known event IDs', () => {
-    const organization = OrganizationFixture();
-    const router = RouterFixture({params: {groupId: 'group-1', eventId: 'recommended'}});
-
     render(<EventMissingBanner />, {
-      organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-1/events/recommended/',
+        },
+        route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      },
     });
 
     // Header
@@ -27,13 +24,13 @@ describe('EventMissingBanner', () => {
   });
 
   it('renders elements for specific event IDs', () => {
-    const organization = OrganizationFixture();
-    const router = RouterFixture({params: {groupId: 'group-1', eventId: 'abc123'}});
-
     render(<EventMissingBanner />, {
-      organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-1/events/abc123/',
+        },
+        route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      },
     });
 
     // Header
