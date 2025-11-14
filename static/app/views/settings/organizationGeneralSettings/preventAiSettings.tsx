@@ -14,11 +14,14 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
   const regionData = getRegionDataFromOrganization(organization);
   const isUSOrg = regionData?.name?.toLowerCase() === 'us';
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const hasFeatureFlag = organization.features.includes('organizations:gen-ai-features');
 
-  const isDisabled = isSelfHosted || !isUSOrg;
+  const isDisabled = isSelfHosted || !isUSOrg || !hasFeatureFlag;
   const disabledReason = isSelfHosted
     ? t('This feature is not available for self-hosted instances')
-    : t('This feature is only available in the US region');
+    : hasFeatureFlag
+      ? t('This feature is only available in the US region')
+      : t('This feature is not available');
 
   return {
     name: 'enablePrReviewTestGeneration',

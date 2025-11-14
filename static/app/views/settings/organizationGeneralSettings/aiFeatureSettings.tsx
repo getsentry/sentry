@@ -5,11 +5,13 @@ import type {Organization} from 'sentry/types/organization';
 
 export const defaultEnableSeerFeaturesValue = (organization: Organization) => {
   const isBaa = false; // TODO: add check here once we have a way to check if the org is a BAA customer. Leave it as false for now.
-  return !organization.hideAiFeatures && !isBaa;
+  const hasFeatureFlag = organization.features.includes('organizations:gen-ai-features');
+  return !organization.hideAiFeatures && !isBaa && hasFeatureFlag;
 };
 
 export const makeHideAiFeaturesField = (organization: Organization): FieldObject => {
   const isBaa = false; // TODO: add a check here once we have a way to check if the org is a BAA customer. Leave it as false for now.
+  const hasFeatureFlag = organization.features.includes('organizations:gen-ai-features');
 
   return {
     name: 'hideAiFeatures',
@@ -24,7 +26,7 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       }
     ),
     defaultValue: defaultEnableSeerFeaturesValue(organization),
-    disabled: ({access}) => !access.has('org:write'),
+    disabled: ({access}) => !hasFeatureFlag || !access.has('org:write'),
     getValue: value => {
       // Reversing value because the field was previously called hideAiFeatures and we've inverted the behavior.
       return !value;
@@ -33,6 +35,8 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       ? t(
           'To remain HIPAA compliant, Generative AI features are disabled for BAA customers'
         )
-      : null,
+      : hasFeatureFlag
+        ? null
+        : t('This feature is not available'),
   };
 };
