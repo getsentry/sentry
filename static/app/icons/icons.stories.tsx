@@ -1179,35 +1179,9 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'sliders-direction-left',
-        groups: ['action'],
-        keywords: ['settings', 'slide', 'adjust', 'controls', 'config'],
-        additionalProps: ['direction'],
+        id: 'sliders',
         name: 'Sliders',
-        defaultProps: {
-          direction: 'left',
-        },
-      },
-      {
-        id: 'sliders-direction-right',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'right',
-        },
-      },
-      {
-        id: 'sliders-direction-up',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'up',
-        },
-      },
-      {
-        id: 'sliders-direction-down',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'down',
-        },
+        defaultProps: {},
       },
       {
         id: 'fix',
