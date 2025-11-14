@@ -88,7 +88,6 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             query="",
             stats_period="1h",
             y_axes=["count()"],
-            # project_ids=[self.project.id],
         )
 
         assert result is not None
