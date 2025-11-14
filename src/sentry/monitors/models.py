@@ -439,6 +439,24 @@ class Monitor(Model):
         self.guid = uuid4()
         return old_pk
 
+    def ensure_is_muted(self) -> None:
+        """
+        Dual-write: Sync is_muted from monitor environments back to the monitor.
+
+        Sets Monitor.is_muted based on whether all MonitorEnvironments are muted.
+        If there are no environments, is_muted remains unchanged.
+        """
+        # Count total environments and muted environments
+        env_counts = MonitorEnvironment.objects.filter(monitor_id=self.id).aggregate(
+            total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
+        )
+
+        # Only update if there are environments
+        if env_counts["total"] > 0:
+            all_muted = env_counts["total"] == env_counts["muted"]
+            if self.is_muted != all_muted:
+                self.update(is_muted=all_muted)
+
 
 def check_organization_monitor_limit(organization_id: int) -> None:
     """
@@ -626,7 +644,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE},
+            defaults={"status": MonitorStatus.ACTIVE, "is_muted": monitor.is_muted},
         )
 
         # recompute per-project monitor check-in rate limit quota

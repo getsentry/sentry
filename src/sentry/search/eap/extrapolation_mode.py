@@ -10,7 +10,7 @@ def resolve_extrapolation_mode(
     if search_config.disable_aggregate_extrapolation:
         return ExtrapolationMode.EXTRAPOLATION_MODE_NONE
 
-    if argument_override:
+    if argument_override is not None:
         return argument_override
 
     if search_config.extrapolation_mode is not None:

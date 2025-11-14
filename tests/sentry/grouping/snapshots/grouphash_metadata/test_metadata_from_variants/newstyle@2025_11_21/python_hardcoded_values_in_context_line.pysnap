@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "6791947bdfd6cf2ca7024f026df974ae"
+    hash: "1bc764ab44acfab9a38f23ae670038bd"
     contributing component: exception
     hint: None
     root_component:
@@ -31,13 +31,6 @@ contributing variants:
           type*
             "TimeoutError"
           stacktrace*
-            frame*
-              module*
-                "__main__"
-              function*
-                "<module>"
-              context_line*
-                "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
             frame*
               module*
                 "multiprocessing.spawn"

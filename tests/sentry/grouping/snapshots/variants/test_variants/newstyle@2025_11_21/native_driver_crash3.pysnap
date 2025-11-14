@@ -55,14 +55,14 @@ system:
           frame*
             function*
               "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
           frame
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "OpenAdapter12"
           frame

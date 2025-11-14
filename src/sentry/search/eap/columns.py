@@ -490,10 +490,8 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
         search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation and not search_config.disable_aggregate_extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
             ),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
