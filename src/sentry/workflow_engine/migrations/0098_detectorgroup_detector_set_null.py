@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("workflow_engine", "0096_delete_non_single_written_fire_history"),
+        ("workflow_engine", "0097_add_unique_constraint_to_datasource"),
     ]
 
     operations = [
