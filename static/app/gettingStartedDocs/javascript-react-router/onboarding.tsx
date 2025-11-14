@@ -109,14 +109,11 @@ const handleRequest = Sentry.createSentryHandleRequest({
 
 export default handleRequest;
 
-export const handleError: HandleErrorFunction = (error, { request }) => {
-  // React Router may abort some interrupted requests, don't log those
-  if (!request.signal.aborted) {
-    Sentry.captureException(error);
-    // optionally log the error to the console so you can see it
-    console.error(error);
-  }
-};`;
+export const handleError = Sentry.createSentryHandleError({
+  logErrors: false
+});
+
+// ... rest of your server entry`;
 
 const getVerifySnippet = (params: DocsParams) => {
   const logsCode = params.isLogsSelected
@@ -303,7 +300,7 @@ export const onboarding: OnboardingConfig = {
             'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#source-maps-upload" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/#step-3-add-readable-stack-traces-with-source-maps-optional" />
               ),
             }
           ),
