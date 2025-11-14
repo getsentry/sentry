@@ -1,6 +1,5 @@
 import {DocIntegrationFixture} from 'sentry-fixture/docIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -9,9 +8,6 @@ import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegr
 describe('DocIntegrationDetailedView', () => {
   const organization = OrganizationFixture();
   const doc = DocIntegrationFixture();
-  const router = RouterFixture({
-    params: {orgId: organization.slug, integrationSlug: doc.slug},
-  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -24,8 +20,12 @@ describe('DocIntegrationDetailedView', () => {
     });
     render(<DocIntegrationDetailedView />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/integrations/doc/${doc.slug}/`,
+        },
+        route: '/organizations/:orgId/integrations/doc/:integrationSlug/',
+      },
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

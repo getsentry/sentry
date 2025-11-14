@@ -15,9 +15,7 @@ import Commits from './commits';
 describe('Commits', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {router, organization} = initializeOrg({
-    router: {params: {release: release.version}},
-  });
+  const {organization} = initializeOrg();
   const repos = [RepositoryFixture({integrationId: '1'})];
 
   function renderComponent() {
@@ -36,8 +34,12 @@ describe('Commits', () => {
         <Commits />
       </ReleaseContext>,
       {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/commits/`,
+          },
+          route: '/organizations/:orgId/releases/:release/commits/',
+        },
       }
     );
   }
@@ -140,12 +142,6 @@ describe('Commits', () => {
       integrationId: '1',
     });
     // Current repo is stored in query parameter activeRepo
-    const {router: newRouterContext} = initializeOrg({
-      router: {
-        params: {release: release.version},
-        location: {query: {activeRepo: otherRepo.name}},
-      },
-    });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
         release.version
@@ -178,8 +174,13 @@ describe('Commits', () => {
         <Commits />
       </ReleaseContext>,
       {
-        router: newRouterContext,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/commits/`,
+            query: {activeRepo: otherRepo.name},
+          },
+          route: '/organizations/:orgId/releases/:release/commits/',
+        },
       }
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);

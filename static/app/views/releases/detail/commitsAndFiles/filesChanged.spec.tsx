@@ -29,9 +29,7 @@ function CommitFileFixture(params: Partial<CommitFile> = {}): CommitFile {
 describe('FilesChanged', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {router, organization} = initializeOrg({
-    router: {params: {release: release.version}},
-  });
+  const {organization} = initializeOrg();
   const repos = [RepositoryFixture({integrationId: '1'})];
 
   function renderComponent() {
@@ -50,8 +48,12 @@ describe('FilesChanged', () => {
         <FilesChanged />
       </ReleaseContext>,
       {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/files-changed/`,
+          },
+          route: '/organizations/:orgId/releases/:release/files-changed/',
+        },
       }
     );
   }
