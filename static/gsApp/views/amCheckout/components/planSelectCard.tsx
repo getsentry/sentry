@@ -6,8 +6,8 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
-import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
-import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/steps/planSelectRow';
+import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/components/planSelectRow';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getShortInterval} from 'getsentry/views/amCheckout/utils';
 

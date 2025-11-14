@@ -9,7 +9,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
+import CheckoutOverview from 'getsentry/views/amCheckout/components/checkoutOverview';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', () => {
