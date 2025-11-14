@@ -8,8 +8,7 @@ import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/li
 import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
+import ReplayCurrentLocation from 'sentry/components/replays/replayCurrentLocation';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
@@ -32,7 +31,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
@@ -62,8 +60,7 @@ export default function ReplayPreviewPlayer({
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const replay = useReplayReader();
-  const {currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
-    useReplayContext();
+  const {currentTime, isFetching, isFinished, isPlaying} = useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -130,8 +127,7 @@ export default function ReplayPreviewPlayer({
             <PlayerContextContainer>
               {isFullscreen ? (
                 <ContextContainer>
-                  {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                  <BrowserOSIcons />
+                  <ReplayCurrentLocation isLoading={false} />
                   <ReplaySidebarToggleButton
                     isOpen={isSidebarOpen}
                     setIsOpen={setIsSidebarOpen}
