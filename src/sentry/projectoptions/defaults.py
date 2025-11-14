@@ -33,9 +33,10 @@ register(
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
-# Default symbol sources.  The ios source does not exist by default and
-# will be skipped later.  The microsoft source exists by default and is
-# unlikely to be disabled.
+# Default symbol sources. The ios source does not exist by default and
+# will be skipped later. The microsoft source exists by default and is
+# unlikely to be disabled. Platform-specific sources may be added via
+# set_default_symbol_sources() when a project is created.
 register(
     key="sentry:builtin_symbol_sources",
     epoch_defaults={

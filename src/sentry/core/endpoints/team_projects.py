@@ -47,7 +47,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_disabled_detectors(project)
 
-    set_default_symbol_sources(project)
+    set_default_symbol_sources(project, organization)
 
     # Create project option to turn on ML similarity feature for new EA projects
     if project_is_seer_eligible(project):
