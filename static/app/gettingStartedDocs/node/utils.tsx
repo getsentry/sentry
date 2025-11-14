@@ -580,14 +580,7 @@ Sentry.init({
     const manualContent: ContentBlock[] = [
       {
         type: 'text',
-        text: tct(
-          'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-            ),
-          }
-        ),
+        text: t('Initialize the Sentry SDK in the entry point of your application.'),
       },
       {
         type: 'code',
@@ -597,23 +590,23 @@ Sentry.init({
             language: 'javascript',
             code: `${getImport(packageName).join('\n')}
 
-// Create a span around your AI call
-await Sentry.startSpan({
-  op: "gen_ai.chat",
-  name: "chat gpt-4o",
-  attributes: {
-    "gen_ai.operation.name": "chat",
-    "gen_ai.request.model": "gpt-4o",
-  }
-}, async (span) => {
-  // Call your AI function here
-  // e.g., await generateText(...)
-
-  // Set further span attributes after the AI call
-  span.setAttribute("gen_ai.response.text", "<Your model's response>");
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  tracesSampleRate: 1.0,
 });`,
           },
         ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'Then follow the [link:manual instrumentation guide] to instrument your AI calls.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            ),
+          }
+        ),
       },
     ];
 
