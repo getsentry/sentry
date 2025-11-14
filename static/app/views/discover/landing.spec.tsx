@@ -116,7 +116,7 @@ describe('Discover > Landing', () => {
       </OrganizationContext>
     );
 
-    expect(await screen.findByText('Discover')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Discover'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/discover/homepage/'
     );

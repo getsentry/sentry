@@ -187,12 +187,10 @@ function DiscoverLanding() {
               <Breadcrumbs
                 crumbs={[
                   {
-                    key: 'discover-homepage',
                     label: t('Discover'),
                     to: getDiscoverLandingUrl(organization),
                   },
                   {
-                    key: 'discover-saved-queries',
                     label: t('Saved Queries'),
                   },
                 ]}
