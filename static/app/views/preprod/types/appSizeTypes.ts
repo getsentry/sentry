@@ -7,7 +7,7 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
-  insights?: AppleInsightResults;
+  insights?: InsightResults;
   missing_dsym_binaries?: string[];
 }
 
@@ -189,7 +189,9 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-export interface AppleInsightResults {
+interface MultipleNativeLibraryArchsInsightResult extends FilesInsightResult {}
+
+export interface InsightResults {
   alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
@@ -202,6 +204,7 @@ export interface AppleInsightResults {
   localized_strings_minify?: LocalizedStringCommentsInsightResult;
   loose_images?: LooseImagesInsightResult;
   main_binary_exported_symbols?: MainBinaryExportMetadataResult;
+  multiple_native_library_archs?: MultipleNativeLibraryArchsInsightResult;
   small_files?: SmallFilesInsightResult;
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;

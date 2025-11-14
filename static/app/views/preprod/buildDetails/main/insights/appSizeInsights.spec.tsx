@@ -1,4 +1,4 @@
-import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
+import {InsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +9,7 @@ import {AppSizeInsights} from './appSizeInsights';
 describe('AppSizeInsights', () => {
   const getDefaultProps = () => {
     const totalSize = 10240000;
-    const insights = AppleInsightResultsFixture();
+    const insights = InsightResultsFixture();
     return {
       processedInsights: processInsights(insights, totalSize),
       totalSize,
@@ -24,7 +24,7 @@ describe('AppSizeInsights', () => {
   });
 
   it('displays only top 5 insights in the main view', () => {
-    const manyInsights = AppleInsightResultsFixture({
+    const manyInsights = InsightResultsFixture({
       image_optimization: {
         total_savings: 600000,
         optimizable_files: [
