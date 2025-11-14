@@ -303,6 +303,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const chartOptions = {
+    notMerge: false,
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
     grid: {
