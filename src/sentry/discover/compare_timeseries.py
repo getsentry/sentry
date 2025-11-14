@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 
 import sentry_sdk
 from django.urls import reverse
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry import features
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
@@ -21,12 +22,13 @@ from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
+from sentry.seer.anomaly_detection.utils import get_dataset_from_label_and_event_types
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_enhanced_performance import timeseries_query
-from sentry.snuba.models import ExtrapolationMode, SnubaQuery
+from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
@@ -88,10 +90,10 @@ def make_rpc_request(
     query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
     extrapolation_mode = None
-    if dataset == Dataset.PerformanceMetrics:
-        extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED
-    if dataset == Dataset.Transactions:
-        extrapolation_mode = ExtrapolationMode.NONE
+    if dataset == Dataset.PerformanceMetrics.value:
+        extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+    if dataset == Dataset.Transactions.value:
+        extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_NONE
 
     results = Spans.run_timeseries_query(
         params=snuba_params,
@@ -148,12 +150,14 @@ def make_snql_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
+    api_call_dataset = get_dataset_from_label_and_event_types(dataset)
+
     api_call = format_api_call(
         organization.slug,
         query=query,
         project=snuba_params.project_ids[0],
         yAxis=aggregate,
-        dataset=dataset,
+        dataset=api_call_dataset,
         interval=snuba_params.granularity_secs,
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
