@@ -797,7 +797,6 @@ module = [
     "tests.sentry.notifications.notifications.organization_request.*",
     "tests.sentry.notifications.platform.*",
     "tests.sentry.notifications.utils.*",
-    "tests.sentry.objectstore.*",
     "tests.sentry.onboarding_tasks.*",
     "tests.sentry.organizations.*",
     "tests.sentry.partnerships.*",
