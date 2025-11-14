@@ -29,7 +29,6 @@ type Props = {
   transaction: string;
   footerAlignedPagination?: boolean;
   release?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function EventSamples({
@@ -37,7 +36,6 @@ export function EventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
   footerAlignedPagination,
 }: Props) {
   const location = useLocation();
@@ -51,7 +49,7 @@ export function EventSamples({
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
-    `release:${release}`,
+    ...(release ? [`release:${release}`] : []),
     ...(startType ? [`${SpanFields.APP_START_TYPE}:${startType}`] : []),
     ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
@@ -65,10 +63,12 @@ export function EventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.span_id': t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    'transaction.span_id': defined(release)
+      ? t(
+          'Event ID (%s)',
+          release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+        )
+      : t('Event ID'),
     profile_id: t('Profile'),
     'span.duration': t('Duration'),
   };
@@ -96,8 +96,8 @@ export function EventSamples({
     {
       search: searchQuery.formatString(),
       cursor,
-      limit: 4,
-      enabled: defined(release),
+      limit: 10,
+      enabled: true,
       fields: [
         SpanFields.ID,
         SpanFields.TRACE,
@@ -117,12 +117,11 @@ export function EventSamples({
       cursorName={cursorName}
       eventIdKey={SpanFields.TRANSACTION_SPAN_ID}
       eventView={eventView}
-      isLoading={defined(release) && isPending}
+      isLoading={isPending}
       profileIdKey="profile_id"
       sortKey={sortKey}
       data={{data, meta}}
       pageLinks={pageLinks}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
       footerAlignedPagination={footerAlignedPagination}

@@ -57,6 +57,10 @@ describe('ScreensOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
     render(<ScreensOverview />, {organization});
 
     expect(await screen.findByPlaceholderText('Search for Screen')).toBeInTheDocument();
@@ -166,6 +170,11 @@ describe('ScreensOverview', () => {
           referrer: 'api.insights.mobile-screens-screen-table-span-metrics',
         }),
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
     });
 
     render(<ScreensOverview />, {organization});

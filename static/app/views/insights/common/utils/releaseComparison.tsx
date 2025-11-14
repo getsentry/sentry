@@ -6,21 +6,24 @@ export function appendReleaseFilters(
   primaryRelease: string | undefined,
   secondaryRelease?: string
 ) {
+  // Treat empty strings as undefined
+  const validPrimary =
+    primaryRelease && primaryRelease !== '' ? primaryRelease : undefined;
+  const validSecondary =
+    secondaryRelease && secondaryRelease !== '' ? secondaryRelease : undefined;
+
   let queryString: string = query.formatString();
   if (
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease
+    defined(validPrimary) &&
+    defined(validSecondary) &&
+    validPrimary !== validSecondary
   ) {
     queryString = query
       .copy()
-      .addDisjunctionFilterValues('release', [primaryRelease, secondaryRelease])
+      .addDisjunctionFilterValues('release', [validPrimary, validSecondary])
       .formatString();
-  } else if (defined(primaryRelease)) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:${primaryRelease}`)
-      .formatString();
+  } else if (defined(validPrimary)) {
+    queryString = query.copy().addStringFilter(`release:${validPrimary}`).formatString();
   }
   return queryString;
 }

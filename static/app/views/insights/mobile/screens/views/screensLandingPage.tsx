@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,7 +19,10 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -42,6 +46,7 @@ function ScreensLandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+  const {primaryRelease} = useReleaseSelection();
 
   const handleProjectChange = useCallback(() => {
     navigate(
@@ -204,6 +209,9 @@ function ScreensLandingPage() {
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
+  if (defined(primaryRelease)) {
+    query.addFilterValue('release', primaryRelease);
+  }
 
   // TODO: combine these two queries into one, see DAIN-780
   const metricsResult = useSpans(
@@ -250,11 +258,16 @@ function ScreensLandingPage() {
             <Layout.Body>
               <Layout.Main width="full">
                 <Container>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector onChange={handleProjectChange} />
-                    <InsightsEnvironmentSelector />
-                    <DatePageFilter />
-                  </PageFilterBar>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <InsightsProjectSelector onChange={handleProjectChange} />
+                      <InsightsEnvironmentSelector />
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <PageFilterBar condensed>
+                      <ReleaseComparisonSelector primaryOnly />
+                    </PageFilterBar>
+                  </ToolRibbon>
                 </Container>
                 <PageAlert />
                 <ModulesOnboarding moduleName={moduleName}>
