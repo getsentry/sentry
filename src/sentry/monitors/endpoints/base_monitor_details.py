@@ -132,7 +132,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 if isinstance(monitor_object, Monitor):
                     new_slug = get_random_string(length=24)
                     # we disable the monitor seat so that it can be re-used for another monitor
-                    quotas.backend.disable_seat(DataCategory.MONITOR, monitor)
+                    quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
                     quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
                     monitor_object.update(slug=new_slug)
 
