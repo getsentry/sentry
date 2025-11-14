@@ -32,7 +32,6 @@ from sentry.replays.usecases.query import (
     Paginators,
     execute_query,
     make_full_aggregation_query,
-    make_full_aggregation_query_with_short_id,
     query_using_optimized_search,
 )
 from sentry.search.events.types import SnubaParams
@@ -112,44 +111,73 @@ def query_replay_instance(
     )["data"]
 
 
-def query_replay_instance_with_short_id(
+def query_replay_id_by_prefix(
     project_ids: list[int],
     replay_id_prefix: str,
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
-    request_user_id: int | None = None,
-) -> list[dict[str, Any]]:
+) -> str | None:
     """
-    Query aggregated replay instance with a string prefix filter.
+    Using a string prefix, query for a full replay ID in the given time range and project list, returning the first matching ID.
     Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
-    This query can do large scans over the time range and project list.
+
+    TODO: This query ignores the replay_id column index and can do large scans. At the moment it's only used for the Seer Explorer replay details tool.
+    This is a good candidate for optimization, which can be done with a materialized string column for the first 8 chars, and a secondary index.
+    Alternatively we can try more consistent ways of passing the full ID to Explorer.
     """
+
+    if len(replay_id_prefix) < 8 or len(replay_id_prefix) >= 32:
+        # Enforce length of 8-31 characters.
+        return None
+
+    # Enforce valid hex chars.
+    replay_id_prefix = replay_id_prefix.lower()
+    try:
+        int(replay_id_prefix, 16)
+    except ValueError:
+        return None
+
     window_size = timedelta(days=14)
     window_end = end
     while window_end > start:
         window_start = max(window_end - window_size, start)
 
+        query = Query(
+            match=Entity("replays"),
+            select=[Column("replay_id")],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(
+                    Function(
+                        "startsWith",
+                        parameters=[
+                            Function("toString", parameters=[Column("replay_id")]),
+                            replay_id_prefix,
+                        ],
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+                Condition(Column("timestamp"), Op.GTE, window_start),
+                Condition(Column("timestamp"), Op.LT, window_end),
+            ],
+            granularity=Granularity(3600),
+            limit=Limit(1),
+        )
+
         snuba_response = execute_query(
-            query=make_full_aggregation_query_with_short_id(
-                fields=[],
-                replay_id_prefix=replay_id_prefix,
-                project_ids=project_ids,
-                period_start=window_start,
-                period_end=window_end,
-                request_user_id=request_user_id,
-                limit=1,
-            ),
+            query=query,
             tenant_id={"organization_id": organization.id} if organization else {},
             referrer="replays.query.short_id_details_query",
         )["data"]
 
         if snuba_response:
-            return snuba_response
+            return str(snuba_response[0]["replay_id"])
 
         window_end = window_start
 
-    return []
+    return None
 
 
 def query_replay_viewed_by_ids(
@@ -1014,6 +1042,7 @@ def get_replay_range(
     project_id: int,
     replay_id: str,
 ) -> tuple[datetime, datetime] | None:
+    """Get the min and max timestamps for a replay. This query is redundant if you're already using query_replay_instance - use the started_at and finished_at fields instead."""
     query = Query(
         match=Entity("replays"),
         select=[

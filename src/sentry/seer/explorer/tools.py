@@ -16,7 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance, query_replay_instance_with_short_id
+from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -200,6 +200,9 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     # Get full trace id if a short id is provided. Queries EAP for a single span.
     # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
+    # TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
+    # This can be done with a materialized string column for the first 8 chars and a secondary index.
+    # Alternatively we can try more consistent ways of passing the full ID to Explorer.
     if len(trace_id) < 32:
         full_trace_id = None
         now = datetime.now(timezone.utc)
@@ -542,13 +545,6 @@ def get_replay_metadata(
     if not features.has("organizations:session-replay", organization):
         return None
 
-    # Validate full IDs and normalize with dashes. Short IDs are expected to be valid - query errors if not.
-    if len(replay_id) >= 32:
-        try:
-            replay_id = str(uuid.UUID(replay_id))  # UUID with dashes is recommended for the query.
-        except ValueError:
-            return None
-
     p_ids_and_slugs = list(
         Project.objects.filter(
             organization_id=organization.id,
@@ -557,35 +553,55 @@ def get_replay_metadata(
         ).values_list("id", "slug")
     )
 
+    if not p_ids_and_slugs:
+        logger.warning(
+            "No projects found for given organization and project slug",
+            extra={"organization_id": organization_id, "project_slug": project_slug},
+        )
+        return None
+
     start, end = default_start_end_dates()
 
-    if len(replay_id) >= 32:
-        snuba_response = (
-            query_replay_instance(
-                project_id=[id for id, _ in p_ids_and_slugs],
-                replay_id=replay_id,
-                start=start,
-                end=end,
-                organization=organization,
-                request_user_id=None,
-            )
-            or []
-        )
-    else:
-        snuba_response = query_replay_instance_with_short_id(
+    if len(replay_id) < 32:
+        # Subquery for the full replay ID.
+        full_replay_id = query_replay_id_by_prefix(
             project_ids=[id for id, _ in p_ids_and_slugs],
             replay_id_prefix=replay_id,
             start=start,
             end=end,
             organization=organization,
-            request_user_id=None,
         )
+        if not full_replay_id:
+            logger.warning(
+                "Replay short ID lookup failed",
+                extra={"replay_id": replay_id, "organization_id": organization_id},
+            )
+            return None
 
+        replay_id = full_replay_id
+
+    try:
+        replay_id = str(
+            uuid.UUID(replay_id)
+        )  # Normalizing with dashes is recommended for the query.
+    except ValueError:
+        logger.warning(
+            "Invalid replay ID", extra={"replay_id": replay_id, "organization_id": organization_id}
+        )
+        return None
+
+    snuba_response = query_replay_instance(
+        project_id=[id for id, _ in p_ids_and_slugs],
+        replay_id=replay_id,
+        start=start,
+        end=end,
+        organization=organization,
+        request_user_id=None,
+    )
     response = process_raw_response(
         snuba_response,
         fields=[],
     )
-
     if not response:
         logger.warning(
             "Replay instance not found - no data returned from query",
@@ -598,6 +614,7 @@ def get_replay_metadata(
 
     # Add project_slug field.
     result = cast(dict[str, Any], response[0])
-    _, project_slug = next(filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs))
-    result["project_slug"] = project_slug
+    result["project_slug"] = next(
+        filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
+    )[1]
     return result
