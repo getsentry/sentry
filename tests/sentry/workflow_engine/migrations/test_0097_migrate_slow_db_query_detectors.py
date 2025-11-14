@@ -7,8 +7,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestSlowDBQueryDetectorMigration(TestMigrations):
-    migrate_from = "0095_unique_detectorgroup_group"
-    migrate_to = "0096_migrate_slow_db_query_detectors"
+    migrate_from = "0096_delete_non_single_written_fire_history"
+    migrate_to = "0097_migrate_slow_db_query_detectors"
 
     def setup_before_migration(self, apps):
         """Set up projects with slow DB query settings before migration."""
