@@ -16,6 +16,7 @@ interface DataForwarderProject {
   dataForwarderId: string;
   effectiveConfig: Record<string, any>;
   id: string;
+  isEnabled: boolean;
   overrides: Record<string, any>;
   project: Required<AvatarProject>;
 }

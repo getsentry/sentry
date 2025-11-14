@@ -1,5 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
+import type {AvatarProject} from 'sentry/types/project';
 import {
   useApiQuery,
   useMutation,
@@ -95,6 +96,41 @@ export function useDeleteDataForwarder({
     },
     onError: _error => {
       addErrorMessage(t('Failed to delete data forwarder'));
+    },
+  });
+}
+
+export function useMutateDataForwarderProject({
+  params: {orgSlug, dataForwarderId, project},
+  onSuccess,
+}: {
+  params: {dataForwarderId: string; orgSlug: string; project: AvatarProject};
+  onSuccess?: () => void;
+}) {
+  const api = useApi({persistInFlight: false});
+  const queryClient = useQueryClient();
+  const listQueryKey = makeDataForwarderQueryKey({orgSlug});
+  const [endpoint] = makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug});
+  return useMutation<
+    void,
+    RequestError,
+    {is_enabled: boolean; overrides: Record<string, any>; project_id: string}
+  >({
+    mutationFn: data => api.requestPromise(endpoint, {method: 'PUT', data}),
+    onSuccess: () => {
+      addSuccessMessage(
+        tct('Updated project override for [project]', {
+          project: project.slug,
+        })
+      );
+      queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey: listQueryKey});
+      onSuccess?.();
+    },
+    onError: error => {
+      const displayError =
+        JSON.stringify(error.responseJSON) ?? t('Failed to update override');
+      addErrorMessage(displayError);
     },
   });
 }
