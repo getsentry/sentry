@@ -222,9 +222,7 @@ class RuleSerializer(Serializer):
                 )
 
                 workflow_fire_results = (
-                    WorkflowFireHistory.objects.filter(
-                        workflow_id__in=workflow_rule_lookup.keys(), is_single_written=True
-                    )
+                    WorkflowFireHistory.objects.filter(workflow_id__in=workflow_rule_lookup.keys())
                     .values("workflow_id")
                     .annotate(date_added=Max("date_added"))
                 )

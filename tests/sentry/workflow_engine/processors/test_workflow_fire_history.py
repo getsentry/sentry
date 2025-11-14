@@ -34,7 +34,6 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                is_single_written=True,
             ).count()
             == 1
         )
