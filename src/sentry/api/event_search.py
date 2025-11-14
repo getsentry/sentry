@@ -410,22 +410,35 @@ def handle_backslash(value: str) -> str:
     # when working with one of the wildcard operators,
     # we need to ensure we properly handle backslashes
     # by escaping them
-    return value.replace("\\", "\\\\")
+
+    v = []
+
+    i = 0
+    while i < len(value):
+        c = value[i]
+        if c == "\\":
+            j = i + 1
+            if value[j] in {"*", "\\"}:
+                v.append(c)
+                i += 1
+                c = value[i]
+        v.append(c)
+        i += 1
+
+    return "".join(v)
 
 
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
+    value = handle_backslash(value)
     value = re.sub(r"(?<!\\)\*", r"\\*", value)
     if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
-        value = handle_backslash(value)
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["starts_with"]:
-        value = handle_backslash(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
-        value = handle_backslash(value)
         value = add_leading_wildcard(value)
     return value
 
