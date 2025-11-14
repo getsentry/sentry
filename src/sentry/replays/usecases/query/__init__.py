@@ -471,9 +471,9 @@ def handle_ordering(
     config: dict[str, Expression], sort: str, tiebreaker: str | None = None
 ) -> list[OrderBy]:
     direction = Direction.DESC if sort.startswith("-") else Direction.ASC
-    bare_orderby = sort.lstrip("-")
+    bare_sort = sort[1:] if sort.startswith("-") else sort
 
-    orderby = [OrderBy(_get_sort_column(config, bare_orderby), direction)]
+    orderby = [OrderBy(_get_sort_column(config, bare_sort), direction)]
     if tiebreaker:
         orderby.append(OrderBy(Column(tiebreaker), direction))
     return orderby
