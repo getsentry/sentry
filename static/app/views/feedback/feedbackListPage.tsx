@@ -21,8 +21,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,6 +47,7 @@ export default function FeedbackListPage() {
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+  const openFeedbackForm = useFeedbackForm();
 
   // show feedback item preview when feedback is selected on med screens and smaller
   useEffect(() => {
@@ -146,6 +149,26 @@ export default function FeedbackListPage() {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              {openFeedbackForm ? (
+                <Button
+                  size="sm"
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openFeedbackForm({
+                      messagePlaceholder: t(
+                        'How can we improve the User Feedback experience?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'feedback-list',
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+            </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
