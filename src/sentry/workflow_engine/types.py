@@ -106,19 +106,19 @@ class WorkflowEvaluationData:
         if self.associated_detector:
             associated_detector = self.associated_detector.get_snapshot()
 
-        workflow_ids = []
+        workflow_ids = None
         if self.workflows:
             workflow_ids = [workflow.id for workflow in self.workflows]
 
-        triggered_workflows = []
+        triggered_workflows = None
         if self.triggered_workflows:
             triggered_workflows = [workflow.get_snapshot() for workflow in self.triggered_workflows]
 
-        action_filter_conditions = []
+        action_filter_conditions = None
         if self.action_groups:
             action_filter_conditions = [group.get_snapshot() for group in self.action_groups]
 
-        triggered_actions = []
+        triggered_actions = None
         if self.triggered_actions:
             triggered_actions = [action.get_snapshot() for action in self.triggered_actions]
 
