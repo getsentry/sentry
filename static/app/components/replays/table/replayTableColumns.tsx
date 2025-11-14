@@ -98,7 +98,11 @@ function generateQueryStringObjectWithPlaylist(eventView: EventView) {
   let queryStringObject: Query = {...eventViewQuery};
 
   if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
-    const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
+    const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
+      statsPeriod,
+      undefined,
+      true
+    );
     queryStringObject = {...queryStringObject, ...{playlistStart, playlistEnd}};
   }
   return queryStringObject;
