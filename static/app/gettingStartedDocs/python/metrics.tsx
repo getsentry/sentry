@@ -5,7 +5,7 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -20,12 +20,6 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
         {
           code: <code />,
         }
-      ),
-    },
-    {
-      type: 'text',
-      text: t(
-        'Send test metrics from your app to verify metrics are arriving in Sentry.'
       ),
     },
     {
