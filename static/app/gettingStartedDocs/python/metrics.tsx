@@ -15,7 +15,9 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('Send metrics from your app to verify metrics are arriving in Sentry.'),
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      ),
     },
     {
       type: 'code',

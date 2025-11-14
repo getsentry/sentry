@@ -26,8 +26,8 @@ describe('metrics', () => {
     expect(verifySteps[0].content[0].type).toBe('conditional');
     const conditionalContent = verifySteps[0].content[0].content;
 
-    // expect(conditionalContent[1].code).toContain('sentry_sdk.init');
-    // expect(conditionalContent[1].code).toContain(mockParams.dsn.public);
+    expect(conditionalContent[1].code).toContain('sentry_sdk.init');
+    expect(conditionalContent[1].code).toContain(mockParams.dsn.public);
     expect(conditionalContent[1].code).toContain('metrics.count');
   });
 
