@@ -23,12 +23,12 @@ export function IconSeer({variant = 'default', ...props}: IconSeerProps) {
               100% { transform: translateX(0); }
             }
 
-            .pupil-loading {
+            .pupil-waiting {
               animation: moveHorizontal 4s ease-out infinite;
             }
           `}</style>
           <path d={commonPath} />
-          <circle className="pupil-loading" cx="8" cy="9" r="2" />
+          <circle className="pupil-waiting" cx="8" cy="9" r="2" />
         </Fragment>
       </SvgIcon>
     );
@@ -39,7 +39,7 @@ export function IconSeer({variant = 'default', ...props}: IconSeerProps) {
       <SvgIcon {...props} kind="path">
         <Fragment>
           <path d={commonPath} />
-          <circle className="pupil" r="2">
+          <circle className="pupil-loading" r="2">
             <animateMotion
               path="M 8 7 A 1 1 0 0 1 8 9 A 1 1 0 0 1 8 7"
               dur="1s"
