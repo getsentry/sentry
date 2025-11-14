@@ -412,16 +412,21 @@ def handle_backslash(value: str) -> str:
     # by escaping them
 
     v = []
+    n = len(value)
 
     i = 0
-    while i < len(value):
+    while i < n:
         c = value[i]
         if c == "\\":
             j = i + 1
-            if value[j] in {"*", "\\"}:
+            if j < n and value[j] in {"*", "\\"}:
+                # found an escaped * or \
                 v.append(c)
                 i += 1
                 c = value[i]
+            else:
+                # found just a \
+                v.append("\\")
         v.append(c)
         i += 1
 
