@@ -2461,19 +2461,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             self.store_replays(mock_replay(base_timestamp, project.id, replay_id, segment_id=0))
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                {"project": project.id, "sort": "started_at", "statsPeriod": "1h"},
+            response = self.get_success_response(
+                self.organization.slug,
+                project=project.id,
+                sort="started_at",
             )
-            assert response.status_code == 200
-            asc_order = [r["id"] for r in response.json()["data"]]
+            asc_order = [r["id"] for r in response.data["data"]]
 
-            response = self.client.get(
-                self.url,
-                {"project": project.id, "sort": "-started_at", "statsPeriod": "1h"},
+            response = self.get_success_response(
+                self.organization.slug,
+                project=project.id,
+                sort="-started_at",
             )
-            assert response.status_code == 200
-            desc_order = [r["id"] for r in response.json()["data"]]
+            desc_order = [r["id"] for r in response.data["data"]]
 
             assert desc_order == list(reversed(asc_order))
             assert set(asc_order) == {rid.replace("-", "") for rid in replay_ids}
