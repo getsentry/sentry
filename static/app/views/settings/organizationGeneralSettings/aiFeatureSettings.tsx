@@ -27,6 +27,11 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
     defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => !hasFeatureFlag || !access.has('org:write'),
     getValue: value => {
+      // If feature flag is off, always return false (show as disabled)
+      // regardless of the org's actual setting
+      if (!hasFeatureFlag) {
+        return false;
+      }
       // Reversing value because the field was previously called hideAiFeatures and we've inverted the behavior.
       return !value;
     },
@@ -34,8 +39,6 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       ? t(
           'To remain HIPAA compliant, Generative AI features are disabled for BAA customers'
         )
-      : hasFeatureFlag
-        ? null
-        : t('This feature is not available'),
+      : null,
   };
 };
