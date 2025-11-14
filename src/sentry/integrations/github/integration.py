@@ -108,6 +108,20 @@ FEATURES = [
     ),
     FeatureDescription(
         """
+        Automatically synchronize assignees to and from GitHub. Don't get confused
+        who's fixing what, let us handle ensuring your issues and tickets match up
+        to your Sentry and GitHub assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize Comments on Sentry Issues directly to the linked GitHub issue.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
         Link your Sentry stack traces back to your GitHub source code with stack
         trace linking.
         """,
@@ -689,6 +703,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         [
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]

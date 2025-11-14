@@ -238,7 +238,13 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "repoName": "getsentry/codemap",
             "provider": {
                 "aspects": {},
-                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
