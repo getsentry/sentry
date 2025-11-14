@@ -10,7 +10,7 @@ import {
   type Plan,
   type Subscription,
 } from 'getsentry/types';
-import CartDiff from 'getsentry/views/amCheckout/cartDiff';
+import CartDiff from 'getsentry/views/amCheckout/components/cartDiff';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CartDiff', () => {

@@ -18,10 +18,10 @@ import {
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
-import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
+import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
+import PlanSelectCard from 'getsentry/views/amCheckout/components/planSelectCard';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {
   CheckoutFormData,
   CheckoutV3StepProps,

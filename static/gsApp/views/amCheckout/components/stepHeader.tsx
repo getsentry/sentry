@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {PlanTier} from 'getsentry/types';
-import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
+import LegacyPlanToggle from 'getsentry/views/amCheckout/components/legacyPlanToggle';
 import {getToggleTier} from 'getsentry/views/amCheckout/utils';
 
 // TODO(checkout v3): Remove isActive/isCompleted/onEdit/canSkip

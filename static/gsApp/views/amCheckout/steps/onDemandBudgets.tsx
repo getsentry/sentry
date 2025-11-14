@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {OnDemandBudgets} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getReservedPriceCents} from 'getsentry/views/amCheckout/utils';
 import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
