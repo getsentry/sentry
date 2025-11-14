@@ -303,6 +303,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const chartOptions = {
+    animation: false,
     notMerge: false,
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
@@ -662,7 +663,7 @@ function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
 
   switch (widget.displayType) {
     case 'bar':
-      return <BarChart {...chartProps} stacked={stacked} animation={false} />;
+      return <BarChart {...chartProps} stacked={stacked} />;
     case 'area':
     case 'top_n':
       return <AreaChart stacked {...chartProps} />;
