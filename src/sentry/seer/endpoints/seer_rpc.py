@@ -270,6 +270,9 @@ def get_organization_project_ids(*, org_id: int) -> dict:
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
+    if not features.has("organizations:gen-ai-features", org):
+        return False
+
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(
