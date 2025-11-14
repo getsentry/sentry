@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 
 export const getNodeMetricsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
@@ -49,9 +49,10 @@ export const getNodeMetricsOnboarding = <
       ],
     },
   ],
-  configure: () => [
+  configure: () => [],
+  verify: (params: DocsParams) => [
     {
-      type: StepType.CONFIGURE,
+      type: StepType.VERIFY,
       content: [
         {
           type: 'text',
@@ -59,6 +60,21 @@ export const getNodeMetricsOnboarding = <
             'Metrics are automatically enabled after Sentry is initialized. You can emit metrics using the [code:Sentry.metrics] API.',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `
+import * as Sentry from "${packageName}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+});
+
+Sentry.metrics.count('button_click', 1);
+Sentry.metrics.gauge('page_load_time', 150);
+Sentry.metrics.distribution('response_time', 200);
+`,
         },
         {
           type: 'text',
@@ -72,30 +88,6 @@ export const getNodeMetricsOnboarding = <
               ),
             }
           ),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Send a test metric from your app to verify metrics are arriving in Sentry.'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: `const Sentry = require("${packageName}");
-
-// Emit a test metric
-Sentry.metrics.count('test_counter', 1);
-Sentry.metrics.gauge('test_gauge', 100);
-Sentry.metrics.distribution('test_distribution', 150);
-`,
         },
       ],
     },
