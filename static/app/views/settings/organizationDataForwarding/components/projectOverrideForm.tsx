@@ -46,7 +46,6 @@ export function ProjectOverrideForm({
   useEffect(() => {
     formModel.setInitialData({
       is_enabled: projectConfig?.isEnabled ?? false,
-      project_id: project.id,
       ...projectConfig?.overrides,
     });
   }, [projectConfig, formModel, project.id]);
@@ -56,13 +55,11 @@ export function ProjectOverrideForm({
       model={formModel}
       onSubmit={data => {
         const {is_enabled, ...overrides} = data;
-        const overridePayload = {
+        updateDataForwarder({
           project_id: `${project.id}`,
           overrides,
           is_enabled,
-        };
-        // console.log(overridePayload);
-        updateDataForwarder(overridePayload);
+        });
       }}
       hideFooter
     >
