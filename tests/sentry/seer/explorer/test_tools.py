@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from unittest.mock import patch
 
 import pytest
@@ -11,17 +11,24 @@ from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
 )
 from sentry.seer.sentry_data_models import EAPTrace
-from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITransactionTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
@@ -612,7 +619,7 @@ class _IssueMetadata(BaseModel):
     issueCategory: str
     hasSeen: bool
     project: _Project
-    assignedTo: _Actor | None
+    assignedTo: _Actor | None = None
 
     # Optionals
     isUnhandled: bool | None = None
@@ -633,7 +640,6 @@ class _SentryEventData(BaseModel):
 
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
-
     def _validate_event_timeseries(self, timeseries: dict):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
@@ -1144,3 +1150,196 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
+
+
+class TestGetReplayMetadata(ReplaysSnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    class _ReplayMetadataResponse(BaseModel):
+        """Extended from the ReplayDetailsResponse type. Though that type has total=False, we expect all fields to be present for this tool."""
+
+        id: str
+        project_id: str
+        project_slug: str  # Added for this tool.
+        trace_ids: list[str]
+        error_ids: list[str]
+        environment: str | None
+        tags: dict[str, list[str]] | list
+        user: dict[str, Any]
+        sdk: dict[str, Any]
+        os: dict[str, Any]
+        browser: dict[str, Any]
+        device: dict[str, Any]
+        ota_updates: dict[str, Any]
+        is_archived: bool | None
+        urls: list[str] | None
+        clicks: list[dict[str, Any]]
+        count_dead_clicks: int | None
+        count_rage_clicks: int | None
+        count_errors: int | None
+        duration: int | None
+        finished_at: str | None
+        started_at: str | None
+        activity: int | None
+        count_urls: int | None
+        replay_type: str
+        count_segments: int | None
+        platform: str | None
+        releases: list[str]
+        dist: str | None
+        warning_ids: list[str] | None
+        info_ids: list[str] | None
+        count_warnings: int | None
+        count_infos: int | None
+        has_viewed: bool
+
+    def test_get_replay_metadata_full_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.now(UTC) - timedelta(seconds=10)
+        seq2_timestamp = datetime.now(UTC) - timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay2_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay2_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # With dashes
+            result = get_replay_metadata(
+                replay_id=str(uuid.UUID(replay1_id)),
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Invalid
+            result = get_replay_metadata(
+                replay_id=str(uuid.UUID(replay1_id))[:-2] + "gg",
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is None
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id,
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # No project slug
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Different project slug
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_slug="banana",
+            )
+            assert result is None
+
+    def test_get_replay_metadata_short_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=10), self.project.id, replay1_id)
+        )
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
+        )
+
+        # Store a replay at the very start of the retention period.
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Upper (supported but not expected)
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8].upper(),
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Short ID < 8 characters or not hex - returns None
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:7],
+                    organization_id=self.organization.id,
+                )
+                is None
+            )
+
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:6] + "gg",
+                    organization_id=self.organization.id,
+                )
+                is None
+            )
