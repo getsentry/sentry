@@ -169,19 +169,24 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             )
 
         # Validate permissions on all projects
-        unauthorized_project_ids: set[int] = {
-            project_id
-            for project_id in all_projects_by_id.keys()
-            if not request.access.has_project_scope(all_projects_by_id[project_id], "project:write")
-        }
-        if unauthorized_project_ids:
-            raise PermissionDenied(
-                detail={
-                    "project_ids": [
-                        f"Insufficient access to projects: {', '.join(map(str, unauthorized_project_ids))}"
-                    ]
-                }
-            )
+        # org:write users can enroll/unenroll any project in the organization
+        # project:write users need explicit permission on each project
+        if not request.access.has_scope("org:write"):
+            unauthorized_project_ids: set[int] = {
+                project_id
+                for project_id in all_projects_by_id.keys()
+                if not request.access.has_project_scope(
+                    all_projects_by_id[project_id], "project:write"
+                )
+            }
+            if unauthorized_project_ids:
+                raise PermissionDenied(
+                    detail={
+                        "project_ids": [
+                            f"Insufficient access to projects: {', '.join(map(str, unauthorized_project_ids))}"
+                        ]
+                    }
+                )
 
         return project_ids_to_enroll, project_ids_to_unenroll
 
@@ -295,16 +300,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        # org:write users can update the main data forwarder configuration
-        if request.access.has_scope("org:write"):
-            return self._update_data_forwarder_config(request, organization, data_forwarder)
-
-        # project:write users have two operation types:
-        # 1. Bulk enrollment/unenrollment: {"project_ids": [...]}
-        # 2. Single project override update: {"project_id": X, "overrides": {...}}
-
+        # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data
         has_project_id = "project_id" in request.data
+        has_config_fields = any(
+            key in request.data
+            for key in ["provider", "config", "is_enabled", "enroll_new_projects"]
+        )
 
         if has_project_ids and has_project_id:
             raise serializers.ValidationError(
@@ -312,13 +314,19 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
                 "Use 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
             )
 
+        # org:write users can perform all operations, try main config update first
+        if request.access.has_scope("org:write") and has_config_fields:
+            return self._update_data_forwarder_config(request, organization, data_forwarder)
+
+        # Project-specific operations (both org:write and project:write users)
         if has_project_ids:
             return self._update_enrollment(request, organization, data_forwarder)
         elif has_project_id:
             return self._update_single_project_configuration(request, organization, data_forwarder)
         else:
             raise serializers.ValidationError(
-                "Must specify either 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
+                "Must specify one of: main config fields (provider, config, etc.), "
+                "'project_ids' for bulk enrollment, or 'project_id' with 'overrides' for single project update."
             )
 
     @extend_schema(
