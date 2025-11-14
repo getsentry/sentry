@@ -136,7 +136,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        # ("sentry", "1003_group_history_prev_history_safe_removal"),
+        ("sentry", "1003_group_history_prev_history_safe_removal"),
         ("workflow_engine", "0098_detectorgroup_detector_set_null"),
     ]
 
