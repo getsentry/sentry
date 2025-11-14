@@ -1,4 +1,5 @@
 import type {InsightResults} from 'sentry/views/preprod/types/appSizeTypes';
+import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 export function ProcessedInsightFixture(
   params: Partial<ProcessedInsight> = {}
