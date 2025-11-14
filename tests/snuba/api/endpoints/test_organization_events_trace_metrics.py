@@ -180,7 +180,6 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "sum(value, request_duration, distribution, -)": 155,
         }
 
-    @pytest.mark.skip(reason="flaky: #103384")
     def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         self.store_trace_metrics(

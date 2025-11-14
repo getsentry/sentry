@@ -220,13 +220,13 @@ class TagStorage(Service):
     def get_group_tag_value_iter(
         self,
         group: Group,
-        environment_ids: list[int | None],
+        environment_ids: Sequence[int | None],
         key: str,
         orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
-    ) -> list[GroupTagValue]:
+    ) -> Sequence[GroupTagValue]:
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
         """
