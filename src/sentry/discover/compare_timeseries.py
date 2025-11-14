@@ -21,11 +21,12 @@ from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_enhanced_performance import timeseries_query
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import ExtrapolationMode, SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
@@ -79,19 +80,27 @@ def make_rpc_request(
     aggregate: str,
     snuba_params: SnubaParams,
     organization: Organization,
+    dataset: Dataset,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
     query_parts = QueryParts(selected_columns=[aggregate], query=query, equations=[], orderby=[])
     query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
+    extrapolation_mode = None
+    if dataset == Dataset.PerformanceMetrics:
+        extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED
+    if dataset == Dataset.Transactions:
+        extrapolation_mode = ExtrapolationMode.NONE
+
     results = Spans.run_timeseries_query(
         params=snuba_params,
         query_string=query_parts["query"],
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
-        config=SearchResolverConfig(),
-        # TODO: change sampling mode
+        config=SearchResolverConfig(
+            extrapolation_mode=extrapolation_mode,
+        ),
         sampling_mode=None,
     )
 
@@ -404,6 +413,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snuba_query.aggregate,
         snuba_params=snuba_params,
         organization=organization,
+        dataset=snuba_query.dataset,
     )
 
     try:
