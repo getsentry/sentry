@@ -347,7 +347,7 @@ def _query_using_scalar_strategy(
         orderby = handle_ordering(
             agg_sort_config,
             sort or "-" + DEFAULT_SORT_FIELD,
-            tiebreaker="replay_id",  # Ensure stable sort within the same score
+            tiebreaker="replay_id",  # Ensure stable sort when ordering by column with duplicates
         )
     except RetryAggregated:
         return _query_using_aggregated_strategy(
@@ -385,7 +385,7 @@ def _query_using_aggregated_strategy(
     orderby = handle_ordering(
         agg_sort_config,
         sort or "-" + DEFAULT_SORT_FIELD,
-        tiebreaker="replay_id",  # Ensure stable sort within the same score
+        tiebreaker="replay_id",  # Ensure stable sort when ordering by column with duplicates
     )
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
