@@ -109,6 +109,7 @@ def track_event_since_received(
 
     received_at = event_data.get("received")
     if not received_at:
+        metrics.incr("events.missing_received", tags=tags)
         return
 
     platform = event_data.get("platform")
