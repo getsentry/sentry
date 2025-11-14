@@ -28,12 +28,9 @@ class CompatibleSpan(SpanEvent, total=True):
 
     This type will be removed eventually."""
 
-    data: dict[str, Any]
-    description: str
     exclusive_time: float
     op: str
     sentry_tags: dict[str, str]
-    timestamp: float
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
