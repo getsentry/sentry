@@ -3055,84 +3055,67 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
-    """Unit tests for seer_automation_permission_and_type_check and seer_automation_rate_limit_check."""
+    """Unit tests for is_issue_eligible_for_seer_automation."""
 
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement", return_value=True)
     @patch("sentry.features.has", return_value=True)
-    def test_seer_automation_permission_and_type_check(
+    def test_is_issue_eligible_for_seer_automation(
         self, mock_features_has, mock_get_seer_org_acknowledgement, mock_has_budget
     ):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
-        from sentry.seer.autofix.utils import seer_automation_permission_and_type_check
+        from sentry.seer.autofix.utils import is_issue_eligible_for_seer_automation
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
 
         # All conditions pass
-        assert seer_automation_permission_and_type_check(group) is True
+        assert is_issue_eligible_for_seer_automation(group) is True
 
         # Unsupported categories (using PropertyMock to mock the property)
         with patch(
             "sentry.models.group.Group.issue_category", new_callable=PropertyMock
         ) as mock_category:
             mock_category.return_value = GroupCategory.REPLAY
-            assert seer_automation_permission_and_type_check(group) is False
+            assert is_issue_eligible_for_seer_automation(group) is False
 
             mock_category.return_value = GroupCategory.FEEDBACK
-            assert seer_automation_permission_and_type_check(group) is False
+            assert is_issue_eligible_for_seer_automation(group) is False
 
         # Missing feature flag
         mock_features_has.return_value = False
-        assert seer_automation_permission_and_type_check(group) is False
+        assert is_issue_eligible_for_seer_automation(group) is False
 
         # Hide AI features enabled
         mock_features_has.return_value = True
         self.organization.update_option("sentry:hide_ai_features", True)
-        assert seer_automation_permission_and_type_check(group) is False
+        assert is_issue_eligible_for_seer_automation(group) is False
         self.organization.update_option("sentry:hide_ai_features", False)
 
         # Scanner disabled without always_trigger
         self.project.update_option("sentry:seer_scanner_automation", False)
         with patch.object(group.issue_type, "always_trigger_seer_automation", False):
-            assert seer_automation_permission_and_type_check(group) is False
+            assert is_issue_eligible_for_seer_automation(group) is False
 
         # Scanner disabled but always_trigger enabled
         with patch.object(group.issue_type, "always_trigger_seer_automation", True):
-            assert seer_automation_permission_and_type_check(group) is True
+            assert is_issue_eligible_for_seer_automation(group) is True
 
         # Seer not acknowledged
         self.project.update_option("sentry:seer_scanner_automation", True)
         mock_get_seer_org_acknowledgement.return_value = False
-        assert seer_automation_permission_and_type_check(group) is False
+        assert is_issue_eligible_for_seer_automation(group) is False
 
         # No budget
         mock_get_seer_org_acknowledgement.return_value = True
         mock_has_budget.return_value = False
-        assert seer_automation_permission_and_type_check(group) is False
+        assert is_issue_eligible_for_seer_automation(group) is False
         mock_has_budget.assert_called_with(
             org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
         )
-
-    @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
-    def test_seer_automation_rate_limit_check(self, mock_is_rate_limited):
-        """Test rate limit check returns correct value based on rate limiting status."""
-        from sentry.seer.autofix.utils import seer_automation_rate_limit_check
-
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        group = event.group
-
-        mock_is_rate_limited.return_value = False
-        assert seer_automation_rate_limit_check(group) is True
-
-        mock_is_rate_limited.return_value = True
-        assert seer_automation_rate_limit_check(group) is False
-
-        assert mock_is_rate_limited.call_count == 2
-        mock_is_rate_limited.assert_called_with(group.project, group.organization)
 
 
 class PostProcessGroupErrorTest(

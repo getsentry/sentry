@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -286,7 +287,7 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     return is_rate_limited
 
 
-def seer_automation_permission_and_type_check(group) -> bool:
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     """Check if Seer automation is allowed for a given group based on permissions and issue type."""
     from sentry import quotas
     from sentry.issues.grouptype import GroupCategory
@@ -331,13 +332,6 @@ def seer_automation_permission_and_type_check(group) -> bool:
     if not has_budget:
         return False
 
-    return True
-
-
-def seer_automation_rate_limit_check(group) -> bool:
-    """Check if Seer automation is rate limited for a given group."""
-    if is_seer_scanner_rate_limited(group.project, group.organization):
-        return False
     return True
 
 

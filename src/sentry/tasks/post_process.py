@@ -1623,8 +1623,8 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.autofix.utils import (
-        seer_automation_permission_and_type_check,
-        seer_automation_rate_limit_check,
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
     )
     from sentry.tasks.autofix import start_seer_automation
 
@@ -1635,7 +1635,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if group.seer_fixability_score is not None:
         return
 
-    if seer_automation_permission_and_type_check(group) is False:
+    if is_issue_eligible_for_seer_automation(group) is False:
         return
 
     # Don't run if there's already a task in progress for this issue
@@ -1644,7 +1644,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    if seer_automation_rate_limit_check(group) is False:
+    if is_seer_scanner_rate_limited(group.project, group.organization):
         return
 
     start_seer_automation.delay(group.id)
