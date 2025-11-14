@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -29,8 +29,16 @@ from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+class DetectorSnapshot(TypedDict):
+    id: int
+    enabled: bool
+    status: int
+    trigger_condition: DataConditionGroupSnapshot | None
 
 
 class DetectorManager(BaseManager["Detector"]):
@@ -141,16 +149,16 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return settings
 
-    def get_snapshot(self) -> dict[str, Any]:
-        trigger_conditions = None
+    def get_snapshot(self) -> DetectorSnapshot:
+        trigger_condition = None
         if self.workflow_condition_group:
-            trigger_conditions = self.workflow_condition_group.get_snapshot()
+            trigger_condition = self.workflow_condition_group.get_snapshot()
 
         return {
             "id": self.id,
             "enabled": self.enabled,
             "status": self.status,
-            "trigger_conditions": trigger_conditions,
+            "trigger_condition": trigger_condition,
         }
 
     def get_audit_log_data(self) -> dict[str, Any]:
