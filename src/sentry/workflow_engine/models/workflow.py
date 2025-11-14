@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -17,13 +17,24 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.data_condition_group import (
+    DataConditionGroup,
+    DataConditionGroupSnapshot,
+)
 from sentry.workflow_engine.processors.data_condition_group import TriggerResult
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
 
 logger = logging.getLogger(__name__)
+
+
+class WorkflowSnapshot(TypedDict):
+    id: int
+    enabled: bool
+    environment_id: int | None
+    status: int
+    triggers: DataConditionGroupSnapshot | None
 
 
 class WorkflowManager(BaseManager["Workflow"]):
@@ -83,7 +94,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "additionalProperties": False,
     }
 
-    __repr__ = sane_repr("name", "organization_id")
+    __repr__ = sane_repr("organization_id")
 
     class Meta:
         app_label = "workflow_engine"
@@ -91,6 +102,23 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
+
+    def get_snapshot(self) -> WorkflowSnapshot:
+        when_condition_group = None
+        if self.when_condition_group:
+            when_condition_group = self.when_condition_group.get_snapshot()
+
+        environment_id = None
+        if self.environment:
+            environment_id = self.environment.id
+
+        return {
+            "id": self.id,
+            "enabled": self.enabled,
+            "environment_id": environment_id,
+            "status": self.status,
+            "triggers": when_condition_group,
+        }
 
     def evaluate_trigger_conditions(
         self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
