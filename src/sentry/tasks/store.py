@@ -533,7 +533,7 @@ def _do_save_event(
         event_data=data,
     )
 
-    with metrics.global_tags(event_type=event_type):
+    with metrics.global_tags(tags={"event_type": event_type}):
         if event_id is None and data is not None:
             event_id = data["event_id"]
 

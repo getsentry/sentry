@@ -83,7 +83,7 @@ class LLMIssueDetectionTest(TestCase):
         assert len(occurrence.fingerprint) == 1
         assert (
             occurrence.fingerprint[0]
-            == "llm-detected-Database Connection Pool Exhaustion-test_transaction"
+            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
         )
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
@@ -162,6 +162,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_trace = Mock()
         mock_trace.trace_id = "trace-abc-123"
+        mock_trace.total_spans = 100
         mock_trace.dict.return_value = {
             "trace_id": "trace-abc-123",
             "spans": [{"op": "db.query", "duration": 1.5}],

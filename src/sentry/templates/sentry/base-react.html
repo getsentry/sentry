@@ -4,18 +4,7 @@
 
 {% block body %}
   <div id="blk_router">
-    <div class="loading triangle">
-      <div class="loading-mask"></div>
-
-      <div class="loading-indicator" data-test-id="loading-indicator">
-        <img src="{% asset_url 'sentry' 'images/sentry-loader.svg' %}" />
-      </div>
-
-      <div class="loading-message">
-          <p>{% loading_message %}</p>
-        <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
-      </div>
-    </div>
+    {% include "sentry/partial/loader.html" %}
   </div>
 {% endblock %}
 

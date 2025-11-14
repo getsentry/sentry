@@ -524,11 +524,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of Telemetry Experience
 
 ## ML & AI
-*autofix*.py                                                @getsentry/machine-learning-ai
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
+/static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
-*seerExplorer*.tsx                                          @getsentry/machine-learning-ai
-*seerExplorer*.ts                                           @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues

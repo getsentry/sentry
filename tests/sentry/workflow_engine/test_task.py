@@ -154,7 +154,7 @@ class TestProcessWorkflowActivity(TestCase):
             mock_logger.info.assert_called_once_with(
                 "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
                 extra={
-                    "msg": "No workflows are associated with the detector in the event",
+                    "debug_msg": "No workflows are associated with the detector in the event",
                     "group_event": self.activity,
                     "action_groups": None,
                     "triggered_actions": None,
@@ -199,7 +199,7 @@ class TestProcessWorkflowActivity(TestCase):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.evaluation.workflows.triggered",
             extra={
-                "msg": "No items were triggered or queued for slow evaluation",
+                "debug_msg": "No items were triggered or queued for slow evaluation",
                 "group_event": self.activity,
                 "action_groups": None,
                 "triggered_actions": None,
@@ -244,7 +244,7 @@ class TestProcessWorkflowActivity(TestCase):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.evaluation.actions.triggered",
             extra={
-                "msg": None,
+                "debug_msg": None,
                 "group_event": self.activity,
                 "action_groups": {self.action_group},
                 "triggered_actions": set(),

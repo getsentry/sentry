@@ -208,7 +208,6 @@ describe('TransactionReplays', () => {
 
     const expectedQuery =
       'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&project=1&query=test&referrer=replays%2F&yAxis=count%28%29';
-
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {
