@@ -14,7 +14,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
   const regionData = getRegionDataFromOrganization(organization);
   const isUSOrg = regionData?.name?.toLowerCase() === 'us';
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const hasFeatureFlag = organization.features.includes('organizations:gen-ai-features');
+  const hasFeatureFlag = organization.features.includes('gen-ai-features');
 
   const isDisabled = isSelfHosted || !isUSOrg || !hasFeatureFlag;
   const disabledReason = isSelfHosted
