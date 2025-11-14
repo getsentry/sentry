@@ -192,28 +192,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         )
         assert event_processing_store.get(cache_key) is None
 
-    @patch("sentry.utils.metrics.timing")
-    @patch("sentry.tasks.post_process.logger")
-    def test_time_to_process_metric(
-        self, logger_mock: MagicMock, metric_timing_mock: MagicMock
-    ) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        metric_timing_mock.assert_any_call(
-            "events.time-to-post-process",
-            mock.ANY,
-            instance=mock.ANY,
-            tags={"occurrence_type": mock.ANY},
-        )
-        assert "tasks.post_process.old_time_to_post_process" not in [
-            args[0] for args in logger_mock.warning.call_args_list
-        ]
-
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _create_event(

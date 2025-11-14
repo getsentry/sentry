@@ -55,8 +55,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -124,7 +124,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "thread stacktrace — in-app frames",
-      "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
+      "hash": "ad4d21cacbbadddbe1a37535d7dbbba5",
       "hint": null,
       "key": "app_thread_stacktrace",
       "type": "component"
@@ -205,8 +205,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

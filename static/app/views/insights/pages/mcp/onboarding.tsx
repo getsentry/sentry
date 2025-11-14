@@ -217,9 +217,8 @@ export function Onboarding() {
       label: t('Integration'),
       items: isPythonPlatform
         ? [
-            {label: 'FastMCP', value: 'mcp_fastmcp'},
-            {label: 'Low-level', value: 'mcp_lowlevel'},
-            {label: 'Manual', value: 'manual'},
+            {label: 'FastMCP / MCP SDK', value: 'mcp_sdk'},
+            {label: 'Other', value: 'manual'},
           ]
         : [{label: 'MCP SDK', value: 'mcp_sdk'}],
     },
