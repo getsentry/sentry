@@ -326,7 +326,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
             return self._update_single_project_configuration(request, organization, data_forwarder)
         else:
             raise serializers.ValidationError(
-                "Must specify one of: main config fields (provider, config, etc.), "
+                "Must specify main config fields (provider, config, project_ids, etc.), "
                 "'project_ids' for bulk enrollment, or 'project_id' with 'overrides' for single project update."
             )
 
