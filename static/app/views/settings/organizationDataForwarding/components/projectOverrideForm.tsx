@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -38,6 +38,19 @@ export function ProjectOverrideForm({
       });
     },
   });
+
+  const projectConfig = dataForwarder.projectConfigs.find(
+    config => config.project.id === project.id
+  );
+
+  useEffect(() => {
+    formModel.setInitialData({
+      is_enabled: projectConfig?.isEnabled ?? false,
+      project_id: project.id,
+      ...projectConfig?.overrides,
+    });
+  }, [projectConfig, formModel, project.id]);
+
   return (
     <Form
       model={formModel}
