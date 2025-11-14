@@ -33,20 +33,19 @@ class SentryMetricsBackend(MetricsBackend):
         sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
-_ATTACHMENTS = Usecase("attachments", expiration_policy=TimeToLive(timedelta(days=30)))
-_ATTACHMENTS_SESSION: Session | None = None
+_ATTACHMENTS_CLIENT: Client | None = None
+_ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timedelta(days=30)))
 
 
 def get_attachments_session(org: int, project: int) -> Session:
-    global _ATTACHMENTS_SESSION
-    if not _ATTACHMENTS_SESSION:
+    global _ATTACHMENTS_CLIENT
+    if not _ATTACHMENTS_CLIENT:
         from sentry import options as options_store
 
         options = options_store.get("objectstore.config")
-        client = Client(
+        _ATTACHMENTS_CLIENT = Client(
             options["base_url"],
             metrics_backend=SentryMetricsBackend(),
         )
-        _ATTACHMENTS_SESSION = client.session(_ATTACHMENTS, org=org, project=project)
 
-    return _ATTACHMENTS_SESSION
+    return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
