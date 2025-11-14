@@ -201,7 +201,7 @@ class EventAttachment(Model):
             if in_random_rollout("objectstore.double_write.attachments"):
                 try:
                     organization_id = _get_organization(project_id)
-                    get_attachments_session(organization_id, project_id).put(data, id=object_key)
+                    get_attachments_session(organization_id, project_id).put(data, key=object_key)
                     metrics.incr("storage.attachments.double_write")
                     blob_path += V2_PREFIX
                 except Exception:
