@@ -66,10 +66,7 @@ export function useMetricAggregatesTable({
       enabled,
       limit,
       traceMetric,
-      queryExtras: {
-        ...queryExtras,
-        traceMetric,
-      },
+      queryExtras,
     },
     queryOptions: {
       canTriggerHighAccuracy,
