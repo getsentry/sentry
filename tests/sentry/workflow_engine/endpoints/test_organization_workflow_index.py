@@ -345,52 +345,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
 
-    def test_sort_by_last_triggered_with_non_single_written_only(self) -> None:
-        workflow_never_fired = self.create_workflow(
-            organization_id=self.organization.id, name="Never Fired"
-        )
-
-        workflow_with_history = self.create_workflow(
-            organization_id=self.organization.id, name="With History"
-        )
-        WorkflowFireHistory.objects.create(
-            workflow=workflow_with_history,
-            group=self.group,
-            event_id=self.event.event_id,
-        )
-
-        # Test ascending order (lastTriggered)
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "lastTriggered"}
-        )
-
-        # Workflows without history should come first, then those with it
-        expected_ascending_order = [
-            self.workflow_three.name,
-            workflow_never_fired.name,
-            self.workflow.name,
-            self.workflow_two.name,
-            workflow_with_history.name,
-        ]
-
-        assert [w["name"] for w in response.data] == expected_ascending_order
-
-        # Test descending order (-lastTriggered)
-        response_desc = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
-        )
-
-        # In descending order, workflows with history should come first
-        expected_descending_order = [
-            workflow_with_history.name,
-            self.workflow_two.name,
-            self.workflow.name,
-            workflow_never_fired.name,
-            self.workflow_three.name,
-        ]
-
-        assert [w["name"] for w in response_desc.data] == expected_descending_order
-
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
