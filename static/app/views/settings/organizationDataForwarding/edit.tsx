@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
@@ -163,7 +164,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         <Form
           model={formModel}
           onSubmit={data => {
-            const {enroll_new_projects, project_ids, is_enabled, ...config} = data;
+            const {enroll_new_projects, project_ids = [], is_enabled, ...config} = data;
             const dataForwardingPayload: Record<string, any> = {
               provider,
               config,
@@ -193,6 +194,15 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             })}
           />
         </Form>
+        <Stack gap="xl">
+          {dataForwarder.enrolledProjects.map(project => (
+            <ProjectOverrideForm
+              key={project.id}
+              project={project}
+              dataForwarder={dataForwarder}
+            />
+          ))}
+        </Stack>
       </Flex>
     </Fragment>
   );
