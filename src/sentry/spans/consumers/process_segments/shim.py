@@ -100,11 +100,14 @@ def build_shim_event_data(
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
         event_span["timestamp"] = span["end_timestamp"]
-        event_span["data"] = {
-            key: value
-            for (key, attribute) in (span.get("attributes") or {}).items()
-            if (value := (attribute or {}).get("value")) is not None
-        }
+        event_span["data"] = {}
+        for key, value in (span.get("attributes") or {}).items():
+            if (value := attribute_value(event_span, key)) is not None:
+                if key == "sentry.description":
+                    event_span["description"] = value
+                else:
+                    event_span["data"][key] = value
+
         if description := attribute_value(span, "sentry.description"):
             event_span["description"] = description
 
