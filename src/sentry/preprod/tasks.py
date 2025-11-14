@@ -10,6 +10,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -36,6 +37,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -495,6 +497,29 @@ def _assemble_preprod_artifact_size_analysis(
             }
         )
 
+    # Ideally we want to report an outcome at most once per
+    # preprod_artifact. This isn't yet robust to:
+    # - multiple calls to assemble_file racing
+    # - multiple reprocessed builds
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        quantity=1,
+        category=DataCategory.SIZE_ANALYSIS,
+        # If None this defaults to the current time. This seems
+        # better than the time of the upload (which could have
+        # been long before the analysis runs).
+        timestamp=None,
+        # We have neither of the below since size analysis is
+        # not triggered by an event or reported via a DSN.
+        # The id of the event.
+        event_id=None,
+        # The id of the DSN.
+        key_id=None,
+    )
+
     # Trigger size analysis comparison if eligible
     compare_preprod_artifact_size_analysis.apply_async(
         kwargs={
@@ -567,6 +592,29 @@ def _assemble_preprod_artifact_installable_app(
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+
+    # Ideally we want to report an outcome at most once per
+    # preprod_artifact. This isn't yet robust to:
+    # - multiple calls to assemble_file racing
+    # - multiple reprocessed builds
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        quantity=1,
+        category=DataCategory.INSTALLABLE_BUILD,
+        # If None this defaults to the current time. This seems
+        # better than the time of the upload (which could have
+        # been long before the analysis runs).
+        timestamp=None,
+        # We have neither of the below since size analysis is
+        # not triggered by an event or reported via a DSN.
+        # The id of the event.
+        event_id=None,
+        # The id of the DSN.
+        key_id=None,
+    )
 
 
 @instrumented_task(
