@@ -176,7 +176,6 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["value2"]["meta"]["dataset"] == "tracemetrics"
         assert response.data["Other"]["meta"]["dataset"] == "tracemetrics"
 
-    @pytest.mark.skip(reason="flaky: #103382")
     def test_meta_accuracy(self):
         metric_values = [1, 2, 3, 4]
 
