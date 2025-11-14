@@ -259,7 +259,7 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
         i += 1
         if c == "\\" and i < n:
             c = pattern[i]
-            if c not in {"*"}:
+            if c not in {"*", "\\"}:
                 raise InvalidSearchQuery(f"Unexpected escape character: {c}")
             chars.append(c)
             i += 1
@@ -406,16 +406,26 @@ def add_trailing_wildcard(value: str) -> str:
     return f"{value}*"
 
 
+def handle_backslash(value: str) -> str:
+    # when working with one of the wildcard operators,
+    # we need to ensure we properly handle backslashes
+    # by escaping them
+    return value.replace("\\", "\\\\")
+
+
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
     value = re.sub(r"(?<!\\)\*", r"\\*", value)
     if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
+        value = handle_backslash(value)
         value = add_leading_wildcard(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["starts_with"]:
+        value = handle_backslash(value)
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
+        value = handle_backslash(value)
         value = add_leading_wildcard(value)
     return value
 

@@ -6778,3 +6778,39 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(span.duration)": 1}]
+
+    def test_wildcard_operator_with_backslash(self):
+        span = self.create_span({"description": r"foo\bar"}, start_ts=self.ten_mins_ago)
+        self.store_spans([span], is_eap=True)
+        base_request = {
+            "field": ["project.name", "id"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request({**base_request, "query": r"span.description:foo\bar"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request({**base_request, "query": r"span.description:*foo\\bar*"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dContains\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dStartsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dEndsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
