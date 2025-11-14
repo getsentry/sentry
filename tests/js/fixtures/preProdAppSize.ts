@@ -1,5 +1,4 @@
-import type {AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+import type {InsightResults} from 'sentry/views/preprod/types/appSizeTypes';
 
 export function ProcessedInsightFixture(
   params: Partial<ProcessedInsight> = {}
@@ -61,9 +60,9 @@ export function ProcessedInsightFixture(
   };
 }
 
-export function AppleInsightResultsFixture(
-  params: Partial<AppleInsightResults> = {}
-): AppleInsightResults {
+export function InsightResultsFixture(
+  params: Partial<InsightResults> = {}
+): InsightResults {
   return {
     duplicate_files: {
       total_savings: 768000,
