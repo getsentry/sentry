@@ -42,7 +42,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
-        required=True,
+        required=False,  # Validated in validate_default_branch based on integration type
+        allow_blank=True,  # Perforce allows empty streams
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     instance: RepositoryProjectPathConfig | None
@@ -97,6 +98,24 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
+
+    def validate_default_branch(self, default_branch):
+        # Get the integration to check if it's Perforce
+        integration = integration_service.get_integration(
+            integration_id=self.org_integration.integration_id
+        )
+
+        # For Perforce, allow empty branch (streams are part of depot path)
+        if integration and integration.provider == "perforce":
+            # Allow empty string for Perforce
+            if not default_branch:
+                return default_branch
+        else:
+            # For other integrations, branch is required
+            if not default_branch:
+                raise serializers.ValidationError("This field is required.")
+
+        return default_branch
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(

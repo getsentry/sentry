@@ -41,6 +41,7 @@ class ExternalActor(ReplicatedRegionModel):
             (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
             (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
             (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
+            (ExternalProviders.PERFORCE, IntegrationProviderSlug.PERFORCE.value),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),

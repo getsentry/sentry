@@ -58,6 +58,8 @@ function RepositoryProjectPathConfigForm({
     }
   );
 
+  const isPerforce = integration.provider.key === 'perforce';
+
   // Effect to handle the case when integration repos data becomes available
   useEffect(() => {
     if (integrationReposData?.repos && selectedRepo) {
@@ -93,13 +95,19 @@ function RepositoryProjectPathConfigForm({
     {
       name: 'defaultBranch',
       type: 'string',
-      required: true,
-      label: t('Branch'),
-      placeholder: t('Type your branch'),
+      required: !isPerforce,
+      label: isPerforce ? t('Stream') : t('Branch'),
+      placeholder: isPerforce
+        ? t('Type your stream (optional, e.g., main)')
+        : t('Type your branch'),
       showHelpInTooltip: true,
-      help: t(
-        'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
-      ),
+      help: isPerforce
+        ? t(
+            'Optional: Specify a stream/codeline (e.g., "main"). If not specified, the depot root will be used. Streams are part of the depot path in Perforce.'
+          )
+        : t(
+            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+          ),
     },
     {
       name: 'stackRoot',
@@ -135,7 +143,7 @@ function RepositoryProjectPathConfigForm({
   }
 
   const initialData = {
-    defaultBranch: 'main',
+    defaultBranch: isPerforce ? '' : 'main',
     stackRoot: '',
     sourceRoot: '',
     repositoryId: existingConfig?.repoId,
