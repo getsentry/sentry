@@ -3,7 +3,6 @@ const {metrics} = jest.requireActual('sentry/gettingStartedDocs/python/metrics')
 
 describe('metrics', () => {
   const mockParams = {
-    isMetricsSelected: true,
     dsn: {
       public: 'https://test@example.com/123',
     },
