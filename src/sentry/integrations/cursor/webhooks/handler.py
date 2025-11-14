@@ -94,7 +94,9 @@ class CursorWebhookEndpoint(Endpoint):
         if "webhook_secret" in integration.metadata:
             return integration.metadata["webhook_secret"]
         else:
-            logger.error("cursor_webhook.no_webhook_secret", extra={"integration": integration})
+            logger.error(
+                "cursor_webhook.no_webhook_secret", extra={"integration_id": integration.id}
+            )
 
         return None
 
