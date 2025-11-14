@@ -81,7 +81,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     enabled: boolean;
   }>(queryKey, {
     staleTime: 0,
-    enabled: true,
+    enabled: Boolean((playlistStart && playlistEnd) || (query && query.query !== '')),
   });
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
