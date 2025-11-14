@@ -746,65 +746,72 @@ function Cart({
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
-  const fetchPreview = useCallback(async () => {
-    if (!hasCompleteBillingInfo) {
-      // NOTE: this should never be necessary because you cannot clear
-      // existing billing info, BUT YA NEVER KNOW
-      resetPreviewState();
-      return;
-    }
-    await utils.fetchPreviewData(
-      organization,
-      api,
-      formDataForPreview,
-      () => setPreviewState(prev => ({...prev, isLoading: true})),
-      (data: PreviewData | null) => {
-        setPreviewState(prev => ({
-          ...prev,
-          previewData: data,
-          isLoading: false,
-        }));
-        setErrorMessage(null);
-
-        if (data) {
-          // effectiveAt is the day before the changes are effective
-          // for immediate changes, effectiveAt is the current day
-          const {effectiveAt, atPeriodEnd, invoiceItems, billedAmount, proratedAmount} =
-            data;
-          const planItem = invoiceItems.find(
-            item => item.type === InvoiceItemType.SUBSCRIPTION
-          );
-          const renewalDate = moment(
-            planItem?.period_end ?? subscription.contractPeriodEnd
-          )
-            .add(1, 'day')
-            .toDate();
-
+  const fetchPreview = useCallback(
+    async () => {
+      if (!hasCompleteBillingInfo) {
+        // NOTE: this should never be necessary because you cannot clear
+        // existing billing info, BUT YA NEVER KNOW
+        resetPreviewState();
+        return;
+      }
+      await utils.fetchPreviewData(
+        organization,
+        api,
+        formDataForPreview,
+        () => setPreviewState(prev => ({...prev, isLoading: true})),
+        (data: PreviewData | null) => {
           setPreviewState(prev => ({
             ...prev,
-            originalBilledTotal: proratedAmount,
-            billedTotal: billedAmount,
-            effectiveDate: atPeriodEnd
-              ? moment(effectiveAt).add(1, 'day').toDate()
-              : null,
-            renewalDate,
+            previewData: data,
+            isLoading: false,
           }));
-        } else {
+          setErrorMessage(null);
+
+          if (data) {
+            // effectiveAt is the day before the changes are effective
+            // for immediate changes, effectiveAt is the current day
+            const {effectiveAt, atPeriodEnd, invoiceItems, billedAmount, proratedAmount} =
+              data;
+            const planItem = invoiceItems.find(
+              item => item.type === InvoiceItemType.SUBSCRIPTION
+            );
+            const renewalDate = moment(
+              planItem?.period_end ?? subscription.contractPeriodEnd
+            )
+              .add(1, 'day')
+              .toDate();
+
+            setPreviewState(prev => ({
+              ...prev,
+              originalBilledTotal: proratedAmount,
+              billedTotal: billedAmount,
+              effectiveDate: atPeriodEnd
+                ? moment(effectiveAt).add(1, 'day').toDate()
+                : null,
+              renewalDate,
+            }));
+          } else {
+            resetPreviewState();
+          }
+        },
+        (error: Error) => {
+          setErrorMessage(error.message);
           resetPreviewState();
         }
-      },
-      (error: Error) => {
-        setErrorMessage(error.message);
-        resetPreviewState();
-      }
-    );
-  }, [
-    api,
-    formDataForPreview,
-    organization,
-    subscription.contractPeriodEnd,
-    hasCompleteBillingInfo,
-  ]);
+      );
+    },
+    // NOTE: We add `billingDetails` to the dependencies since it affects tax calculations
+    // on the preview endpoint
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      api,
+      formDataForPreview,
+      organization,
+      subscription.contractPeriodEnd,
+      hasCompleteBillingInfo,
+      billingDetails,
+    ]
+  );
 
   useEffect(() => {
     fetchPreview();
