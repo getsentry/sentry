@@ -174,7 +174,7 @@ def get_highest_opportunity_page_vitals_for_project(
     )
 
     web_vital_issue_groups: dict[
-        (WebVitalIssueDetectionGroupingType, str), WebVitalIssueGroupData
+        tuple[WebVitalIssueDetectionGroupingType, str], WebVitalIssueGroupData
     ] = {}
     seen_names = set()
     for row in result.get("data", []):
