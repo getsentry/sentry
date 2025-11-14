@@ -58,6 +58,7 @@ class DetectorOccurrence:
         status: DetectorPriorityLevel,
         additional_evidence_data: Mapping[str, Any],
         fingerprint: list[str],
+        detection_time: datetime | None = None,
     ) -> IssueOccurrence:
         return IssueOccurrence(
             id=occurrence_id,
@@ -70,7 +71,7 @@ class DetectorOccurrence:
             evidence_data={**self.evidence_data, **additional_evidence_data},
             evidence_display=self.evidence_display,
             type=self.type,
-            detection_time=self.detection_time or timezone.now(),
+            detection_time=self.detection_time or detection_time or timezone.now(),
             level=self.level,
             culprit=self.culprit,
             priority=self.priority or status,
