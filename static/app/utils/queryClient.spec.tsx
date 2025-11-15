@@ -82,21 +82,17 @@ describe('queryClient', () => {
       globalThis.__USE_REAL_API__ = false;
     });
     it('can do a simple fetch', async () => {
-      const requests: Request[] = [];
-      server.events.on('response:mocked', ({request}) => {
-        requests.push(request);
+      const resolver = jest.fn(() => {
+        return HttpResponse.json(
+          {
+            value: 5,
+          },
+          {headers: {'Custom-Header': 'header value'}}
+        );
       });
 
-      server.use(
-        http.get('*/some/test/path/', () => {
-          return HttpResponse.json(
-            {
-              value: 5,
-            },
-            {headers: {'Custom-Header': 'header value'}}
-          );
-        })
-      );
+      server.use(http.get('*/some/test/path/', resolver));
+
       function TestComponent() {
         const {data, getResponseHeader} = useApiQuery<ResponseData>(
           ['/some/test/path/'],
@@ -120,23 +116,23 @@ describe('queryClient', () => {
       expect(await screen.findByText('5')).toBeInTheDocument();
       expect(screen.getByText('header value')).toBeInTheDocument();
 
-      expect(requests).toHaveLength(1);
-      expect(requests[0]!.url).toStrictEqual(expect.stringContaining('/some/test/path/'));
+      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: expect.objectContaining({
+            url: expect.stringContaining('/some/test/path/'),
+          }),
+        })
+      );
     });
 
     it('can do a fetch with provided query object', async () => {
-      const requests: Request[] = [];
-      server.events.on('response:mocked', ({request}) => {
-        requests.push(request);
+      const resolver = jest.fn(() => {
+        return HttpResponse.json({
+          value: 5,
+        });
       });
-
-      server.use(
-        http.get('*/some/test/path/', () => {
-          return HttpResponse.json({
-            value: 5,
-          });
-        })
-      );
+      server.use(http.get('*/some/test/path/', resolver));
 
       function TestComponent() {
         const {data} = useApiQuery<ResponseData>(
@@ -155,9 +151,14 @@ describe('queryClient', () => {
 
       expect(await screen.findByText('5')).toBeInTheDocument();
 
-      expect(requests).toHaveLength(1);
-      expect(requests[0]!.url).toStrictEqual(expect.stringContaining('/some/test/path/'));
-      expect(new URL(requests[0]!.url).searchParams.get('filter')).toBe('red');
+      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: expect.objectContaining({
+            url: expect.stringContaining('some/test/path/?filter=red'),
+          }),
+        })
+      );
     });
 
     it('can return error state', async () => {
