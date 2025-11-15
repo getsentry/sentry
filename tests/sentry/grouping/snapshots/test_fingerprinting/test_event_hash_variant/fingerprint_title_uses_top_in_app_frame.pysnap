@@ -1,0 +1,44 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes:
+      title: Dogs are great ({{ function }})
+    fingerprint:
+    - '{{ function }}'
+    matchers:
+    - - module
+      - do_dog_stuff
+    text: module:"do_dog_stuff" -> "{{ function }}" title="Dogs are great ({{ function
+      }})"
+  version: 1
+fingerprint:
+- '{{ function }}'
+title: Dogs are great (throw_ball)
+variants:
+  app:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: app_exception_stacktrace
+    type: component
+  custom_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_fingerprint
+    matched_rule: module:"do_dog_stuff" -> "{{ function }}" title="Dogs are great
+      ({{ function }})"
+    type: custom_fingerprint
+    values:
+    - throw_ball
+  system:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: system_exception_stacktrace
+    type: component
