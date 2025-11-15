@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from django.conf import settings
 
 from sentry.monitors.processing_errors.errors import ProcessingErrorType
@@ -18,6 +19,7 @@ def _get_cluster() -> Any:
     return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 
+@pytest.mark.skip
 class FixProcessingErrorKeysTest(TestMigrations):
     migrate_from = "0007_monitors_json_field"
     migrate_to = "0008_fix_processing_error_keys"

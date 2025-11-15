@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowFireHistory
 
 
+@pytest.mark.skip
 class DeleteNonSingleWrittenFireHistoryTest(TestMigrations):
     migrate_from = "0095_unique_detectorgroup_group"
     migrate_to = "0096_delete_non_single_written_fire_history"

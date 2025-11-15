@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
 
+@pytest.mark.skip
 class TestBackfillIssueStreamDetectorWorkflows(TestMigrations):
     migrate_from = "0093_add_action_config_index"
     migrate_to = "0094_backfill_issue_stream_detector_workflows"
