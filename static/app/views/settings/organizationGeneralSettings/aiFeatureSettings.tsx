@@ -10,6 +10,7 @@ export const defaultEnableSeerFeaturesValue = (organization: Organization) => {
 
 export const makeHideAiFeaturesField = (organization: Organization): FieldObject => {
   const isBaa = false; // TODO: add a check here once we have a way to check if the org is a BAA customer. Leave it as false for now.
+  const hasFeatureFlag = organization.features.includes('gen-ai-features');
 
   return {
     name: 'hideAiFeatures',
@@ -24,8 +25,13 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       }
     ),
     defaultValue: defaultEnableSeerFeaturesValue(organization),
-    disabled: ({access}) => !access.has('org:write'),
+    disabled: ({access}) => !hasFeatureFlag || !access.has('org:write'),
     getValue: value => {
+      // If feature flag is off, always return false (show as disabled)
+      // regardless of the org's actual setting
+      if (!hasFeatureFlag) {
+        return false;
+      }
       // Reversing value because the field was previously called hideAiFeatures and we've inverted the behavior.
       return !value;
     },
