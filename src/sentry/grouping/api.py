@@ -38,6 +38,7 @@ from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS
 from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -456,6 +457,18 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def _apply_custom_title_if_needed(fingerprint_info: FingerprintInfo, event: Event) -> None:
+    """
+    If the given event has a custom fingerprint which includes a title template, apply the custom
+    title to the event.
+    """
+    custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+    if custom_title_template:
+        resolved_title = expand_title_template(custom_title_template, event.data)
+        event.data["title"] = resolved_title
 
 
 def get_contributing_variant_and_component(
