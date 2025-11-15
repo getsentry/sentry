@@ -284,15 +284,7 @@ def apply_server_side_fingerprinting(
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
         matched_rule, new_fingerprint, attributes = fingerprint_match
-
-        # A custom title attribute is stored in the event to override the
-        # default title.
-        if "title" in attributes:
-            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
-
-        # Persist the rule that matched with the fingerprint in the event
-        # dictionary for later debugging.
         fingerprint_info["matched_rule"] = matched_rule.to_json()
 
     if fingerprint_info:
@@ -405,6 +397,9 @@ def get_grouping_variants_for_event(
         if fingerprint_type == "default"
         else resolve_fingerprint_values(raw_fingerprint, event.data)
     )
+
+    # Check if the fingerprint includes a custom title, and if so, set the event's title accordingly.
+    _apply_custom_title_if_needed(fingerprint_info, event)
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
