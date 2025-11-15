@@ -1343,6 +1343,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert "error" in result
         assert "not found in the last 90 days" in result["error"]
 
+
 class TestGetReplayMetadata(ReplaysSnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
