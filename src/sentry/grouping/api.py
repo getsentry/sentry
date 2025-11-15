@@ -283,6 +283,7 @@ def apply_server_side_fingerprinting(
 
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
+        # TODO: We don't need to return attributes as part of the fingerprint match anymore
         matched_rule, new_fingerprint, attributes = fingerprint_match
         event["fingerprint"] = new_fingerprint
         fingerprint_info["matched_rule"] = matched_rule.to_json()
