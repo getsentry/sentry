@@ -234,6 +234,16 @@ def format_historical_data(
 def get_dataset_from_label_and_event_types(
     dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
 ):
+    dataset_label = get_dataset_name_from_label_and_event_types(dataset_label, event_types)
+    dataset = get_dataset(dataset_label)
+    if dataset is None:
+        raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+    return dataset
+
+
+def get_dataset_name_from_label_and_event_types(
+    dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
+) -> str:
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
@@ -245,10 +255,8 @@ def get_dataset_from_label_and_event_types(
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "metricsEnhanced"
-    dataset = get_dataset(dataset_label)
-    if dataset is None:
-        raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
-    return dataset
+
+    return dataset_label
 
 
 def fetch_historical_data(
