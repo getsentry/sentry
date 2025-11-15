@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import {http, HttpResponse} from 'msw';
 
+import {server} from 'sentry-test/msw';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -73,12 +75,23 @@ describe('queryClient', () => {
   });
 
   describe('useQuery', () => {
+    beforeEach(() => {
+      globalThis.__USE_REAL_API__ = true;
+    });
+    afterEach(() => {
+      globalThis.__USE_REAL_API__ = false;
+    });
     it('can do a simple fetch', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/some/test/path/',
-        body: {value: 5},
-        headers: {'Custom-Header': 'header value'},
+      const resolver = jest.fn(() => {
+        return HttpResponse.json(
+          {
+            value: 5,
+          },
+          {headers: {'Custom-Header': 'header value'}}
+        );
       });
+
+      server.use(http.get('*/some/test/path/', resolver));
 
       function TestComponent() {
         const {data, getResponseHeader} = useApiQuery<ResponseData>(
@@ -103,14 +116,23 @@ describe('queryClient', () => {
       expect(await screen.findByText('5')).toBeInTheDocument();
       expect(screen.getByText('header value')).toBeInTheDocument();
 
-      expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
+      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: expect.objectContaining({
+            url: expect.stringContaining('/some/test/path/'),
+          }),
+        })
+      );
     });
 
     it('can do a fetch with provided query object', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/some/test/path/',
-        body: {value: 5},
+      const resolver = jest.fn(() => {
+        return HttpResponse.json({
+          value: 5,
+        });
       });
+      server.use(http.get('*/some/test/path/', resolver));
 
       function TestComponent() {
         const {data} = useApiQuery<ResponseData>(
@@ -129,20 +151,25 @@ describe('queryClient', () => {
 
       expect(await screen.findByText('5')).toBeInTheDocument();
 
-      expect(mock).toHaveBeenCalledWith(
-        '/some/test/path/',
-        expect.objectContaining({query: {filter: 'red'}})
+      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: expect.objectContaining({
+            url: expect.stringContaining('some/test/path/?filter=red'),
+          }),
+        })
       );
     });
 
     it('can return error state', async () => {
-      MockApiClient.addMockResponse({
-        url: '/some/test/path',
-        statusCode: 500,
-      });
+      server.use(
+        http.get('*/some/test/path/', () => {
+          return HttpResponse.error();
+        })
+      );
 
       function TestComponent() {
-        const query = useApiQuery<ResponseData>(['/some/test/path'], {
+        const query = useApiQuery<ResponseData>(['/some/test/path/'], {
           staleTime: 0,
         });
 
