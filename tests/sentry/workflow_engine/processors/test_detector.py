@@ -1058,3 +1058,15 @@ class TestAssociateNewGroupWithDetector(TestCase):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
         assert not associate_new_group_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_deleted_detector_creates_null_association(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        deleted_detector_id = self.metric_detector.id
+
+        self.metric_detector.delete()
+
+        assert associate_new_group_with_detector(group, deleted_detector_id)
+
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id is None
+        assert detector_group.group_id == group.id
