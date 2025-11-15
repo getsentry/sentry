@@ -62,6 +62,9 @@ export function ResolveSection() {
   const highThreshold = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
+  const mediumThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.mediumThreshold
+  );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
@@ -81,12 +84,17 @@ export function ResolveSection() {
 
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
+  // Compute the automatic resolution threshold: medium if present, otherwise high
+  const resolutionThreshold =
+    mediumThreshold && mediumThreshold !== '' ? mediumThreshold : highThreshold || 0;
+
   const descriptionContent = getResolutionDescription(
     detectionType === 'percent'
       ? {
           detectionType: 'percent',
           conditionType,
           highThreshold: highThreshold || 0,
+          resolutionThreshold,
           comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
           thresholdSuffix,
         }
@@ -95,6 +103,7 @@ export function ResolveSection() {
             detectionType: 'static',
             conditionType,
             highThreshold: highThreshold || 0,
+            resolutionThreshold,
             thresholdSuffix,
           }
         : {
