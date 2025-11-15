@@ -25,6 +25,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import (
+    APITestCase,
     APITransactionTestCase,
     ReplaysSnubaTestCase,
     SnubaTestCase,
