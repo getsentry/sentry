@@ -1,55 +1,57 @@
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import styled from '@emotion/styled';
+
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/types';
+} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export function getDataForwarderFormGroups({
   provider,
-  organization,
   dataForwarder,
   projects,
 }: {
-  organization: Organization;
   projects: Project[];
-  provider: DataForwarderProviderSlug;
   dataForwarder?: DataForwarder;
+  provider?: DataForwarderProviderSlug;
 }): JsonFormObject[] {
-  let providerFormGroups: JsonFormObject[] = [];
-  switch (provider) {
-    case DataForwarderProviderSlug.SQS:
-      providerFormGroups = [SQS_GLOBAL_CONFIGURATION_FORM];
-      break;
-    case DataForwarderProviderSlug.SEGMENT:
-      providerFormGroups = [SEGMENT_GLOBAL_CONFIGURATION_FORM];
-      break;
-    case DataForwarderProviderSlug.SPLUNK:
-      providerFormGroups = [SPLUNK_GLOBAL_CONFIGURATION_FORM];
-      break;
-    default:
-      return [];
-  }
   return [
-    getEnablementForm({organization, dataForwarder}),
-    ...providerFormGroups,
-    getProjectConfigurationForm(projects),
+    getEnablementForm({dataForwarder}),
+    ...getProviderForm({provider}),
+    getProjectConfigurationForm({projects}),
   ];
 }
 
-const getEnablementForm = ({
-  organization,
+function getProviderForm({
+  provider,
+}: {
+  provider?: DataForwarderProviderSlug;
+}): JsonFormObject[] {
+  switch (provider) {
+    case DataForwarderProviderSlug.SQS:
+      return [SQS_GLOBAL_CONFIGURATION_FORM];
+    case DataForwarderProviderSlug.SEGMENT:
+      return [SEGMENT_GLOBAL_CONFIGURATION_FORM];
+    case DataForwarderProviderSlug.SPLUNK:
+      return [SPLUNK_GLOBAL_CONFIGURATION_FORM];
+    default:
+      return [];
+  }
+}
+
+function getEnablementForm({
   dataForwarder,
 }: {
-  organization: Organization;
   dataForwarder?: DataForwarder;
-}): JsonFormObject => {
-  const featureSet = new Set(organization.features);
-  const hasAccess =
-    featureSet.has('data-forwarding-revamp-access') && featureSet.has('data-forwarding');
+}): JsonFormObject {
   const hasCompleteSetup = dataForwarder;
 
   return {
@@ -59,19 +61,17 @@ const getEnablementForm = ({
         name: 'is_enabled',
         label: t('Enable data forwarding'),
         type: 'boolean',
-        defaultValue: false,
+        defaultValue: dataForwarder?.isEnabled ?? true,
         help: hasCompleteSetup
-          ? t('Will override everything to shut-off data forwarding.')
-          : hasAccess
-            ? t('Will be disabled until the initial setup is complete.')
-            : t('Data forwarding is not available to your organization.'),
-        disabled: !hasAccess || !hasCompleteSetup,
+          ? t('Will override all projects to shut-off data forwarding altogether.')
+          : t('Will be enabled after the initial setup is complete.'),
+        disabled: !hasCompleteSetup,
       },
     ],
   };
-};
+}
 
-function getProjectConfigurationForm(projects: Project[]): JsonFormObject {
+function getProjectConfigurationForm({projects}: {projects: Project[]}): JsonFormObject {
   const projectOptions = projects.map(project => ({
     value: project.id,
     label: project.slug,
@@ -91,6 +91,7 @@ function getProjectConfigurationForm(projects: Project[]): JsonFormObject {
         label: 'Forwarding projects',
         type: 'select',
         multiple: true,
+        required: true,
         defaultValue: [],
         help: 'Select the projects which should forward their data.',
         options: projectOptions,
@@ -98,6 +99,62 @@ function getProjectConfigurationForm(projects: Project[]): JsonFormObject {
     ],
   };
 }
+
+export function getProjectOverrideForm({
+  project,
+  dataForwarder,
+}: {
+  dataForwarder: DataForwarder;
+  project: AvatarProject;
+}): JsonFormObject {
+  const [providerForm] = getProviderForm({provider: dataForwarder.provider});
+  const providerFields = providerForm?.fields.map(
+    field =>
+      ({
+        ...field,
+        defaultValue: undefined,
+        required: false,
+      }) as FieldObject
+  );
+  const projectConfig = dataForwarder.projectConfigs.find(
+    config => config.project.id === project.id
+  );
+  const hasOverrides =
+    projectConfig?.overrides && Object.keys(projectConfig?.overrides).length > 0;
+  return {
+    title: (
+      <Flex justify="between" width="100%" paddingRight="lg">
+        <Flex align="center" gap="md">
+          <ProjectAvatar project={project} size={16} />
+          <Text>{project.slug}</Text>
+        </Flex>
+        {projectConfig?.isEnabled ? (
+          <CalmTag type={hasOverrides ? 'warning' : 'success'}>
+            {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
+          </CalmTag>
+        ) : (
+          <CalmTag type="error">{t('Disabled')}</CalmTag>
+        )}
+      </Flex>
+    ),
+    initiallyCollapsed: true,
+    fields: [
+      {
+        name: 'is_enabled',
+        label: t('Enable forwarding'),
+        help: t('Control forwarding for this project.'),
+        type: 'boolean',
+        defaultValue: true,
+      },
+      ...(providerFields ?? []),
+    ],
+  };
+}
+
+const CalmTag = styled(Tag)`
+  /* Need to override the panel header's styles here */
+  text-transform: none;
+`;
 
 const SQS_GLOBAL_CONFIGURATION_FORM: JsonFormObject = {
   title: t('Global Configuration'),
