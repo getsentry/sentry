@@ -412,7 +412,8 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_profile_flamegraph': {
-      const {profile_id, project_id, is_continuous, start_ts, end_ts} = toolLink.params;
+      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} =
+        toolLink.params;
       if (!profile_id || !project_id) {
         return null;
       }
@@ -434,11 +435,12 @@ export function buildToolLinkUrl(
         const endDate = new Date(end_ts * 1000).toISOString();
 
         return {
-          pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/flamegraph/`,
+          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
           query: {
             start: startDate,
             end: endDate,
             profilerId: profile_id,
+            ...(thread_id && {tid: thread_id}),
           },
         };
       }
@@ -446,6 +448,7 @@ export function buildToolLinkUrl(
       // Transaction profiles use profile_id in the path
       return {
         pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        ...(thread_id && {query: {tid: thread_id}}),
       };
     }
     default:
