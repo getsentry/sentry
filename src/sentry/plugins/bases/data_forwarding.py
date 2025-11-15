@@ -2,7 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
-from sentry import ratelimits, tsdb
+from sentry import features, ratelimits, tsdb
 from sentry.api.serializers import serialize
 from sentry.plugins.base import Plugin
 from sentry.services.eventstore.models import Event
@@ -56,6 +56,9 @@ class DataForwardingPlugin(Plugin):
         return False
 
     def post_process(self, *, event, **kwargs) -> None:
+        if features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+            return
+
         if self.is_ratelimited(event):
             return
 

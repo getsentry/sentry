@@ -125,40 +125,57 @@ function BlockComponent({
     selectedLinkIndexRef.current = selectedLinkIndex;
   }, [selectedLinkIndex]);
 
-  // Get valid tool links with their corresponding tool call indices
-  const validToolLinksWithIndices = (block.tool_links || [])
-    .map(link => {
-      const toolCallIndex = block.message.tool_calls?.findIndex(
-        call => link && call.function === link.kind
-      );
-      const canBuildUrl =
-        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
+  // Get valid tool links sorted by their corresponding tool call indices
+  const sortedToolLinks = useMemo(
+    () =>
+      (block.tool_links || [])
+        .map((link, idx) => {
+          if (!link) {
+            return null;
+          }
 
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        link: {kind: string; params: Record<string, any>};
-        toolCallIndex: number;
-      } => item !== null
-    );
+          // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+          const toolCallId = block.tool_results?.[idx]?.tool_call_id;
+          const toolCallIndex = block.message.tool_calls?.findIndex(
+            call => call.id === toolCallId
+          );
+          const canBuildUrl =
+            buildToolLinkUrl(link, organization.slug, projects) !== null;
 
-  const validToolLinks = validToolLinksWithIndices.map(item => item.link);
-  const hasValidLinks = validToolLinks.length > 0;
+          if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+            return {link, toolCallIndex};
+          }
+          return null;
+        })
+        .filter(
+          (
+            item
+          ): item is {
+            link: {kind: string; params: Record<string, any>};
+            toolCallIndex: number;
+          } => item !== null
+        )
+        .sort((a, b) => a.toolCallIndex - b.toolCallIndex)
+        .map(item => item.link),
+    [
+      block.tool_links,
+      block.tool_results,
+      block.message.tool_calls,
+      organization.slug,
+      projects,
+    ]
+  );
+
+  const hasValidLinks = sortedToolLinks.length > 0;
 
   // Reset selected index when block changes or when there are no valid links
   useEffect(() => {
     if (!hasValidLinks) {
       setSelectedLinkIndex(0);
-    } else if (selectedLinkIndex >= validToolLinks.length) {
+    } else if (selectedLinkIndex >= sortedToolLinks.length) {
       setSelectedLinkIndex(0);
     }
-  }, [hasValidLinks, selectedLinkIndex, validToolLinks.length]);
+  }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
   // Register the key handler with the parent
   useEffect(() => {
@@ -182,7 +199,7 @@ function BlockComponent({
       if (key === 'ArrowDown') {
         // Move to next link
         const currentIndex = selectedLinkIndexRef.current;
-        if (currentIndex < validToolLinks.length - 1) {
+        if (currentIndex < sortedToolLinks.length - 1) {
           // Can move down within this block's links
           setSelectedLinkIndex(prev => prev + 1);
           return true;
@@ -194,7 +211,7 @@ function BlockComponent({
       if (key === 'Enter') {
         // Navigate to selected link using ref to get current value
         const currentIndex = selectedLinkIndexRef.current;
-        const selectedLink = validToolLinks[currentIndex];
+        const selectedLink = sortedToolLinks[currentIndex];
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
@@ -209,7 +226,7 @@ function BlockComponent({
     onRegisterEnterHandler?.(handler);
   }, [
     hasValidLinks,
-    validToolLinks,
+    sortedToolLinks,
     organization.slug,
     projects,
     navigate,
@@ -223,12 +240,12 @@ function BlockComponent({
 
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
-    if (validToolLinks.length === 0) {
+    if (sortedToolLinks.length === 0) {
       return;
     }
 
     // Navigate to the clicked link
-    const selectedLink = validToolLinks[linkIndex];
+    const selectedLink = sortedToolLinks[linkIndex];
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
@@ -321,7 +338,7 @@ function BlockComponent({
                   )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
-                      {validToolLinks.map((_, idx) => (
+                      {sortedToolLinks.map((_, idx) => (
                         <Button
                           key={idx}
                           size="xs"
@@ -329,7 +346,7 @@ function BlockComponent({
                           onClick={e => handleNavigateClick(e, idx)}
                         >
                           {idx === 0
-                            ? validToolLinks.length === 1
+                            ? sortedToolLinks.length === 1
                               ? 'Navigate'
                               : 'Navigate #1'
                             : `#${idx + 1}`}
