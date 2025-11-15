@@ -127,11 +127,14 @@ def fetch_workflow_groups_paginated(
         .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))
     )
 
+    # Count distinct groups for pagination
+    group_count = qs.count()
+
     return cast(
         CursorResult[Group],
         OffsetPaginator(
             qs,
             order_by=("-count", "-last_triggered"),
             on_results=convert_results,
-        ).get_result(per_page, cursor, count_hits=True),
+        ).get_result(per_page, cursor, known_hits=group_count),
     )
