@@ -22,6 +22,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
@@ -431,6 +432,166 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
     trace = get_trace_waterfall(trace_id, organization_id)
     return trace.dict() if trace else {}
+
+
+def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[str, Any]:
+    """
+    Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
+
+    This function:
+    1. Queries EAP spans across all projects in the organization
+    2. Uses 14-day sliding windows to search up to 90 days back
+    3. Finds spans with matching profile_id/profiler_id and aggregates timestamps
+    4. Fetches the raw profile data from the profiling service
+    5. Converts to execution tree and formats as ASCII flamegraph
+
+    Args:
+        profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
+        organization_id: Organization ID to search within
+
+    Returns:
+        Dictionary with either:
+        - Success: {"formatted_profile": str, "metadata": dict}
+        - Failure: {"error": str}
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Organization not found",
+            extra={"organization_id": organization_id},
+        )
+        return {"error": "Organization not found"}
+
+    # Get all projects for the organization
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+
+    if not projects:
+        logger.warning(
+            "rpc_get_profile_flamegraph: No projects found for organization",
+            extra={"organization_id": organization_id},
+        )
+        return {"error": "No projects found for organization"}
+
+    # Search up to 90 days back using 14-day sliding windows
+    now = datetime.now(UTC)
+    window_days = 14
+    max_days = 90
+
+    full_profile_id: str | None = None
+    full_profiler_id: str | None = None
+    project_id: int | None = None
+    min_start_ts: float | None = None
+    max_end_ts: float | None = None
+
+    # Slide back in time in 14-day windows
+    for days_back in range(0, max_days, window_days):
+        window_end = now - timedelta(days=days_back)
+        window_start = now - timedelta(days=min(days_back + window_days, max_days))
+
+        snuba_params = SnubaParams(
+            start=window_start,
+            end=window_end,
+            projects=projects,
+            organization=organization,
+        )
+
+        # Query with aggregation to get profile metadata
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)",
+            selected_columns=[
+                "profile.id",
+                "profiler.id",
+                "project.id",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+            ],
+            orderby=[],
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+            sampling_mode="NORMAL",
+        )
+
+        data = result.get("data")
+        if data:
+            row = data[0]
+            full_profile_id = row.get("profile.id")
+            full_profiler_id = row.get("profiler.id")
+            project_id = row.get("project.id")
+            min_start_ts = row.get("min(precise.start_ts)")
+            max_end_ts = row.get("max(precise.finish_ts)")
+            break
+
+    # Determine profile type and actual ID to use
+    is_continuous = bool(full_profiler_id and not full_profile_id)
+    actual_profile_id = full_profiler_id or full_profile_id
+
+    if not actual_profile_id:
+        logger.info(
+            "rpc_get_profile_flamegraph: Profile not found",
+            extra={"profile_id": profile_id, "organization_id": organization_id},
+        )
+        return {"error": "Profile not found in the last 90 days"}
+    if not project_id:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Could not find project id for profile",
+            extra={"profile_id": profile_id, "organization_id": organization_id},
+        )
+        return {"error": "Project not found"}
+
+    logger.info(
+        "rpc_get_profile_flamegraph: Found profile",
+        extra={
+            "profile_id": actual_profile_id,
+            "project_id": project_id,
+            "is_continuous": is_continuous,
+            "min_start_ts": min_start_ts,
+            "max_end_ts": max_end_ts,
+        },
+    )
+
+    # Fetch the profile data
+    profile_data = fetch_profile_data(
+        profile_id=actual_profile_id,
+        organization_id=organization_id,
+        project_id=project_id,
+        start_ts=min_start_ts,
+        end_ts=max_end_ts,
+        is_continuous=is_continuous,
+    )
+
+    if not profile_data:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Failed to fetch profile data from profiling service",
+            extra={"profile_id": actual_profile_id, "project_id": project_id},
+        )
+        return {"error": "Failed to fetch profile data from profiling service"}
+
+    # Convert to execution tree (returns dicts, not Pydantic models)
+    execution_tree = _convert_profile_to_execution_tree(profile_data)
+
+    if not execution_tree:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Empty execution tree",
+            extra={"profile_id": actual_profile_id, "project_id": project_id},
+        )
+        return {"error": "Failed to generate execution tree from profile data"}
+
+    return {
+        "execution_tree": execution_tree,
+        "metadata": {
+            "profile_id": actual_profile_id,
+            "project_id": project_id,
+            "is_continuous": is_continuous,
+            "start_ts": min_start_ts,
+            "end_ts": max_end_ts,
+        },
+    }
 
 
 def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
