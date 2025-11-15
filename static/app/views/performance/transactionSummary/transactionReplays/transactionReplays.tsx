@@ -121,6 +121,7 @@ function ReplaysContent({
   return (
     <Layout.Main width="full">
       <ReplayTable
+        eventView={eventView}
         columns={[
           ReplaySessionColumn,
           ...(hasRoomForColumns ? [ReplaySlowestTransactionColumn] : []),

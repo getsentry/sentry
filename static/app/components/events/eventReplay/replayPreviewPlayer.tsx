@@ -19,6 +19,7 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
@@ -26,6 +27,7 @@ import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimeli
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -89,6 +91,9 @@ export default function ReplayPreviewPlayer({
     }
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
+  const location = useLocation();
+  const eventView = EventView.fromLocation(location);
+
   return (
     <PlayerPanel>
       {errorBeforeReplayStart && (
@@ -100,6 +105,7 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
+          eventView={eventView}
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
           columnIndex={0}
