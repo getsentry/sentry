@@ -161,6 +161,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Watching replay ${shortReplayId}...`
       : `Watched replay ${shortReplayId}`;
   },
+
+  get_profile_flamegraph: (args, isLoading) => {
+    const profileId = args.profile_id || '';
+    const shortProfileId = profileId.slice(0, 8);
+    return isLoading
+      ? `Sampling profile ${shortProfileId}...`
+      : `Sampled profile ${shortProfileId}`;
+  },
 };
 
 /**
@@ -401,6 +409,43 @@ export function buildToolLinkUrl(
 
       return {
         pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
+    }
+    case 'get_profile_flamegraph': {
+      const {profile_id, project_id, is_continuous, start_ts, end_ts} = toolLink.params;
+      if (!profile_id || !project_id) {
+        return null;
+      }
+
+      // Look up project slug from project_id
+      const project = projects?.find(p => p.id === String(project_id));
+      if (!project) {
+        return null;
+      }
+
+      if (is_continuous) {
+        // Continuous profiles need start/end timestamps as query params
+        if (!start_ts || !end_ts) {
+          return null;
+        }
+
+        // Convert Unix timestamps to ISO date strings
+        const startDate = new Date(start_ts * 1000).toISOString();
+        const endDate = new Date(end_ts * 1000).toISOString();
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/flamegraph/`,
+          query: {
+            start: startDate,
+            end: endDate,
+            profilerId: profile_id,
+          },
+        };
+      }
+
+      // Transaction profiles use profile_id in the path
+      return {
+        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
       };
     }
     default:
