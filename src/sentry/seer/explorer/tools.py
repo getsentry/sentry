@@ -45,15 +45,63 @@ def execute_trace_query_chart(
     """
     Execute a trace query to get chart/timeseries data by calling the events-stats endpoint.
     """
-    return execute_timeseries_query(
-        org_id=org_id,
-        dataset="spans",
-        y_axes=y_axes,
-        group_by=group_by,
-        query=query,
-        stats_period=stats_period,
-        project_ids=project_ids,
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
+
+    params: dict[str, Any] = {
+        "query": query,
+        "statsPeriod": stats_period,
+        "yAxis": y_axes,
+        "project": project_ids,
+        "dataset": "spans",
+        "referrer": Referrer.SEER_RPC,
+        "transformAliasToInputFormat": "1",  # Required for RPC datasets
+    }
+
+    # Add group_by if provided (for top events)
+    if group_by and len(group_by) > 0:
+        params["topEvents"] = 5
+        params["field"] = group_by
+        params["excludeOther"] = "0"  # Include "Other" series
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events-stats/",
+        params=params,
     )
+    data = resp.data
+
+    # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
+    metric_is_single = len(y_axes) == 1
+    metric_name = y_axes[0] if metric_is_single else None
+    if metric_name and metric_is_single:
+        # Handle grouped data with single metric: wrap each group's data in the metric name
+        if group_by:
+            return {
+                group_value: (
+                    {metric_name: group_data}
+                    if isinstance(group_data, dict) and "data" in group_data
+                    else group_data
+                )
+                for group_value, group_data in data.items()
+            }
+
+        # Handle non-grouped data with single metric: wrap data in the metric name
+        if isinstance(data, dict) and "data" in data:
+            return {metric_name: data}
+
+    return data
 
 
 def execute_trace_query_table(
@@ -71,6 +119,19 @@ def execute_trace_query_table(
     """
     Execute a trace query to get table data by calling the events endpoint.
     """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
+
     # Determine fields based on mode
     if mode == "aggregates":
         # Aggregates mode: group_by fields + aggregate functions
@@ -92,16 +153,28 @@ def execute_trace_query_table(
             "trace",
         ]
 
-    return execute_table_query(
-        org_id=org_id,
-        dataset="spans",
-        fields=fields,
-        query=query,
-        sort=sort,
-        per_page=per_page,
-        stats_period=stats_period,
-        project_ids=project_ids,
+    params: dict[str, Any] = {
+        "query": query,
+        "statsPeriod": stats_period,
+        "field": fields,
+        "sort": sort if sort else ("-timestamp" if not group_by else None),
+        "per_page": per_page,
+        "project": project_ids,
+        "dataset": "spans",
+        "referrer": Referrer.SEER_RPC,
+        "transformAliasToInputFormat": "1",  # Required for RPC datasets
+    }
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events/",
+        params=params,
     )
+    return resp.data
 
 
 def execute_table_query(
@@ -129,10 +202,6 @@ def execute_table_query(
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
-        return None
-
-    if not fields:
-        # Must pass in at least one field.
         return None
 
     if not project_ids and not project_slugs:
@@ -455,6 +524,8 @@ def _get_issue_event_timeseries(
         partial="1",
     )
 
+    if data is None:
+        return None
     return data, stats_period, interval
 
 
