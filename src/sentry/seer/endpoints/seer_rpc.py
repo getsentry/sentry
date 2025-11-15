@@ -86,6 +86,8 @@ from sentry.seer.explorer.index_data import (
     rpc_get_transactions_for_project,
 )
 from sentry.seer.explorer.tools import (
+    execute_table_query,
+    execute_timeseries_query,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
@@ -1199,6 +1201,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issue_details": get_issue_details,
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
+    "execute_table_query": execute_table_query,
+    "execute_timeseries_query": execute_timeseries_query,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     #
