@@ -563,7 +563,7 @@ class GroupManager(BaseManager["Group"]):
                         extra={"group_id": group.id},
                     )
                     continue
-                update_incident_based_on_open_period_status_change(group, status, detector_id)
+                update_incident_based_on_open_period_status_change(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
