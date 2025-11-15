@@ -2817,6 +2817,43 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response()
         assert response.status_code == 500
 
+    def test_wildcard_operator_with_backslash(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "user": {
+                    "id": "1",
+                    "email": "foo@example.com",
+                    "username": r"foo\bar",
+                    "ip_address": "192.168.0.1",
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        response = self.get_success_response(query=r"user.username:foo\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query=r"user.username:*foo\\bar*")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dContains\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dStartsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dEndsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
