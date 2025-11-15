@@ -251,19 +251,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, install the Sentry GitHub App to connect your GitHub repositories. Learn more about GitHub integration.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders step 3 description with Seer app link', () => {
-      render(<PreventAIOnboarding />, {organization});
-
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the Seer by Sentry GitHub App within the same GitHub organization.'
+            'Install the Sentry GitHub App to connect your GitHub repositories and enable AI Code Review to access your codebase. Learn more about GitHub integration.'
           )
         )
       ).toBeInTheDocument();
