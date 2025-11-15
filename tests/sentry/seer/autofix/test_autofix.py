@@ -81,7 +81,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
     def test_convert_profile_to_execution_tree_non_main_thread(self) -> None:
-        """Test that non-MainThread samples are excluded from execution tree"""
+        """Test that the first sample's thread is used (even if not MainThread)"""
         profile_data = {
             "profile": {
                 "frames": [
@@ -101,8 +101,10 @@ class TestConvertProfileToExecutionTree(TestCase):
 
         execution_tree = _convert_profile_to_execution_tree(profile_data)
 
-        # Should be empty since no MainThread samples
-        assert len(execution_tree) == 0
+        # Should include the worker thread since it's the first sample's thread
+        assert len(execution_tree) == 1
+        assert execution_tree[0]["function"] == "worker"
+        assert execution_tree[0]["filename"] == "worker.py"
 
     def test_convert_profile_to_execution_tree_merges_duplicate_frames(self) -> None:
         """Test that duplicate frames in different samples are merged correctly"""
