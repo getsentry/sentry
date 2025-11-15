@@ -75,8 +75,8 @@ export function getLabels(platform: Platform | undefined): Labels {
   switch (platform) {
     case 'android':
       return {
-        installSizeLabel: t('Uncompressed size'),
-        downloadSizeLabel: t('Download size'),
+        installSizeLabel: t('Uncompressed Size'),
+        downloadSizeLabel: t('Download Size'),
         appId: t('Package name'),
         installSizeDescription: t('Uncompressed size on disk not including AOT DEX'),
         downloadSizeDescription: t('Bytes transferred over the network'),
