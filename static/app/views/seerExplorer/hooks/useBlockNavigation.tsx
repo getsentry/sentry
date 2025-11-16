@@ -133,6 +133,8 @@ export function useBlockNavigation({
           const newIndex = blocks.length - 1;
           const blockElement = blockRefs.current[newIndex];
           if (blockElement) {
+            // Blur textarea when navigating to a block
+            textareaRef.current?.blur();
             setFocusedBlockIndex(newIndex);
             scrollToElement(blockElement, 'down');
           }

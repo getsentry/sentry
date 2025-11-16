@@ -268,6 +268,7 @@ function BlockComponent({
   return (
     <Block
       ref={ref}
+      isFocused={isFocused}
       isLast={isLast}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -342,7 +343,6 @@ function BlockComponent({
               </BlockContentWrapper>
             </BlockRow>
           )}
-          {isFocused && <FocusIndicator />}
           <AnimatePresence>
             {showActions && (
               <motion.div
@@ -391,12 +391,13 @@ BlockComponent.displayName = 'BlockComponent';
 
 export default BlockComponent;
 
-const Block = styled('div')<{isLast?: boolean}>`
+const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
   border-bottom: ${p => (p.isLast ? 'none' : `1px solid ${p.theme.border}`)};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
+  background: ${p => (p.isFocused ? p.theme.backgroundSecondary : 'transparent')};
 `;
 
 const BlockRow = styled('div')`
@@ -503,15 +504,6 @@ const UserBlockContent = styled('div')`
   white-space: pre-wrap;
   word-wrap: break-word;
   color: ${p => p.theme.subText};
-`;
-
-const FocusIndicator = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 3px;
-  background: ${p => p.theme.purple400};
 `;
 
 const ToolCallStack = styled(Stack)`

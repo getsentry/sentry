@@ -203,6 +203,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   };
 
   const handleBlockClick = (index: number) => {
+    textareaRef.current?.blur();
     setFocusedBlockIndex(index);
     setIsMinimized(false);
   };
@@ -342,9 +343,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
                 hoveredBlockIndex.current = index;
                 setFocusedBlockIndex(index);
-                if (document.activeElement === textareaRef.current) {
-                  textareaRef.current?.blur();
-                }
+                textareaRef.current?.blur();
               }}
               onMouseLeave={() => {
                 if (hoveredBlockIndex.current === index) {
