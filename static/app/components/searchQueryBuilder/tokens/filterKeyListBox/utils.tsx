@@ -11,6 +11,7 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  LogicFilterItem,
   RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
@@ -36,12 +37,14 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
+export const LOGIC_CATEGORY_VALUE = '__logic_filters';
 
 export const ALL_CATEGORY = {value: ALL_CATEGORY_VALUE, label: t('All')};
 export const RECENT_SEARCH_CATEGORY = {
   value: RECENT_SEARCH_CATEGORY_VALUE,
   label: t('Recent'),
 };
+export const LOGIC_CATEGORY = {value: LOGIC_CATEGORY_VALUE, label: t('Logic')};
 
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
@@ -243,6 +246,22 @@ export function createAskSeerConsentItem(): AskSeerConsentItem {
     type: 'ask-seer-consent' as const,
     label: t('Enable Gen AI'),
     hideCheck: true,
+  };
+}
+
+export function createLogicFilterItem({
+  value,
+}: {
+  value: 'AND' | 'OR' | '(' | ')';
+}): LogicFilterItem {
+  return {
+    key: getEscapedKey(value),
+    type: 'logic-filter' as const,
+    value,
+    label: value,
+    textValue: value,
+    hideCheck: true,
+    showDetailsInOverlay: true,
   };
 }
 
