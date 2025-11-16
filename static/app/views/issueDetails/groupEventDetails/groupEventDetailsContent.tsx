@@ -428,7 +428,7 @@ export function EventDetailsContent({
             />
           </EntryErrorBoundary>
         )}
-      {event.groupID && (
+      {event.groupID && issueTypeConfig.groupingInfo.enabled && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}

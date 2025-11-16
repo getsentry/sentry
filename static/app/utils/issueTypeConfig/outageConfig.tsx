@@ -10,6 +10,7 @@ const outageConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     issueSummary: {enabled: false},
+    groupingInfo: {enabled: false},
   },
   [IssueType.MONITOR_CHECK_IN_FAILURE]: {
     actions: {
