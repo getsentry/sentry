@@ -8,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
+import type EventView from 'sentry/utils/discover/eventView';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
