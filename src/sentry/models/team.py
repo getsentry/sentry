@@ -161,10 +161,8 @@ class Team(ReplicatedRegionModel):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
         if settings.SENTRY_USE_SNOWFLAKE:
-            snowflake_redis_key = "team_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
-                snowflake_redis_key=snowflake_redis_key,
                 save_callback=lambda: super(Team, self).save(*args, **kwargs),
             )
         else:

@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, TypeVar
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model
-from redis.client import StrictRedis
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.region import RegionContextError, get_local_region
+from sentry.utils import redis
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as BaseModel
@@ -44,16 +45,14 @@ def uses_snowflake_id(model_class: type[ModelT]) -> bool:
     return name in _snowflake_models
 
 
-def save_with_snowflake_id(
-    instance: BaseModel, snowflake_redis_key: str, save_callback: Callable[[], object]
-) -> None:
+def save_with_snowflake_id(instance: BaseModel, save_callback: Callable[[], object]) -> None:
     assert uses_snowflake_id(
         instance.__class__
     ), "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
 
     for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
         if not instance.id:
-            instance.id = generate_snowflake_id(snowflake_redis_key)
+            instance.id = generate_snowflake_id()
         try:
             with enforce_constraints(transaction.atomic(using=router.db_for_write(type(instance)))):
                 save_callback()
@@ -110,7 +109,7 @@ def msb_0_ordering(value: int, width: int) -> int:
     return int(msb_0_ordering, 2)
 
 
-def generate_snowflake_id(redis_key: str) -> int:
+def generate_snowflake_id() -> int:
     segment_values = {}
 
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
@@ -128,7 +127,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     (
         segment_values[TIME_DIFFERENCE],
         segment_values[REGION_SEQUENCE],
-    ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
+    ) = get_sequence_value_from_redis(segment_values[TIME_DIFFERENCE])
 
     for segment in BIT_SEGMENT_SCHEMA:
         segment.validate(segment_values[segment])
@@ -139,14 +138,12 @@ def generate_snowflake_id(redis_key: str) -> int:
     return snowflake_id
 
 
-def get_redis_cluster(redis_key: str) -> StrictRedis[str]:
-    from sentry.utils import redis
-
-    return redis.clusters.get("default").get_local_client_for_key(redis_key)
+def get_redis_cluster() -> RedisCluster[str] | StrictRedis[str]:
+    return redis.redis_clusters.get(settings.SENTRY_SNOWFLAKE_REDIS_CLUSTER)
 
 
-def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tuple[int, int]:
-    cluster = get_redis_cluster(redis_key)
+def get_sequence_value_from_redis(starting_timestamp: int) -> tuple[int, int]:
+    cluster = get_redis_cluster()
 
     # this is the amount we want to lookback for previous timestamps
     # the below is more of a safety net if starting_timestamp is ever

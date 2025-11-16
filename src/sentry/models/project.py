@@ -390,10 +390,8 @@ class Project(Model):
 
     def _save_project(self, *args, **kwargs):
         if settings.SENTRY_USE_SNOWFLAKE:
-            snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
-                snowflake_redis_key=snowflake_redis_key,
                 save_callback=lambda: super(Project, self).save(*args, **kwargs),
             )
         else:

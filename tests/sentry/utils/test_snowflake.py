@@ -35,7 +35,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
-        snowflake_id = generate_snowflake_id("test_redis_key")
+        snowflake_id = generate_snowflake_id()
         expected_value = (16 << 48) + (
             int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
         )
@@ -46,15 +46,15 @@ class SnowflakeUtilsTest(TestCase):
     def test_generate_correct_ids_with_region_sequence(self) -> None:
         # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
         # the 17th will be at the previous timestamp
-        snowflake_id = generate_snowflake_id("test_redis_key")
+        snowflake_id = generate_snowflake_id()
 
         for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
-            new_snowflake_id = generate_snowflake_id("test_redis_key")
+            new_snowflake_id = generate_snowflake_id()
 
             assert new_snowflake_id - snowflake_id == 1
             snowflake_id = new_snowflake_id
 
-        snowflake_id = generate_snowflake_id("test_redis_key")
+        snowflake_id = generate_snowflake_id()
 
         expected_value = (16 << 48) + (
             (int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) - 1) << 16
@@ -64,14 +64,14 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_out_of_region_sequences(self) -> None:
-        cluster = get_redis_cluster("test_redis_key")
+        cluster = get_redis_cluster()
         current_timestamp = int(datetime.now().timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START)
         for i in range(int(_TTL.total_seconds())):
             timestamp = current_timestamp - i
             cluster.set(str(timestamp), 16)
 
         with pytest.raises(Exception) as context:
-            generate_snowflake_id("test_redis_key")
+            generate_snowflake_id()
 
         assert str(context.value) == "No available ID"
 
@@ -84,9 +84,9 @@ class SnowflakeUtilsTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
 
             with override_regions(regions, r1):
-                snowflake1 = generate_snowflake_id("test_redis_key")
+                snowflake1 = generate_snowflake_id()
             with override_regions(regions, r2):
-                snowflake2 = generate_snowflake_id("test_redis_key")
+                snowflake2 = generate_snowflake_id()
 
             def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:
                 for s in reversed(snowflake.BIT_SEGMENT_SCHEMA):
