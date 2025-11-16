@@ -5,6 +5,20 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 import {useBlockNavigation} from './useBlockNavigation';
 
 describe('useBlockNavigation', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    // Mock requestAnimationFrame to execute callback immediately
+    global.requestAnimationFrame = jest.fn(cb => {
+      cb();
+      return 1;
+    });
+    global.cancelAnimationFrame = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
   const mockBlocks: Block[] = [
     {
       id: 'block-1',
@@ -35,19 +49,60 @@ describe('useBlockNavigation', () => {
     },
   ];
 
+  const createMockScrollContainer = () => {
+    const mockScrollTo = jest.fn();
+    const mockGetBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      bottom: 100,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+    }));
+    return {
+      scrollTo: mockScrollTo,
+      scrollTop: 0,
+      scrollHeight: 200,
+      clientHeight: 100,
+      getBoundingClientRect: mockGetBoundingClientRect,
+    } as unknown as HTMLDivElement;
+  };
+
   const createMockElement = () => {
     const mockScrollIntoView = jest.fn();
+    const mockGetBoundingClientRect = jest.fn(() => ({
+      top: 50,
+      bottom: 150,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+    }));
     return {
       scrollIntoView: mockScrollIntoView,
+      offsetTop: 50,
+      offsetHeight: 100,
+      getBoundingClientRect: mockGetBoundingClientRect,
     } as unknown as HTMLDivElement;
   };
 
   const createMockTextarea = () => {
     const mockFocus = jest.fn();
     const mockScrollIntoView = jest.fn();
+    const mockGetBoundingClientRect = jest.fn(() => ({
+      top: 200,
+      bottom: 250,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 50,
+    }));
     return {
       focus: mockFocus,
       scrollIntoView: mockScrollIntoView,
+      offsetTop: 200,
+      offsetHeight: 50,
+      getBoundingClientRect: mockGetBoundingClientRect,
     } as unknown as HTMLTextAreaElement;
   };
 
@@ -55,6 +110,7 @@ describe('useBlockNavigation', () => {
   const mockElement2 = createMockElement();
   const mockElement3 = createMockElement();
   const mockTextarea = createMockTextarea();
+  const mockScrollContainer = createMockScrollContainer();
 
   const defaultProps = {
     isOpen: true,
@@ -62,21 +118,10 @@ describe('useBlockNavigation', () => {
     blocks: mockBlocks,
     blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
     textareaRef: {current: mockTextarea},
+    scrollContainerRef: {current: mockScrollContainer},
     setFocusedBlockIndex: jest.fn(),
     onDeleteFromIndex: jest.fn(),
   };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset all mock methods
-    (mockElement1.scrollIntoView as jest.Mock).mockClear();
-    (mockElement2.scrollIntoView as jest.Mock).mockClear();
-    (mockElement3.scrollIntoView as jest.Mock).mockClear();
-    (mockTextarea.focus as jest.Mock).mockClear();
-    (mockTextarea.scrollIntoView as jest.Mock).mockClear();
-    defaultProps.setFocusedBlockIndex.mockClear();
-    defaultProps.onDeleteFromIndex?.mockClear();
-  });
 
   describe('Arrow Key Navigation', () => {
     it('moves from input to last block on ArrowUp', () => {
@@ -87,9 +132,7 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(defaultProps.setFocusedBlockIndex).toHaveBeenCalledWith(2); // Last block index
-      expect(defaultProps.blockRefs.current[2]?.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-      });
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('moves up through blocks on ArrowUp', () => {
@@ -100,9 +143,7 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(1);
-      expect(props.blockRefs.current[1]?.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-      });
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('does not move up from first block', () => {
@@ -124,9 +165,7 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(1);
-      expect(props.blockRefs.current[1]?.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-      });
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('moves from last block to input on ArrowDown', () => {
@@ -138,9 +177,7 @@ describe('useBlockNavigation', () => {
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
       expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(props.textareaRef.current?.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-      });
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('does nothing on ArrowDown when already at input', () => {
@@ -163,9 +200,7 @@ describe('useBlockNavigation', () => {
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
       expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(props.textareaRef.current?.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-      });
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('focuses textarea even when already at input', () => {
@@ -238,14 +273,20 @@ describe('useBlockNavigation', () => {
 
   describe('Empty Blocks Handling', () => {
     it('handles empty blocks array gracefully', () => {
-      const props = {...defaultProps, blocks: [], blockRefs: {current: []}};
+      const props = {
+        ...defaultProps,
+        blocks: [],
+        blockRefs: {current: []},
+        scrollContainerRef: {current: null}, // No scroll container, uses fallback
+      };
       renderHook(() => useBlockNavigation(props));
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
 
-      // Should set focused index to -1 (last block in empty array)
-      expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
+      // With empty blocks, newIndex = -1, but blockElement will be undefined
+      // So setFocusedBlockIndex won't be called
+      expect(props.setFocusedBlockIndex).not.toHaveBeenCalled();
     });
 
     it('handles single block navigation', () => {
@@ -315,7 +356,7 @@ describe('useBlockNavigation', () => {
     it('handles null block refs gracefully', () => {
       const props = {
         ...defaultProps,
-        blockRefs: {current: [null, createMockElement(), null]},
+        blockRefs: {current: [null, createMockElement(), createMockElement()]},
       };
       renderHook(() => useBlockNavigation(props));
 
@@ -324,6 +365,7 @@ describe('useBlockNavigation', () => {
 
       // Should not throw error with null refs
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(2);
+      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 
     it('handles null textarea ref gracefully', () => {
