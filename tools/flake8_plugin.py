@@ -40,6 +40,8 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
+S015_msg = "S015 Tests should not use branching logic around asserts."
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -47,6 +49,7 @@ class SentryVisitor(ast.NodeVisitor):
         self.filename = filename
 
         self._except_vars: list[str | None] = []
+        self._branching_depth = 0
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -157,6 +160,24 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        self.generic_visit(node)
+
+    def visit_If(self, node: ast.If) -> None:
+        is_test_file = "tests/" in self.filename or "testutils/" in self.filename
+        if is_test_file:
+            self._branching_depth += 1
+
+        self.generic_visit(node)
+
+        if is_test_file:
+            self._branching_depth -= 1
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        if (
+            "tests/" in self.filename or "testutils/" in self.filename
+        ) and self._branching_depth > 0:
+            self.errors.append((node.lineno, node.col_offset, S015_msg))
 
         self.generic_visit(node)
 

@@ -16,6 +16,11 @@ def test_object_url() -> None:
     server = Testserver()
     client = ClientBuilder(server.url, "test").for_project(123, 456)
 
+    foo = 3
+    bar = 4
+    if foo > bar:
+        assert False
+
     assert (
         client.object_url("foo")
         == "http://localhost:8888/v1/foo?usecase=test&scope=org.123%2Fproj.456"
