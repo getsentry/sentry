@@ -100,6 +100,15 @@ export function ExploreSecondaryNav() {
           >
             {t('Releases')}
           </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/code-changes/`}
+            analyticsItemName="explore_code_changes"
+          >
+            {t('Code Changes')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item to={`${baseUrl}/tests/`} analyticsItemName="explore_tests">
+            {t('Tests')}
+          </SecondaryNav.Item>
         </SecondaryNav.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
           <SecondaryNav.Section id="explore-all-queries">

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import codeQualityConfig from 'sentry/utils/issueTypeConfig/codeQualityConfig';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
@@ -102,6 +103,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.DB_QUERY]: dbQueryConfig,
   [IssueCategory.MOBILE]: mobileConfig,
   [IssueCategory.METRIC]: metricConfig,
+  [IssueCategory.CODE_QUALITY]: codeQualityConfig,
 };
 
 /**

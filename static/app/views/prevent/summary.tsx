@@ -83,30 +83,30 @@ export function SummaryCard({
         <QuestionTooltip title={tooltip} size="xs" />
       </Flex>
       <Flex justify="between" align="center">
-        <Flex align="center" gap="sm">
-          <Text size="2xl" bold variant={filterBy || openInNewTab ? 'accent' : undefined}>
-            {value ?? '-'}
-          </Text>
+        <Text size="2xl" bold variant={filterBy || openInNewTab ? 'accent' : undefined}>
+          {value ?? '-'}
+        </Text>
+        <Flex align="center" gap="xs">
           {extra}
+          {filterBy && (
+            <Button
+              size="zero"
+              borderless
+              icon={isFiltered ? <IconClose /> : <IconFilter />}
+              title={filterLabel}
+              aria-label={filterLabel}
+            />
+          )}
+          {openInNewTab && (
+            <Button
+              size="zero"
+              borderless
+              icon={<IconOpen />}
+              title={openLabel}
+              aria-label={openLabel}
+            />
+          )}
         </Flex>
-        {filterBy && (
-          <Button
-            size="zero"
-            borderless
-            icon={isFiltered ? <IconClose /> : <IconFilter />}
-            title={filterLabel}
-            aria-label={filterLabel}
-          />
-        )}
-        {openInNewTab && (
-          <Button
-            size="zero"
-            borderless
-            icon={<IconOpen />}
-            title={openLabel}
-            aria-label={openLabel}
-          />
-        )}
       </Flex>
       {footer && <Flex>{footer}</Flex>}
     </Fragment>

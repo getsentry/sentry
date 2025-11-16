@@ -2319,6 +2319,24 @@ function buildRoutes(): RouteObject[] {
       children: releaseChildren,
     },
     {
+      path: 'code-changes/',
+      component: make(() => import('sentry/views/explore/codeChanges')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/explore/codeChanges/codeChangesPage')
+          ),
+        },
+        {
+          path: ':pullId/',
+          component: make(
+            () => import('sentry/views/explore/codeChanges/codeChangesDetail')
+          ),
+        },
+      ],
+    },
+    {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
       children: logsChildren,
@@ -2642,6 +2660,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: `${IssueTaxonomy.CODE_QUALITY}/`,
+      component: make(() => import('sentry/views/issueList/pages/codeQuality')),
     },
     {
       path: 'views/',

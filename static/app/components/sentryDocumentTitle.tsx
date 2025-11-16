@@ -80,7 +80,11 @@ function SentryDocumentTitle({
     };
   }, [parentTitle]);
 
-  return <DocumentTitleContext value={documentTitle}>{children}</DocumentTitleContext>;
+  return (
+    <DocumentTitleContext.Provider value={documentTitle}>
+      {children}
+    </DocumentTitleContext.Provider>
+  );
 }
 
 export default SentryDocumentTitle;

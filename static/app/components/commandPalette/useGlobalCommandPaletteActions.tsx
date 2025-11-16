@@ -125,6 +125,12 @@ function useNavigationActions(): CommandPaletteAction[] {
     }),
     makeCommandPaletteLink({
       display: {
+        label: t('Code Changes'),
+      },
+      to: `${prefix}/explore/code-changes/`,
+    }),
+    makeCommandPaletteLink({
+      display: {
         label: t('All Queries'),
       },
       to: `${prefix}/explore/saved-queries/`,

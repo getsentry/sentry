@@ -103,6 +103,7 @@ export enum IssueCategory {
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
+  CODE_QUALITY = 'code_quality',
 }
 
 /**
@@ -117,6 +118,7 @@ export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
+  IssueCategory.CODE_QUALITY,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -128,6 +130,7 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.DB_QUERY]: t('Inefficient or problematic database queries.'),
   [IssueCategory.MOBILE]: t('Mobile performance or usability issues.'),
   [IssueCategory.FEEDBACK]: t('Feedback submitted directly by users.'),
+  [IssueCategory.CODE_QUALITY]: t('Code quality issues detected in pull requests.'),
   [IssueCategory.METRIC_ALERT]: '',
   [IssueCategory.PERFORMANCE]: '',
   [IssueCategory.CRON]: '',
@@ -179,6 +182,10 @@ export enum IssueType {
 
   // Insights Web Vitals
   WEB_VITALS = 'web_vitals',
+
+  // Code Quality
+  CODE_COVERAGE_GAP = 'code_coverage_gap',
+  BUILD_SIZE_MOBILE = 'build_size_mobile',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -226,6 +233,10 @@ export enum IssueTitle {
 
   // Insights Web Vitals
   WEB_VITALS = 'Web Vitals',
+
+  // Code Quality
+  CODE_COVERAGE_GAP = 'Missing Test Coverage',
+  BUILD_SIZE_MOBILE = 'Mobile Build Size Increase',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {

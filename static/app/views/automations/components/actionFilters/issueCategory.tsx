@@ -15,6 +15,7 @@ enum GroupCategory {
   HTTP_CLIENT = 13,
   FRONTEND = 14,
   MOBILE = 15,
+  CODE_QUALITY = 16,
 }
 
 const GROUP_CATEGORY_CHOICES = [
@@ -26,6 +27,7 @@ const GROUP_CATEGORY_CHOICES = [
   {value: GroupCategory.HTTP_CLIENT, label: 'http_client'},
   {value: GroupCategory.FRONTEND, label: 'frontend'},
   {value: GroupCategory.MOBILE, label: 'mobile'},
+  {value: GroupCategory.CODE_QUALITY, label: 'code_quality'},
 ];
 
 export function IssueCategoryDetails({condition}: {condition: DataCondition}) {

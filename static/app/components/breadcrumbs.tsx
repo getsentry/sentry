@@ -12,7 +12,8 @@ import {space} from 'sentry/styles/space';
 const BreadcrumbList = styled('nav')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 0;
+  padding: 0;
+  width: 100%;
 `;
 
 export interface Crumb {

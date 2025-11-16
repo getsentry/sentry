@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 
 export const PREVENT_BASE_URL = 'prevent';
 
-export const COVERAGE_PAGE_TITLE = t('AI Code Coverage');
+export const COVERAGE_PAGE_TITLE = t('Code Changes');
 export const COVERAGE_BASE_URL = 'coverage';
 
 export const TESTS_PAGE_TITLE = t('Test Analytics');

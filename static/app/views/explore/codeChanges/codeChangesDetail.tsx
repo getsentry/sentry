@@ -1,24 +1,28 @@
-import {Outlet, useLocation, useParams} from 'react-router-dom';
+import {Outlet, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconGithub} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {COVERAGE_BASE_URL} from 'sentry/views/prevent/settings';
+import {CodeCoverageView} from 'sentry/views/explore/codeChanges/codeChangesDetailCodeCoverage';
+import {FilesChangedView} from 'sentry/views/explore/codeChanges/codeChangesDetailFilesChanged';
+import {SizeAnalysisView} from 'sentry/views/explore/codeChanges/codeChangesDetailSizeAnalysis';
+import {makeCodeChangesPathname} from 'sentry/views/explore/codeChanges/pathnames';
 
-// This is the page header for the commit detail page.
 // Mock data - would come from props/API in real implementation
-const mockCommitData = {
-  title: 'This PR has been updated to add some tests (#123)',
+const mockPullData = {
+  title: 'This PR has been updated to add some tests',
   author: {
     id: '1',
     email: 'flamefire@example.com',
@@ -28,37 +32,75 @@ const mockCommitData = {
   },
   timestamp: '1 hour ago',
   ciStatus: 'passed',
-  branchName: 'Branch-name',
+  branchName: 'at/add-tests',
   githubUrl: 'https://github.com/example-org/example-repo/pull/123',
 };
 
-export default function CommitDetailWrapper() {
+// Helper component to create commit links with proper organization context
+function CommitLink({
+  commitSha,
+  children,
+}: {
+  children: React.ReactNode;
+  commitSha: string;
+}) {
   const organization = useOrganization();
-  const params = useParams<{sha: string}>();
-  const commitHash = params.sha || 'd677638';
+  const commitPath = makeCodeChangesPathname({
+    organization,
+    path: `/commits/${commitSha}/`,
+  });
+
+  return <Link to={commitPath}>{children}</Link>;
+}
+
+export default function PullDetailWrapper() {
+  const organization = useOrganization();
+  const params = useParams<{pullId: string}>();
+  const pullId = params.pullId || '123';
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Get current tab from URL query parameter, default to 'code-coverage'
+  const currentTab = Array.isArray(location.query.tab)
+    ? location.query.tab[0]
+    : location.query.tab || 'code-coverage';
+
+  const handleTabChange = (newTab: string) => {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        tab: newTab,
+      },
+    });
+  };
 
   const crumbs: Crumb[] = [
+    // {
+    //   label: 'Code Changes',
+    //   to: makeCodeChangesPathname({
+    //     organization,
+    //     path: '/',
+    //   }),
+    // },
     {
-      label: 'Code Coverage',
-      to: makePreventPathname({
-        organization,
-        path: `/${COVERAGE_BASE_URL}/commits/`,
-      }),
+      label: 'Code Changes',
+      to: {
+        pathname: makeCodeChangesPathname({
+          organization,
+          path: '/',
+        }),
+        query: {tab: 'pulls'},
+      },
     },
     {
-      label: 'Commits',
-      to: makePreventPathname({
-        organization,
-        path: `/${COVERAGE_BASE_URL}/commits/`,
-      }),
-    },
-    {
-      label: commitHash,
+      label: `#${pullId}`,
     },
   ];
 
   return (
-    <SentryDocumentTitle title={`Commit ${commitHash}`} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={`Pull Request #${pullId}`} orgSlug={organization.slug}>
       <PageContainer>
         <StyledHeader>
           <Layout.HeaderContent>
@@ -66,13 +108,13 @@ export default function CommitDetailWrapper() {
               <Breadcrumbs crumbs={crumbs} />
             </HeaderTop>
             <HeaderMain>
-              <CommitTitle>{mockCommitData.title}</CommitTitle>
+              <PullTitle>{mockPullData.title}</PullTitle>
             </HeaderMain>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <GitHubButtonContainer>
               <LinkButton
-                href={mockCommitData.githubUrl}
+                href={mockPullData.githubUrl}
                 external
                 size="sm"
                 icon={<IconGithub />}
@@ -81,23 +123,22 @@ export default function CommitDetailWrapper() {
               </LinkButton>
             </GitHubButtonContainer>
           </Layout.HeaderActions>
-          <CommitMetadata>
+          <PullMetadata>
             <MetadataLeft>
-              <UserAvatar user={mockCommitData.author} size={20} />
+              <UserAvatar user={mockPullData.author} size={20} />
               <MetadataInfo>
-                <AuthorName>{mockCommitData.author.name}</AuthorName>
-                <span>committed</span>
-                <CommitHashLink
-                  href={`https://github.com/example-org/example-repo/commit/${commitHash}`}
+                <AuthorName>{mockPullData.author.name}</AuthorName>
+                <span>opened pull request</span>
+                <PullIdLink
+                  href={mockPullData.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <IconGithub size="xs" />
-                  {commitHash}
-                </CommitHashLink>
+                  <IconGithub size="xs" />#{pullId}
+                </PullIdLink>
                 <span>•</span>
                 <Tooltip title="Aug 8, 2025 11:22:15 PM UTC">
-                  <TimestampLink>{mockCommitData.timestamp}</TimestampLink>
+                  <TimestampLink>{mockPullData.timestamp}</TimestampLink>
                 </Tooltip>
                 <Tooltip title="This CI status is based on all of your non-Code Coverage related checks">
                   <CIStatus>
@@ -107,72 +148,38 @@ export default function CommitDetailWrapper() {
                 </Tooltip>
                 <BranchInfo>
                   <IconBranch size="xs" />
-                  <span>{mockCommitData.branchName}</span>
+                  <span>{mockPullData.branchName}</span>
                 </BranchInfo>
               </MetadataInfo>
             </MetadataLeft>
-          </CommitMetadata>
+          </PullMetadata>
         </StyledHeader>
 
         <Layout.Body>
           <Layout.Main width="full">
-            <CommitTabNavigation commitHash={commitHash} />
+            <Tabs value={currentTab} onChange={handleTabChange}>
+              <TabList>
+                <TabList.Item key="files-changed">{t('Files Changed')}</TabList.Item>
+                <TabList.Item key="size-analysis">{t('Size Analysis')}</TabList.Item>
+                <TabList.Item key="code-coverage">{t('Code Coverage')}</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="files-changed">
+                  <FilesChangedView />
+                </TabPanels.Item>
+                <TabPanels.Item key="size-analysis">
+                  <SizeAnalysisView />
+                </TabPanels.Item>
+                <TabPanels.Item key="code-coverage">
+                  <CodeCoverageView CommitLink={CommitLink} />
+                </TabPanels.Item>
+              </TabPanels>
+            </Tabs>
             <Outlet />
           </Layout.Main>
         </Layout.Body>
       </PageContainer>
     </SentryDocumentTitle>
-  );
-}
-
-interface CommitTabNavigationProps {
-  commitHash: string;
-}
-
-function CommitTabNavigation({commitHash}: CommitTabNavigationProps) {
-  const organization = useOrganization();
-  const location = useLocation();
-
-  const tabs = [
-    {
-      label: t('Coverage details'),
-      path: makePreventPathname({
-        organization,
-        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/`,
-      }),
-      isActive: location.pathname.endsWith(`/commits/${commitHash}/`),
-    },
-    {
-      label: t('History'),
-      path: makePreventPathname({
-        organization,
-        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
-      }),
-      isActive: location.pathname.includes('/history'),
-    },
-    {
-      label: t('YAML'),
-      path: makePreventPathname({
-        organization,
-        path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/yaml/`,
-      }),
-      isActive: location.pathname.includes('/yaml'),
-    },
-  ];
-
-  return (
-    <TabContainer>
-      <TabList>
-        {tabs.map(tab => (
-          <TabItem key={tab.label} isActive={tab.isActive}>
-            <TabLink to={tab.path}>
-              <TabLabel isActive={tab.isActive}>{tab.label}</TabLabel>
-              {tab.isActive && <ActiveIndicator />}
-            </TabLink>
-          </TabItem>
-        ))}
-      </TabList>
-    </TabContainer>
   );
 }
 
@@ -200,7 +207,7 @@ const HeaderMain = styled('div')`
   margin-top: 6px;
 `;
 
-const CommitTitle = styled('h1')`
+const PullTitle = styled('h1')`
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -212,7 +219,7 @@ const GitHubButtonContainer = styled('div')`
   margin-top: ${p => p.theme.space.xl};
 `;
 
-const CommitMetadata = styled('div')`
+const PullMetadata = styled('div')`
   position: absolute;
   left: ${p => p.theme.space.xs};
   bottom: ${p => p.theme.space.xl};
@@ -239,7 +246,7 @@ const AuthorName = styled('span')`
   font-weight: 500;
 `;
 
-const CommitHashLink = styled('a')`
+const PullIdLink = styled('a')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
@@ -270,57 +277,4 @@ const BranchInfo = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-// Tab Navigation Styled Components
-const TabContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: 0 ${p => p.theme.space['3xl']} 0 ${p => p.theme.space['2xl']};
-`;
-
-const TabList = styled('div')`
-  display: flex;
-  flex-direction: row;
-`;
-
-const TabItem = styled('div')<{isActive: boolean}>`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: 0 ${p => p.theme.space.md};
-  position: relative;
-`;
-
-const TabLink = styled(Link)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-  position: relative;
-  width: 100%;
-`;
-
-const TabLabel = styled('div')<{isActive?: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${p => p.theme.space.md} 0;
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.14;
-  text-align: center;
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
-`;
-
-const ActiveIndicator = styled('div')`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: ${p => p.theme.purple300};
-  border-radius: 1.5px 1.5px 0 0;
 `;
