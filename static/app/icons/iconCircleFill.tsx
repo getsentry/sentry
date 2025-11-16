@@ -6,8 +6,8 @@ import {SvgIcon} from './svgIcon';
  */
 export function IconCircleFill(props: SVGIconProps) {
   return (
-    <SvgIcon {...props} viewBox="0 0 24 24" kind="path">
-      <circle cx="12" cy="12" r="10" />
+    <SvgIcon {...props}>
+      <circle cx="8" cy="8" r="8" />
     </SvgIcon>
   );
 }

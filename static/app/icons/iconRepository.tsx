@@ -2,26 +2,15 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {SvgIcon, useResolvedIconColor} from 'sentry/icons/svgIcon';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 
 export function IconRepository(props: SVGIconProps) {
   const theme = useTheme();
-  const color = useResolvedIconColor(props.color);
 
   return (
-    <SvgIcon
-      {...props}
-      kind={theme.isChonk ? 'stroke' : 'path'}
-      data-test-id="icon-repository"
-    >
+    <SvgIcon {...props}>
       {theme.isChonk ? (
-        <Fragment>
-          <path d="M4.77 12.75c-.55 0-1-.45-1-1v-8c0-.55.45-1 1-1h7.5v10h-1.5" />
-          <path
-            fill={color}
-            d="M3.77 11c0-.55.45-1 1-1h7.5m-5.5 2v2l1-.75 1 .75v-2h-2Z"
-          />
-        </Fragment>
+        <path d="M12.25 0C13.2165 0 14 0.783502 14 1.75V13.5C14 14.0523 13.5523 14.5 13 14.5H10.75C10.3358 14.5 10 14.1642 10 13.75C10 13.3358 10.3358 13 10.75 13H12.5V11.5H9V16L7 14L5 16V11.5H3.5V13.75C3.5 14.1642 3.16421 14.5 2.75 14.5C2.33579 14.5 2 14.1642 2 13.75V1.75C2 0.783502 2.7835 1.00665e-08 3.75 0H12.25ZM3.75 1.5C3.61193 1.5 3.5 1.61193 3.5 1.75V10H12.5V1.75C12.5 1.61193 12.3881 1.5 12.25 1.5H3.75Z" />
       ) : (
         <Fragment>
           <path d="M8.8901 11.418a.7502.7502 0 0 1 .75.7343l.0508 2.4961a.7503.7503 0 0 1-.4072.6827.7519.7519 0 0 1-.793-.0674l-.8047-.6045-.8046.6045a.7505.7505 0 0 1-.7784.0742.7517.7517 0 0 1-.4219-.6592l-.0507-2.4951a.7525.7525 0 0 1 .2138-.541.7513.7513 0 0 1 .5362-.2246H8.89Z" />
