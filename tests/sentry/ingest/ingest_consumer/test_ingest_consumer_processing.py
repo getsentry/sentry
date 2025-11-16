@@ -29,7 +29,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.services import eventstore
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
@@ -467,10 +467,8 @@ def test_process_stored_attachment(
         with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
             attachment_payload = f.read()
 
-        stored_id = (
-            get_attachments_client()
-            .for_project(default_project.organization_id, project_id)
-            .put(attachment_payload)
+        stored_id = get_attachments_session(default_project.organization_id, project_id).put(
+            attachment_payload
         )
 
         with task_runner():
