@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -304,14 +304,14 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2.1"
+version = "5.2.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "asgiref", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sqlparse", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.1-py3-none-any.whl", hash = "sha256:a9b680e84f9a0e71da83e399f1e922e1ab37b2173ced046b541c72e1589a5961" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.7-py3-none-any.whl", hash = "sha256:59a13a6515f787dec9d97a0438cd2efac78c8aca1c80025244b0fe507fe0754b" },
 ]
 
 [[package]]
@@ -2103,7 +2103,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=44.0.1" },
     { name = "cssselect", specifier = ">=1.0.3" },
     { name = "datadog", specifier = ">=0.49.1" },
-    { name = "django", specifier = ">=5.2.1" },
+    { name = "django", specifier = ">=5.2.7" },
     { name = "django-crispy-forms", specifier = ">=1.14.0" },
     { name = "django-csp", specifier = ">=3.8" },
     { name = "django-pg-zero-downtime-migrations", specifier = ">=0.18" },
