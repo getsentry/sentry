@@ -6,13 +6,13 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
+import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
@@ -45,10 +45,7 @@ export default function ReplayTable({
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
-  const location = useLocation();
-  if (!eventView) {
-    eventView = EventView.fromLocation(location);
-  }
+  const playlistQuery = usePlaylistQuery(eventView);
 
   if (isPending) {
     return (
@@ -118,8 +115,8 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
+                query={playlistQuery}
                 columnIndex={columnIndex}
-                eventView={eventView}
                 replay={replay}
                 rowIndex={rowIndex}
                 showDropdownFilters={showDropdownFilters}

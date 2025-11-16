@@ -18,7 +18,6 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -27,7 +26,6 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -55,10 +53,10 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  eventView: EventView;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  query?: Query;
 }
 
 export interface ReplayTableColumn {
@@ -91,25 +89,6 @@ export interface ReplayTableColumn {
    * Defaults to `max-content`
    */
   width?: string;
-}
-
-function generateQueryStringObjectWithPlaylist(eventView: EventView): Query {
-  const {statsPeriod, start, end, ...eventViewQuery} =
-    eventView.generateQueryStringObject();
-
-  if (typeof statsPeriod === 'string') {
-    const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
-      statsPeriod,
-      undefined,
-      true
-    );
-    eventViewQuery.playlistStart = playlistStart;
-    eventViewQuery.playlistEnd = playlistEnd;
-  } else if (start && end) {
-    eventViewQuery.playlistStart = start;
-    eventViewQuery.playlistEnd = end;
-  }
-  return eventViewQuery;
 }
 
 export const ReplayActivityColumn: ReplayTableColumn = {
@@ -336,21 +315,19 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay, eventView}) => {
-    const routes = useRoutes();
+  Component: ({replay, query}) => {
     const organization = useOrganization();
-
-    const referrer = getRouteStringFromRoutes(routes);
-    const query = {referrer, ...generateQueryStringObjectWithPlaylist(eventView)};
-
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
       organization,
     });
 
+    const routes = useRoutes();
+    const referrer = getRouteStringFromRoutes(routes);
+
     const detailsTab = () => ({
       pathname: replayDetailsPathname,
-      query,
+      query: {referrer, ...query},
     });
 
     return (
@@ -542,9 +519,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, eventView}) => {
+  Component: ({replay, query}) => {
     const routes = useRoutes();
-    const location = useLocation();
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -560,17 +536,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const detailsTabQuery: Query = {
       referrer,
-      ...generateQueryStringObjectWithPlaylist(eventView),
+      ...query,
     };
-
-    // Because the sort and cursor field is only generated in EventView conditionally and we
-    // want to avoid dirtying the URL with fields, we manually add them to the query here.
-    if (location.query.sort) {
-      detailsTabQuery.playlistSort = location.query.sort;
-    }
-    if (location.query.cursor) {
-      detailsTabQuery.cursor = location.query.cursor;
-    }
 
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,

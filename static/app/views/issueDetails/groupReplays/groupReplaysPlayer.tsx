@@ -17,6 +17,7 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
+  eventView: EventView;
   handleBackClick: undefined | (() => void);
   handleForwardClick: undefined | (() => void);
   overlayContent: React.ReactNode;
@@ -25,6 +26,7 @@ interface Props {
 
 export default function GroupReplaysPlayer({
   analyticsContext,
+  eventView,
   handleForwardClick,
   handleBackClick,
   overlayContent,
@@ -65,6 +67,7 @@ export default function GroupReplaysPlayer({
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
                   <ReplayPreviewPlayer
+                    eventView={eventView}
                     errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                     replayId={replayReaderResult.replayId}
                     replayRecord={replayReaderResult.replayRecord!}

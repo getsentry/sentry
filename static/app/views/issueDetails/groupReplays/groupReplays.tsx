@@ -165,12 +165,14 @@ export default function GroupReplays({group}: Props) {
 
 function SelectedReplayWrapper({
   children,
+  eventView,
   group,
   replaySlug,
   overlayContent,
   replays,
 }: {
   children: React.ReactNode;
+  eventView: EventView;
   group: Group;
   overlayContent: React.ReactNode;
   replaySlug: string;
@@ -195,6 +197,7 @@ function SelectedReplayWrapper({
       autoStart
     >
       <GroupReplaysPlayer
+        eventView={eventView}
         replayReaderResult={readerResult}
         overlayContent={overlayContent}
         handleForwardClick={
@@ -266,6 +269,7 @@ function GroupReplaysTable({
         group={group}
         replaySlug={selectedReplay.id}
         replays={replays}
+        eventView={eventView}
       >
         {replayTable}
       </SelectedReplayWrapper>

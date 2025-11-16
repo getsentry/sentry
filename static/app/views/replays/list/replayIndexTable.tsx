@@ -10,7 +10,6 @@ import {
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {t, tct} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -22,7 +21,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
@@ -49,7 +47,6 @@ export default function ReplayIndexTable({
   replays,
 }: Props) {
   const queryClient = useQueryClient();
-  const location = useLocation();
 
   const {
     selection: {projects},
@@ -85,8 +82,6 @@ export default function ReplayIndexTable({
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays,
   });
-
-  const eventView = EventView.fromLocation(location);
 
   return (
     <Fragment>
@@ -133,7 +128,6 @@ export default function ReplayIndexTable({
             onSortClick={onSortClick}
             replays={replays}
             showDropdownFilters
-            eventView={eventView}
             sort={sortType}
           />
         )}
