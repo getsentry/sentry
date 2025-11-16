@@ -169,6 +169,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Sampling profile ${shortProfileId}...`
       : `Sampled profile ${shortProfileId}`;
   },
+
+  get_metric_attributes: (args, isLoading) => {
+    const metricName = args.metric_name || '';
+    const timestamp = args.timestamp || '';
+    return isLoading
+      ? `Double-clicking on metric '${metricName}' at ${timestamp}...`
+      : `Double-clicked on metric '${metricName}' at ${timestamp}`;
+  },
 };
 
 /**
