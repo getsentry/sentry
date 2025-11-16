@@ -52,9 +52,9 @@ export default function ReplayPreviewPlayer({
   playPausePriority,
 }: {
   errorBeforeReplayStart: boolean;
-  eventView: EventView;
   replayId: string;
   replayRecord: ReplayRecord;
+  eventView?: EventView;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
