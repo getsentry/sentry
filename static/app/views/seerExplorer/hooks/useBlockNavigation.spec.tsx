@@ -9,7 +9,7 @@ describe('useBlockNavigation', () => {
     jest.useFakeTimers();
     // Mock requestAnimationFrame to execute callback immediately
     global.requestAnimationFrame = jest.fn(cb => {
-      cb();
+      cb(performance.now());
       return 1;
     });
     global.cancelAnimationFrame = jest.fn();
@@ -88,6 +88,7 @@ describe('useBlockNavigation', () => {
 
   const createMockTextarea = () => {
     const mockFocus = jest.fn();
+    const mockBlur = jest.fn();
     const mockScrollIntoView = jest.fn();
     const mockGetBoundingClientRect = jest.fn(() => ({
       top: 200,
@@ -99,6 +100,7 @@ describe('useBlockNavigation', () => {
     }));
     return {
       focus: mockFocus,
+      blur: mockBlur,
       scrollIntoView: mockScrollIntoView,
       offsetTop: 200,
       offsetHeight: 50,
@@ -132,6 +134,7 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(defaultProps.setFocusedBlockIndex).toHaveBeenCalledWith(2); // Last block index
+      expect(mockTextarea.blur).toHaveBeenCalled();
       expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
     });
 

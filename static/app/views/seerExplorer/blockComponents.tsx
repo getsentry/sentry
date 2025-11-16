@@ -397,7 +397,7 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
   cursor: pointer;
-  background: ${p => (p.isFocused ? p.theme.backgroundSecondary : 'transparent')};
+  background: ${p => (p.isFocused ? p.theme.hover : 'transparent')};
 `;
 
 const BlockRow = styled('div')`
