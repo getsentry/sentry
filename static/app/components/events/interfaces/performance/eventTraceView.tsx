@@ -132,7 +132,7 @@ const IssuesTraceContainer = styled('div')`
 `;
 
 const isWebVitalsEvent = (event: Event) => {
-  return event.tags.some((tag: {key: string}) => tag?.key === 'web_vital');
+  return event.occurrence?.type === 10001; // Web Vitals group type id
 };
 
 interface EventTraceViewProps {
