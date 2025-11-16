@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -126,45 +126,53 @@ function BlockComponent({
   }, [selectedLinkIndex]);
 
   // Get valid tool links sorted by their corresponding tool call indices
-  const sortedToolLinks = useMemo(
-    () =>
-      (block.tool_links || [])
-        .map((link, idx) => {
-          if (!link) {
-            return null;
-          }
-
-          // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
-          const toolCallId = block.tool_results?.[idx]?.tool_call_id;
-          const toolCallIndex = block.message.tool_calls?.findIndex(
-            call => call.id === toolCallId
-          );
-          const canBuildUrl =
-            buildToolLinkUrl(link, organization.slug, projects) !== null;
-
-          if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-            return {link, toolCallIndex};
-          }
+  // Also create a mapping from tool call index to sorted link index
+  const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
+    const mappedLinks = (block.tool_links || [])
+      .map((link, idx) => {
+        if (!link) {
           return null;
-        })
-        .filter(
-          (
-            item
-          ): item is {
-            link: {kind: string; params: Record<string, any>};
-            toolCallIndex: number;
-          } => item !== null
-        )
-        .sort((a, b) => a.toolCallIndex - b.toolCallIndex)
-        .map(item => item.link),
-    [
-      block.tool_links,
-      block.tool_results,
-      block.message.tool_calls,
-      organization.slug,
-      projects,
-    ]
-  );
+        }
+
+        // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+        const toolCallId = block.tool_results?.[idx]?.tool_call_id;
+        const toolCallIndex = block.message.tool_calls?.findIndex(
+          call => call.id === toolCallId
+        );
+        const canBuildUrl = buildToolLinkUrl(link, organization.slug, projects) !== null;
+
+        if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+          return {link, toolCallIndex};
+        }
+        return null;
+      })
+      .filter(
+        (
+          item
+        ): item is {
+          link: {kind: string; params: Record<string, any>};
+          toolCallIndex: number;
+        } => item !== null
+      )
+      .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+    // Create mapping from tool call index to sorted link index
+    const toolCallToLinkMap = new Map<number, number>();
+    mappedLinks.forEach((item, sortedIndex) => {
+      toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+    });
+
+    return {
+      sortedToolLinks: mappedLinks.map(item => item.link),
+      toolCallToLinkIndexMap: toolCallToLinkMap,
+    };
+  }, [
+    block.tool_links,
+    block.tool_results,
+    block.message.tool_calls,
+    organization.slug,
+    projects,
+  ]);
 
   const hasValidLinks = sortedToolLinks.length > 0;
 
@@ -305,15 +313,28 @@ function BlockComponent({
                   <ToolCallStack gap="md">
                     {block.message.tool_calls?.map((toolCall, idx) => {
                       const toolString = toolsUsed[idx];
+                      const hasLink = toolCallToLinkIndexMap.has(idx);
+                      // Check if this tool call corresponds to the selected link
+                      const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
+                      const isHighlighted =
+                        isFocused &&
+                        hasValidLinks &&
+                        correspondingLinkIndex !== undefined &&
+                        correspondingLinkIndex === selectedLinkIndex;
                       return (
-                        <ToolCallText
-                          key={`${toolCall.function}-${idx}`}
-                          size="xs"
-                          variant="muted"
-                          monospace
-                        >
-                          {toolString}
-                        </ToolCallText>
+                        <ToolCallTextContainer key={`${toolCall.function}-${idx}`}>
+                          <ToolCallText
+                            size="xs"
+                            variant="muted"
+                            monospace
+                            isHighlighted={isHighlighted}
+                          >
+                            {toolString}
+                          </ToolCallText>
+                          {hasLink && (
+                            <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
+                          )}
+                        </ToolCallTextContainer>
                       );
                     })}
                   </ToolCallStack>
@@ -344,6 +365,7 @@ function BlockComponent({
                           size="xs"
                           priority={idx === selectedLinkIndex ? 'primary' : 'default'}
                           onClick={e => handleNavigateClick(e, idx)}
+                          onMouseEnter={() => setSelectedLinkIndex(idx)}
                         >
                           {idx === 0
                             ? sortedToolLinks.length === 1
@@ -498,12 +520,28 @@ const ToolCallStack = styled(Stack)`
   padding-right: ${p => p.theme.space.lg};
 `;
 
-const ToolCallText = styled(Text)`
+const ToolCallTextContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  max-width: 100%;
+`;
+
+const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
-  max-width: 100%;
+  min-width: 0;
+  ${p =>
+    p.isHighlighted &&
+    `
+    color: ${p.theme.linkHoverColor};
+    font-weight: ${p.theme.fontWeight.bold};
+  `}
+`;
+
+const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
+  color: ${p => (p.isHighlighted ? p.theme.linkHoverColor : p.theme.subText)};
 `;
 
 const ActionButtonBar = styled(ButtonBar)`
