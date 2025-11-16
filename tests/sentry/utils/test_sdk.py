@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 from unittest.mock import MagicMock, patch
 
+import pytest
 import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
@@ -20,6 +21,7 @@ from sentry.utils.sdk import (
     check_current_scope_transaction,
     check_tag_for_scope_bleed,
     merge_context_into_scope,
+    patch_transport_for_instrumentation,
 )
 
 
@@ -525,3 +527,118 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+class PatchTransportForInstrumentationTest(TestCase):
+    """Tests for SDK transport patching with error tracking."""
+
+    @patch("sentry.utils.sdk.metrics")
+    @patch("sentry.utils.sdk.logger")
+    def test_successful_request(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
+        """Test that successful requests are instrumented with metrics."""
+        mock_transport = MagicMock()
+        mock_transport._send_request = MagicMock(return_value="success")
+
+        patched_transport = patch_transport_for_instrumentation(mock_transport, "test_transport")
+        result = patched_transport._send_request("arg1", kwarg1="value1")
+
+        # Should increment success metric
+        mock_metrics.incr.assert_called_once_with("internal.sent_requests.test_transport.events")
+        # Should not log errors
+        assert mock_logger.warning.call_count == 0
+        # Should return the result
+        assert result == "success"
+
+    @patch("sentry.utils.sdk.metrics")
+    @patch("sentry.utils.sdk.logger")
+    def test_transport_error_tracking(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """Test that transport errors are tracked with metrics and logged."""
+        # Simulate an HTTP/2 connection error like in the original issue
+        error = ConnectionError("Invalid input ConnectionInputs.RECV_PING in state CLOSED")
+        mock_transport = MagicMock()
+        mock_transport._send_request = MagicMock(side_effect=error)
+
+        patched_transport = patch_transport_for_instrumentation(mock_transport, "upstream")
+
+        # Should re-raise the exception after tracking
+        with pytest.raises(ConnectionError):
+            patched_transport._send_request("arg1")
+
+        # Should increment both metrics
+        assert mock_metrics.incr.call_count == 2
+        mock_metrics.incr.assert_any_call("internal.sent_requests.upstream.events")
+        mock_metrics.incr.assert_any_call(
+            "internal.sdk_transport_error",
+            tags={"transport": "upstream", "error_type": "ConnectionError"},
+            sample_rate=1.0,
+        )
+
+        # Should log the error
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert "SDK transport error" in call_args[0][0]
+        assert call_args[1]["extra"]["transport"] == "upstream"
+        assert call_args[1]["extra"]["error_type"] == "ConnectionError"
+        assert call_args[1]["exc_info"] is False
+
+    @patch("sentry.utils.sdk.metrics")
+    @patch("sentry.utils.sdk.logger")
+    def test_httpcore_protocol_error(self, mock_logger: MagicMock, mock_metrics: MagicMock) -> None:
+        """Test specific tracking of httpcore.LocalProtocolError like in the real issue."""
+
+        # Create a mock exception that mimics httpcore.LocalProtocolError
+        class LocalProtocolError(Exception):
+            pass
+
+        error = LocalProtocolError(
+            "Invalid input ConnectionInputs.RECV_PING in state ConnectionState.CLOSED"
+        )
+        mock_transport = MagicMock()
+        mock_transport._send_request = MagicMock(side_effect=error)
+
+        patched_transport = patch_transport_for_instrumentation(mock_transport, "relay")
+
+        with pytest.raises(LocalProtocolError):
+            patched_transport._send_request()
+
+        # Verify error type is tracked correctly
+        error_metric_call = [
+            call for call in mock_metrics.incr.call_args_list if "sdk_transport_error" in str(call)
+        ][0]
+        assert error_metric_call[1]["tags"]["error_type"] == "LocalProtocolError"
+
+    @patch("sentry.utils.sdk.metrics")
+    def test_transport_with_no_send_request(self, mock_metrics: MagicMock) -> None:
+        """Test that patching handles transports without _send_request gracefully."""
+        mock_transport = MagicMock()
+        mock_transport._send_request = None
+
+        patched_transport = patch_transport_for_instrumentation(mock_transport, "test_transport")
+
+        # Should return transport unchanged
+        assert patched_transport == mock_transport
+        # Should not call metrics
+        assert mock_metrics.incr.call_count == 0
+
+    @patch("sentry.utils.sdk.metrics")
+    @patch("sentry.utils.sdk.logger")
+    def test_error_message_truncation(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """Test that long error messages are truncated to avoid log spam."""
+        long_message = "x" * 300  # 300 character error message
+        error = ValueError(long_message)
+        mock_transport = MagicMock()
+        mock_transport._send_request = MagicMock(side_effect=error)
+
+        patched_transport = patch_transport_for_instrumentation(mock_transport, "test")
+
+        with pytest.raises(ValueError):
+            patched_transport._send_request()
+
+        # Verify error message is truncated in logs
+        log_call = mock_logger.warning.call_args
+        logged_message = log_call[1]["extra"]["error_message"]
+        assert len(logged_message) <= 200

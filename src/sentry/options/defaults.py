@@ -349,7 +349,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 register(
     "cleanup.abort_execution",
     default=False,
@@ -2498,6 +2497,13 @@ register(
 register(
     "metric_extraction.max_span_attribute_specs",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SDK Transport Error Sample Rate
+register(
+    "sdk_transport_error.sample-rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
