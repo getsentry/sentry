@@ -194,6 +194,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/alert-rule-workflow/'
   | '/organizations/$organizationIdOrSlug/alert-rules/'
   | '/organizations/$organizationIdOrSlug/alert-rules/$alertRuleId/'
+  | '/organizations/$organizationIdOrSlug/alert-rules/$alertRuleId/anomaly-thresholds/'
   | '/organizations/$organizationIdOrSlug/alert-rules/available-actions/'
   | '/organizations/$organizationIdOrSlug/api-keys/'
   | '/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/'
