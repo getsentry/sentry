@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 type TraceElement = HTMLElement | SVGElement;
 
@@ -44,7 +43,6 @@ export function SentryComponentInspector() {
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef<boolean>(false);
 
-  const user: ReturnType<typeof useUser> | null = useUser();
   const organization = useOrganization({allowNull: true});
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
@@ -58,7 +56,7 @@ export function SentryComponentInspector() {
     {
       match: 'command+i',
       callback: () => {
-        if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+        if (NODE_ENV !== 'development') {
           return;
         }
         setState(prev => ({
@@ -100,7 +98,7 @@ export function SentryComponentInspector() {
   stateRef.current = state;
 
   useLayoutEffect(() => {
-    if (!user || !user.isSuperuser || NODE_ENV !== 'development') {
+    if (NODE_ENV !== 'development') {
       return () => {};
     }
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
@@ -277,7 +275,7 @@ export function SentryComponentInspector() {
       document.body.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [state.enabled, contextMenu, user, organization]);
+  }, [state.enabled, contextMenu, organization]);
 
   const tracePreview = useMemo(() => {
     return state.trace?.slice(0, 3) ?? [];
@@ -317,7 +315,7 @@ export function SentryComponentInspector() {
     [storybookFiles]
   );
 
-  if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+  if (NODE_ENV !== 'development') {
     return null;
   }
 

@@ -18,45 +18,41 @@ jest.mock('sentry/stories/view/useStoriesLoader', () => {
 
 describe('SentryComponentInspector', () => {
   it.each([
-    ['development', true, true],
-    ['development', false, false],
-    ['production', true, false],
-    ['production', false, false],
-  ])(
-    'adds event listener for ENV=%s and isSuperuser=%s',
-    (env, isSuperuser, expectCalled) => {
-      jest.mocked(constants).NODE_ENV = env;
+    ['development', true],
+    ['production', false],
+    ['test', false],
+  ])('adds event listener for ENV=%s', (env, expectCalled) => {
+    jest.mocked(constants).NODE_ENV = env;
 
-      const mockUser = UserFixture({isSuperuser});
-      ConfigStore.set('user', mockUser);
+    const mockUser = UserFixture();
+    ConfigStore.set('user', mockUser);
 
-      const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
 
-      render(
-        <div>
-          <SentryComponentInspector />
-          <div
-            data-sentry-source-path="/static/app/components/test/component.tsx"
-            data-sentry-component="TestComponent"
-          >
-            Test Component Content
-          </div>
+    render(
+      <div>
+        <SentryComponentInspector />
+        <div
+          data-sentry-source-path="/static/app/components/test/component.tsx"
+          data-sentry-component="TestComponent"
+        >
+          Test Component Content
         </div>
-      );
+      </div>
+    );
 
-      if (expectCalled) {
-        expect(addEventListenerSpy).toHaveBeenCalledWith(
-          'devtools.toggle_component_inspector',
-          expect.any(Function)
-        );
-      } else {
-        expect(addEventListenerSpy).not.toHaveBeenCalledWith(
-          'devtools.toggle_component_inspector',
-          expect.any(Function)
-        );
-      }
+    if (expectCalled) {
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'devtools.toggle_component_inspector',
+        expect.any(Function)
+      );
+    } else {
+      expect(addEventListenerSpy).not.toHaveBeenCalledWith(
+        'devtools.toggle_component_inspector',
+        expect.any(Function)
+      );
     }
-  );
+  });
 
   it('renders a preview trace of the component', async () => {
     jest.mocked(constants).NODE_ENV = 'development';
