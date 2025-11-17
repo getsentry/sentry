@@ -17,6 +17,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -41,10 +42,12 @@ type Props = {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  queue?: WidgetQueryQueue;
 };
 
 function WidgetQueries({
   api,
+  queue,
   children,
   organization,
   selection,
@@ -162,6 +165,7 @@ function WidgetQueries({
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
         <GenericWidgetQueries<SeriesResult, TableResult>
+          queue={queue}
           config={config}
           api={api}
           organization={organization}
