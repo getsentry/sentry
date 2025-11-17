@@ -281,7 +281,23 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             # Allow for some tolerance in duration matching
             assert any(abs(d - expected) < 10 for d in durations)
 
-    def test_execute_trace_query_nonexistent_organization(self):
+    def test_spans_table_appends_sort(self):
+        """Test sort is automatically appended to selected fields if not provided."""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=["id"],
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=1,
+        )
+
+        assert result is not None
+        rows = result["data"]
+        assert "id" in rows[0]
+        assert "timestamp" in rows[0]
+
+    def test_spans_query_nonexistent_organization(self):
         """Test queries handle nonexistent organization gracefully"""
         timeseries_result = execute_timeseries_query(
             org_id=99999,
@@ -1569,6 +1585,18 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         self.login_as(user=self.user)
         self.ten_mins_ago = before_now(minutes=10)
         self.nine_mins_ago = before_now(minutes=9)
+        self.default_fields = [
+            "id",
+            "message",
+            "message.template",
+            "project.id",
+            "trace",
+            "severity_number",
+            "severity",
+            "timestamp",
+            "timestamp_precise",
+            "observed_timestamp",
+        ]
 
     def test_logs_table_basic(self) -> None:
         # Create logs with various attributes
@@ -1600,23 +1628,10 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(logs)
 
-        fields = [
-            "id",
-            "message",
-            "message.template",
-            "project.id",
-            "trace",
-            "severity_number",
-            "severity",
-            "timestamp",
-            "timestamp_precise",
-            "observed_timestamp",
-        ]
-
         result = execute_table_query(
             org_id=self.organization.id,
             dataset="ourlogs",
-            fields=fields,
+            fields=self.default_fields,
             per_page=10,
             stats_period="1h",
             project_slugs=[self.project.slug],
@@ -1627,5 +1642,5 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert len(data) == len(logs)
 
         for log in data:
-            for field in fields:
+            for field in self.default_fields:
                 assert field in log, field

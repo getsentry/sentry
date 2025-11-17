@@ -65,6 +65,12 @@ def execute_table_query(
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
 
+    if sort:
+        # Auto-select sort field to avoid snuba errors.
+        sort_field = sort.lstrip("-")
+        if sort_field not in fields:
+            fields.append(sort_field)
+
     params: dict[str, Any] = {
         "dataset": dataset,
         "field": fields,
