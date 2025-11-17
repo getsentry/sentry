@@ -7,6 +7,7 @@ import styled, {
 } from '@emotion/styled';
 import modifyColor from 'color';
 
+import {color} from './color';
 import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
 import commonTheme, {
   darkTheme,
@@ -554,8 +555,8 @@ const radius = {
 } as const;
 
 const lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
   surface500: tokens.color.background.primary.light, // background.primary
   surface400: tokens.color.background.secondary.light, // background.secondary
@@ -563,62 +564,62 @@ const lightColors = {
   surface200: tokens.color.border.secondary.light, // border.muted
   surface100: tokens.color.border.primary.light, // border.primary
 
-  gray800: '#181423', // content.primary
-  gray700: '#3B434E', // ⚠ link.muted.active only
-  gray600: '#48515B', // ⚠ link.muted.hover only
-  gray500: '#57606B', // content.secondary, link.muted.default
-  gray400: '#707C89', // graphics.muted
-  gray300: 'rgba(112, 124, 137, 0.12)',
-  gray200: 'rgba(112, 124, 137, 0.09)',
-  gray100: 'rgba(112, 124, 137, 0.05)',
+  gray800: tokens.color.content.primary.light, // content.primary
+  gray700: color.neutral.light.opaque[1300], // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque[1200], // ⚠ link.muted.hover only
+  gray500: tokens.color.content.secondary.light, // content.secondary, link.muted.default
+  gray400: tokens.color.graphics.neutral.muted.light, // graphics.muted
+  gray300: color.neutral.light.transparent[300],
+  gray200: color.neutral.light.transparent[200],
+  gray100: color.neutral.light.transparent[100],
 
-  blue700: '#4E09BC', // ⚠ link.accent.active only
-  blue600: '#5D0CDC', // ⚠ link.accent.hover only
-  blue500: '#6C02FF', // content.accent, link.accent.default
-  blue400: '#8466FF', // graphics.muted, border.accent
-  blue300: 'rgba(132, 102, 255, 0.13)',
-  blue200: 'rgba(132, 102, 255, 0.09)',
-  blue100: 'rgba(132, 102, 255, 0.05)',
+  blue700: color.blue.light.opaque[1400], // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque[1300], // ⚠ link.accent.hover only
+  blue500: tokens.color.content.accent.light, // content.accent, link.accent.default
+  blue400: tokens.color.graphics.accent.muted.light, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent[300],
+  blue200: color.blue.light.transparent[200],
+  blue100: color.blue.light.transparent[100],
 
-  pink700: '#A11B6C', // ⚠ link.promotion.active only
-  pink600: '#B60979', // ⚠ link.promotion.hover only
-  pink500: '#D5008D', // content.promotion, link.promotion.default
-  pink400: '#FF4EB3', // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 78, 179, 0.17)',
-  pink200: 'rgba(255, 78, 179, 0.12)',
-  pink100: 'rgba(255, 78, 179, 0.06)',
+  pink700: color.pink.light.opaque[1300], // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque[1200], // ⚠ link.promotion.hover only
+  pink500: tokens.color.content.promotion.light, // content.promotion, link.promotion.default
+  pink400: tokens.color.graphics.promotion.muted.light, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent[300],
+  pink200: color.pink.light.transparent[200],
+  pink100: color.pink.light.transparent[100],
 
-  red700: '#9C0819', // ⚠ link.danger.active only
-  red600: '#B1001B', // ⚠ link.danger.hover only
-  red500: '#CB0020', // ⚠ content.danger, link.danger.default
-  red400: '#FF002B', // graphics.danger, border.danger
-  red300: 'rgba(255, 0, 43, 0.10)',
-  red200: 'rgba(255, 0, 43, 0.08)',
-  red100: 'rgba(255, 0, 43, 0.04)',
+  red700: color.red.light.opaque[1200], // ⚠ link.danger.active only
+  red600: color.red.light.opaque[1100], // ⚠ link.danger.hover only
+  red500: tokens.color.content.danger.light, // ⚠ content.danger, link.danger.default
+  red400: tokens.color.graphics.danger.muted.light, // graphics.danger, border.danger
+  red300: color.red.light.transparent[300],
+  red200: color.red.light.transparent[200],
+  red100: color.red.light.transparent[100],
 
-  yellow700: '#AD4A0D', // ⚠ link.warning.active only
-  yellow600: '#C55200', // ⚠ link.warning.hover only
-  yellow500: '#E66000', // content.warning, link.warning.default
-  yellow400: '#F3B01B', // graphics.warning, border.warning
-  yellow300: 'rgba(243, 176, 27, 0.24)',
-  yellow200: 'rgba(243, 176, 27, 0.17)',
-  yellow100: 'rgba(243, 176, 27, 0.07)',
+  yellow700: color.yellow.light.opaque[1200], // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque[1100], // ⚠ link.warning.hover only
+  yellow500: tokens.color.content.warning.light, // content.warning, link.warning.default
+  yellow400: tokens.color.graphics.warning.muted.light, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent[300],
+  yellow200: color.yellow.light.transparent[200],
+  yellow100: color.yellow.light.transparent[100],
 
-  green700: '#01651F', // ⚠ link.success.active only
-  green600: '#017526', // ⚠ link.success.hover only
-  green500: '#06892F', // content.success, link.success.default
-  green400: '#06AC3D', // graphics.success, border.success
-  green300: 'rgba(6, 172, 61, 0.10)',
-  green200: 'rgba(6, 172, 61, 0.07)',
-  green100: 'rgba(6, 172, 61, 0.04)',
+  green700: color.green.light.opaque[1200], // ⚠ link.success.active only
+  green600: color.green.light.opaque[1100], // ⚠ link.success.hover only
+  green500: tokens.color.content.success.light, // content.success, link.success.default
+  green400: tokens.color.graphics.success.muted.light, // graphics.success, border.success
+  green300: color.green.light.transparent[300],
+  green200: color.green.light.transparent[200],
+  green100: color.green.light.transparent[100],
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.categorical.light.blurple,
+    pink400: color.pink.light.opaque[400],
+    red400: color.red.light.opaque[1000],
+    yellow400: color.yellow.light.opaque[600],
+    green400: color.green.light.opaque[800],
   },
 };
 
