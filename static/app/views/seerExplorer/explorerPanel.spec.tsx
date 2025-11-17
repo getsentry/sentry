@@ -19,6 +19,7 @@ describe('ExplorerPanel', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    sessionStorage.clear();
 
     // This matches the real behavior when no run ID is provided.
     MockApiClient.addMockResponse({
