@@ -76,6 +76,7 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import Table from 'sentry/views/discover/table';
 import {generateTitle} from 'sentry/views/discover/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -653,12 +654,44 @@ export class Results extends Component<Props, State> {
   }
 
   renderTransactionsDatasetDeprecationBanner() {
-    const {savedQueryDataset} = this.state;
+    const {savedQueryDataset, savedQuery} = this.state;
     const {location, organization} = this.props;
     const dataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
       savedQueryDataset
     );
+
+    if (dataset === DiscoverDatasets.TRANSACTIONS && savedQuery?.exploreQuery) {
+      const exploreUrl = getExploreUrl({
+        organization,
+        ...savedQuery.exploreQuery.query[0],
+        id: savedQuery.exploreQuery.id,
+        title: savedQuery.exploreQuery.name,
+        selection: {
+          projects: savedQuery.exploreQuery.projects,
+          environments: savedQuery.exploreQuery.environment ?? [],
+          datetime: {
+            start: savedQuery.exploreQuery.start ?? null,
+            end: savedQuery.exploreQuery.end ?? null,
+            period: savedQuery.exploreQuery.range ?? null,
+            utc: null,
+          },
+        },
+      });
+      return (
+        <Alert.Container>
+          <Alert type="info">
+            {tct(
+              'This query has been migrated to Explore. Please open it in [explore:Explore].',
+              {
+                explore: <Link to={exploreUrl} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+
     if (
       this.state.showTransactionsDeprecationAlert &&
       organization.features.includes('performance-transaction-deprecation-banner') &&
