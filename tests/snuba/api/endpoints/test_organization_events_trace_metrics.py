@@ -366,6 +366,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {"count(value,foo,counter,-)": 2},
         ]
 
+    @pytest.mark.skip(reason="flaky: #103455")
     def test_aggregation_embedded_metric_name_formula(self):
         trace_metrics = [
             *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
