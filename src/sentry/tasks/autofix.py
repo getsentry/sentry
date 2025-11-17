@@ -41,3 +41,22 @@ def start_seer_automation(group_id: int) -> None:
 
     group = Group.objects.get(id=group_id)
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.generate_issue_summary_only",
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=1),
+)
+def generate_issue_summary_only(group_id: int) -> None:
+    """
+    Generate issue summary WITHOUT triggering automation.
+    Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
+    """
+    from sentry.seer.autofix.issue_summary import get_issue_summary
+
+    group = Group.objects.get(id=group_id)
+    get_issue_summary(
+        group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
+    )
