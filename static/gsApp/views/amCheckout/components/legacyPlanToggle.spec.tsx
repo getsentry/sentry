@@ -6,7 +6,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId} from 'getsentry/types';
-import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
+import LegacyPlanToggle from 'getsentry/views/amCheckout/components/legacyPlanToggle';
 
 describe('LegacyPlanToggle', () => {
   const organization = OrganizationFixture();

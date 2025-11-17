@@ -27,9 +27,9 @@ import {
 } from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import PlanSelectRow from 'getsentry/views/amCheckout/components/planSelectRow';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {PlanContent, StepProps} from 'getsentry/views/amCheckout/types';
 import {
   formatPrice,

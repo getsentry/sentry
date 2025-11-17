@@ -11,7 +11,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {PlanTier} from 'getsentry/types';
 import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
+import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 

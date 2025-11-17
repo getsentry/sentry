@@ -13,7 +13,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {listDisplayNames} from 'getsentry/utils/dataCategory';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type Props = StepProps;

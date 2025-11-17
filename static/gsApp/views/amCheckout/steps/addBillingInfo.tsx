@@ -10,7 +10,7 @@ import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
 import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {FTCConsentLocation} from 'getsentry/types';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
 import {hasBillingInfo} from 'getsentry/views/amCheckout/utils';
 

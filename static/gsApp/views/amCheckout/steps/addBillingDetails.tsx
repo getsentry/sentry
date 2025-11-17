@@ -21,7 +21,7 @@ import type {BillingDetails} from 'getsentry/types';
 import {AddressType} from 'getsentry/types';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {getRegionChoiceName, getTaxFieldInfo} from 'getsentry/utils/salesTax';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type State = {
