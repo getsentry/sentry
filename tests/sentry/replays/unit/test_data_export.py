@@ -39,7 +39,7 @@ def test_export_blob_data() -> None:
         source_prefix=bucket_prefix,
         destination_bucket="b",
         destination_prefix="destination_prefix/",
-        notification_topic=pubsub_topic,
+        notification_topic=notification_topic,
         job_description=job_description,
         job_duration=job_duration,
         transfer_job_name=None,
