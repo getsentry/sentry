@@ -93,6 +93,7 @@ from sentry.seer.explorer.tools import (
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
+    get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
@@ -1209,6 +1210,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_trace_query_table": execute_trace_query_table,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
+    "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     #
