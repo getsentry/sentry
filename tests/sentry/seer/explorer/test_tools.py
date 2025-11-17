@@ -15,8 +15,8 @@ from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
-    execute_trace_query_chart,
-    execute_trace_query_table,
+    execute_table_query,
+    execute_timeseries_query,
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
@@ -27,6 +27,7 @@ from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
+    OurLogTestCase,
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -38,8 +39,18 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @pytest.mark.django_db(databases=["default", "control"])
-class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     databases = {"default", "control"}
+    default_span_fields = [
+        "id",
+        "span.op",
+        "span.description",
+        "span.duration",
+        "transaction",
+        "timestamp",
+        "project",
+        "trace",
+    ]
 
     def setUp(self):
         super().setUp()
@@ -83,10 +94,11 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
 
         self.store_spans(spans, is_eap=True)
 
-    def test_execute_trace_query_chart_count_metric(self):
-        """Test chart query with count() metric using real data"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_count_metric(self):
+        """Test timeseries query with count() metric using real data"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
@@ -104,10 +116,11 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 4
 
-    def test_execute_trace_query_chart_multiple_metrics(self):
-        """Test chart query with multiple metrics"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_multiple_metrics(self):
+        """Test timeseries query with multiple metrics"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()", "avg(span.duration)"],
@@ -135,10 +148,12 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         ]
         assert len(duration_values) > 0
 
-    def test_execute_trace_query_table_basic_query(self):
+    def test_spans_table_basic_query(self):
         """Test table query returns actual span data"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-timestamp",
@@ -147,7 +162,6 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         assert len(rows) == 4  # Should find all 4 spans we created
@@ -162,13 +176,16 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         cache_rows = [row for row in rows if row.get("span.op") == "cache.get"]
         assert len(cache_rows) == 1  # One cache span
 
-    def test_execute_trace_query_table_specific_operation(self):
+    def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="span.op:http.client",
             stats_period="1h",
             sort="-timestamp",
+            per_page=10,
         )
 
         assert result is not None
@@ -182,10 +199,11 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         descriptions = [row.get("span.description", "") for row in http_rows]
         assert any("api.external.com" in desc for desc in descriptions)
 
-    def test_execute_trace_query_chart_empty_results(self):
-        """Test chart query with query that returns no results"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_empty_results(self):
+        """Test timeseries query with query that returns no results"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.op:nonexistent",
             stats_period="1h",
             y_axes=["count()"],
@@ -201,23 +219,27 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             total_count = sum(point[1][0]["count"] for point in data_points if point[1])
             assert total_count == 0
 
-    def test_execute_trace_query_table_empty_results(self):
+    def test_spans_table_empty_results(self):
         """Test table query with query that returns no results"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="span.op:nonexistent",
             stats_period="1h",
             sort="-timestamp",
+            per_page=10,
         )
 
         assert result is not None
         assert "data" in result
         assert len(result["data"]) == 0
 
-    def test_execute_trace_query_chart_duration_filtering(self):
-        """Test chart query with duration filter"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_duration_filtering(self):
+        """Test timeseries query with duration filter"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.duration:>100ms",  # Should match spans > 100ms
             stats_period="1h",
             y_axes=["count()"],
@@ -233,10 +255,12 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3
 
-    def test_execute_trace_query_table_duration_stats(self):
+    def test_spans_table_duration_stats(self):
         """Test table query with duration statistics"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-span.duration",
@@ -257,28 +281,50 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             # Allow for some tolerance in duration matching
             assert any(abs(d - expected) < 10 for d in durations)
 
-    def test_execute_trace_query_nonexistent_organization(self):
+    def test_spans_table_appends_sort(self):
+        """Test sort is automatically appended to selected fields if not provided."""
+        for sort in ["timestamp", "-timestamp"]:
+            result = execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=["id"],
+                stats_period="1h",
+                sort=sort,
+                per_page=1,
+            )
+
+            assert result is not None
+            rows = result["data"]
+            assert "id" in rows[0]
+            assert "timestamp" in rows[0]
+
+    def test_spans_query_nonexistent_organization(self):
         """Test queries handle nonexistent organization gracefully"""
-        chart_result = execute_trace_query_chart(
+        timeseries_result = execute_timeseries_query(
             org_id=99999,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
         )
-        assert chart_result is None
+        assert timeseries_result is None
 
-        table_result = execute_trace_query_table(
+        table_result = execute_table_query(
             org_id=99999,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-count",
+            per_page=10,
         )
         assert table_result is None
 
-    def test_execute_trace_query_chart_with_groupby(self):
-        """Test chart query with group_by parameter for aggregates"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_with_groupby(self):
+        """Test timeseries query with group_by parameter for aggregates"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
@@ -305,22 +351,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             data_points = metrics["count()"]["data"]
             assert isinstance(data_points, list)
 
-    def test_execute_trace_query_table_with_groupby(self):
+    def test_spans_table_aggregates_groupby(self):
         """Test table query with group_by for aggregates mode"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=["span.op", "count()"],
             query="",
             stats_period="1h",
             sort="-count()",
-            group_by=["span.op"],
-            y_axes=["count()"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have one row per unique span.op value
@@ -331,21 +375,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             assert "span.op" in row
             assert "count()" in row
 
-    def test_execute_trace_query_table_aggregates_mode_basic(self):
+    def test_spans_table_aggregates_basic(self):
         """Test table query in aggregates mode without group_by"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             sort="-count()",
-            y_axes=["count()", "avg(span.duration)"],
+            fields=["count()", "avg(span.duration)"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have aggregate results
@@ -356,21 +399,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             assert "count()" in row
             assert "avg(span.duration)" in row
 
-    def test_execute_trace_query_table_aggregates_mode_multiple_functions(self):
+    def test_spans_table_aggregates_multiple_functions(self):
         """Test table query in aggregates mode with multiple aggregate functions"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.op:db",  # Filter to only database operations
             stats_period="1h",
             sort="-sum(span.duration)",
-            y_axes=["count()", "sum(span.duration)", "avg(span.duration)"],
+            fields=["count()", "sum(span.duration)", "avg(span.duration)"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have aggregate results for database spans
@@ -1536,3 +1578,70 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
+
+
+class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+        self.default_fields = [
+            "id",
+            "message",
+            "message.template",
+            "project.id",
+            "trace",
+            "severity_number",
+            "severity",
+            "timestamp",
+            "timestamp_precise",
+            "observed_timestamp",
+        ]
+
+    def test_logs_table_basic(self) -> None:
+        # Create logs with various attributes
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "User authentication failed",
+                    "severity_text": "ERROR",
+                    "severity_number": 17,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Request processed successfully",
+                    "severity_text": "INFO",
+                    "severity_number": 9,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="ourlogs",
+            fields=self.default_fields,
+            per_page=10,
+            stats_period="1h",
+            project_slugs=[self.project.slug],
+        )
+        assert result is not None
+        assert "data" in result
+        data = result["data"]
+        assert len(data) == len(logs)
+
+        for log in data:
+            for field in self.default_fields:
+                assert field in log, field
