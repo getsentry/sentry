@@ -15,7 +15,10 @@ import {
   getMainArtifactSizeMetric,
   isSizeInfoCompleted,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {BuildDetailsSizeInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {
+  BuildDetailsSizeInfo,
+  BuildDetailsSizeInfoSizeMetric,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 import {
@@ -49,19 +52,23 @@ interface WatchBreakdown {
 }
 
 export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
-  const {sizeInfo, processedInsights, totalSize, platform, onOpenInsightsSidebar} = props;
+  const {
+    sizeInfo,
+    processedInsights,
+    totalSize,
+    platform: platformProp,
+    onOpenInsightsSidebar,
+  } = props;
 
-  const labels = getLabels(platform ?? undefined);
-  const primarySizeMetric =
-    sizeInfo && isSizeInfoCompleted(sizeInfo)
-      ? getMainArtifactSizeMetric(sizeInfo)
-      : undefined;
-  const watchAppMetrics =
-    sizeInfo && isSizeInfoCompleted(sizeInfo)
-      ? (sizeInfo.size_metrics.find(
-          metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
-        ) ?? null)
-      : null;
+  if (!isSizeInfoCompleted(sizeInfo)) {
+    return null;
+  }
+
+  const labels = getLabels(platformProp ?? undefined);
+  const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+  const watchArtifactMetric = sizeInfo.size_metrics.find(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
+  );
   const installMetricValue = formattedPrimaryMetricInstallSize(sizeInfo);
   const downloadMetricValue = formattedPrimaryMetricDownloadSize(sizeInfo);
   const totalPotentialSavings = processedInsights.reduce(
@@ -76,7 +83,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
           minimumValue: 0.001,
         })})`
       : undefined;
-  const hasInsights = processedInsights.length > 0;
 
   const metricsCards: MetricCardConfig[] = [
     {
@@ -87,7 +93,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       value: installMetricValue,
       watchBreakdown: getWatchBreakdown(
         primarySizeMetric,
-        watchAppMetrics,
+        watchArtifactMetric,
         'install_size_bytes'
       ),
     },
@@ -99,7 +105,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       value: downloadMetricValue,
       watchBreakdown: getWatchBreakdown(
         primarySizeMetric,
-        watchAppMetrics,
+        watchArtifactMetric,
         'download_size_bytes'
       ),
     },
@@ -109,7 +115,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       icon: <IconLightning size="sm" />,
       value: formatBytesBase10(totalPotentialSavings),
       percentageText: potentialSavingsPercentageText,
-      showInsightsButton: hasInsights,
+      showInsightsButton: totalPotentialSavings > 0,
     },
   ];
 
@@ -186,8 +192,8 @@ function WatchBreakdownTooltip(props: {appValue: string; watchValue: string}) {
 }
 
 function getWatchBreakdown(
-  primaryMetric: ReturnType<typeof getMainArtifactSizeMetric>,
-  watchMetric: ReturnType<typeof getMainArtifactSizeMetric> | null,
+  primaryMetric: BuildDetailsSizeInfoSizeMetric | undefined,
+  watchMetric: BuildDetailsSizeInfoSizeMetric | undefined,
   field: 'install_size_bytes' | 'download_size_bytes'
 ): WatchBreakdown | undefined {
   if (!primaryMetric || !watchMetric) {
