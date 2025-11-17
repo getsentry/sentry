@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -88,11 +87,29 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
                 <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
                 <Flex align="center" gap="xs">
                   {icon}
-                  <DiffText variant={variant} size="sm">
+                  <Text
+                    as="span"
+                    variant={variant}
+                    size="sm"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.25em',
+                    }}
+                  >
                     {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                     {formatBytesBase10(Math.abs(metric.diff))}
                     {metric.percentageChange !== 0 && (
-                      <Text as="span" variant={variant}>
+                      <Text
+                        as="span"
+                        variant={variant}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {' ('}
                         <PercentChange
                           value={metric.percentageChange}
@@ -103,7 +120,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
                         {')'}
                       </Text>
                     )}
-                  </DiffText>
+                  </Text>
                 </Flex>
               </Flex>
               <Flex gap="xs" wrap="wrap">
@@ -142,16 +159,3 @@ function getTrend(diff: number): {
 
   return {variant: 'muted'};
 }
-
-const DiffText = styled(Text)`
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25em;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-  }
-`;

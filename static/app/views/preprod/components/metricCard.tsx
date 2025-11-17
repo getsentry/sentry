@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
-import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -51,39 +51,18 @@ export function MetricCard(props: MetricCardProps) {
           )}
         </Flex>
         {action && (
-          <Tooltip title={action.tooltip}>
-            <IconButton
-              type="button"
-              aria-label={action.ariaLabel}
-              onClick={action.onClick}
-            >
-              {action.icon}
-            </IconButton>
-          </Tooltip>
+          <Button
+            size="xs"
+            priority="link"
+            borderless
+            icon={action.icon}
+            aria-label={action.ariaLabel}
+            title={action.tooltip}
+            onClick={action.onClick}
+          />
         )}
       </Flex>
       {children}
     </Stack>
   );
 }
-
-const IconButton = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['2xs']};
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: ${p => p.theme.white};
-  border-radius: ${p => p.theme.borderRadius};
-
-  &:hover {
-    opacity: 0.8;
-  }
-
-  &:focus-visible {
-    outline: 2px solid ${p => p.theme.white};
-    outline-offset: 2px;
-  }
-`;
