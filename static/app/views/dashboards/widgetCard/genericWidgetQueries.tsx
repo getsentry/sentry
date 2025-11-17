@@ -396,6 +396,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         tableResults: undefined,
         timeseriesResults: undefined,
         errorMessage: undefined,
+        queryFetchID: undefined,
       });
       queue.addItem({widgetQuery: this});
       return;
