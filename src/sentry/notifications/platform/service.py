@@ -21,7 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTemplate,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
@@ -144,8 +144,8 @@ class NotificationService[T: NotificationData]:
         for target in targets:
             try:
                 self.notify_target(target=target)
-            except ApiError as e:
-                errors[target.provider_key].append(e.text)
+            except IntegrationConfigurationError as e:
+                errors[target.provider_key].append(str(e))
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
