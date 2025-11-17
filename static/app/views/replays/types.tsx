@@ -200,13 +200,11 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
-export const REPLAY_LIST_QUERY_REFERRERS = [
-  'replayList',
-  'issueReplays',
-  'transactionReplays',
-] as const;
-
-export type ReplayListQueryReferrer = (typeof REPLAY_LIST_QUERY_REFERRERS)[number];
+export type ReplayListQueryReferrer =
+  | 'replayList'
+  | 'issueReplays'
+  | 'transactionReplays'
+  | 'feedbackReplays';
 
 // Sync with ReplayListRecord below
 // Skip some fields because the backend doesn't support them in the field list:

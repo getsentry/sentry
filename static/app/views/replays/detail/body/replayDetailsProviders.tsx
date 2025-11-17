@@ -21,7 +21,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {
-  REPLAY_LIST_QUERY_REFERRERS,
   type ReplayListQueryReferrer,
   type ReplayListRecord,
 } from 'sentry/views/replays/types';
@@ -32,6 +31,12 @@ interface Props {
   replay: ReplayReader;
 }
 
+const routeToReferrer: Record<string, ReplayListQueryReferrer> = {
+  '/explore/replays/': 'replayList',
+  '/issues/:groupId/replays/': 'issueReplays',
+  '/insights/frontend/summary/replays/': 'transactionReplays',
+  '/issues/feedback/': 'feedbackReplays',
+};
 export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   const organization = useOrganization();
 
@@ -76,16 +81,10 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   query.sort =
     !playlistSort || playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
 
-  const queryReferrer = REPLAY_LIST_QUERY_REFERRERS.includes(
-    query.referrer as ReplayListQueryReferrer
-  )
-    ? (query.referrer as ReplayListQueryReferrer)
-    : 'replayList';
-
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
-    queryReferrer,
+    queryReferrer: routeToReferrer[query.referrer] ?? 'replayList',
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
