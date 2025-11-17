@@ -27,6 +27,8 @@ class ConduitCredentialsResponseSerializer(serializers.Serializer):
 class OrganizationConduitDemoPermission(OrganizationPermission):
     """
     Permission for the conduit demo endpoint.
+    We want members to be able to generate temporary credentials for the demo.
+    This is a demo-only feature and doesn't modify organization state.
     """
 
     scope_map = {

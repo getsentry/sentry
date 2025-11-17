@@ -49,6 +49,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
     )
     @with_feature("organizations:conduit-demo")
     def test_post_member_can_access(self) -> None:
+        """Test that members can generate credentials."""
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user,
