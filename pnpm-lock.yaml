@@ -240,9 +240,6 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.6
         version: 3.13.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@types/diff':
-        specifier: 5.2.1
-        version: 5.2.1
       '@types/gtag.js':
         specifier: ^0.0.12
         version: 0.0.12
@@ -337,8 +334,8 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.5.2(@swc/helpers@0.5.15))(webpack@5.99.6(esbuild@0.25.10))
       diff:
-        specifier: 5.2.0
-        version: 5.2.0
+        specifier: 8.0.2
+        version: 8.0.2
       dompurify:
         specifier: 3.2.5
         version: 3.2.5
@@ -3494,9 +3491,6 @@ packages:
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
 
-  '@types/diff@5.2.1':
-    resolution: {integrity: sha512-uxpcuwWJGhe2AR1g8hD9F5OYGCqjqWnBUQFD8gMZsDbv8oPHzxJF6iMO6n8Tk0AdzlxoaaoQhOYlIg/PukVU8g==}
-
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
 
@@ -4790,6 +4784,10 @@ packages:
 
   diff@5.2.0:
     resolution: {integrity: sha512-uIFDxqpRZGZ6ThOk84hEfqWoHx2devRFvpTZcTHur85vImfaxUbTW9Ryh4CpCuDnToOP1CEtXKIgytHBPVff5A==}
+    engines: {node: '>=0.3.1'}
+
+  diff@8.0.2:
+    resolution: {integrity: sha512-sSuxWU5j5SR9QQji/o2qMvqRNYRDOcBTgsJ/DeCf4iSN4gW+gNMXM7wFIP+fdXZxoNiAnHUTGjCr+TSWXdRDKg==}
     engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
@@ -12514,8 +12512,6 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
 
-  '@types/diff@5.2.1': {}
-
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 9.6.1
@@ -13917,6 +13913,8 @@ snapshots:
     optional: true
 
   diff@5.2.0: {}
+
+  diff@8.0.2: {}
 
   dir-glob@3.0.1:
     dependencies:
