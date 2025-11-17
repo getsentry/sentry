@@ -204,6 +204,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert meta["fields"]["per_minute(value)"] == "rate"
         assert meta["dataset"] == "tracemetrics"
 
+    @pytest.mark.skip(reason="flaky: #103457")
     def test_per_second_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         self.store_trace_metrics(
