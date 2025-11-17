@@ -121,7 +121,7 @@
         </div>
 
         <div class="loading-message">
-          <p>Loading a <scraps-grawlix>&#%!</scraps-grawlix>-ton of JavaScript&hellip;</p>
+          <p>Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;</p>
           <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
           <script>
             function randomFrom(arr) {
@@ -130,7 +130,7 @@
             function randomBetween(min, max) {
               return Math.floor(Math.random() * (max - min - 1) + min);
             }
-            customElements.define('scraps-grawlix', class extends HTMLElement {
+            customElements.define('scraps-bleep', class extends HTMLElement {
               constructor() {
                 super();
                 this.shapes = '◆●▴▪×'.split('');
@@ -157,7 +157,9 @@
                 })
               }
               connectedCallback() {
-                this.shuffle();
+                if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                  this.shuffle();
+                }
               }
               disconnectedCallback() {
                 cancelAnimationFrame(this.raf);
