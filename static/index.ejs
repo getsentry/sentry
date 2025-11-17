@@ -79,6 +79,12 @@
                           stroke-dashoffset: -1150;
                       }
                   }
+                  @media (prefers-reduced-motion: reduce) {
+                    path {
+                      animation: none;
+                      stroke-dashoffset: 0;
+                    }
+                  }
               </style>
               <script>
                   const host = document.currentScript.closest('svg');
