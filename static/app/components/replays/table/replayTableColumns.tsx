@@ -317,21 +317,13 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay, query}) => {
     const organization = useOrganization();
-    const replayDetailsPathname = makeReplaysPathname({
-      path: `/${replay.id}/`,
-      organization,
-    });
-
-    const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
-
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query: {referrer, ...query},
-    });
-
     return (
-      <DetailsLink to={detailsTab()}>
+      <DetailsLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+      >
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -521,6 +513,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   width: 'minmax(150px, 1fr)',
   Component: ({replay, query}) => {
     const routes = useRoutes();
+    const referrer = getRouteStringFromRoutes(routes);
+
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -533,23 +527,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       'For TypeScript: replay.started_at is implied because replay.is_archived is false'
     );
 
-    const referrer = getRouteStringFromRoutes(routes);
-    const detailsTabQuery: Query = {
-      referrer,
-      ...query,
-    };
-
-    const replayDetailsPathname = makeReplaysPathname({
-      path: `/${replay.id}/`,
-      organization,
-    });
-
-    const detailsTab = () => {
-      return {
-        pathname: replayDetailsPathname,
-        query: detailsTabQuery,
-      };
-    };
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,
@@ -560,7 +537,13 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
+      <CellLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+        onClick={trackNavigationEvent}
+      >
         <ReplayBadge replay={replay} />
       </CellLink>
     );

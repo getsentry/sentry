@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
@@ -8,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
@@ -22,12 +22,12 @@ interface Props {
   handleForwardClick: undefined | (() => void);
   overlayContent: React.ReactNode;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
-  eventView?: EventView;
+  query?: Query;
 }
 
 export default function GroupReplaysPlayer({
   analyticsContext,
-  eventView,
+  query,
   handleForwardClick,
   handleBackClick,
   overlayContent,
@@ -68,7 +68,7 @@ export default function GroupReplaysPlayer({
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
                   <ReplayPreviewPlayer
-                    eventView={eventView}
+                    query={query}
                     errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                     replayId={replayReaderResult.replayId}
                     replayRecord={replayReaderResult.replayRecord!}

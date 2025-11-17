@@ -1,15 +1,14 @@
 import type {RefObject} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
-import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
@@ -28,12 +27,12 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
-  eventView?: EventView;
+  query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
 };
 
 export default function ReplayTable({
-  eventView,
+  query,
   columns,
   error,
   isPending,
@@ -45,7 +44,6 @@ export default function ReplayTable({
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
-  const playlistQuery = usePlaylistQuery(eventView);
 
   if (isPending) {
     return (
@@ -115,7 +113,7 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
-                query={playlistQuery}
+                query={query}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}

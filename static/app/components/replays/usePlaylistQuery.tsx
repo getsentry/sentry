@@ -3,13 +3,19 @@ import type {Query} from 'history';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReplayListQueryReferrer} from 'sentry/views/replays/types';
 
-export function usePlaylistQuery(eventView?: EventView): Query {
+export function usePlaylistQuery(
+  referrer: ReplayListQueryReferrer,
+  eventView?: EventView
+): Query {
   const location = useLocation();
   if (!eventView) {
     eventView = EventView.fromLocation(location);
   }
-  const {statsPeriod, start, end, ...eventViewQuery} =
+
+  // we extract field to avoid dirtying the URL
+  const {statsPeriod, start, end, _unusedField, ...eventViewQuery} =
     eventView.generateQueryStringObject();
 
   if (typeof statsPeriod === 'string') {
@@ -33,5 +39,6 @@ export function usePlaylistQuery(eventView?: EventView): Query {
   if (location.query.cursor) {
     eventViewQuery.cursor = location.query.cursor;
   }
+  eventViewQuery.referrer = referrer;
   return eventViewQuery;
 }

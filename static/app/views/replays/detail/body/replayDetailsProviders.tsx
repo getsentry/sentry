@@ -31,12 +31,6 @@ interface Props {
   replay: ReplayReader;
 }
 
-const routeToReferrer: Record<string, ReplayListQueryReferrer> = {
-  '/explore/replays/': 'replayList',
-  '/issues/:groupId/replays/': 'issueReplays',
-  '/insights/frontend/summary/replays/': 'transactionReplays',
-  '/issues/feedback/': 'feedbackReplays',
-};
 export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   const organization = useOrganization();
 
@@ -84,7 +78,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
-    queryReferrer: routeToReferrer[query.referrer] ?? 'replayList',
+    queryReferrer: query.referrer as ReplayListQueryReferrer,
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];

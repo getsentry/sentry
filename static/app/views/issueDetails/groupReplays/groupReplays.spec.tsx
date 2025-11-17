@@ -414,7 +414,7 @@ describe('GroupReplays', () => {
       expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
       const expectedQuery =
-        'field=activity&field=browser.name&field=browser.version&field=count_dead_clicks&field=count_errors&field=count_infos&field=count_rage_clicks&field=count_segments&field=count_urls&field=count_warnings&field=device.brand&field=device.family&field=device.model_id&field=device.name&field=dist&field=duration&field=environment&field=error_ids&field=finished_at&field=has_viewed&field=id&field=info_ids&field=is_archived&field=os.name&field=os.version&field=platform&field=project_id&field=releases&field=sdk.name&field=sdk.version&field=started_at&field=tags&field=trace_ids&field=urls&field=user&field=warning_ids&id=&name=&playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-06-30T23%3A29%3A13&query=id%3A%5B346789a703f6454384f1de473b8b9fcc%2Cb05dae9b6be54d21a4d5ad9f8f02b780%5D&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&sort=-started_at&yAxis=count%28%29';
+        '/organizations/org-slug/explore/replays/346789a703f6454384f1de473b8b9fcc/?id=&name=&playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-06-30T23%3A29%3A13&query=id%3A%5B346789a703f6454384f1de473b8b9fcc%2Cb05dae9b6be54d21a4d5ad9f8f02b780%5D&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&sort=-started_at&yAxis=count%28%29';
 
       // Expect the first row to have the correct href
       expect(
