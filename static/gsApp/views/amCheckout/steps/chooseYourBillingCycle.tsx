@@ -4,8 +4,8 @@ import {Flex, Grid} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
-import BillingCycleSelectCard from 'getsentry/views/amCheckout/billingCycleSelectCard';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import BillingCycleSelectCard from 'getsentry/views/amCheckout/components/billingCycleSelectCard';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
