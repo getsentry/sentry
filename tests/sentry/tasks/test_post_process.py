@@ -2672,7 +2672,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
 
 class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2696,7 +2696,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(event.group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2718,7 +2718,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=False,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2742,7 +2742,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2767,7 +2767,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2796,7 +2796,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2824,7 +2824,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2860,7 +2860,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
+    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
@@ -2954,7 +2954,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -3005,7 +3005,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(event2.group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -3036,7 +3036,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement", return_value=True)
+    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner", return_value=True)
     @patch("sentry.features.has", return_value=True)
     def test_is_issue_eligible_for_seer_automation(
         self, mock_features_has, mock_get_seer_org_acknowledgement, mock_has_budget

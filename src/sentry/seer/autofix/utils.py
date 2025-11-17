@@ -320,9 +320,9 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     ):
         return False
 
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization)
+    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
     if not seer_enabled:
         return False
 
