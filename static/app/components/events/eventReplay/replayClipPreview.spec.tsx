@@ -24,7 +24,7 @@ const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockEventTimestampMs = mockEventTimestamp.getTime();
 
-const mockButtonHref = `/organizations/${mockOrgSlug}/explore/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors`;
+const mockButtonHref = `/organizations/${mockOrgSlug}/explore/replays/761104e184c64d439ee1014b72b4d83b/?playlistEnd=2017-10-17T02%3A41%3A20&playlistStart=2017-10-03T02%3A41%3A20&query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors&yAxis=count%28%29`;
 
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
