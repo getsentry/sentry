@@ -1,7 +1,7 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
+import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
 
 describe('PlanFeatures', () => {
   const freePlan = PlanDetailsLookupFixture('am3_f')!;
