@@ -13,7 +13,6 @@ interface UseBlockNavigationProps {
   onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
   onNavigate?: () => void;
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useBlockNavigation({

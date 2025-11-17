@@ -52,7 +52,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     blocks,
     blockRefs,
     textareaRef,
-    scrollContainerRef,
     setFocusedBlockIndex,
     isMinimized,
     onDeleteFromIndex: deleteFromIndex,
