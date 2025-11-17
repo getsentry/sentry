@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +23,7 @@ import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering'
 interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
-  missingDsymBinaries?: string[];
+  alertMessage?: string;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -30,12 +31,12 @@ interface AppSizeTreemapProps {
 function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
-  missingDsymBinaries,
+  alertMessage,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
-  missingDsymBinaries?: string[];
+  alertMessage?: string;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -74,7 +75,7 @@ function FullscreenModalContent({
         <AppSizeTreemap
           root={filteredRoot}
           searchQuery={localSearch}
-          missingDsymBinaries={missingDsymBinaries}
+          alertMessage={alertMessage}
         />
       </Container>
     </Flex>
@@ -83,7 +84,7 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, missingDsymBinaries, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -203,6 +204,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
+      // Very mysteriously this controls the initial breadcrumbs:
+      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
+      // If truthy the root is selected else the 'middle' node is selected.
+      // It has to be set to large number to avoid problems caused by
+      // leafDepth's main use - controlling how many layers to render.
+      leafDepth: 100000,
       breadcrumb: {
         show: true,
         left: '0',
@@ -314,24 +321,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   };
 
-  const hasMissingDsyms = missingDsymBinaries && missingDsymBinaries.length > 0;
-
-  const getBinariesMessage = () => {
-    if (missingDsymBinaries?.length === 1) {
-      return t(
-        'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
-        missingDsymBinaries[0]
-      );
-    }
-    return t(
-      'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
-      missingDsymBinaries![0]
-    );
-  };
-
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
-      {hasMissingDsyms && <Alert type="warning">{getBinariesMessage()}</Alert>}
+      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
       <Container
         height="100%"
         width="100%"
@@ -379,7 +371,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                     <FullscreenModalContent
                       unfilteredRoot={unfilteredRoot}
                       initialSearch={searchQuery}
-                      missingDsymBinaries={missingDsymBinaries}
+                      alertMessage={alertMessage}
                       onSearchChange={onSearchChange}
                     />
                   ) : (
@@ -387,7 +379,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                       <AppSizeTreemap
                         root={root}
                         searchQuery={searchQuery}
-                        missingDsymBinaries={missingDsymBinaries}
+                        alertMessage={alertMessage}
                       />
                     </Container>
                   ),

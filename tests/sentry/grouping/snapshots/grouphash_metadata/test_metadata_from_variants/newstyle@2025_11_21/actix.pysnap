@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.298054+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "738e7d2503464bc264b4f791286f5122"
+    hash: "fa86c1473c78dd5f6008506ed614f1d9"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "actix_web::pipeline"
           stacktrace*
             frame* (marked in-app by the client)
               function*
@@ -269,15 +269,15 @@ contributing variants:
                 "lib.rs"
               function*
                 "log::__private_api_log"
-          type*
-            "actix_web::pipeline"
   system*
-    hash: "19a96e0438d28e48355653def82f887a"
+    hash: "0fd89da61ff62bc3b09751ac8ce133f9"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "actix_web::pipeline"
           stacktrace*
             frame*
               function*
@@ -597,5 +597,3 @@ contributing variants:
                 "hub.rs"
               function*
                 "sentry::hub::Hub::with_active::{{closure}}"
-          type*
-            "actix_web::pipeline"

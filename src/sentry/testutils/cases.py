@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from io import BytesIO
 from typing import Any, Literal, TypedDict, Union
 from unittest import mock
@@ -1172,6 +1173,17 @@ class SnubaTestCase(BaseTestCase):
         files = {
             f"trace_metric_{i}": trace_metric.SerializeToString()
             for i, trace_metric in enumerate(trace_metrics)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_profile_functions(self, profile_functions):
+        files = {
+            f"profile_functions_{i}": profile_function.SerializeToString()
+            for i, profile_function in enumerate(profile_functions)
         }
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
@@ -3481,6 +3493,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         metric_name: str,
         metric_value: float,
         metric_type: Literal["counter", "distribution", "gauge"],
+        metric_unit: str | None = None,
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3512,6 +3525,12 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
 
+        if metric_unit is not None:
+            attributes_proto["sentry.metric_unit"] = AnyValue(string_value=metric_unit)
+            attributes_proto[f"sentry._internal.cooccuring.unit.{metric_unit}"] = AnyValue(
+                bool_value=True
+            )
+
         if attributes:
             for k, v in attributes.items():
                 attributes_proto[k] = scalar_to_any_value(v)
@@ -3520,6 +3539,51 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
+    def create_profile_function(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
             timestamp=timestamp_proto,
             trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,
@@ -3723,9 +3787,127 @@ class TraceTestCase(SpanTestCase):
         )
 
 
+class ReplayBreadcrumbType(Enum):
+    CLICK = "click"
+    DEAD_CLICK = "dead_click"
+    RAGE_CLICK = "rage_click"
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+
+
 @pytest.mark.snuba
 @requires_snuba
 @pytest.mark.usefixtures("reset_snuba")
+class ReplayEAPTestCase(BaseTestCase):
+    def create_eap_replay_breadcrumb(
+        self,
+        *,
+        project,
+        replay_id,
+        segment_id,
+        breadcrumb_type,
+        timestamp=None,
+        organization=None,
+        trace_id=None,
+        retention_days=30,
+        **attributes,
+    ):
+        """Create single EAP replay breadcrumb TraceItem."""
+        from datetime import datetime, timezone
+        from uuid import uuid4
+
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+        from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+
+        if organization is None:
+            organization = self.organization
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        if trace_id is None:
+            trace_id = replay_id
+
+        if breadcrumb_type == ReplayBreadcrumbType.CLICK:
+            category = "ui.click"
+            click_is_dead = 0
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.DEAD_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.RAGE_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 1
+        elif breadcrumb_type == ReplayBreadcrumbType.ERROR:
+            category = "error"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.WARNING:
+            category = "warning"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.INFO:
+            category = "info"
+            click_is_dead = None
+            click_is_rage = None
+        else:
+            raise ValueError(f"Unknown breadcrumb type: {breadcrumb_type}")
+
+        breadcrumb_data = {
+            "replay_id": replay_id,
+            "segment_id": segment_id,
+            "project_id": project.id,
+            "timestamp": int(timestamp.timestamp()),
+            "category": category,
+        }
+
+        if category == "ui.click":
+            breadcrumb_data["click_is_dead"] = click_is_dead
+            breadcrumb_data["click_is_rage"] = click_is_rage
+
+        breadcrumb_data.update(attributes)
+
+        attributes_proto = {}
+        for k, v in breadcrumb_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=retention_days,
+            attributes=attributes_proto,
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
+        )
+
+    def store_replays_eap(self, replays):
+        import requests
+        from django.conf import settings
+
+        files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+        for replay in replays:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
+            replay.item_id = replay.item_id[::-1]
+
+
 class UptimeResultEAPTestCase(BaseTestCase):
     """Test case for creating and storing EAP uptime results."""
 

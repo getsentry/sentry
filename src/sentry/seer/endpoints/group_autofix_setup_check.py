@@ -144,10 +144,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
-        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
+        user_acknowledgement = get_seer_user_acknowledgement(
+            user_id=request.user.id, organization=org
+        )
         org_acknowledgement = True
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+            org_acknowledgement = get_seer_org_acknowledgement(org)
 
         has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX

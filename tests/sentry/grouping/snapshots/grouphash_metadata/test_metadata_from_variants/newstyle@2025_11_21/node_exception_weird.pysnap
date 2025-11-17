@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.764869+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "a20509269752c9a1bea6078851e4d39c"
+    hash: "6a84e724a0d67c6b036ecc24fcfb4be5"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "Error"
           stacktrace*
             frame* (marked in-app by the client)
               module*
@@ -67,15 +67,15 @@ contributing variants:
                 "backend.ts"
               function* (trimmed javascript function)
                 "eventFromException"
-          type*
-            "Error"
   system*
-    hash: "252dc79eb5653bf822e2684d90734cb8"
+    hash: "97adcd276fbfdd9ae8271c04255e522f"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "Error"
           stacktrace*
             frame*
               module*
@@ -137,5 +137,3 @@ contributing variants:
                 "backend.ts"
               function* (trimmed javascript function)
                 "eventFromException"
-          type*
-            "Error"

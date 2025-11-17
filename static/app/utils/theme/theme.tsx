@@ -10,6 +10,7 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
+import {spring, type Transition} from 'framer-motion';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -252,22 +253,132 @@ const generateTokens = (colors: Colors) => ({
   },
 });
 
-const generateMotion = () => {
-  return {
-    smooth: withDuration('cubic-bezier(0.72, 0, 0.16, 1)'),
-    snap: withDuration('cubic-bezier(0.8, -0.4, 0.5, 1)'),
-    enter: withDuration('cubic-bezier(0.24, 1, 0.32, 1)'),
-    exit: withDuration('cubic-bezier(0.64, 0, 0.8, 0)'),
-  };
+type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+
+type PhysicsMotionName = 'spring';
+
+type MotionDuration = 'fast' | 'moderate' | 'slow';
+
+type MotionDefinition = Record<MotionDuration, string>;
+
+const motionDurations: Record<MotionDuration, number> = {
+  fast: 120,
+  moderate: 160,
+  slow: 240,
 };
 
-const withDuration = (easing: string) => {
-  return {
-    fast: `120ms ${easing}`,
-    moderate: `160ms ${easing}`,
-    slow: `240ms ${easing}`,
-  };
+const motionCurves: Record<SimpleMotionName, [number, number, number, number]> = {
+  smooth: [0.72, 0, 0.16, 1],
+  snap: [0.8, -0.4, 0.5, 1],
+  enter: [0.24, 1, 0.32, 1],
+  exit: [0.64, 0, 0.8, 0],
 };
+
+const motionCurveWithDuration = (
+  durations: Record<MotionDuration, number>,
+  easing: [number, number, number, number]
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion: MotionDefinition = {
+    fast: `${durations.fast}ms cubic-bezier(${easing.join(', ')})`,
+    moderate: `${durations.moderate}ms cubic-bezier(${easing.join(', ')})`,
+    slow: `${durations.slow}ms cubic-bezier(${easing.join(', ')})`,
+  };
+
+  const framerMotion: Record<MotionDuration, Transition> = {
+    fast: {
+      duration: durations.fast / 1000,
+      ease: easing,
+    },
+    moderate: {
+      duration: durations.moderate / 1000,
+      ease: easing,
+    },
+    slow: {
+      duration: durations.slow / 1000,
+      ease: easing,
+    },
+  };
+
+  return [motion, framerMotion];
+};
+
+const motionTransitions: Record<PhysicsMotionName, Record<MotionDuration, Transition>> = {
+  spring: {
+    fast: {
+      type: 'spring',
+      stiffness: 1400,
+      damping: 50,
+    },
+    moderate: {
+      type: 'spring',
+      stiffness: 1000,
+      damping: 50,
+    },
+    slow: {
+      type: 'spring',
+      stiffness: 600,
+      damping: 50,
+    },
+  },
+};
+
+const motionTransitionWithDuration = (
+  transitionDefinitions: Record<MotionDuration, Transition>
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion = {
+    fast: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.fast,
+    })}`,
+    moderate: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.moderate,
+    })}`,
+    slow: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.slow,
+    })}`,
+  };
+
+  return [motion, transitionDefinitions];
+};
+
+function generateMotion() {
+  const [smoothMotion, smoothFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.smooth
+  );
+  const [snapMotion, snapFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.snap
+  );
+  const [enterMotion, enterFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.enter
+  );
+  const [exitMotion, exitFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.exit
+  );
+  const [springMotion, springFramer] = motionTransitionWithDuration(
+    motionTransitions.spring
+  );
+
+  return {
+    smooth: smoothMotion,
+    snap: snapMotion,
+    enter: enterMotion,
+    exit: exitMotion,
+    spring: springMotion,
+    framer: {
+      smooth: smoothFramer,
+      snap: snapFramer,
+      enter: enterFramer,
+      exit: exitFramer,
+      spring: springFramer,
+    },
+  };
+}
 
 const generateThemeAliases = (colors: Colors) => ({
   /**

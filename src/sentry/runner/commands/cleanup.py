@@ -24,6 +24,8 @@ from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
 
+TRANSACTION_PREFIX = "cleanup"
+
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
 
@@ -119,7 +121,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(op="cleanup", name="multiprocess_worker"):
+            with sentry_sdk.start_transaction(
+                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
+            ):
                 model = import_string(model_name)
                 task = deletions.get(
                     model=model,
@@ -222,7 +226,9 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with sentry_sdk.start_transaction(op="cleanup", name="cleanup") as transaction:
+    with sentry_sdk.start_transaction(
+        op="cleanup", name=f"{TRANSACTION_PREFIX}.main"
+    ) as transaction:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):

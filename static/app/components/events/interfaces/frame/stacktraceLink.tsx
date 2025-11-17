@@ -191,11 +191,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   }
 
   if ((isPending && isQueryEnabled) || !match) {
-    return (
-      <StacktraceLinkWrapper>
-        <Placeholder height="14px" width={coverageEnabled ? '40px' : '14px'} />
-      </StacktraceLinkWrapper>
-    );
+    return null;
   }
 
   // Match found - display link to source
@@ -415,7 +411,11 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    copy(filePath, {
+
+    // Strip away relative path segments to make it easier for editors to actually find the file (like VSCode cmd+p)
+    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '');
+
+    copy(cleanedFilepath, {
       successMessage: t('File path copied to clipboard'),
       errorMessage: t('Failed to copy file path'),
     });

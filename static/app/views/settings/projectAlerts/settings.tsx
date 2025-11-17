@@ -13,19 +13,14 @@ import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}> {
-  canEditRule: boolean;
-}
+import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
 
 function makeFetchProjectPluginsQueryKey(
   organizationSlug: string,
@@ -34,70 +29,28 @@ function makeFetchProjectPluginsQueryKey(
   return [`/projects/${organizationSlug}/${projectSlug}/plugins/`];
 }
 
-function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) {
+export default function ProjectAlertSettings() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
+  const {canEditRule, project} = useProjectAlertsOutlet();
 
-  const projectSlug = params.projectId;
-  const {
-    data: project,
-    isPending: isProjectLoading,
-    isError: isProjectError,
-    refetch: refetchProject,
-  } = useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
   const {
     data: pluginList = [],
     isPending: isPluginListLoading,
     isError: isPluginListError,
     refetch: refetchPluginList,
   } = useApiQuery<Plugin[]>(
-    makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
+    makeFetchProjectPluginsQueryKey(organization.slug, project.slug),
     {staleTime: 0, gcTime: 0}
   );
 
-  if ((!isProjectLoading && !project) || isPluginListError || isProjectError) {
-    return (
-      <LoadingError
-        onRetry={() => {
-          if (isProjectError) {
-            refetchProject();
-          }
-          if (isPluginListError) {
-            refetchPluginList();
-          }
-        }}
-      />
-    );
+  if (isPluginListError) {
+    return <LoadingError onRetry={refetchPluginList} />;
   }
-
-  const updatePlugin = (plugin: Plugin, enabled: boolean) => {
-    setApiQueryData<Plugin[]>(
-      queryClient,
-      makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
-      oldState =>
-        oldState?.map(p => {
-          if (p.id !== plugin.id) {
-            return p;
-          }
-          return {
-            ...plugin,
-            enabled,
-          };
-        })
-    );
-  };
-
-  const handleDisablePlugin = (plugin: Plugin) => {
-    updatePlugin(plugin, false);
-  };
 
   return (
     <Fragment>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Alerts Settings'), projectSlug, false)}
+        title={routeTitleGen(t('Alerts Settings'), project.slug, false)}
       />
       <SettingsPageHeader
         title={t('Alerts Settings')}
@@ -129,7 +82,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
         </AlertLink>
       </AlertLink.Container>
 
-      {isProjectLoading || isPluginListLoading ? (
+      {isPluginListLoading ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
@@ -166,12 +119,10 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
 
           {canEditRule && (
             <PluginList
-              organization={organization}
               project={project}
               pluginList={(pluginList ?? []).filter(
                 p => p.type === 'notification' && p.hasConfiguration
               )}
-              onDisablePlugin={handleDisablePlugin}
             />
           )}
         </Fragment>
@@ -179,5 +130,3 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     </Fragment>
   );
 }
-
-export default ProjectAlertSettings;

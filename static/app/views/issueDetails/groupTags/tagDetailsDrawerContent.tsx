@@ -8,6 +8,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -220,24 +221,30 @@ function TagDetailsValue({
 }) {
   const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
-  const valueComponent =
-    tagKey === 'user' ? (
-      <UserValue>
-        {getContextIcon({
-          alias: 'user',
-          type: 'user',
-          value: tagValue,
-          contextIconProps: {
-            size: 'md',
-          },
-          theme,
-        })}
-        <div>{userValues.title}</div>
-        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-      </UserValue>
-    ) : (
-      <DeviceName value={tagValue.value} />
-    );
+  const value =
+    tagValue.value === '' ? <Text variant="muted">{t('(empty)')}</Text> : tagValue.value;
+  let valueComponent: React.ReactNode = value;
+  if (tagValue.value !== '') {
+    if (tagKey === 'user') {
+      valueComponent = (
+        <UserValue>
+          {getContextIcon({
+            alias: 'user',
+            type: 'user',
+            value: tagValue,
+            contextIconProps: {
+              size: 'md',
+            },
+            theme,
+          })}
+          <div>{userValues.title}</div>
+          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
+        </UserValue>
+      );
+    } else if (tagKey === 'device') {
+      valueComponent = <DeviceName value={tagValue.value} />;
+    }
+  }
 
   return (
     <Flex gap="xs" align="center">
@@ -320,6 +327,7 @@ function TagValueActionsMenu({
           label: t('Copy tag value to clipboard'),
           onAction: () =>
             copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
+          hidden: tagValue.value === '',
         },
       ]}
     />

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:49.162991+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -33,13 +31,13 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
+          frame (ignored because only 1 frame is considered by custom stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -23,13 +23,22 @@ from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.types import DetectorSettings
 
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+class DetectorSnapshot(TypedDict):
+    id: int
+    enabled: bool
+    status: int
+    trigger_condition: DataConditionGroupSnapshot | None
 
 
 class DetectorManager(BaseManager["Detector"]):
@@ -111,23 +120,15 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def group_type(self) -> builtins.type[GroupType]:
         group_type = grouptype.registry.get_by_slug(self.type)
         if not group_type:
-            raise ValueError(f"Group type {self.type} not registered")
+            raise ValueError(f"Group type '{self.type}' not registered")
+
         return group_type
 
     @property
     def detector_handler(self) -> DetectorHandler | None:
         group_type = self.group_type
-        if not group_type:
-            logger.error(
-                "No registered grouptype for detector",
-                extra={
-                    "detector_id": self.id,
-                    "detector_type": self.type,
-                },
-            )
-            return None
 
-        if not group_type.detector_settings or not group_type.detector_settings.handler:
+        if self.settings.handler is None:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
@@ -137,7 +138,28 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 },
             )
             return None
-        return group_type.detector_settings.handler(self)
+        return self.settings.handler(self)
+
+    @property
+    def settings(self) -> DetectorSettings:
+        settings = self.group_type.detector_settings
+
+        if settings is None:
+            raise ValueError("Registered grouptype has no detector settings")
+
+        return settings
+
+    def get_snapshot(self) -> DetectorSnapshot:
+        trigger_condition = None
+        if self.workflow_condition_group:
+            trigger_condition = self.workflow_condition_group.get_snapshot()
+
+        return {
+            "id": self.id,
+            "enabled": self.enabled,
+            "status": self.status,
+            "trigger_condition": trigger_condition,
+        }
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}

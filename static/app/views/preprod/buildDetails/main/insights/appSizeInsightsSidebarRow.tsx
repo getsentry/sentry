@@ -1,12 +1,13 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -14,7 +15,9 @@ import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
+import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
 import type {
   FileSavingsResultGroup,
   OptimizableImageFile,
@@ -39,6 +42,8 @@ export function formatUpside(percentage: number): string {
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
   'alternate_icons_optimization',
+  'localized_strings_minify',
+  'strip_binary',
 ];
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -71,6 +76,10 @@ export function AppSizeInsightsSidebarRow({
       openAlternativeIconsInsightModal();
     } else if (insight.key === 'image_optimization') {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'localized_strings_minify') {
+      openMinifyLocalizedStringsModal();
+    } else if (insight.key === 'strip_binary') {
+      openStripDebugSymbolsModal();
     }
   };
 
@@ -207,14 +216,9 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
-      <Flex align="center" gap="sm">
-        <Text variant="primary" bold size="sm" tabular>
-          -{formatBytesBase10(file.savings)}
-        </Text>
-        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          ({formatUpside(file.percentage / 100)})
-        </Text>
-      </Flex>
+      <Text variant="primary" bold size="sm" tabular>
+        -{formatBytesBase10(file.savings)}
+      </Text>
     </Flex>
   );
 }
@@ -242,14 +246,9 @@ function DuplicateGroupFileRow({
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
         </Text>
-        <Flex align="center" gap="sm">
-          <Text variant="primary" bold size="sm" tabular>
-            -{formatBytesBase10(file.savings)}
-          </Text>
-          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(file.percentage / 100)})
-          </Text>
-        </Flex>
+        <Text variant="primary" bold size="sm" tabular>
+          -{formatBytesBase10(file.savings)}
+        </Text>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
         {group.files.map((duplicateFile, index) => (
@@ -350,9 +349,6 @@ function OptimizableImageFileRow({
           <Text variant="primary" bold size="sm" tabular>
             -{formatBytesBase10(maxSavings)}
           </Text>
-          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(file.percentage / 100)})
-          </Text>
         </Flex>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
@@ -370,15 +366,6 @@ function OptimizableImageFileRow({
             >
               -{formatBytesBase10(originalFile.minify_savings)}
             </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '64px'}}
-            >
-              ({formatUpside(file.data.minifyPercentage / 100)})
-            </Text>
           </Flex>
         )}
         {hasHeicSavings && (
@@ -394,15 +381,6 @@ function OptimizableImageFileRow({
               style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.conversion_savings)}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '64px'}}
-            >
-              ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
           </Flex>
         )}

@@ -1,8 +1,11 @@
+import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {unreachable} from 'sentry/utils/unreachable';
 import {
   BuildDetailsArtifactType,
+  getMainArtifactSizeMetric,
   isSizeInfoCompleted,
-  type BuildDetailsApiResponse,
+  type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
@@ -43,18 +46,59 @@ export function getReadableArtifactTypeTooltip(
   artifactType: BuildDetailsArtifactType | null
 ): string {
   if (artifactType === null) {
-    return 'Unknown';
+    return t('Unknown');
   }
 
   switch (artifactType) {
     case BuildDetailsArtifactType.XCARCHIVE:
-      return 'XCode application archive';
+      return t('XCode application archive');
     case BuildDetailsArtifactType.AAB:
-      return 'Android app bundle';
+      return t('Android app bundle');
     case BuildDetailsArtifactType.APK:
-      return 'Android application package';
+      return t('Android application package');
     default:
       throw new Error(`Unknown artifact type: ${artifactType}`);
+  }
+}
+
+interface Labels {
+  appId: string;
+  buildConfiguration: string;
+  downloadSizeDescription: string;
+  downloadSizeLabel: string;
+  installSizeDescription: string;
+  installSizeLabel: string;
+  installUnavailableTooltip: string;
+}
+
+export function getLabels(platform: Platform | undefined): Labels {
+  switch (platform) {
+    case 'android':
+      return {
+        installSizeLabel: t('Uncompressed size'),
+        downloadSizeLabel: t('Download size'),
+        appId: t('Package name'),
+        installSizeDescription: t('Uncompressed size on disk not including AOT DEX'),
+        downloadSizeDescription: t('Bytes transferred over the network'),
+        buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t('This app cannot be installed.'),
+      };
+    case 'ios':
+    case 'macos':
+    case undefined:
+      return {
+        installSizeLabel: t('Install Size'),
+        appId: t('Bundle identifier'),
+        installSizeDescription: t('Unencrypted install size'),
+        downloadSizeDescription: t('Bytes transferred over the network'),
+        downloadSizeLabel: t('Download size'),
+        buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t(
+          'Code signature must be valid for this app to be installed.'
+        ),
+      };
+    default:
+      return unreachable(platform);
   }
 }
 
@@ -71,16 +115,30 @@ export function getReadablePlatformLabel(platform: Platform): string {
   }
 }
 
-export function formattedInstallSize(build: BuildDetailsApiResponse): string {
-  if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.install_size_bytes);
+export function formattedPrimaryMetricInstallSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.install_size_bytes);
   }
   return '-';
 }
 
-export function formattedDownloadSize(build: BuildDetailsApiResponse): string {
-  if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.download_size_bytes);
+export function formattedPrimaryMetricDownloadSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.download_size_bytes);
   }
   return '-';
 }

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.826231+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,15 +22,15 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "9509e122c6175606d52862fa4f64853c"
+    hash: "ebcb7aa3baed0b2447fed7b265db777c"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "ValueError"
           stacktrace*
             frame* (marked in-app by the client)
               filename*
                 "baz.py"
-          type*
-            "ValueError"

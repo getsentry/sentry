@@ -1,6 +1,8 @@
 from datetime import timedelta
 from hashlib import sha1
+from unittest.mock import patch
 
+import sentry_sdk
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
@@ -520,7 +522,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK
@@ -552,7 +554,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK
@@ -738,6 +740,42 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             expired_size_comparison.error_message
             and "30 minutes" in expired_size_comparison.error_message
         )
+
+    def test_detect_expired_preprod_artifacts_captures_sentry_message(self):
+        """Test that Sentry messages are captured for each expired artifact"""
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)
+
+        expired_artifact_1 = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+        )
+        PreprodArtifact.objects.filter(id=expired_artifact_1.id).update(date_updated=old_time)
+
+        expired_artifact_2 = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=expired_artifact_2.id).update(date_updated=old_time)
+
+        with patch.object(sentry_sdk, "capture_message") as mock_capture_message:
+            detect_expired_preprod_artifacts()
+
+            # Should have captured a message for each expired artifact
+            assert mock_capture_message.call_count == 2
+
+            # Verify the message text and parameters
+            call_args_list = mock_capture_message.call_args_list
+            captured_artifact_ids = [call[1]["extras"]["artifact_id"] for call in call_args_list]
+
+            assert expired_artifact_1.id in captured_artifact_ids
+            assert expired_artifact_2.id in captured_artifact_ids
+
+            # Verify all calls have the same message text, error level, and contain artifact_id
+            for call in call_args_list:
+                assert call[0][0] == "PreprodArtifact expired"
+                assert call[1]["level"] == "error"
+                assert "artifact_id" in call[1]["extras"]
 
     def test_detect_expired_preprod_artifacts_mixed_states(self):
         """Test that only artifacts in the right states are considered for expiration"""

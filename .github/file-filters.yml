@@ -6,9 +6,8 @@ sentry_frontend_workflow_file: &sentry_frontend_workflow_file
 # Provides list of changed files to test (jest)
 # getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
 testable_modified: &testable_modified
-  - '!**/*.generated.ts'
   - added|modified: 'package.json'
-  - added|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs}'
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
 

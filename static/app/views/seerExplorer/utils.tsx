@@ -21,10 +21,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   telemetry_index_dependencies: (args, isLoading) => {
     const title = args.title || 'item';
-    const truncatedTitle = title.length > 75 ? title.slice(0, 75) + '...' : title;
-    return isLoading
-      ? `Tracing the flow of ${truncatedTitle}...`
-      : `Traced the flow of ${truncatedTitle}`;
+    return isLoading ? `Tracing the flow of ${title}...` : `Traced the flow of ${title}`;
   },
 
   google_search: (args, isLoading) => {
@@ -32,13 +29,24 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  trace_explorer_query: (args, isLoading) => {
-    const question = args.question || 'spans';
-    const truncatedQuestion =
-      question.length > 75 ? question.slice(0, 75) + '...' : question;
+  telemetry_live_search: (args, isLoading) => {
+    const question = args.question || 'data';
+    const dataset = args.dataset || 'spans';
+    const projectSlugs = args.project_slugs;
+
+    const projectInfo =
+      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+
+    if (dataset === 'issues') {
+      return isLoading
+        ? `Searching for issues${projectInfo}: '${question}'...`
+        : `Searched for issues${projectInfo}: '${question}'`;
+    }
+
+    // Default to spans
     return isLoading
-      ? `Querying spans: '${truncatedQuestion}'`
-      : `Queried spans: '${truncatedQuestion}'`;
+      ? `Querying spans${projectInfo}: '${question}'...`
+      : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -74,10 +82,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     switch (mode) {
       case 'read_file':
         if (path) {
-          const truncatedPath = path.length > 50 ? path.slice(0, 50) + '...' : path;
           return isLoading
-            ? `Reading ${truncatedPath} from ${repoName}...`
-            : `Read ${truncatedPath} from ${repoName}`;
+            ? `Reading ${path} from ${repoName}...`
+            : `Read ${path} from ${repoName}`;
         }
         return isLoading
           ? `Reading file from ${repoName}...`
@@ -85,11 +92,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'find_files':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Finding files matching '${truncatedPattern}' in ${repoName}...`
-            : `Found files matching '${truncatedPattern}' in ${repoName}`;
+            ? `Finding files matching '${pattern}' in ${repoName}...`
+            : `Found files matching '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Finding files in ${repoName}...`
@@ -97,11 +102,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'search_content':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Searching for '${truncatedPattern}' in ${repoName}...`
-            : `Searched for '${truncatedPattern}' in ${repoName}`;
+            ? `Searching for '${pattern}' in ${repoName}...`
+            : `Searched for '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Searching code in ${repoName}...`
@@ -141,16 +144,30 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     if (filePath) {
-      const truncatedPath =
-        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
       return isLoading
-        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
-        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
+        ? `Excavating commits affecting '${filePath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${filePath}'${dateRangeStr} in ${repoName}`;
     }
 
     return isLoading
       ? `Excavating commit history${dateRangeStr} in ${repoName}...`
       : `Excavated commit history${dateRangeStr} in ${repoName}`;
+  },
+
+  get_replay_details: (args, isLoading) => {
+    const replayId = args.replay_id || '';
+    const shortReplayId = replayId.slice(0, 8);
+    return isLoading
+      ? `Watching replay ${shortReplayId}...`
+      : `Watched replay ${shortReplayId}`;
+  },
+
+  get_profile_flamegraph: (args, isLoading) => {
+    const profileId = args.profile_id || '';
+    const shortProfileId = profileId.slice(0, 8);
+    return isLoading
+      ? `Sampling profile ${shortProfileId}...`
+      : `Sampled profile ${shortProfileId}`;
   },
 };
 
@@ -191,6 +208,81 @@ export function getToolsStringFromBlock(block: Block): string[] {
 }
 
 /**
+ * Converts issue short IDs in text to markdown links.
+ * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
+ * Excludes IDs that are already inside markdown code blocks, links, or URLs.
+ */
+function linkifyIssueShortIds(text: string): string {
+  // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
+  // Requires at least 2 chars before hyphen and 1+ chars after
+  const shortIdPattern = /\b([A-Z0-9_]{2,}-[A-Z0-9]+)\b/g;
+
+  // Track positions that should be excluded (inside code blocks, links, or URLs)
+  const excludedRanges: Array<{end: number; start: number}> = [];
+
+  // Find all markdown code blocks (inline and block)
+  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
+  for (const codeMatch of text.matchAll(codeBlockPattern)) {
+    excludedRanges.push({
+      end: codeMatch.index + codeMatch[0].length,
+      start: codeMatch.index,
+    });
+  }
+  // Find all markdown links [text](url)
+  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  for (const linkMatch of text.matchAll(markdownLinkPattern)) {
+    excludedRanges.push({
+      end: linkMatch.index + linkMatch[0].length,
+      start: linkMatch.index,
+    });
+  }
+  // Find all URLs (http://, https://, or starting with /)
+  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  for (const urlMatch of text.matchAll(urlPattern)) {
+    excludedRanges.push({
+      end: urlMatch.index + urlMatch[0].length,
+      start: urlMatch.index,
+    });
+  }
+
+  // Sort ranges by start position for efficient checking
+  excludedRanges.sort((a, b) => a.start - b.start);
+
+  // Helper function to check if a position is within any excluded range
+  const isExcluded = (pos: number): boolean => {
+    return excludedRanges.some(range => pos >= range.start && pos < range.end);
+  };
+
+  // Replace matches, but skip those in excluded ranges
+  return text.replace(shortIdPattern, (idMatch, _content, offset) => {
+    if (isExcluded(offset)) {
+      return idMatch;
+    }
+    return `[${idMatch}](/issues/${idMatch}/)`;
+  });
+}
+
+/**
+ * Post-processes markdown text from LLM responses.
+ * Applies various transformations to enhance the text with links and formatting.
+ * Add new processing rules to this function as needed.
+ */
+export function postProcessLLMMarkdown(text: string | null | undefined): string {
+  if (!text) {
+    return '';
+  }
+
+  let processed = text;
+
+  // Convert issue short IDs to clickable links
+  processed = linkifyIssueShortIds(processed);
+
+  // Add more processing rules here as needed
+
+  return processed;
+}
+
+/**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
@@ -199,21 +291,54 @@ export function buildToolLinkUrl(
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
-    case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
-        toolLink.params;
+    case 'telemetry_live_search': {
+      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
 
-      // Transform backend params to frontend format
+      if (dataset === 'issues') {
+        // Build URL for issues search
+        const queryParams: Record<string, any> = {
+          query: query || '',
+        };
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
+      }
+
+      // Default to spans (traces) search
+      const {y_axes, group_by, mode} = toolLink.params;
+
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
 
-      // If project_slug is provided, look up the project ID
-      if (project_slug && projects) {
-        const project = projects.find(p => p.slug === project_slug);
-        if (project) {
-          queryParams.project = project.id;
+      // If project_slugs is provided, look up the project IDs
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
         }
       }
 
@@ -275,6 +400,53 @@ export function buildToolLinkUrl(
       const {event_id, issue_id} = toolLink.params;
 
       return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+    }
+    case 'get_replay_details': {
+      const {replay_id} = toolLink.params;
+      if (!replay_id) {
+        return null;
+      }
+
+      return {
+        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
+    }
+    case 'get_profile_flamegraph': {
+      const {profile_id, project_id, is_continuous, start_ts, end_ts} = toolLink.params;
+      if (!profile_id || !project_id) {
+        return null;
+      }
+
+      // Look up project slug from project_id
+      const project = projects?.find(p => p.id === String(project_id));
+      if (!project) {
+        return null;
+      }
+
+      if (is_continuous) {
+        // Continuous profiles need start/end timestamps as query params
+        if (!start_ts || !end_ts) {
+          return null;
+        }
+
+        // Convert Unix timestamps to ISO date strings
+        const startDate = new Date(start_ts * 1000).toISOString();
+        const endDate = new Date(end_ts * 1000).toISOString();
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/flamegraph/`,
+          query: {
+            start: startDate,
+            end: endDate,
+            profilerId: profile_id,
+          },
+        };
+      }
+
+      // Transaction profiles use profile_id in the path
+      return {
+        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+      };
     }
     default:
       return null;

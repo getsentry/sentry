@@ -239,7 +239,7 @@ class OnDemandSummary extends Component<Props, State> {
       return this.renderNotEnabled();
     }
 
-    if (!hasPaymentSource && !subscription.onDemandInvoicedManual) {
+    if (!hasPaymentSource) {
       return this.renderNeedsPaymentSource();
     }
 

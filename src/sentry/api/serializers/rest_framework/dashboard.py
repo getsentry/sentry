@@ -966,6 +966,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             ):
                 return
 
+            # check if the linked dashboard appears in the fields of the query
+            if not all(
+                field in query.fields
+                for field in [
+                    linked_dashboard.get("field") for linked_dashboard in linked_dashboards
+                ]
+            ):
+                raise serializers.ValidationError(
+                    "Linked dashboard does not appear in the fields of the query"
+                )
+
             for link_data in linked_dashboards:
                 field = link_data.get("field")
                 dashboard_id = link_data.get("dashboard_id")
@@ -1025,13 +1036,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
 
-        if (
-            new_dataset_source == DatasetSourcesTypes.USER.value
-            and widget.widget_type == DashboardWidgetTypes.SPANS
-        ):
-            widget.changed_reason = None
-
-        if widget.widget_type not in [
+        if widget.widget_type == DashboardWidgetTypes.SPANS:
+            if new_dataset_source == DatasetSourcesTypes.USER.value:
+                widget.changed_reason = None
+        # we don't want to reset dataset source for spans widgets in case they are part of the migration
+        elif widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,
             DashboardWidgetTypes.TRANSACTION_LIKE,
             DashboardWidgetTypes.ERROR_EVENTS,

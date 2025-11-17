@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:59.394743+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,27 +22,29 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "a12d579fed7636c2a5d2fae110c95ce5"
+    hash: "63f25f224c4a56add964d1570880704c"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "NullReferenceException"
           stacktrace*
             frame* (marked in-app by the client)
               filename*
                 "samplescript.cs"
               function*
                 "SampleScript.ThrowNull ()"
-          type*
-            "NullReferenceException"
   system*
-    hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
+    hash: "7909deacdb3f511a715efb7f2670d4dc"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "NullReferenceException"
           stacktrace*
             frame*
               filename*
@@ -86,5 +86,3 @@ contributing variants:
                 "samplescript.cs"
               function*
                 "SampleScript.ThrowNull ()"
-          type*
-            "NullReferenceException"

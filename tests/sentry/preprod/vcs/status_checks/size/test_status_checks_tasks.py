@@ -3,13 +3,17 @@ from __future__ import annotations
 import uuid
 from unittest.mock import Mock, patch
 
+import responses
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test
@@ -445,3 +449,281 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert "com.example.uploading" in summary
         assert "com.example.failed" in summary
         assert "Upload timeout" in summary
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_permission_error(self):
+        """Test task handles GitHub permission errors without retrying."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="123",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=403,
+            json={
+                "message": "Resource not accessible by integration",
+                "documentation_url": "https://docs.github.com/rest/checks/runs#create-a-check-run",
+            },
+        )
+
+        with self.tasks():
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected IntegrationConfigurationError to be raised"
+            except IntegrationConfigurationError as e:
+                assert "GitHub App lacks permissions" in str(e)
+                assert "required permissions" in str(e)
+
+        # Verify no retries due to ignore policy
+        assert len(responses.calls) == 1
+        assert (
+            responses.calls[0].request.url == "https://api.github.com/repos/owner/repo/check-runs"
+        )
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_non_permission_403(self):
+        """Test task re-raises non-permission 403 errors (allows retry for transient issues)."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="456",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        # 403 error that's NOT permission-related (should re-raise to allow retry)
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=403,
+            json={
+                "message": "Repository is temporarily unavailable",
+            },
+        )
+
+        with self.tasks():
+            # Should re-raise ApiForbiddenError (not convert to IntegrationConfigurationError)
+            # This allows the task system to retry in case it's a transient issue
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected ApiForbiddenError to be raised"
+            except Exception as e:
+                assert e.__class__.__name__ == "ApiForbiddenError"
+                assert "temporarily unavailable" in str(e)
+
+        assert len(responses.calls) == 1
+        assert (
+            responses.calls[0].request.url == "https://api.github.com/repos/owner/repo/check-runs"
+        )
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_400_error(self):
+        """Test task converts 400 errors to IntegrationConfigurationError (no retry)."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="789",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=400,
+            json={
+                "message": "Invalid request",
+                "errors": [{"field": "head_sha", "code": "invalid"}],
+            },
+        )
+
+        with self.tasks():
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected IntegrationConfigurationError to be raised"
+            except IntegrationConfigurationError as e:
+                assert "400 client error" in str(e)
+
+        # Verify no retries
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_429_error(self):
+        """Test task allows 429 rate limit errors to retry"""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="999",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=429,
+            json={
+                "message": "API rate limit exceeded",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+        )
+
+        with self.tasks():
+            # 429 should be re-raised as ApiRateLimitedError (not converted to IntegrationConfigurationError)
+            # This allows the task system to retry with backoff
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected ApiRateLimitedError to be raised"
+            except Exception as e:
+                assert e.__class__.__name__ == "ApiRateLimitedError"
+                assert "rate limit" in str(e).lower()
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_create_preprod_status_check_task_truncates_long_summary(self):
+        """Test task truncates summary when it exceeds GitHub's byte limit."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        artifacts = []
+        for i in range(150):
+            long_app_id = f"com.example.very.long.app.identifier.number.{i}" + "x" * 200
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.FAILED,
+                app_id=long_app_id,
+                error_message=f"This is a very long error message that will contribute to the summary size. Error #{i}: "
+                + "y" * 500,
+                commit_comparison=commit_comparison,
+            )
+            artifacts.append(artifact)
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-truncation",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=201,
+            json={"id": 12345, "status": "completed"},
+        )
+
+        with self.tasks():
+            create_preprod_status_check_task(artifacts[0].id)
+
+        assert len(responses.calls) == 1
+        request_body = responses.calls[0].request.body
+
+        payload = json.loads(request_body)
+        summary = payload["output"]["summary"]
+
+        assert summary is not None
+        summary_bytes = len(summary.encode("utf-8"))
+
+        assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
+        assert summary.endswith("..."), "Truncated summary should end with '...'"

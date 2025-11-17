@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.179563+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "9c336f632f6764c0f082a6a66edbf22d"
+    hash: "d90cd4f110751aff5a0a7df3c546a339"
     contributing component: exception
     hint: None
     root_component:
@@ -46,6 +44,3 @@ contributing variants:
             frame*
               function*
                 "gldCreateDevice"
-            frame*
-              function*
-                "abort"

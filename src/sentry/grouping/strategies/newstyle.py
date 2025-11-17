@@ -510,11 +510,12 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and has_url_origin(frames[0].abs_path, files_count_as_urls=True)
     ):
-        frame_components[0].update(
-            contributes=False, hint="ignored single non-URL JavaScript frame"
-        )
+        should_ignore_frame = has_url_origin(frames[0].abs_path, files_count_as_urls=True)
+        if should_ignore_frame:
+            frame_components[0].update(
+                contributes=False, hint="ignored single non-URL JavaScript frame"
+            )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
@@ -613,10 +614,19 @@ def single_exception(
             )
 
         values: list[ExceptionGroupingComponentChildren] = []
+
         if ns_error_component is not None:
-            values = [stacktrace_component, type_component, ns_error_component, value_component]
+            values = [type_component, value_component, ns_error_component, stacktrace_component]
         else:
-            values = [stacktrace_component, type_component, value_component]
+            values = [type_component, value_component, stacktrace_component]
+
+        # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, the code here
+        # (and the option controlling it) can be deleted
+        if context.get("use_legacy_exception_subcomponent_order"):
+            if ns_error_component is not None:
+                values = [stacktrace_component, type_component, ns_error_component, value_component]
+            else:
+                values = [stacktrace_component, type_component, value_component]
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts

@@ -32,6 +32,7 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -188,6 +189,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
 
@@ -539,8 +541,14 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_project(
-        organization=None, teams=None, fire_project_created=False, **kwargs
+        organization=None,
+        teams=None,
+        fire_project_created=False,
+        create_default_detectors=False,
+        **kwargs,
     ) -> Project:
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -548,15 +556,21 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic(router.db_for_write(Project)):
-            project = Project.objects.create(organization=organization, **kwargs)
-            if teams:
-                for team in teams:
-                    project.add_team(team)
-            if fire_project_created:
-                project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                )
+        with (
+            disable_default_detector_creation()
+            if not create_default_detectors
+            else contextlib.nullcontext()
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                project = Project.objects.create(organization=organization, **kwargs)
+                if teams:
+                    for team in teams:
+                        project.add_team(team)
+                if fire_project_created:
+                    project_created.send(
+                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    )
+
         return project
 
     @staticmethod
@@ -1963,13 +1977,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1981,7 +1991,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
@@ -2276,6 +2285,14 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = default_detector_config_data.get(kwargs["type"], {})
+        if kwargs.get("type") in (ErrorGroupType.slug, IssueStreamGroupType.slug):
+            detector, _ = Detector.objects.get_or_create(
+                type=kwargs["type"],
+                project=kwargs["project"],
+                defaults={"config": {}, "name": name},
+            )
+            detector.update(config=config, name=name, **kwargs)
+            return detector
 
         return Detector.objects.create(
             name=name,

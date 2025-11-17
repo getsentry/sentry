@@ -5,7 +5,7 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useInvalidateSavedQueries,
@@ -29,9 +29,8 @@ export type ExploreQueryChangedReason = {
   }> | null;
 };
 
-// Request payload type that matches the backend ExploreSavedQuerySerializer
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;

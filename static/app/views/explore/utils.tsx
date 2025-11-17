@@ -49,6 +49,7 @@ import type {
   TraceItemDetailsMeta,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
+import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
@@ -720,7 +721,7 @@ export function getSavedQueryTraceItemUrl({
   if (urlFunction) {
     return urlFunction({savedQuery, organization});
   }
-  // Invariant, only spans and logs are currently supported.
+  // Invariant, only spans, logs, and metrics are currently supported.
   Sentry.captureMessage(
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
@@ -741,7 +742,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
-  [TraceItemDataset.TRACEMETRICS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
 };
 
 /**

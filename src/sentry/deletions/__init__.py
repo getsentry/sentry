@@ -64,7 +64,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
+    manager.register(models.GroupHistory, BulkModelDeletionTask)
     manager.register(models.GroupLink, BulkModelDeletionTask)
     manager.register(models.GroupMeta, BulkModelDeletionTask)
     manager.register(models.GroupRedirect, BulkModelDeletionTask)

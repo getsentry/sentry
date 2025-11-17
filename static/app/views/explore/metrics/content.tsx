@@ -8,10 +8,19 @@ import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {metricsPickableDays} from 'sentry/views/explore/metrics/utils';
+import {
+  getIdFromLocation,
+  getTitleFromLocation,
+  ID_KEY,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 function FeedbackButton() {
@@ -80,12 +89,19 @@ export default function MetricsContent() {
 }
 
 function MetricsHeader() {
+  const location = useLocation();
+  const pageId = getIdFromLocation(location, ID_KEY);
+  const title = getTitleFromLocation(location, TITLE_KEY);
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
+        {title && defined(pageId) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
+        ) : null}
+
         <Layout.Title>
-          {t('Metrics')}
-          <FeatureBadge type="alpha" />
+          {title ? title : t('Metrics')}
+          <FeatureBadge type="beta" />
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>

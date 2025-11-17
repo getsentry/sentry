@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:57.771786+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,12 +22,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+    hash: "e734632ed44ebbaaeee1d0f589397a1a"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "ReferenceError"
           stacktrace*
             frame*
               filename*
@@ -91,5 +91,3 @@ contributing variants:
                 "react-dom.development.js"
               function* (trimmed javascript function)
                 "callCallback"
-          type*
-            "ReferenceError"

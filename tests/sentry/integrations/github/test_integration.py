@@ -18,7 +18,11 @@ from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import client
 from sentry.integrations.github import integration as github_integration
-from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
+from sentry.integrations.github.client import (
+    MINIMUM_REQUESTS,
+    GitHubApiClient,
+    GithubSetupApiClient,
+)
 from sentry.integrations.github.integration import (
     API_ERRORS,
     GitHubInstallationError,
@@ -1676,6 +1680,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sync_forward_assignment",
             "sync_status_reverse",
             "resolution_strategy",
+            "sync_comments",
         ]
 
     @responses.activate
@@ -1926,3 +1931,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Should not make any API calls when user is None and assign=True
         assert len(responses.calls) == 0
+
+    def test_create_comment(self) -> None:
+        self.user.name = "Sentry Admin"
+        self.user.save()
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(GitHubApiClient, "create_comment") as mock_create_comment:
+            installation.create_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_create_comment.call_args[0][1] == "123"
+            assert mock_create_comment.call_args[0][2] == {
+                "body": "**Sentry Admin** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     Glad it's quoted"
+            }
+
+    def test_update_comment(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(GitHubApiClient, "update_comment") as mock_update_comment:
+            installation.update_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_update_comment.call_args[0] == (
+                "Test-Organization/foo",
+                "123",
+                "123",
+                {
+                    "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
+                },
+            )

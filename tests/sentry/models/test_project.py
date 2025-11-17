@@ -37,6 +37,7 @@ from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -445,7 +446,7 @@ class ProjectTest(APITestCase, TestCase):
         # Ensure the mock starts clean before the save operation
         mock_lock.reset_mock()
         Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 1
+        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
 
     @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
@@ -476,13 +477,10 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
-    def test_project_detector(self) -> None:
-        project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
-
-        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
-            project = self.create_project()
-            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+    def test_project_detectors(self) -> None:
+        project = self.create_project(create_default_detectors=True)
+        assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
+        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
 
 
 class ProjectOptionsTests(TestCase):
