@@ -641,11 +641,16 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         mock_call_seer.return_value = mock_summary
 
+        # Set fixability score so _run_automation will be called
+        self.group.update(seer_fixability_score=0.75)
+
         # Make _run_automation raise an exception
         mock_run_automation.side_effect = Exception("Automation failed")
 
-        # Call get_issue_summary and verify it still returns successfully
-        summary_data, status_code = get_issue_summary(self.group, self.user)
+        # Call get_issue_summary with a source that triggers automation
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, source=SeerAutomationSource.POST_PROCESS
+        )
 
         assert status_code == 200
         expected_response = mock_summary.dict()
