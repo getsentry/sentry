@@ -82,7 +82,7 @@ def make_rpc_request(
     aggregate: str,
     snuba_params: SnubaParams,
     organization: Organization,
-    dataset: Dataset,
+    dataset: str,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -132,7 +132,7 @@ def make_snql_request(
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
     organization: Organization,
-    dataset: Dataset,
+    dataset: str,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
