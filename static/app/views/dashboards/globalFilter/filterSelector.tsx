@@ -7,7 +7,15 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {getPredefinedValues} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
+import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {
+  escapeTagValue,
+  getFilterValueType,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getPredefinedValues,
+  prepareInputValueForSaving,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -145,20 +153,24 @@ function FilterSelector({
     if (isEqual(opts, activeFilterValues)) {
       return;
     }
+    if (!filterToken) {
+      return;
+    }
+
     setActiveFilterValues(opts);
 
-    // Build filter condition string
-    const mutableSearch = new MutableSearch('');
-
-    let filterValue = '';
-    if (opts.length === 1) {
-      filterValue = mutableSearch.addFilterValue(tag.key, opts[0]!).toString();
-    } else if (opts.length > 1) {
-      filterValue = mutableSearch.addFilterValueList(tag.key, opts).toString();
+    let newValue = '';
+    if (opts.length !== 0) {
+      const cleanedValue = prepareInputValueForSaving(
+        getFilterValueType(filterToken, fieldDefinition),
+        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+      );
+      newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }
+
     onUpdateFilter({
       ...globalFilter,
-      value: filterValue,
+      value: newValue,
     });
   };
 
