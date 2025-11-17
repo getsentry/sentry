@@ -131,7 +131,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
             icon={card.icon}
             label={card.title}
             labelTooltip={card.labelTooltip}
-            minWidth={220}
             action={
               card.showInsightsButton
                 ? {

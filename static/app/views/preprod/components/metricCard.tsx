@@ -18,23 +18,22 @@ interface MetricCardProps {
   label: string;
   action?: MetricCardAction;
   labelTooltip?: ReactNode;
-  minWidth?: number;
   style?: CSSProperties;
 }
 
 export function MetricCard(props: MetricCardProps) {
-  const {icon, label, labelTooltip, action, children, minWidth, style} = props;
+  const {icon, label, labelTooltip, action, children, style} = props;
 
   return (
-    <CardContainer
+    <Stack
       background="primary"
       radius="lg"
       padding="xl"
       gap="xs"
       border="primary"
       flex="1"
-      $minWidth={minWidth ?? 220}
       style={style}
+      minWidth="300px"
     >
       <Flex align="center" justify="between" gap="sm">
         <Flex gap="sm" align="center">
@@ -64,13 +63,9 @@ export function MetricCard(props: MetricCardProps) {
         )}
       </Flex>
       {children}
-    </CardContainer>
+    </Stack>
   );
 }
-
-const CardContainer = styled(Stack)<{$minWidth: number}>`
-  min-width: ${p => p.$minWidth}px;
-`;
 
 const IconButton = styled('button')`
   display: inline-flex;

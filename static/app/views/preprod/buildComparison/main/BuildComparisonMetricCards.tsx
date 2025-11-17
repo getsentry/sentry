@@ -82,12 +82,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
         const {variant, icon} = getTrend(metric.diff);
 
         return (
-          <MetricCard
-            key={metric.key}
-            icon={metric.icon}
-            label={metric.title}
-            minWidth={250}
-          >
+          <MetricCard key={metric.key} icon={metric.icon} label={metric.title}>
             <Stack gap="xs">
               <Flex align="end" gap="sm" wrap="wrap">
                 <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
