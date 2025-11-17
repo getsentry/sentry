@@ -20,7 +20,11 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {type ReplayListRecord} from 'sentry/views/replays/types';
+import {
+  REPLAY_LIST_QUERY_REFERRERS,
+  type ReplayListQueryReferrer,
+  type ReplayListRecord,
+} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -72,11 +76,16 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   query.sort =
     !playlistSort || playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
 
+  const queryReferrer = REPLAY_LIST_QUERY_REFERRERS.includes(
+    query.referrer as ReplayListQueryReferrer
+  )
+    ? (query.referrer as ReplayListQueryReferrer)
+    : 'replayList';
+
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
-    // TODO: use the referrer from the query and type cast it to the ReplayListQueryReferrer type
-    queryReferrer: 'replaysPlayList',
+    queryReferrer,
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
