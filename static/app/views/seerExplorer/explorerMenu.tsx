@@ -364,7 +364,7 @@ const MenuPanel = styled('div')<{
 `;
 
 const MenuItem = styled('div')<{isSelected: boolean}>`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.md};
   cursor: pointer;
   background: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
   border-bottom: 1px solid ${p => p.theme.border};
@@ -379,8 +379,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
 `;
 
 const ItemName = styled('div')`
-  font-weight: 600;
-  color: ${p => p.theme.purple400};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   text-overflow: ellipsis;
@@ -390,5 +389,4 @@ const ItemName = styled('div')`
 const ItemDescription = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.xs};
-  margin-top: 2px;
 `;

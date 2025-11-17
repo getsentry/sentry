@@ -7,11 +7,7 @@ function EmptyState() {
   return (
     <Container>
       <IconSeer size="xl" variant="waiting" />
-      <Text>
-        Welcome to Seer Explorer.
-        <br />
-        Ask me anything about your application.
-      </Text>
+      <Text>Ask Seer anything about your application.</Text>
     </Container>
   );
 }

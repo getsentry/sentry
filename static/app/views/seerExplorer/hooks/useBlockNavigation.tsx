@@ -29,6 +29,11 @@ export function useBlockNavigation({
 }: UseBlockNavigationProps) {
   // Handle keyboard navigation
   useEffect(() => {
+    const scrollToElement = (element: HTMLElement | null) => {
+      if (!element) return;
+      element.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
@@ -36,67 +41,71 @@ export function useBlockNavigation({
         e.preventDefault();
         onNavigate?.();
         if (focusedBlockIndex === -1) {
-          // Move from input to last block
           const newIndex = blocks.length - 1;
-          setFocusedBlockIndex(newIndex);
-          blockRefs.current[newIndex]?.scrollIntoView({block: 'nearest'});
+          const blockElement = blockRefs.current[newIndex];
+          if (blockElement) {
+            // Blur textarea when navigating to a block
+            textareaRef.current?.blur();
+            setFocusedBlockIndex(newIndex);
+            scrollToElement(blockElement);
+          }
         } else {
-          // Try to let the block handle it first (for cycling through links)
           const handled = onKeyPress?.(focusedBlockIndex, 'ArrowUp');
           if (!handled && focusedBlockIndex > 0) {
-            // Block didn't handle it, move up in blocks
             const newIndex = focusedBlockIndex - 1;
-            setFocusedBlockIndex(newIndex);
-            blockRefs.current[newIndex]?.scrollIntoView({block: 'nearest'});
+            const blockElement = blockRefs.current[newIndex];
+            if (blockElement) {
+              setFocusedBlockIndex(newIndex);
+              scrollToElement(blockElement);
+            }
           }
         }
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (focusedBlockIndex === -1) {
-          // Already at input, do nothing
-          return;
-        }
+        if (focusedBlockIndex === -1) return;
         onNavigate?.();
-        // Try to let the block handle it first (for cycling through links)
         const handled = onKeyPress?.(focusedBlockIndex, 'ArrowDown');
         if (!handled) {
-          // Block didn't handle it, do block navigation
           if (focusedBlockIndex < blocks.length - 1) {
-            // Move down in blocks
             const newIndex = focusedBlockIndex + 1;
-            setFocusedBlockIndex(newIndex);
-            blockRefs.current[newIndex]?.scrollIntoView({block: 'nearest'});
+            const blockElement = blockRefs.current[newIndex];
+            if (blockElement) {
+              setFocusedBlockIndex(newIndex);
+              scrollToElement(blockElement);
+            }
           } else {
-            // Move from last block to input
             setFocusedBlockIndex(-1);
-            textareaRef.current?.focus();
-            textareaRef.current?.scrollIntoView({block: 'nearest'});
+            const textareaElement = textareaRef.current;
+            if (textareaElement) {
+              textareaElement.focus();
+              scrollToElement(textareaElement);
+            }
           }
         }
       } else if (e.key === 'Tab') {
         e.preventDefault();
         onNavigate?.();
-        // If unminimizing and there was a previously focused block, restore that focus
-        // Otherwise, focus the input
         if (isMinimized && focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
-          blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
+          scrollToElement(blockRefs.current[focusedBlockIndex] ?? null);
         } else {
-          // Tab always returns to input and focuses textarea when not unminimizing
           setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          textareaRef.current?.scrollIntoView({block: 'nearest'});
+          const textareaElement = textareaRef.current;
+          if (textareaElement) {
+            textareaElement.focus();
+            scrollToElement(textareaElement);
+          }
         }
       } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
         e.preventDefault();
-        // Delete from this block and all blocks after it
         onDeleteFromIndex?.(focusedBlockIndex);
-        // Focus returns to input
         setFocusedBlockIndex(-1);
-        textareaRef.current?.focus();
-        textareaRef.current?.scrollIntoView({block: 'nearest'});
+        const textareaElement = textareaRef.current;
+        if (textareaElement) {
+          textareaElement.focus();
+          scrollToElement(textareaElement);
+        }
       } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();
-        // Handle Enter key on focused block
         onKeyPress?.(focusedBlockIndex, 'Enter');
       }
     };
