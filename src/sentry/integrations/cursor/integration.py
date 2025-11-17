@@ -26,7 +26,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
 DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
 
@@ -100,7 +100,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
         if not config:
-            raise IntegrationError("Missing configuration data")
+            raise IntegrationConfigurationError("Missing configuration data")
 
         webhook_secret = generate_token()
 
@@ -146,7 +146,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         api_key = data.get("api_key")
         if not api_key:
-            raise IntegrationError("API key is required")
+            raise IntegrationConfigurationError("API key is required")
 
         metadata = dict(self.model.metadata or {})
         metadata["api_key"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(api_key)
@@ -168,7 +168,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if encrypted_value:
             decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
             return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
-        raise IntegrationError("Webhook secret is not configured")
+        raise IntegrationConfigurationError("Webhook secret is not configured")
 
     @property
     def api_key(self) -> str:
@@ -176,4 +176,4 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if encrypted_value:
             decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
             return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
-        raise IntegrationError("API key is not configured")
+        raise IntegrationConfigurationError("API key is not configured")

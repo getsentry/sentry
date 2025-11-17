@@ -7,12 +7,12 @@ from uuid import UUID
 
 import pytest
 
-from sentry.integrations.base import IntegrationError
 from sentry.integrations.cursor.integration import (
     CURSOR_INTEGRATION_SECRET_FIELD,
     CursorAgentIntegration,
     CursorAgentIntegrationProvider,
 )
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -111,14 +111,14 @@ class CursorIntegrationTest(IntegrationTestCase):
         """Test that build_integration raises error when config is missing"""
         state: Mapping[str, Any] = {}
 
-        with pytest.raises(IntegrationError, match="Missing configuration data"):
+        with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
     def test_build_integration_empty_config(self):
         """Test that build_integration raises error when config is empty"""
         state: Mapping[str, Any] = {"config": {}}
 
-        with pytest.raises(IntegrationError, match="Missing configuration data"):
+        with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
     def test_get_client(self):
@@ -267,7 +267,7 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         installation = integration.get_installation(organization_id=self.organization.id)
 
-        with pytest.raises(IntegrationError, match="API key is required"):
+        with pytest.raises(IntegrationConfigurationError, match="API key is required"):
             installation.update_organization_config({})
 
     def test_build_integration_creates_unique_installations(self):
