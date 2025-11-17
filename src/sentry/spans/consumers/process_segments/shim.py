@@ -97,6 +97,9 @@ def build_shim_event_data(
     # Add legacy span attributes required only by issue detectors. As opposed to
     # real event payloads, this also adds the segment span so detectors can run
     # topological sorting on the span tree.
+    #
+    # TODO: Remove this code once `organizations:performance-issues-spans` has graduated
+    # and performance issue detection runs 100% on spans.
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
         event_span["timestamp"] = span["end_timestamp"]
