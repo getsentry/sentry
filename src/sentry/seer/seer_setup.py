@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.promptsactivity import PromptsActivity
+from sentry.options.rollout import in_rollout_group
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -34,6 +35,23 @@ def get_seer_org_acknowledgement(organization: Organization) -> bool:
         organization_id=organization.id,
         project_id=0,
     ).exists()
+
+
+def get_seer_org_acknowledgement_for_scanner(organization: Organization) -> bool:
+
+    if PromptsActivity.objects.filter(
+        feature=feature_name,
+        organization_id=organization.id,
+        project_id=0,
+    ).exists():
+        return True
+
+    if features.has("organizations:gen-ai-consent-flow-removal", organization) and in_rollout_group(
+        "seer.scanner_no_consent.rollout_rate", organization.id
+    ):
+        return True
+
+    return False
 
 
 def has_seer_access(
