@@ -37,7 +37,7 @@ function PanelContainers({
               initial={{opacity: 0}}
               animate={{opacity: isMinimized ? 0 : 1}}
               exit={{opacity: 0}}
-              transition={{duration: 0.1}}
+              transition={{duration: 0.12}}
             />
           )}
           <PanelContainer
@@ -55,8 +55,8 @@ function PanelContainers({
               scaleY: 1,
               transformOrigin: 'bottom center',
             }}
-            exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-            transition={{duration: 0.1, ease: 'easeInOut'}}
+            exit={{opacity: 0, y: 50, scaleY: 0.1, transformOrigin: 'bottom center'}}
+            transition={{duration: 0.12, ease: 'easeInOut'}}
           >
             <PanelContent ref={ref} data-seer-explorer-root="">
               {children}

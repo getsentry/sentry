@@ -53,20 +53,36 @@ describe('useBlockNavigation', () => {
     } as unknown as HTMLTextAreaElement;
   };
 
-  const mockElement1 = createMockElement();
-  const mockElement2 = createMockElement();
-  const mockElement3 = createMockElement();
-  const mockTextarea = createMockTextarea();
-
-  const defaultProps = {
-    isOpen: true,
-    focusedBlockIndex: -1,
-    blocks: mockBlocks,
-    blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
-    textareaRef: {current: mockTextarea},
-    setFocusedBlockIndex: jest.fn(),
-    onDeleteFromIndex: jest.fn(),
+  let mockElement1: ReturnType<typeof createMockElement>;
+  let mockElement2: ReturnType<typeof createMockElement>;
+  let mockElement3: ReturnType<typeof createMockElement>;
+  let mockTextarea: ReturnType<typeof createMockTextarea>;
+  let defaultProps: {
+    blockRefs: {current: Array<HTMLDivElement | null>};
+    blocks: Block[];
+    focusedBlockIndex: number;
+    isOpen: boolean;
+    onDeleteFromIndex: jest.Mock;
+    setFocusedBlockIndex: jest.Mock;
+    textareaRef: {current: HTMLTextAreaElement | null};
   };
+
+  beforeEach(() => {
+    mockElement1 = createMockElement();
+    mockElement2 = createMockElement();
+    mockElement3 = createMockElement();
+    mockTextarea = createMockTextarea();
+
+    defaultProps = {
+      isOpen: true,
+      focusedBlockIndex: -1,
+      blocks: mockBlocks,
+      blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
+      textareaRef: {current: mockTextarea},
+      setFocusedBlockIndex: jest.fn(),
+      onDeleteFromIndex: jest.fn(),
+    };
+  });
 
   describe('Arrow Key Navigation', () => {
     it('moves from input to last block on ArrowUp', () => {
@@ -262,9 +278,6 @@ describe('useBlockNavigation', () => {
       const arrowUpEvent = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(arrowUpEvent);
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(0);
-
-      // Reset mock
-      props.setFocusedBlockIndex.mockClear();
 
       // ArrowDown from block 0 should go to input
       const propsAtBlock0 = {...props, focusedBlockIndex: 0};
