@@ -134,9 +134,7 @@ function useFilterKeyItems() {
 
 function useFilterKeySections({
   recentSearches,
-  filterItem,
 }: {
-  filterItem: Node<ParseResultToken>;
   recentSearches: RecentSearch[] | undefined;
 }) {
   const {filterKeySections, query, disallowLogicalOperators} = useSearchQueryBuilder();
@@ -155,7 +153,6 @@ function useFilterKeySections({
       return [];
     }
 
-    const isFirstItem = filterItem.key.toString().endsWith(':0');
     if (recentSearches?.length && !query) {
       const recentSearchesSections: Section[] = [
         RECENT_SEARCH_CATEGORY,
@@ -163,14 +160,14 @@ function useFilterKeySections({
         ...definedSections,
       ];
 
-      if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
+      if (!disallowLogicalOperators && hasConditionalsInCombobox) {
         recentSearchesSections.push(LOGIC_CATEGORY);
       }
       return recentSearchesSections;
     }
 
     const customSections: Section[] = [ALL_CATEGORY, ...definedSections];
-    if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
+    if (!disallowLogicalOperators && hasConditionalsInCombobox) {
       customSections.push(LOGIC_CATEGORY);
     }
 
@@ -179,7 +176,6 @@ function useFilterKeySections({
     disallowLogicalOperators,
     filterKeySections,
     hasConditionalsInCombobox,
-    filterItem.key,
     query,
     recentSearches?.length,
   ]);
@@ -200,7 +196,7 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 
-const conditionalFilterItems = [
+const logicFilterItems = [
   createLogicFilterItem({value: 'AND'}),
   createLogicFilterItem({value: 'OR'}),
   createLogicFilterItem({value: '('}),
@@ -228,7 +224,6 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
     recentSearches,
-    filterItem,
   });
 
   const organization = useOrganization();
@@ -265,12 +260,18 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
       ];
     }
 
+    const isFirstItem = filterItem.key.toString().endsWith(':0');
+
     if (
       !disallowLogicalOperators &&
       selectedSection === LOGIC_CATEGORY_VALUE &&
       hasConditionalsInCombobox
     ) {
-      return [...askSeerItem, ...conditionalFilterItems];
+      return [
+        ...askSeerItem,
+        // only show opening parenthesis on first item
+        ...(isFirstItem ? [createLogicFilterItem({value: '('})] : logicFilterItems),
+      ];
     }
 
     const filteredByCategory = sectionedItems.filter(item => {
@@ -288,6 +289,7 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
   }, [
     disallowLogicalOperators,
     enableAISearch,
+    filterItem.key,
     filterKeys,
     gaveSeerConsent,
     getFieldDefinition,
