@@ -18,11 +18,11 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
-  eventView: EventView;
   handleBackClick: undefined | (() => void);
   handleForwardClick: undefined | (() => void);
   overlayContent: React.ReactNode;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
+  eventView?: EventView;
 }
 
 export default function GroupReplaysPlayer({
