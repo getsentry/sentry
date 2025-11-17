@@ -75,8 +75,8 @@ export function getLabels(platform: Platform | undefined): Labels {
   switch (platform) {
     case 'android':
       return {
-        installSizeLabel: t('Uncompressed size'),
-        downloadSizeLabel: t('Download size'),
+        installSizeLabel: t('Uncompressed Size'),
+        downloadSizeLabel: t('Download Size'),
         appId: t('Package name'),
         installSizeDescription: t('Uncompressed size on disk not including AOT DEX'),
         downloadSizeDescription: t('Bytes transferred over the network'),
@@ -91,7 +91,7 @@ export function getLabels(platform: Platform | undefined): Labels {
         appId: t('Bundle identifier'),
         installSizeDescription: t('Unencrypted install size'),
         downloadSizeDescription: t('Bytes transferred over the network'),
-        downloadSizeLabel: t('Download size'),
+        downloadSizeLabel: t('Download Size'),
         buildConfiguration: t('Build configuration'),
         installUnavailableTooltip: t(
           'Code signature must be valid for this app to be installed.'
