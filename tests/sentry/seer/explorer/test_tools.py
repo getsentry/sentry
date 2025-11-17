@@ -283,19 +283,20 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
     def test_spans_table_appends_sort(self):
         """Test sort is automatically appended to selected fields if not provided."""
-        result = execute_table_query(
-            org_id=self.organization.id,
-            dataset="spans",
-            fields=["id"],
-            stats_period="1h",
-            sort="-timestamp",
-            per_page=1,
-        )
+        for sort in ["timestamp", "-timestamp"]:
+            result = execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=["id"],
+                stats_period="1h",
+                sort=sort,
+                per_page=1,
+            )
 
-        assert result is not None
-        rows = result["data"]
-        assert "id" in rows[0]
-        assert "timestamp" in rows[0]
+            assert result is not None
+            rows = result["data"]
+            assert "id" in rows[0]
+            assert "timestamp" in rows[0]
 
     def test_spans_query_nonexistent_organization(self):
         """Test queries handle nonexistent organization gracefully"""
