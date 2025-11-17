@@ -145,6 +145,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
             seconds_before_now=seconds_before_now,
         )
 
+    @pytest.mark.skip(reason="testing server only extrapolation mode needs to be fixed on EAP")
     @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_extra")
     def test_compare_simple(self, mock_set_extra: mock.MagicMock) -> None:
         result = compare_timeseries_for_alert_rule(self.alert_rule)
