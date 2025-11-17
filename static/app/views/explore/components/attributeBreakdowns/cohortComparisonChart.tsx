@@ -11,7 +11,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {AttributeBreakdownsResult} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 
 const MAX_BAR_WIDTH = 20;
 const HIGH_CARDINALITY_THRESHOLD = 20;
@@ -22,7 +22,7 @@ const MAX_CHART_SERIES_LENGTH = 40;
 const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
 
-type CohortData = AttributeBreakdownsResult['rankedAttributes'][number]['cohort1'];
+type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
 
 function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number): number {
   if (cohortTotal === 0) return 0;
@@ -118,7 +118,7 @@ export function Chart({
   cohort1Total,
   cohort2Total,
 }: {
-  attribute: AttributeBreakdownsResult['rankedAttributes'][number];
+  attribute: AttributeBreakdownsComparison['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
   theme: Theme;
@@ -140,6 +140,15 @@ export function Chart({
   const seriesData = useMemo(
     () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2, seriesTotals),
     [attribute.cohort1, attribute.cohort2, seriesTotals]
+  );
+
+  const maxSeriesValue = useMemo(
+    () =>
+      Math.max(
+        ...seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
+        ...seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value)
+      ),
+    [seriesData]
   );
 
   const populationPercentages = useMemo(
@@ -197,7 +206,10 @@ export function Chart({
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
       const labelsCount = seriesData[SELECTED_SERIES_NAME].length;
-      const pixelsPerLabel = chartWidth / labelsCount;
+      // 14px is the width of the y axis label with font size 12
+      // We'll subtract side padding (e.g. 4px per label) to avoid crowding
+      const labelPadding = 4;
+      const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
 
       //  Average width of a character is 0.6 times the font size
       const pixelsPerCharacter = 0.6 * AXIS_LABEL_FONT_SIZE;
@@ -209,7 +221,7 @@ export function Chart({
       if (value.length <= maxChars) return value;
 
       // Otherwise, truncate and append '…'
-      const truncatedLength = Math.max(0, maxChars - 1); // leaving space for (ellipsis)
+      const truncatedLength = Math.max(1, maxChars - 2); // leaving space for (ellipsis)
       return value.slice(0, truncatedLength) + '…';
     },
     [chartWidth, seriesData]
@@ -293,9 +305,12 @@ export function Chart({
         }}
         yAxis={{
           type: 'value',
+          interval: maxSeriesValue < 1 ? 1 : undefined,
           axisLabel: {
-            show: false,
-            width: 0,
+            fontSize: 12,
+            formatter: (value: number) => {
+              return percentageFormatter(value);
+            },
           },
         }}
         series={[
