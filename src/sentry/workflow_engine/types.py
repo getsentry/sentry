@@ -127,7 +127,7 @@ class WorkflowEvaluationData:
             "associated_detector": associated_detector,
             "event": self.event,
             "group": self.event.group,
-            "event_data": self.event.data,
+            "event_data_id": self.event.data.id,
             "action_filter_conditions": action_filter_conditions,
             "triggered_actions": triggered_actions,
             "triggered_workflows": triggered_workflows,
