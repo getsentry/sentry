@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -28,8 +28,6 @@ function ActivitySection(props: Props) {
   const organization = useOrganization();
 
   const [inputId, setInputId] = useState(uniqueId());
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const previousActivityCount = useRef(group.activity.length);
 
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -40,39 +38,8 @@ function ActivitySection(props: Props) {
     placeholder: placeholderText,
   };
 
-  useEffect(() => {
-    const prevCount = previousActivityCount.current;
-    if (group.activity.length > prevCount) {
-      const newItems = group.activity.slice(prevCount);
-      const hasNewNote = newItems.some(item => item.type === GroupActivityType.NOTE);
-      if (hasNewNote) {
-        bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-      }
-    }
-    previousActivityCount.current = group.activity.length;
-  }, [group.activity.length, group.activity]);
-
   return (
     <Fragment>
-      <ActivityItem noPadding author={{type: 'user', user: me}}>
-        <NoteInputWithStorage
-          key={inputId}
-          storageKey="groupinput:latest"
-          itemKey={group.id}
-          onCreate={n => {
-            onCreate(n, me);
-            trackAnalytics('issue_details.comment_created', {
-              organization,
-              org_streamline_only: organization.streamlineOnly ?? undefined,
-              streamline: false,
-            });
-            setInputId(uniqueId());
-          }}
-          source="activity"
-          {...noteProps}
-        />
-      </ActivityItem>
-
       {group.activity.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
 
@@ -130,7 +97,24 @@ function ActivitySection(props: Props) {
           </ErrorBoundary>
         );
       })}
-      <div ref={bottomRef} />
+      <ActivityItem noPadding author={{type: 'user', user: me}}>
+        <NoteInputWithStorage
+          key={inputId}
+          storageKey="groupinput:latest"
+          itemKey={group.id}
+          onCreate={n => {
+            onCreate(n, me);
+            trackAnalytics('issue_details.comment_created', {
+              organization,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
+              streamline: false,
+            });
+            setInputId(uniqueId());
+          }}
+          source="activity"
+          {...noteProps}
+        />
+      </ActivityItem>
     </Fragment>
   );
 }
