@@ -259,13 +259,19 @@ class RPCBase:
             if stripped_orderby in orderby_aliases:
                 resolved_column = orderby_aliases[stripped_orderby]
             else:
-                resolved_column = resolver.resolve_column(stripped_orderby)[0]
+                resolved_column, resolved_context = resolver.resolve_column(stripped_orderby)
+                # If the orderby isn't in the selected columns, instead of erroring out add the column to the query
+                if stripped_orderby not in query.selected_columns:
+                    columns.append(resolved_column)
+                    column_contexts.append(resolved_context)
             resolved_orderby.append(
                 TraceItemTableRequest.OrderBy(
                     column=cls.categorize_column(resolved_column),
                     descending=orderby_column.startswith("-"),
                 )
             )
+        # need to reset all columns cause we may have added some while resolving orderby
+        all_columns = columns + equations
 
         has_aggregations = any(col for col in columns if col.is_aggregate) or any(
             col for col in equations if col.is_aggregate
