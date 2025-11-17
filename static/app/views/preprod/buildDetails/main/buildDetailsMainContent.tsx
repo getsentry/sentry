@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/BuildDetailsMetricCards';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
