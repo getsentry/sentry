@@ -111,7 +111,7 @@ def org_url(organization, path, query=None, fragment=None) -> str:
 @register.simple_tag
 def loading_message():
     options = [
-        "Loading a <scraps-bleep>&#%!</scraps-bleep>-ton of JavaScript&hellip;",
+        "Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;",
         "Escaping <code>node_modules</code> gravity well&hellip;",
         "Parallelizing webpack builders&hellip;",
         "Awaiting solution to the halting problem&hellip;",
