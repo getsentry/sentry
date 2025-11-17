@@ -10,6 +10,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -94,7 +95,10 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
-  const [runId, setRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useSessionStorage<number | null>(
+    'seer-explorer-run-id',
+    null
+  );
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
