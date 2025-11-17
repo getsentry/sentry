@@ -57,7 +57,6 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       project: decodeList,
       query: decodeScalar,
       start: decodeScalar,
-      utc: decodeScalar,
       playlistStart: decodeScalar,
       playlistEnd: decodeScalar,
       playlistSort: decodeScalar,
