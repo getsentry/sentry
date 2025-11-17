@@ -924,6 +924,13 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
 
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    def test_missing_fixability_score_returns_early(self, mock_trigger):
+        """Test that _run_automation returns early when fixability score is None."""
+        assert self.group.seer_fixability_score is None
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        mock_trigger.assert_not_called()
+
 
 class TestFetchUserPreference:
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
