@@ -1,0 +1,162 @@
+import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {PercentChange} from 'sentry/components/percentChange';
+import {IconArrow, IconCode, IconDownload} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {MetricCard} from 'sentry/views/preprod/components/metricCard';
+import type {
+  SizeAnalysisComparisonResults,
+  SizeComparisonApiResponse,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
+
+interface BuildComparisonMetricCardsProps {
+  comparisonResponse: SizeComparisonApiResponse | undefined;
+  comparisonResults: SizeAnalysisComparisonResults | undefined;
+}
+
+interface ComparisonMetric {
+  base: number;
+  diff: number;
+  head: number;
+  icon: ReactNode;
+  key: string;
+  percentageChange: number;
+  title: string;
+}
+
+export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProps) {
+  const {comparisonResults, comparisonResponse} = props;
+
+  if (!comparisonResults) {
+    return null;
+  }
+
+  const labels = getLabels(
+    comparisonResponse?.head_build_details.app_info?.platform ?? undefined
+  );
+  const {size_metric_diff_item} = comparisonResults;
+
+  const metrics: ComparisonMetric[] = [
+    {
+      key: 'install',
+      title: labels.installSizeLabel,
+      icon: <IconCode size="sm" />,
+      head: size_metric_diff_item.head_install_size,
+      base: size_metric_diff_item.base_install_size,
+      diff:
+        size_metric_diff_item.head_install_size - size_metric_diff_item.base_install_size,
+      percentageChange:
+        size_metric_diff_item.base_install_size === 0
+          ? 0
+          : (size_metric_diff_item.head_install_size -
+              size_metric_diff_item.base_install_size) /
+            size_metric_diff_item.base_install_size,
+    },
+    {
+      key: 'download',
+      title: labels.downloadSizeLabel,
+      icon: <IconDownload size="sm" />,
+      head: size_metric_diff_item.head_download_size,
+      base: size_metric_diff_item.base_download_size,
+      diff:
+        size_metric_diff_item.head_download_size -
+        size_metric_diff_item.base_download_size,
+      percentageChange:
+        size_metric_diff_item.base_download_size === 0
+          ? 0
+          : (size_metric_diff_item.head_download_size -
+              size_metric_diff_item.base_download_size) /
+            size_metric_diff_item.base_download_size,
+    },
+  ];
+
+  return (
+    <Flex gap="lg" wrap="wrap">
+      {metrics.map(metric => {
+        const {variant, icon} = getTrend(metric.diff);
+
+        return (
+          <MetricCard
+            key={metric.key}
+            icon={metric.icon}
+            label={metric.title}
+            minWidth={250}
+          >
+            <Stack gap="xs">
+              <Flex align="end" gap="sm" wrap="wrap">
+                <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
+                <Flex align="center" gap="xs">
+                  {icon}
+                  <DiffText variant={variant} size="sm">
+                    {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
+                    {formatBytesBase10(Math.abs(metric.diff))}
+                    {metric.percentageChange !== 0 && (
+                      <Text as="span" variant={variant}>
+                        {' ('}
+                        <PercentChange
+                          value={metric.percentageChange}
+                          minimumValue={0.001}
+                          preferredPolarity="-"
+                          colorize
+                        />
+                        {')'}
+                      </Text>
+                    )}
+                  </DiffText>
+                </Flex>
+              </Flex>
+              <Flex gap="xs" wrap="wrap">
+                <Text variant="muted" size="sm">
+                  {t('Base Build Size:')}
+                </Text>
+                <Text variant="muted" size="sm" bold>
+                  {metric.base === 0 ? t('Not present') : formatBytesBase10(metric.base)}
+                </Text>
+              </Flex>
+            </Stack>
+          </MetricCard>
+        );
+      })}
+    </Flex>
+  );
+}
+
+function getTrend(diff: number): {
+  variant: 'danger' | 'success' | 'muted';
+  icon?: React.ReactNode;
+} {
+  if (diff > 0) {
+    return {
+      variant: 'danger',
+      icon: <IconArrow direction="up" size="xs" />,
+    };
+  }
+
+  if (diff < 0) {
+    return {
+      variant: 'success',
+      icon: <IconArrow direction="down" size="xs" />,
+    };
+  }
+
+  return {variant: 'muted'};
+}
+
+const DiffText = styled(Text)`
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25em;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+`;

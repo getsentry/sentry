@@ -1,4 +1,4 @@
-import {useCallback, type ReactNode} from 'react';
+import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -7,27 +7,15 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Placeholder from 'sentry/components/placeholder';
-import {
-  IconClose,
-  IconCode,
-  IconDownload,
-  IconGrid,
-  IconLightning,
-  IconRefresh,
-  IconSearch,
-  IconSettings,
-} from 'sentry/icons';
+import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/BuildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
@@ -38,13 +26,10 @@ import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
-  getMainArtifactSizeMetric,
-  isSizeInfoCompleted,
   isSizeInfoProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
-import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 import {validatedPlatform} from 'sentry/views/preprod/utils/sharedTypesUtils';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
@@ -54,16 +39,6 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
-}
-
-interface MetricCard {
-  icon: ReactNode;
-  key: string;
-  title: string;
-  valueLabel: string;
-  labelTooltip?: string;
-  percentageText?: string;
-  showInsightsButton?: boolean;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -238,55 +213,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.insights && totalSize > 0
       ? processInsights(appSizeData.insights, totalSize)
       : [];
-  const labels = getLabels(buildDetailsData?.app_info?.platform ?? undefined);
-  const primarySizeMetric =
-    sizeInfo && isSizeInfoCompleted(sizeInfo)
-      ? getMainArtifactSizeMetric(sizeInfo)
-      : null;
-  const installSizeBytes = primarySizeMetric?.install_size_bytes ?? 0;
-  const downloadSizeBytes = primarySizeMetric?.download_size_bytes ?? 0;
-  const installSizeLabel = primarySizeMetric ? formatBytesBase10(installSizeBytes) : '—';
-  const downloadSizeLabel = primarySizeMetric
-    ? formatBytesBase10(downloadSizeBytes)
-    : '—';
-  const totalPotentialSavings = processedInsights.reduce(
-    (sum, insight) => sum + (insight.totalSavings ?? 0),
-    0
-  );
-  const potentialSavingsPercentage =
-    totalSize > 0 ? totalPotentialSavings / totalSize : null;
-  const potentialSavingsPercentageText =
-    potentialSavingsPercentage !== null && potentialSavingsPercentage !== undefined
-      ? ` (${formatPercentage(potentialSavingsPercentage, 1, {
-          minimumValue: 0.001,
-        })})`
-      : undefined;
-  const hasInsights = processedInsights.length > 0;
-  const metricsCards: MetricCard[] = [
-    {
-      key: 'install',
-      title: labels.installSizeLabel,
-      icon: <IconCode size="sm" />,
-      labelTooltip: labels.installSizeDescription,
-      valueLabel: installSizeLabel,
-    },
-    {
-      key: 'download',
-      title: labels.downloadSizeLabel,
-      icon: <IconDownload size="sm" />,
-      labelTooltip: labels.downloadSizeDescription,
-      valueLabel: downloadSizeLabel,
-    },
-    {
-      key: 'savings',
-      title: t('Potential savings'),
-      icon: <IconLightning size="sm" />,
-      valueLabel: formatBytesBase10(totalPotentialSavings),
-      percentageText: potentialSavingsPercentageText,
-      showInsightsButton: hasInsights,
-    },
-  ];
-
   const categoriesEnabled =
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
@@ -366,52 +292,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   return (
     <Stack gap="xl" minHeight="700px" width="100%">
-      <Flex gap="lg" wrap="wrap">
-        {metricsCards.map(card => (
-          <Stack
-            key={card.key}
-            background="primary"
-            radius="lg"
-            padding="xl"
-            gap="xs"
-            border="primary"
-            flex="1"
-            style={{minWidth: '220px'}}
-          >
-            <Flex align="center" justify="between" gap="sm">
-              <Flex gap="sm" align="center">
-                {card.icon}
-                {card.labelTooltip ? (
-                  <Tooltip title={card.labelTooltip}>
-                    <Text variant="muted" size="sm" bold uppercase>
-                      {card.title}
-                    </Text>
-                  </Tooltip>
-                ) : (
-                  <Text variant="muted" size="sm" bold uppercase>
-                    {card.title}
-                  </Text>
-                )}
-              </Flex>
-              {card.showInsightsButton && (
-                <Tooltip title={t('View insight details')}>
-                  <IconButton
-                    type="button"
-                    aria-label={t('View insight details')}
-                    onClick={openInsightsSidebar}
-                  >
-                    <IconSettings size="sm" color="white" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Flex>
-            <Heading as="h3">
-              {card.valueLabel}
-              {card.percentageText ?? ''}
-            </Heading>
-          </Stack>
-        ))}
-      </Flex>
+      <BuildDetailsMetricCards
+        sizeInfo={sizeInfo}
+        processedInsights={processedInsights}
+        totalSize={totalSize}
+        platform={buildDetailsData?.app_info?.platform ?? null}
+        onOpenInsightsSidebar={openInsightsSidebar}
+      />
 
       <Stack gap="sm">
         <Flex align="center" gap="md">
@@ -468,25 +355,4 @@ const ChartContainer = styled('div')`
   width: 100%;
   height: 508px;
   padding-top: ${p => p.theme.space.md};
-`;
-
-const IconButton = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['2xs']};
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: ${p => p.theme.white};
-  border-radius: ${p => p.theme.borderRadius};
-
-  &:hover {
-    opacity: 0.8;
-  }
-
-  &:focus-visible {
-    outline: 2px solid ${p => p.theme.white};
-    outline-offset: 2px;
-  }
 `;
