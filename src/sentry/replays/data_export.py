@@ -196,7 +196,7 @@ def create_transfer_job[T](
 
     if notification_topic:
         transfer_job.notification_config = NotificationConfig(
-            pubsub_topic=notification_topic,
+            pubsub_topic=f"projects/{gcp_project_id}/topics/{notification_topic}",
             event_types=[
                 NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
                 NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
