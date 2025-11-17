@@ -315,7 +315,7 @@ def _run_automation(
     )
 
     fixability_score = group.seer_fixability_score
-    if not fixability_score:
+    if fixability_score is None:
         logger.error("Fixability score is not available for group %s", group.id)
         return
 
