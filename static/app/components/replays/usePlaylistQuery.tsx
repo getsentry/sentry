@@ -14,11 +14,11 @@ export function usePlaylistQuery(
     eventView = EventView.fromLocation(location);
   }
 
-  // we extract field to avoid dirtying the URL
-  const {statsPeriod, start, end, field, ...eventViewQuery} =
+  const {statsPeriod, start, end, ...eventViewQuery} =
     eventView.generateQueryStringObject();
 
-  const _unusedField = field;
+  // we extract field to avoid dirtying the URL
+  eventViewQuery.field = undefined;
 
   if (typeof statsPeriod === 'string') {
     const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(

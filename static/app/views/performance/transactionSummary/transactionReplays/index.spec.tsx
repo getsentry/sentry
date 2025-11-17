@@ -207,7 +207,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'field=activity&field=browser.name&field=browser.version&field=count_dead_clicks&field=count_errors&field=count_infos&field=count_rage_clicks&field=count_segments&field=count_urls&field=count_warnings&field=device.brand&field=device.family&field=device.model_id&field=device.name&field=dist&field=duration&field=environment&field=error_ids&field=finished_at&field=has_viewed&field=id&field=info_ids&field=is_archived&field=os.name&field=os.version&field=platform&field=project_id&field=releases&field=sdk.name&field=sdk.version&field=started_at&field=tags&field=trace_ids&field=urls&field=user&field=warning_ids&id=&name=&playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=replays%2F&sort=-started_at&yAxis=count%28%29';
+      'id=&name=&playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=transactionReplays&sort=-started_at&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {
