@@ -39,7 +39,6 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import {
@@ -64,7 +63,6 @@ interface Options<Fields> {
   samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
-  traceMetric?: TraceMetric;
   yAxis?: Fields;
 }
 
@@ -89,7 +87,6 @@ export const useSortedTimeSeries = <
     samplingMode,
     disableAggregateExtrapolation,
     caseInsensitive,
-    traceMetric,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -166,8 +163,6 @@ export const useSortedTimeSeries = <
       // pagination does not cause extra requests
       cursor: undefined,
       caseInsensitive,
-      metricName: traceMetric?.name ? traceMetric.name : undefined,
-      metricType: traceMetric?.type ? traceMetric.type : undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

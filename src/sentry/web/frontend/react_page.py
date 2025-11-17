@@ -96,13 +96,16 @@ class ReactMixin:
             user_theme = f"theme-{react_config['user']['options']['theme']}"
 
         prefers_chonk_ui = False
-        if features.has("organizations:chonk-ui", org_context):
-            if features.has("organizations:chonk-ui-enforce", org_context):
+        if organization is not None and features.has("organizations:chonk-ui", organization):
+            if features.has("organizations:chonk-ui-enforce", organization):
                 prefers_chonk_ui = True
-            elif react_config.get("user", None) and react_config["user"].get("options", {}).get(
-                "prefersChonkUI", False
-            ):
-                prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
+
+        if (
+            prefers_chonk_ui is False
+            and react_config.get("user", None)
+            and react_config["user"].get("options", {}).get("prefersChonkUI", False)
+        ):
+            prefers_chonk_ui = react_config["user"]["options"]["prefersChonkUI"]
 
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,

@@ -554,7 +554,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
 
-        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_seat")
