@@ -22,7 +22,6 @@ export interface OrganizationSummary {
   dateCreated: string;
   features: string[];
   githubNudgeInvite: boolean;
-  githubOpenPRBot: boolean;
   githubPRBot: boolean;
   gitlabPRBot: boolean;
   hideAiFeatures: boolean;

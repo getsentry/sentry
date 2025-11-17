@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -437,6 +437,14 @@ version = "3.13.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/filelock-3.13.1-py3-none-any.whl", hash = "sha256:57dbda9b35157b05fb3e58ee91448612eb674172fab98ee235ccb0b5bee19a1c" },
+]
+
+[[package]]
+name = "filetype"
+version = "1.2.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/filetype-1.2.0-py2.py3-none-any.whl", hash = "sha256:7ce71b6880181241cf7ac8697a2f1eb6a8bd9b429f7ad6d27b8db9ba5f1c2d25" },
 ]
 
 [[package]]
@@ -1159,15 +1167,16 @@ wheels = [
 
 [[package]]
 name = "objectstore-client"
-version = "0.0.5"
+version = "0.0.10"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
+    { name = "filetype", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.5-py3-none-any.whl", hash = "sha256:80f069d48b325f0420f7bfc3cbddca3fa86012761ff462e0145664e3a206e907" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.10-py3-none-any.whl", hash = "sha256:464718f1ff3678c522e9bfa26619715801784eabd187e9d7066171f0e617f3ad" },
 ]
 
 [[package]]
@@ -2135,7 +2144,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = ">=0.0.5" },
+    { name = "objectstore-client", specifier = ">=0.0.10" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },
