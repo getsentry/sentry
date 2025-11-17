@@ -78,7 +78,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
-    queryReferrer: query.referrer as ReplayListQueryReferrer,
+    queryReferrer: query.referrer
+      ? (query.referrer as ReplayListQueryReferrer)
+      : 'replayList',
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
