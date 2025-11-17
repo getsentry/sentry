@@ -693,48 +693,36 @@ const darkColors: typeof lightColors = {
 };
 
 // Prism colors
-// @TODO(jonasbadalic): are these final?
 const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
+  '--prism-base': tokens.color.syntax.base.light,
+  '--prism-inline-code': tokens.color.syntax.inlineCode.light,
+  '--prism-inline-code-background': tokens.color.syntax.codeBackground.light,
+  '--prism-highlight-background': tokens.color.syntax.highlightBackround.light,
+  '--prism-highlight-accent': tokens.color.syntax.highlightAccent.light,
+  '--prism-comment': tokens.color.syntax.comment.light,
+  '--prism-punctuation': tokens.color.syntax.punctuation.light,
+  '--prism-property': tokens.color.syntax.property.light,
+  '--prism-selector': tokens.color.syntax.selector.light,
+  '--prism-operator': tokens.color.syntax.operator.light,
+  '--prism-variable': tokens.color.syntax.variable.light,
+  '--prism-function': tokens.color.syntax.function.light,
+  '--prism-keyword': tokens.color.syntax.keyword.light,
 };
 
-// @TODO(jonasbadalic): are these final?
 const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
+  '--prism-base': tokens.color.syntax.base.dark,
+  '--prism-inline-code': tokens.color.syntax.inlineCode.dark,
+  '--prism-inline-code-background': tokens.color.syntax.codeBackground.dark,
+  '--prism-highlight-background': tokens.color.syntax.highlightBackround.dark,
+  '--prism-highlight-accent': tokens.color.syntax.highlightAccent.dark,
+  '--prism-comment': tokens.color.syntax.comment.dark,
+  '--prism-punctuation': tokens.color.syntax.punctuation.dark,
+  '--prism-property': tokens.color.syntax.property.dark,
+  '--prism-selector': tokens.color.syntax.selector.dark,
+  '--prism-operator': tokens.color.syntax.operator.dark,
+  '--prism-variable': tokens.color.syntax.variable.dark,
+  '--prism-function': tokens.color.syntax.function.dark,
+  '--prism-keyword': tokens.color.syntax.keyword.dark,
 };
 
 // @TODO(jonasbadalic): are these final?
