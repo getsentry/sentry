@@ -228,15 +228,6 @@ describe('PageOverviewSidebar', () => {
         <PageOverviewSidebar
           transaction={TRANSACTION_NAME}
           projectScore={{lcpScore: 80}}
-          projectData={[
-            {
-              'p75(measurements.lcp)': 1000,
-              'p75(measurements.cls)': 0.1,
-              'p75(measurements.fcp)': 1800,
-              'p75(measurements.ttfb)': 600,
-              'p75(measurements.inp)': 200,
-            },
-          ]}
         />,
         {organization}
       );
@@ -274,15 +265,6 @@ describe('PageOverviewSidebar', () => {
             ttfbScore: 100,
             inpScore: 80,
           }}
-          projectData={[
-            {
-              'p75(measurements.lcp)': 2500,
-              'p75(measurements.cls)': 0.1,
-              'p75(measurements.fcp)': 1800,
-              'p75(measurements.ttfb)': 600,
-              'p75(measurements.inp)': 200,
-            },
-          ]}
         />,
         {organization}
       );
