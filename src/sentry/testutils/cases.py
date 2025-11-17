@@ -151,6 +151,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.eap import encode_value
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
@@ -3317,20 +3318,6 @@ class _OptionalOurLogData(TypedDict, total=False):
     item_id: int
 
 
-def scalar_to_any_value(value: Any) -> AnyValue:
-    if isinstance(value, str):
-        return AnyValue(string_value=value)
-    if isinstance(value, int):
-        return AnyValue(int_value=value)
-    if isinstance(value, float):
-        return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
-    if isinstance(value, dict):
-        return AnyValue(**value)
-    raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
-
-
 def span_to_trace_item(span) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
@@ -3340,7 +3327,7 @@ def span_to_trace_item(span) -> TraceItem:
         for k, v in span.get(field, {}).items():
             if v is None:
                 continue
-            attributes[k] = scalar_to_any_value(v)
+            attributes[k] = encode_value(v, expand_arrays=True)
 
     for k, v in span.get("sentry_tags", {}).items():
         if v is None:
@@ -3348,7 +3335,7 @@ def span_to_trace_item(span) -> TraceItem:
         if k == "description":
             k = "normalized_description"
 
-        attributes[f"sentry.{k}"] = scalar_to_any_value(v)
+        attributes[f"sentry.{k}"] = encode_value(v, expand_arrays=True)
 
     for k, v in span.get("measurements", {}).items():
         if v is None or v["value"] is None:
@@ -3358,10 +3345,10 @@ def span_to_trace_item(span) -> TraceItem:
         elif k == "server_sample_rate":
             server_sample_rate = v["value"]
         else:
-            attributes[k] = scalar_to_any_value(float(v["value"]))
+            attributes[k] = encode_value(float(v["value"]))
 
     if "description" in span and span["description"] is not None:
-        description = scalar_to_any_value(span["description"])
+        description = encode_value(span["description"])
         attributes["sentry.raw_description"] = description
 
     for field in {
@@ -3383,7 +3370,7 @@ def span_to_trace_item(span) -> TraceItem:
                     double_value=float(is_segment),
                 )
             else:
-                value = scalar_to_any_value(span[field])
+                value = encode_value(span[field])
                 attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
@@ -3454,10 +3441,10 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
         attributes_proto = {}
 
         for k, v in attributes.items():
-            attributes_proto[k] = scalar_to_any_value(v)
+            attributes_proto[k] = encode_value(v, expand_arrays=True)
 
         for k, v in extra_data.items():
-            attributes_proto[f"sentry.{k}"] = scalar_to_any_value(v)
+            attributes_proto[f"sentry.{k}"] = encode_value(v, expand_arrays=True)
 
         timestamp_proto = Timestamp()
 
@@ -3533,7 +3520,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
 
         if attributes:
             for k, v in attributes.items():
-                attributes_proto[k] = scalar_to_any_value(v)
+                attributes_proto[k] = encode_value(v, expand_arrays=True)
 
         return TraceItem(
             organization_id=organization.id,
@@ -3578,7 +3565,7 @@ class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
 
         if attributes:
             for k, v in attributes.items():
-                attributes_proto[k] = scalar_to_any_value(v)
+                attributes_proto[k] = encode_value(v, expand_arrays=True)
 
         return TraceItem(
             organization_id=organization.id,
@@ -4011,7 +3998,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         attributes_proto = {}
         for k, v in attributes_data.items():
             if v is not None:
-                attributes_proto[k] = scalar_to_any_value(v)
+                attributes_proto[k] = encode_value(v, expand_arrays=True)
 
         timestamp_proto = Timestamp()
         timestamp_proto.FromDatetime(scheduled_check_time)

@@ -23,23 +23,11 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry import quotas
 from sentry.models.project import Project
 from sentry.uptime.types import IncidentStatus
+from sentry.utils.eap import encode_value
 
 logger = logging.getLogger(__name__)
 
 UPTIME_NAMESPACE = uuid.UUID("f8d7a4e2-5b3c-4a9d-8e1f-3c2b1a0d9f8e")
-
-
-def _anyvalue(value: bool | str | int | float) -> AnyValue:
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
-    elif isinstance(value, str):
-        return AnyValue(string_value=value)
-    elif isinstance(value, int):
-        return AnyValue(int_value=value)
-    elif isinstance(value, float):
-        return AnyValue(double_value=value)
-    else:
-        raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
 
 
 def ms_to_us(milliseconds: float | int) -> int:
@@ -72,63 +60,65 @@ def convert_uptime_request_to_trace_item(
     """
     attributes: MutableMapping[str, AnyValue] = {}
 
-    attributes["guid"] = _anyvalue(result["guid"])
-    attributes["subscription_id"] = _anyvalue(result["subscription_id"])
-    attributes["check_status"] = _anyvalue(result["status"])
+    attributes["guid"] = encode_value(result["guid"])
+    attributes["subscription_id"] = encode_value(result["subscription_id"])
+    attributes["check_status"] = encode_value(result["status"])
     if "region" in result:
-        attributes["region"] = _anyvalue(result["region"])
+        attributes["region"] = encode_value(result["region"])
 
-    attributes["scheduled_check_time_us"] = _anyvalue(ms_to_us(result["scheduled_check_time_ms"]))
-    attributes["actual_check_time_us"] = _anyvalue(ms_to_us(result["actual_check_time_ms"]))
+    attributes["scheduled_check_time_us"] = encode_value(
+        ms_to_us(result["scheduled_check_time_ms"])
+    )
+    attributes["actual_check_time_us"] = encode_value(ms_to_us(result["actual_check_time_ms"]))
 
     duration_ms = result["duration_ms"]
     if duration_ms is not None:
-        attributes["check_duration_us"] = _anyvalue(ms_to_us(duration_ms))
+        attributes["check_duration_us"] = encode_value(ms_to_us(duration_ms))
 
     status_reason = result["status_reason"]
     if status_reason is not None:
-        attributes["status_reason_type"] = _anyvalue(status_reason["type"])
-        attributes["status_reason_description"] = _anyvalue(status_reason["description"])
+        attributes["status_reason_type"] = encode_value(status_reason["type"])
+        attributes["status_reason_description"] = encode_value(status_reason["description"])
 
     if "request_info_list" in result and result["request_info_list"]:
         first_request = result["request_info_list"][0]
-        attributes["method"] = _anyvalue(first_request["request_type"])
+        attributes["method"] = encode_value(first_request["request_type"])
         if "url" in first_request:
             # This should always be here once we start passing url, but for backwards compat
             # we should be cautious here
-            attributes["original_url"] = _anyvalue(first_request["url"])
+            attributes["original_url"] = encode_value(first_request["url"])
 
-    attributes["check_id"] = _anyvalue(result["guid"])
-    attributes["request_sequence"] = _anyvalue(request_sequence)
-    attributes["incident_status"] = _anyvalue(incident_status.value)
-    attributes["span_id"] = _anyvalue(result["span_id"])
+    attributes["check_id"] = encode_value(result["guid"])
+    attributes["request_sequence"] = encode_value(request_sequence)
+    attributes["incident_status"] = encode_value(incident_status.value)
+    attributes["span_id"] = encode_value(result["span_id"])
 
     if request_info is not None:
-        attributes["request_type"] = _anyvalue(request_info["request_type"])
+        attributes["request_type"] = encode_value(request_info["request_type"])
         http_status_code = request_info["http_status_code"]
         if http_status_code is not None:
-            attributes["http_status_code"] = _anyvalue(http_status_code)
+            attributes["http_status_code"] = encode_value(http_status_code)
 
         if "url" in request_info:
-            attributes["request_url"] = _anyvalue(request_info["url"])
+            attributes["request_url"] = encode_value(request_info["url"])
         if "request_body_size_bytes" in request_info:
-            attributes["request_body_size_bytes"] = _anyvalue(
+            attributes["request_body_size_bytes"] = encode_value(
                 request_info["request_body_size_bytes"]
             )
         if "response_body_size_bytes" in request_info:
-            attributes["response_body_size_bytes"] = _anyvalue(
+            attributes["response_body_size_bytes"] = encode_value(
                 request_info["response_body_size_bytes"]
             )
         if "request_duration_us" in request_info:
-            attributes["request_duration_us"] = _anyvalue(request_info["request_duration_us"])
+            attributes["request_duration_us"] = encode_value(request_info["request_duration_us"])
 
         if "durations" in request_info:
             durations = request_info["durations"]
             for phase_name in RequestDurations.__annotations__.keys():
                 if phase_name in durations:
                     timing = durations[phase_name]  # type: ignore[literal-required]
-                    attributes[f"{phase_name}_start_us"] = _anyvalue(timing["start_us"])
-                    attributes[f"{phase_name}_duration_us"] = _anyvalue(timing["duration_us"])
+                    attributes[f"{phase_name}_start_us"] = encode_value(timing["start_us"])
+                    attributes[f"{phase_name}_duration_us"] = encode_value(timing["duration_us"])
 
     return TraceItem(
         organization_id=project.organization_id,

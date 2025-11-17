@@ -40,7 +40,7 @@ class EAPProducerIntegrationTestCase(TestCase):
         }
         return result
 
-    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
     def test_produce_eap_uptime_result_success(
         self, mock_get_topic: MagicMock, mock_producer: MagicMock
@@ -72,7 +72,7 @@ class EAPProducerIntegrationTestCase(TestCase):
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
         assert [codec.decode(payload.value)] == expected_trace_items
 
-    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.logger")
     def test_produce_eap_uptime_result_error_handling(
         self, mock_logger: MagicMock, mock_producer: MagicMock
@@ -90,7 +90,7 @@ class EAPProducerIntegrationTestCase(TestCase):
         )
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
-    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.eap_items_producer")
     def test_metrics_tracking(self, mock_producer: MagicMock, mock_metrics: MagicMock) -> None:
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
@@ -106,7 +106,7 @@ class EAPProducerIntegrationTestCase(TestCase):
         )
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
-    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.eap_items_producer")
     def test_error_metrics_tracking(
         self, mock_producer: MagicMock, mock_metrics: MagicMock
     ) -> None:
@@ -124,7 +124,7 @@ class EAPProducerIntegrationTestCase(TestCase):
             tags=metric_tags,
         )
 
-    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
     def test_produce_with_triggered_detector_state(
         self, mock_get_topic: MagicMock, mock_producer: MagicMock
