@@ -91,7 +91,7 @@ export function getLabels(platform: Platform | undefined): Labels {
         appId: t('Bundle identifier'),
         installSizeDescription: t('Unencrypted install size'),
         downloadSizeDescription: t('Bytes transferred over the network'),
-        downloadSizeLabel: t('Download size'),
+        downloadSizeLabel: t('Download Size'),
         buildConfiguration: t('Build configuration'),
         installUnavailableTooltip: t(
           'Code signature must be valid for this app to be installed.'
