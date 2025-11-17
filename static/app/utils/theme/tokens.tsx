@@ -1,5 +1,149 @@
 import {color} from './color';
 
+type CategoryScale = (typeof color)['categorical']['light'];
+const SCALES_BY_MAX_LENGTH = new Map<number, (scale: CategoryScale) => string[]>([
+  [
+    6,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.indigo,
+      scale.pink,
+      scale.orange,
+      scale.yellow,
+      scale.green,
+    ],
+  ],
+  [
+    7,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.purple,
+      scale.indigo,
+      scale.pink,
+      scale.orange,
+      scale.yellow,
+      scale.green,
+    ],
+  ],
+  [
+    8,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.purple,
+      scale.indigo,
+      scale.plum,
+      scale.pink,
+      scale.orange,
+      scale.yellow,
+      scale.green,
+    ],
+  ],
+  [
+    9,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.purple,
+      scale.indigo,
+      scale.plum,
+      scale.magenta,
+      scale.pink,
+      scale.orange,
+      scale.yellow,
+      scale.green,
+    ],
+  ],
+  [
+    10,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.purple,
+      scale.indigo,
+      scale.plum,
+      scale.magenta,
+      scale.pink,
+      scale.salmon,
+      scale.orange,
+      scale.yellow,
+      scale.green,
+    ],
+  ],
+  [
+    11,
+    (scale: CategoryScale) => [
+      scale.blurple,
+      scale.purple,
+      scale.indigo,
+      scale.plum,
+      scale.magenta,
+      scale.pink,
+      scale.salmon,
+      scale.orange,
+      scale.yellow,
+      scale.lime,
+      scale.green,
+    ],
+  ],
+]);
+function generateCategorical(scale: CategoryScale, length: 1): [string];
+function generateCategorical(scale: CategoryScale, length: 2): [string, string];
+function generateCategorical(scale: CategoryScale, length: 3): [string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 4
+): [string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 5
+): [string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 6
+): [string, string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 7
+): [string, string, string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 8
+): [string, string, string, string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 9
+): [string, string, string, string, string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 10
+): [string, string, string, string, string, string, string, string, string, string];
+function generateCategorical(
+  scale: CategoryScale,
+  length: 11
+): [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+];
+function generateCategorical(scale: CategoryScale, length: number): string[];
+function generateCategorical<L extends number>(
+  scale: CategoryScale,
+  length: L
+): string[] {
+  for (const [size, makeScale] of SCALES_BY_MAX_LENGTH.entries()) {
+    if (length <= size) {
+      return makeScale(scale).slice(0, length);
+    }
+  }
+  return [];
+}
+
 const alias = {
   background: {
     primary: {
@@ -712,147 +856,3 @@ export const tokens = {
     },
   },
 };
-
-type CategoryScale = (typeof color)['categorical']['light'];
-const SCALES_BY_MAX_LENGTH = new Map<number, (scale: CategoryScale) => string[]>([
-  [
-    6,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.indigo,
-      scale.pink,
-      scale.orange,
-      scale.yellow,
-      scale.green,
-    ],
-  ],
-  [
-    7,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.purple,
-      scale.indigo,
-      scale.pink,
-      scale.orange,
-      scale.yellow,
-      scale.green,
-    ],
-  ],
-  [
-    8,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.purple,
-      scale.indigo,
-      scale.plum,
-      scale.pink,
-      scale.orange,
-      scale.yellow,
-      scale.green,
-    ],
-  ],
-  [
-    9,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.purple,
-      scale.indigo,
-      scale.plum,
-      scale.magenta,
-      scale.pink,
-      scale.orange,
-      scale.yellow,
-      scale.green,
-    ],
-  ],
-  [
-    10,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.purple,
-      scale.indigo,
-      scale.plum,
-      scale.magenta,
-      scale.pink,
-      scale.salmon,
-      scale.orange,
-      scale.yellow,
-      scale.green,
-    ],
-  ],
-  [
-    11,
-    (scale: CategoryScale) => [
-      scale.blurple,
-      scale.purple,
-      scale.indigo,
-      scale.plum,
-      scale.magenta,
-      scale.pink,
-      scale.salmon,
-      scale.orange,
-      scale.yellow,
-      scale.lime,
-      scale.green,
-    ],
-  ],
-]);
-function generateCategorical(scale: CategoryScale, length: 1): [string];
-function generateCategorical(scale: CategoryScale, length: 2): [string, string];
-function generateCategorical(scale: CategoryScale, length: 3): [string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 4
-): [string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 5
-): [string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 6
-): [string, string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 7
-): [string, string, string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 8
-): [string, string, string, string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 9
-): [string, string, string, string, string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 10
-): [string, string, string, string, string, string, string, string, string, string];
-function generateCategorical(
-  scale: CategoryScale,
-  length: 11
-): [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-];
-function generateCategorical(scale: CategoryScale, length: number): string[];
-function generateCategorical<L extends number>(
-  scale: CategoryScale,
-  length: L
-): string[] {
-  for (const [size, makeScale] of SCALES_BY_MAX_LENGTH.entries()) {
-    if (length <= size) {
-      return makeScale(scale).slice(0, length);
-    }
-  }
-  return [];
-}
