@@ -51,13 +51,6 @@ describe('PageOverviewSidebar', () => {
       },
     });
 
-    eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{trace: '123', timestamp: '2025-01-01T00:00:00Z'}],
-      },
-    });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [
@@ -86,12 +79,6 @@ describe('PageOverviewSidebar', () => {
           ],
         },
       },
-    });
-
-    userIssueMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/user-issue/`,
-      body: {event_id: '123'},
-      method: 'POST',
     });
   });
 
