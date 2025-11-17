@@ -919,3 +919,60 @@ def get_replay_metadata(
         filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
     )[1]
     return result
+
+
+def get_trace_item_attributes(
+    *,
+    org_id: int,
+    project_id: int,
+    trace_id: str,
+    item_id: str,
+    item_type: str,
+) -> dict[str, Any]:
+    """
+    Fetch all attributes for a given trace item (span, metric, log, etc.).
+
+    This is a generic version that supports all trace item types.
+
+    Args:
+        org_id: Organization ID
+        project_id: Project ID
+        trace_id: Trace ID
+        item_id: The item ID (span_id, metric_id, log_id, etc.)
+        item_type: The trace item type as a string ("spans", "tracemetrics", "logs", etc.)
+
+    Returns:
+        Dict with "attributes" key containing all attributes for the item
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "get_trace_item_attributes: Organization not found",
+            extra={"org_id": org_id},
+        )
+        return {"attributes": []}
+
+    try:
+        project = Project.objects.get(id=project_id, organization=organization)
+    except Project.DoesNotExist:
+        logger.warning(
+            "get_trace_item_attributes: Project not found",
+            extra={"org_id": org_id, "project_id": project_id},
+        )
+        return {"attributes": []}
+
+    params = {
+        "item_type": item_type,
+        "referrer": Referrer.SEER_RPC.value,
+        "trace_id": trace_id,
+    }
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/projects/{organization.slug}/{project.slug}/trace-items/{item_id}/",
+        params=params,
+    )
+
+    return {"attributes": resp.data["attributes"]}
