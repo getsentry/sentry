@@ -113,6 +113,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
       key: 'savings',
       title: t('Potential savings'),
       icon: <IconLightning size="sm" />,
+      labelTooltip: t('Total savings from insights'),
       value: formatBytesBase10(totalPotentialSavings),
       percentageText: potentialSavingsPercentageText,
       showInsightsButton: totalPotentialSavings > 0,

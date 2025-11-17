@@ -116,13 +116,21 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isLoadingRequests) {
     return (
-      <Stack gap="lg" width="100%">
-        <Flex width="100%" justify="between" align="center" gap="md">
-          <Placeholder width="92px" height="40px" />
-          <Placeholder style={{flex: 1}} height="40px" />
+      <Stack gap="xl" minHeight="700px" width="100%">
+        <Flex gap="lg" wrap="wrap">
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
         </Flex>
-        <Placeholder width="100%" height="540px" />
-        <Placeholder height="140px" />
+        <Stack gap="sm">
+          <Flex width="100%" justify="between" align="center" gap="md">
+            <Placeholder width="92px" height="40px" />
+            <Placeholder style={{flex: 1}} height="40px" />
+          </Flex>
+          <Placeholder width="100%" height="540px" />
+          <Placeholder height="140px" />
+        </Stack>
+        <Placeholder height="200px" />
       </Stack>
     );
   }
