@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useMemo, type ReactNode} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -32,48 +32,55 @@ interface ComparisonMetric {
 export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProps) {
   const {comparisonResults, comparisonResponse} = props;
 
+  const metrics = useMemo<ComparisonMetric[]>(() => {
+    if (!comparisonResults) {
+      return [];
+    }
+
+    const labels = getLabels(
+      comparisonResponse?.head_build_details.app_info?.platform ?? undefined
+    );
+    const {size_metric_diff_item} = comparisonResults;
+
+    return [
+      {
+        key: 'install',
+        title: labels.installSizeLabel,
+        icon: <IconCode size="sm" />,
+        head: size_metric_diff_item.head_install_size,
+        base: size_metric_diff_item.base_install_size,
+        diff:
+          size_metric_diff_item.head_install_size -
+          size_metric_diff_item.base_install_size,
+        percentageChange:
+          size_metric_diff_item.base_install_size === 0
+            ? 0
+            : (size_metric_diff_item.head_install_size -
+                size_metric_diff_item.base_install_size) /
+              size_metric_diff_item.base_install_size,
+      },
+      {
+        key: 'download',
+        title: labels.downloadSizeLabel,
+        icon: <IconDownload size="sm" />,
+        head: size_metric_diff_item.head_download_size,
+        base: size_metric_diff_item.base_download_size,
+        diff:
+          size_metric_diff_item.head_download_size -
+          size_metric_diff_item.base_download_size,
+        percentageChange:
+          size_metric_diff_item.base_download_size === 0
+            ? 0
+            : (size_metric_diff_item.head_download_size -
+                size_metric_diff_item.base_download_size) /
+              size_metric_diff_item.base_download_size,
+      },
+    ];
+  }, [comparisonResults, comparisonResponse]);
+
   if (!comparisonResults) {
     return null;
   }
-
-  const labels = getLabels(
-    comparisonResponse?.head_build_details.app_info?.platform ?? undefined
-  );
-  const {size_metric_diff_item} = comparisonResults;
-
-  const metrics: ComparisonMetric[] = [
-    {
-      key: 'install',
-      title: labels.installSizeLabel,
-      icon: <IconCode size="sm" />,
-      head: size_metric_diff_item.head_install_size,
-      base: size_metric_diff_item.base_install_size,
-      diff:
-        size_metric_diff_item.head_install_size - size_metric_diff_item.base_install_size,
-      percentageChange:
-        size_metric_diff_item.base_install_size === 0
-          ? 0
-          : (size_metric_diff_item.head_install_size -
-              size_metric_diff_item.base_install_size) /
-            size_metric_diff_item.base_install_size,
-    },
-    {
-      key: 'download',
-      title: labels.downloadSizeLabel,
-      icon: <IconDownload size="sm" />,
-      head: size_metric_diff_item.head_download_size,
-      base: size_metric_diff_item.base_download_size,
-      diff:
-        size_metric_diff_item.head_download_size -
-        size_metric_diff_item.base_download_size,
-      percentageChange:
-        size_metric_diff_item.base_download_size === 0
-          ? 0
-          : (size_metric_diff_item.head_download_size -
-              size_metric_diff_item.base_download_size) /
-            size_metric_diff_item.base_download_size,
-    },
-  ];
 
   return (
     <Flex gap="lg" wrap="wrap">
