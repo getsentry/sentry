@@ -1,9 +1,6 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-/**
- * @deprecated This icon will be removed in new UI.
- */
 export function IconCircle(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>
