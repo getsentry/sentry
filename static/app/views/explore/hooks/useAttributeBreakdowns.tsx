@@ -6,7 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export type AttributeBreakdowns = {
+type AttributeBreakdowns = {
   data: Array<{
     attribute_distributions: {
       data: Record<string, Array<{label: string; value: number}>>;
