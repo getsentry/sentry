@@ -59,6 +59,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       playlistEnd: decodeScalar,
       playlistSort: decodeScalar,
       sort: decodeScalar,
+      referrer: decodeScalar,
     },
   });
 
@@ -74,6 +75,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
+    // TODO: use the referrer from the query and type cast it to the ReplayListQueryReferrer type
     queryReferrer: 'replaysPlayList',
   });
   const {data} = useApiQuery<{
