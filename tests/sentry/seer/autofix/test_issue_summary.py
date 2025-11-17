@@ -697,7 +697,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_get_issue_summary_with_run_automation_false(
+    def test_get_issue_summary_with_should_run_automation_false(
         self,
         mock_get_event,
         mock_call_seer,
@@ -705,7 +705,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that run_automation=False prevents _run_automation from being called."""
+        """Test that should_run_automation=False prevents _run_automation from being called."""
         mock_get_acknowledgement.return_value = True
         event = Mock(
             event_id="test_event_id",
@@ -732,7 +732,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         expected_response_summary = mock_summary.dict()
         expected_response_summary["event_id"] = event.event_id
 
-        summary_data, status_code = get_issue_summary(self.group, self.user, run_automation=False)
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, should_run_automation=False
+        )
 
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)

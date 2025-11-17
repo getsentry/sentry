@@ -57,4 +57,6 @@ def generate_issue_summary_only(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
     group = Group.objects.get(id=group_id)
-    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS, run_automation=False)
+    get_issue_summary(
+        group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
+    )

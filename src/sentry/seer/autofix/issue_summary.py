@@ -365,7 +365,7 @@ def _generate_summary(
     force_event_id: str | None,
     source: SeerAutomationSource,
     cache_key: str,
-    run_automation: bool = True,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
@@ -390,7 +390,7 @@ def _generate_summary(
         trace_tree,
     )
 
-    if run_automation:
+    if should_run_automation:
         try:
             _run_automation(group, user, event, source)
         except Exception:
@@ -431,7 +431,7 @@ def get_issue_summary(
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
     source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
-    run_automation: bool = True,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -441,7 +441,7 @@ def get_issue_summary(
         user: The user requesting the summary
         force_event_id: Optional event ID to force summarizing a specific event
         source: The source triggering the summary generation
-        run_automation: Whether to trigger automation after generating summary
+        should_run_automation: Whether to trigger automation after generating summary
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -465,7 +465,7 @@ def get_issue_summary(
     # if force_event_id is set, we always generate a new summary
     if force_event_id:
         summary_dict, status_code = _generate_summary(
-            group, user, force_event_id, source, cache_key, run_automation
+            group, user, force_event_id, source, cache_key, should_run_automation
         )
         _log_seer_scanner_billing_event(group, source)
         return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
@@ -487,7 +487,7 @@ def get_issue_summary(
 
             # Lock acquired and cache is still empty, proceed with generation
             summary_dict, status_code = _generate_summary(
-                group, user, force_event_id, source, cache_key, run_automation
+                group, user, force_event_id, source, cache_key, should_run_automation
             )
             _log_seer_scanner_billing_event(group, source)
             return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
