@@ -30,7 +30,7 @@ def query_replay_instance_eap(
     start: datetime,
     end: datetime,
     organization_id: int,
-    request_user_id: int,
+    request_user_id: int | None,
     referrer: str = "replays.query.details_query",
 ):
     select = [
@@ -159,14 +159,25 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        snuba_response = query_replay_instance(
-            project_id=project_ids,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=organization,
-            request_user_id=request.user.id,
-        )
+        # Use EAP query if feature flag is enabled
+        if features.has("organizations:replay-details-eap-query", organization):
+            snuba_response = query_replay_instance_eap(
+                project_ids=project_ids,
+                replay_ids=[replay_id],
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization_id=organization.id,
+                request_user_id=request.user.id,
+            )["data"]
+        else:
+            snuba_response = query_replay_instance(
+                project_id=project_ids,
+                replay_id=replay_id,
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization=organization,
+                request_user_id=request.user.id,
+            )
 
         response = process_raw_response(
             snuba_response,
