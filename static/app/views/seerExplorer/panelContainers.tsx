@@ -37,7 +37,7 @@ function PanelContainers({
               initial={{opacity: 0}}
               animate={{opacity: isMinimized ? 0 : 1}}
               exit={{opacity: 0}}
-              transition={{duration: 0.1}}
+              transition={{duration: 0.12}}
             />
           )}
           <PanelContainer
@@ -46,17 +46,17 @@ function PanelContainers({
             initial={{
               opacity: 0,
               y: 50,
-              scale: 0.1,
+              scaleY: 0.1,
               transformOrigin: 'bottom center',
             }}
             animate={{
               opacity: 1,
               y: isMinimized ? 'calc(100% - 60px)' : 0,
-              scale: 1,
+              scaleY: 1,
               transformOrigin: 'bottom center',
             }}
-            exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-            transition={{duration: 0.1, ease: 'easeInOut'}}
+            exit={{opacity: 0, y: 50, scaleY: 0.1, transformOrigin: 'bottom center'}}
+            transition={{duration: 0.12, ease: 'easeInOut'}}
           >
             <PanelContent ref={ref} data-seer-explorer-root="">
               {children}
@@ -65,7 +65,7 @@ function PanelContainers({
                   initial={{opacity: 0}}
                   animate={{opacity: 1}}
                   exit={{opacity: 0}}
-                  transition={{duration: 0.2}}
+                  transition={{duration: 0.12}}
                   onClick={onUnminimize}
                 >
                   <Flex direction="column" align="center" gap="lg">
@@ -120,7 +120,7 @@ const PanelContainer = styled(motion.div)<{
       margin-left: -25vw;
     `}
 
-  transition: all 0.2s ease-in-out;
+  transition: all 0.12s ease-in-out;
 `;
 
 const PanelContent = styled('div')`

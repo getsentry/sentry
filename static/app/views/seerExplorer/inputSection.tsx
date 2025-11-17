@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea/textarea';
 
 import {IconMenu} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface InputSectionProps {
   focusedBlockIndex: number;
@@ -67,7 +67,6 @@ function InputSection({
           data-test-id="seer-explorer-input"
         />
       </InputRow>
-      {focusedBlockIndex === -1 && <FocusIndicator />}
     </InputBlock>
   );
 }
@@ -77,7 +76,6 @@ export default InputSection;
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
-  border-top: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
   position: sticky;
   bottom: 0;
@@ -88,13 +86,13 @@ const InputRow = styled('div')`
   align-items: stretch;
   width: 100%;
   padding: 0;
-  gap: ${space(1)};
 `;
 
 const ButtonContainer = styled('div')`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.sm};
+  padding-top: ${p => p.theme.space.md};
 
   button {
     width: auto;
@@ -102,34 +100,10 @@ const ButtonContainer = styled('div')`
   }
 `;
 
-const FocusIndicator = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 3px;
-  background: ${p => p.theme.purple400};
-`;
-
-const InputTextarea = styled('textarea')`
+const InputTextarea = styled(TextArea)`
   width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: ${space(2)} ${space(2)} ${space(2)} 0;
+  margin: ${p => p.theme.space.sm} ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
   color: ${p => p.theme.textColor};
   resize: none;
-  min-height: 40px;
-  max-height: 120px;
-  line-height: 1.4;
   overflow-y: auto;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
-
-  &:focus {
-    outline: none;
-  }
 `;

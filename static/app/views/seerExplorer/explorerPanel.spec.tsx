@@ -55,7 +55,9 @@ describe('ExplorerPanel', () => {
     it('renders when feature flag is enabled', () => {
       render(<ExplorerPanel isVisible />, {organization});
 
-      expect(screen.getByText(/Welcome to Seer Explorer/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Ask Seer anything about your application./)
+      ).toBeInTheDocument();
     });
 
     it('does not render when feature flag is disabled', () => {
@@ -88,7 +90,9 @@ describe('ExplorerPanel', () => {
     it('shows empty state when no messages exist', () => {
       render(<ExplorerPanel isVisible />, {organization});
 
-      expect(screen.getByText(/Welcome to Seer Explorer/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Ask Seer anything about your application./)
+      ).toBeInTheDocument();
     });
 
     it('shows input section in empty state', () => {
@@ -150,7 +154,9 @@ describe('ExplorerPanel', () => {
       expect(
         screen.getByText('This error indicates a null pointer exception.')
       ).toBeInTheDocument();
-      expect(screen.queryByText(/Welcome to Seer Explorer/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer anything about your application./)
+      ).not.toBeInTheDocument();
 
       // Restore the mock
       jest.restoreAllMocks();
