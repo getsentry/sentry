@@ -21,8 +21,6 @@ describe('analyticsInitUser', () => {
     ConfigStore.set('enableAnalytics', true);
     ConfigStore.set('getsentry.amplitudeApiKey', 'foo');
     setWindowLocation('http:/localhost/');
-    const {Types} = jest.requireActual('@amplitude/analytics-browser');
-    Amplitude.Types = Types;
   });
   afterEach(() => {
     sessionStorageWrapper.removeItem('marketing_event_recorded');
