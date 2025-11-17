@@ -1237,7 +1237,26 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'data-forwarding/',
       name: t('Data Forwarding'),
-      component: make(() => import('sentry/views/settings/organizationDataForwarding')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding')
+          ),
+        },
+        {
+          path: 'setup/',
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding/setup')
+          ),
+        },
+        {
+          path: ':dataForwarderId/edit/',
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding/edit')
+          ),
+        },
+      ],
     },
   ];
   const orgSettingsRoutes: SentryRouteObject = {

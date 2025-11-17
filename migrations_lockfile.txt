@@ -39,4 +39,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0096_delete_non_single_written_fire_history
+workflow_engine: 0098_detectorgroup_detector_set_null

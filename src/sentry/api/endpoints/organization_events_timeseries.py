@@ -222,6 +222,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             if dataset not in RPC_DATASETS:
                 raise NotImplementedError
 
+            extrapolation_mode = self.get_extrapolation_mode(request)
+
             if dataset == TraceMetrics:
                 # tracemetrics uses aggregate conditions
                 metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
@@ -235,6 +237,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                         "disableAggregateExtrapolation", "0"
                     )
                     == "1",
+                    extrapolation_mode=extrapolation_mode,
                 )
 
             return SearchResolverConfig(
@@ -244,6 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     "disableAggregateExtrapolation", "0"
                 )
                 == "1",
+                extrapolation_mode=extrapolation_mode,
             )
 
         if top_events > 0:

@@ -1361,7 +1361,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor is not None
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
 
         assert_org_audit_log_exists(
             organization=self.organization,
@@ -1403,7 +1403,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
@@ -1431,4 +1431,4 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)

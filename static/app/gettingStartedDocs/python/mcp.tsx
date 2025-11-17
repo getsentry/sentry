@@ -1,14 +1,16 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
 export const mcp: OnboardingConfig = {
-  install: () => {
+  install: params => {
     const packageName = 'sentry-sdk';
 
     return [
@@ -17,9 +19,20 @@ export const mcp: OnboardingConfig = {
         content: [
           {
             type: 'text',
-            text: t(
-              'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of 2.43.0 or higher.'
-            ),
+            text:
+              params.platformOptions?.integration === 'mcp_sdk'
+                ? tct(
+                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    {
+                      code: <code />,
+                    }
+                  )
+                : tct(
+                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    {
+                      code: <code />,
+                    }
+                  ),
           },
           getPythonInstallCodeBlock({packageName}),
         ],
@@ -27,12 +40,17 @@ export const mcp: OnboardingConfig = {
     ];
   },
   configure: params => {
-    const mcpLowLevelStep: OnboardingStep = {
+    const mcpSdkStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
         {
           type: 'text',
-          text: t('Configure Sentry for MCP low-level monitoring:'),
+          text: tct(
+            'Add the [code:MCPIntegration] to your [code:sentry_sdk.init] call:',
+            {
+              code: <code />,
+            }
+          ),
         },
         {
           type: 'code',
@@ -51,95 +69,6 @@ sentry_sdk.init(
         MCPIntegration(),
     ],
 )`,
-        },
-        {
-          type: 'text',
-          text: t('Set up your Low-level MCP server:'),
-        },
-        {
-          type: 'code',
-          language: 'python',
-          code: `
-from mcp.server.lowlevel import Server
-from mcp.types import Tool, TextContent
-
-server = Server("mcp-server")
-
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """List all available tools."""
-    return [
-        Tool(
-            name="calculate_sum",
-            description="Add two numbers together",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number", "description": "First number"},
-                    "b": {"type": "number", "description": "Second number"},
-                },
-                "required": ["a", "b"],
-            },
-        )
-    ]
-@server.call_tool()
-async def call_tool(name: str, arguments) -> list[TextContent]:
-    """Handle tool execution based on tool name."""
-
-    if name == "calculate_sum":
-        a = arguments.get("a", 0)
-        b = arguments.get("b", 0)
-        result = a + b
-        return [TextContent(type="text", text=f"The sum of {a} and {b} is {result}")]
-
-`,
-        },
-      ],
-    };
-
-    const mcpFastMcpStep: OnboardingStep = {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: t('Configure Sentry for MCP low-level monitoring:'),
-        },
-        {
-          type: 'code',
-          language: 'python',
-          code: `
-import sentry_sdk
-from sentry_sdk.integrations.mcp import MCPIntegration
-
-sentry_sdk.init(
-    dsn="${params.dsn.public}",
-    traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from MCP servers;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    integrations=[
-        MCPIntegration(),
-    ],
-)`,
-        },
-        {
-          type: 'text',
-          text: t('Set up your FastMCP server:'),
-        },
-        {
-          type: 'code',
-          language: 'python',
-          code: `
-from mcp.server.fastmcp import FastMCP
-# from fastmcp import FastMCP if you are using the standalone version
-
-mcp = FastMCP("mcp-server")
-
-@mcp.tool()
-async def calculate_sum(a: int, b: int) -> int:
-    """Add two numbers together."""
-    return a + b
-`,
         },
       ],
     };
@@ -149,7 +78,7 @@ async def calculate_sum(a: int, b: int) -> int:
       content: [
         {
           type: 'text',
-          text: t('Configure Sentry for manual MCP instrumentation:'),
+          text: t('Initialize the Sentry SDK in the entry point of your application:'),
         },
         {
           type: 'code',
@@ -163,20 +92,31 @@ sentry_sdk.init(
 )
 `,
         },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your MCP server.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/mcp-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'mcp_fastmcp';
-    if (selected === 'mcp_fastmcp') {
-      return [mcpFastMcpStep];
+    const selected = (params.platformOptions as any)?.integration ?? 'mcp_sdk';
+    if (selected === 'mcp_sdk') {
+      return [mcpSdkStep];
     }
     if (selected === 'manual') {
       return [manualStep];
     }
-    return [mcpLowLevelStep];
+    return [mcpSdkStep];
   },
-  verify: params => {
-    const mcpVerifyStep: OnboardingStep = {
+  verify: () => [
+    {
       type: StepType.VERIFY,
       content: [
         {
@@ -186,43 +126,7 @@ sentry_sdk.init(
           ),
         },
       ],
-    };
-
-    const manualVerifyStep: OnboardingStep = {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Verify that MCP monitoring is working correctly by running your manually instrumented code:'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'python',
-          code: `
-import json
-import sentry_sdk
-
-# Invoke Agent span
-with sentry_sdk.start_span(op="mcp.server", name="tools/call calculate_sum") as span:
-    span.set_data("mcp.method.name", "tools/call")
-    span.set_data("mcp.request.argument.a", "1")
-    span.set_data("mcp.request.argument.b", "2")
-    span.set_data("mcp.request.id", 123)
-    span.set_data("mcp.session.id", "c6d1c6a4c35843d5bdf0f9d88d11c183")
-    span.set_data("mcp.tool.name", "calculate_sum")
-    span.set_data("mcp.tool.result.content_count", 1)
-    span.set_data("mcp.transport", "stdio")
-`,
-        },
-      ],
-    };
-    const selected = (params.platformOptions as any)?.integration ?? 'mcp_fastmcp';
-    if (selected === 'manual') {
-      return [manualVerifyStep];
-    }
-    return [mcpVerifyStep];
-  },
+    },
+  ],
   nextSteps: () => [],
 };

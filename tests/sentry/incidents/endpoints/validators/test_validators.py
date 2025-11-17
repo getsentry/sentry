@@ -709,12 +709,11 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
     )
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_update_anomaly_detection_snuba_query(
+    def test_update_anomaly_detection_snuba_query_query(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
     ) -> None:
         """
-        Test that when we update the snuba query for a dynamic detector
-        we make a call to Seer with the changes
+        Test that when we update the snuba query query for a dynamic detector we make a call to Seer with the changes
         """
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -775,6 +774,36 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=dynamic_detector.get_audit_log_data(),
         )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_snuba_query_aggregate(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that when we update the snuba query aggregate for a dynamic detector we make a call to Seer with the changes
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        detector = self.create_dynamic_detector()
+
+        # Verify detector in DB
+        self.assert_validated(detector)
+
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+
+        # Verify audit log
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_ADD"),
+            data=detector.get_audit_log_data(),
+        )
         mock_audit.reset_mock()
 
         # Change the aggregate which should call Seer
@@ -813,6 +842,121 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             target_object=dynamic_detector.id,
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=dynamic_detector.get_audit_log_data(),
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_snuba_query_to_perf(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that when we update the snuba query for a dynamic detector
+        to become a performance query we make a call to Seer with the changes
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        detector = self.create_dynamic_detector()
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+        mock_audit.reset_mock()
+
+        # Change the dataset, queryType, and aggregate to perf stuff
+        update_data = {
+            **self.valid_anomaly_detection_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "updated_query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        dynamic_detector = update_validator.save()
+
+        assert mock_seer_request.call_count == 1
+
+        # Verify snuba query changes
+        data_source = DataSource.objects.get(detector=dynamic_detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        assert snuba_query.aggregate == "count()"
+        assert snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.query == "updated_query"
+
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=dynamic_detector.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=dynamic_detector.get_audit_log_data(),
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.handle_send_historical_data_to_seer"
+    )
+    def test_update_anomaly_detection_event_types(
+        self, mock_send_historical_data: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that when we update the eventTypes for a dynamic detector it gets sent through as expected
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        detector = self.create_dynamic_detector()
+        assert mock_send_historical_data.call_count == 1
+        mock_send_historical_data.reset_mock()
+
+        # Change the dataset, queryType, aggregate, and eventTypes to performance data
+        data_source_data = {
+            "queryType": SnubaQuery.Type.PERFORMANCE.value,
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "updated_query",
+            "aggregate": "count()",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+        }
+        update_data = {
+            **self.valid_anomaly_detection_data,
+            "dataSources": [data_source_data],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        detector = update_validator.save()
+
+        # Verify snuba query changes
+        data_source = DataSource.objects.get(detector=detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+        data_condition = DataCondition.objects.get(condition_group=condition_group)
+
+        mock_send_historical_data.assert_called_once_with(
+            detector,
+            data_source,
+            data_condition,
+            snuba_query,
+            detector.project,
+            "update",
+            [SnubaQueryEventType.EventType.TRANSACTION],
         )
 
     @mock.patch(

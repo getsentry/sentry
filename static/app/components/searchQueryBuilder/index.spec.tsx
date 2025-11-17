@@ -425,7 +425,9 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
@@ -713,6 +715,29 @@ describe('SearchQueryBuilder', () => {
         );
       });
     });
+
+    describe('logic category', () => {
+      it('does not render logic category when on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument();
+      });
+
+      it('renders logic category when not on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="span.op:test" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        // Should show conditionals button
+        expect(await screen.findByRole('button', {name: 'Logic'})).toBeInTheDocument();
+      });
+    });
   });
 
   describe('mouse interactions', () => {
@@ -810,9 +835,9 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    describe('boolean ops', () => {
+    describe('logic ops', () => {
       describe('flag disabled', () => {
-        it('can remove boolean ops by clicking the delete button', async () => {
+        it('can remove logic ops by clicking the delete button', async () => {
           render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
           expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
@@ -823,20 +848,7 @@ describe('SearchQueryBuilder', () => {
       });
 
       describe('flag enabled', () => {
-        it('can remove boolean selector by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
-
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(screen.getByRole('button', {name: 'Remove boolean: OR'}));
-
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
-
-        it('can select a different boolean operator', async () => {
+        it('can remove logic selector by clicking the delete button', async () => {
           render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
             organization: {
               features: ['search-query-builder-add-boolean-operator-select'],
@@ -845,7 +857,22 @@ describe('SearchQueryBuilder', () => {
 
           expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
           await userEvent.click(
-            screen.getByRole('button', {name: 'Edit boolean operator: OR'})
+            screen.getByRole('button', {name: 'Remove logic operator: OR'})
+          );
+
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+
+        it('can select a different logic operator', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit logic operator: OR'})
           );
           await userEvent.click(screen.getByRole('option', {name: 'AND'}));
 
@@ -1518,7 +1545,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops with the keyboard', async () => {
+    it('can remove logic ops with the keyboard', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
 
       expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
@@ -3733,6 +3760,26 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByText('Parentheses are not supported in this search')
       ).toBeInTheDocument();
+    });
+
+    it('should not add the conditionals section to filter key menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="span.op:test"
+          disallowLogicalOperators
+        />,
+        {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+      await waitFor(() =>
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument()
+      );
     });
   });
 
