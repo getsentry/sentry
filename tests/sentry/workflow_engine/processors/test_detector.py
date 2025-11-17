@@ -1078,9 +1078,7 @@ class TestEnsureAssociationWithDetector(TestCase):
         super().setUp()
         self.metric_detector = self.create_detector(project=self.project, type="metric_issue")
         self.error_detector = self.create_detector(project=self.project, type="error")
-        self.options_context = self.options(
-            {"workflow_engine.ensure_error_detector_association": True}
-        )
+        self.options_context = self.options({"workflow_engine.ensure_detector_association": True})
         self.options_context.__enter__()
 
     def tearDown(self) -> None:
@@ -1090,7 +1088,7 @@ class TestEnsureAssociationWithDetector(TestCase):
     def test_feature_disabled_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
 
-        with self.options({"workflow_engine.ensure_error_detector_association": False}):
+        with self.options({"workflow_engine.ensure_detector_association": False}):
             assert not ensure_association_with_detector(group)
             assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 

@@ -420,7 +420,7 @@ def ensure_association_with_detector(group: Group, detector_id: int | None = Non
     Ensure a Group has a DetectorGroup association, creating it if missing.
     Backdates date_added to group.first_seen for gradual backfill of existing groups.
     """
-    if not options.get("workflow_engine.ensure_error_detector_association"):
+    if not options.get("workflow_engine.ensure_detector_association"):
         return False
 
     # Common case: it exists, we verify and move on.
