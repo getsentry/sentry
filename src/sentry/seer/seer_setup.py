@@ -38,20 +38,14 @@ def get_seer_org_acknowledgement(organization: Organization) -> bool:
 
 
 def get_seer_org_acknowledgement_for_scanner(organization: Organization) -> bool:
-
-    if PromptsActivity.objects.filter(
+    return PromptsActivity.objects.filter(
         feature=feature_name,
         organization_id=organization.id,
         project_id=0,
-    ).exists():
-        return True
-
-    if features.has("organizations:gen-ai-consent-flow-removal", organization) and in_rollout_group(
-        "seer.scanner_no_consent.rollout_rate", organization.id
-    ):
-        return True
-
-    return False
+    ).exists() or (
+        features.has("organizations:gen-ai-consent-flow-removal", organization)
+        and in_rollout_group("seer.scanner_no_consent.rollout_rate", organization.id)
+    )
 
 
 def has_seer_access(
