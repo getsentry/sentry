@@ -93,13 +93,17 @@ class PromptsActivityEndpoint(Endpoint):
         # if project_id or organization_id in required fields make sure they exist
         # if NOT in required fields, insert dummy value so dups aren't recorded
         if "project_id" in required_fields:
-            if not Project.objects.filter(id=fields["project_id"]).exists():
+            project_id = fields["project_id"]
+            assert project_id is not None
+            if not Project.objects.filter(id=project_id).exists():
                 return Response({"detail": "Project no longer exists"}, status=400)
         else:
             fields["project_id"] = 0
 
         if "organization_id" in required_fields:
-            if not Organization.objects.filter(id=fields["organization_id"]).exists():
+            organization_id = fields["organization_id"]
+            assert organization_id is not None
+            if not Organization.objects.filter(id=organization_id).exists():
                 return Response({"detail": "Organization no longer exists"}, status=400)
         else:
             fields["organization_id"] = 0
