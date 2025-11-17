@@ -391,6 +391,13 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   fetchDataWithQueueIfAvailable() {
     const {queue} = this.props;
     if (queue) {
+      this.setState({
+        loading: true,
+        tableResults: undefined,
+        timeseriesResults: undefined,
+        errorMessage: undefined,
+        queryFetchID: undefined,
+      });
       queue.addItem({widgetQuery: this});
       return;
     }
