@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
@@ -31,6 +32,10 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
+  function onSettingsBreadcrumbLinkClick() {
+    trackAnalytics('breadcrumbs.link.clicked', {organization: null});
+  }
+
   return (
     <Breadcrumbs aria-label={t('Settings Breadcrumbs')} className={className}>
       {routes.map((route, i) => {
@@ -54,7 +59,10 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         }
         return (
           <Crumb key={`${route.name}:${route.path}`}>
-            <CrumbLink to={recreateRoute(route, {routes, params})}>
+            <CrumbLink
+              to={recreateRoute(route, {routes, params})}
+              onClick={onSettingsBreadcrumbLinkClick}
+            >
               {pathTitle || route.name}
             </CrumbLink>
             {isLast ? null : <Divider />}

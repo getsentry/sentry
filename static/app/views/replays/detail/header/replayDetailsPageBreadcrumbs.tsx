@@ -94,7 +94,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     },
     label: project ? (
       <ProjectBadge disableLink project={project} avatarSize={16} />
-    ) : null,
+    ) : (
+      t('Project')
+    ),
   };
 
   const replayCrumb = {

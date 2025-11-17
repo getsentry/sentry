@@ -1,6 +1,7 @@
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -37,6 +38,11 @@ function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
             params: {...params, teamId: teamSlug},
           })
         );
+      }}
+      onOpenChange={open => {
+        if (open) {
+          trackAnalytics('breadcrumbs.menu.opened', {organization: null});
+        }
       }}
       hasMenu={hasMenu}
       route={route}
