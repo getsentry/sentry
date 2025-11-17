@@ -969,4 +969,4 @@ def get_trace_item_attributes(
         params=params,
     )
 
-    return resp.data
+    return {"attributes": resp.data["attributes"]}
