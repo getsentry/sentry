@@ -142,14 +142,19 @@ export function Chart({
     [attribute.cohort1, attribute.cohort2, seriesTotals]
   );
 
-  const maxSeriesValue = useMemo(
-    () =>
-      Math.max(
-        ...seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
-        ...seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value)
-      ),
-    [seriesData]
-  );
+  const maxSeriesValue = useMemo(() => {
+    const selectedSeries = seriesData[SELECTED_SERIES_NAME];
+    const baselineSeries = seriesData[BASELINE_SERIES_NAME];
+
+    if (selectedSeries.length === 0 && baselineSeries.length === 0) {
+      return 0;
+    }
+
+    return Math.max(
+      ...selectedSeries.map(cohort => cohort.value),
+      ...baselineSeries.map(cohort => cohort.value)
+    );
+  }, [seriesData]);
 
   const populationPercentages = useMemo(
     () => ({
@@ -205,7 +210,8 @@ export function Chart({
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
-      const labelsCount = seriesData[SELECTED_SERIES_NAME].length;
+      const selectedSeries = seriesData[SELECTED_SERIES_NAME];
+      const labelsCount = selectedSeries.length > 0 ? selectedSeries.length : 1;
       // 14px is the width of the y axis label with font size 12
       // We'll subtract side padding (e.g. 4px per label) to avoid crowding
       const labelPadding = 4;
