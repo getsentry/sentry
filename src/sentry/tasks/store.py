@@ -564,13 +564,6 @@ def _do_save_event(
         attachments = []
         project = None
         try:
-            if cache_key and has_attachments:
-                all_attachments = list(get_attachments_for_event(data))
-                # we won’t be needing the transient attachments after this anymore
-                data.pop("_attachments", None)
-                attachments = [a for a in all_attachments if not a.rate_limited]
-            project = resolve_project(project_id)
-
             if killswitch_matches_context(
                 "store.load-shed-save-event-projects",
                 {
@@ -580,6 +573,13 @@ def _do_save_event(
                 },
             ):
                 raise HashDiscarded("Load shedding save_event")
+
+            if cache_key and has_attachments:
+                all_attachments = list(get_attachments_for_event(data))
+                # we won’t be needing the transient attachments after this anymore
+                data.pop("_attachments", None)
+                attachments = [a for a in all_attachments if not a.rate_limited]
+            project = resolve_project(project_id)
 
             manager = EventManager(data)
             # event.project.organization is populated after this statement.
