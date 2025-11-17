@@ -122,12 +122,17 @@ class WorkflowEvaluationData:
         if self.triggered_actions:
             triggered_actions = [action.get_snapshot() for action in self.triggered_actions]
 
+        event_id = None
+        if hasattr(self.event, "event_id"):
+            # Activity's do not have an event id
+            event_id = self.event.event_id
+
         return {
             "workflow_ids": workflow_ids,
             "associated_detector": associated_detector,
             "event": self.event,
+            "event_id": event_id,
             "group": self.event.group,
-            "event_data": self.event.data,
             "action_filter_conditions": action_filter_conditions,
             "triggered_actions": triggered_actions,
             "triggered_workflows": triggered_workflows,
