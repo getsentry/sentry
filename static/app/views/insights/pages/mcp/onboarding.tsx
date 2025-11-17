@@ -220,7 +220,10 @@ export function Onboarding() {
             {label: 'FastMCP / MCP SDK', value: 'mcp_sdk'},
             {label: 'Other', value: 'manual'},
           ]
-        : [{label: 'MCP SDK', value: 'mcp_sdk'}],
+        : [
+            {label: 'MCP SDK', value: 'mcp_sdk'},
+            {label: 'Other', value: 'manual'},
+          ],
     },
   };
 
