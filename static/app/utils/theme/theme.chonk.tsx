@@ -727,18 +727,18 @@ const prismDark = {
 
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowLight: `0 0 1px ${tokens.color.shadow.medium.light}`,
+  dropShadowMedium: `0 1px 2px ${tokens.color.shadow.medium.light}`,
+  dropShadowHeavy: `0 4px 24px ${tokens.color.shadow.low.light}`,
+  dropShadowHeavyTop: `0 -4px 24px ${tokens.color.shadow.low.light}`,
 };
 
 // @TODO(jonasbadalic): are these final?
 const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowLight: `0 0 1px ${tokens.color.shadow.low.dark}`,
+  dropShadowMedium: `0 1px 2px ${tokens.color.shadow.low.dark}`,
+  dropShadowHeavy: `0 4px 24px ${tokens.color.shadow.medium.dark}`,
+  dropShadowHeavyTop: `0 -4px 24px ${tokens.color.shadow.medium.dark}`,
 };
 
 const generateAliases = (
