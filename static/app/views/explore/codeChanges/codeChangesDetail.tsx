@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {Outlet, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -18,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CodeCoverageView} from 'sentry/views/explore/codeChanges/codeChangesDetailCodeCoverage';
 import {FilesChangedView} from 'sentry/views/explore/codeChanges/codeChangesDetailFilesChanged';
 import {SizeAnalysisView} from 'sentry/views/explore/codeChanges/codeChangesDetailSizeAnalysis';
+import {SnapshotsView} from 'sentry/views/explore/codeChanges/codeChangesDetailSnapshots';
 import {makeCodeChangesPathname} from 'sentry/views/explore/codeChanges/pathnames';
 
 // Mock data - would come from props/API in real implementation
@@ -61,12 +63,20 @@ export default function PullDetailWrapper() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get current tab from URL query parameter, default to 'code-coverage'
+  // Track if code-coverage tab has been visited
+  const [hasVisitedCodeCoverage, setHasVisitedCodeCoverage] = useState(false);
+
+  // Get current tab from URL query parameter, default to 'files-changed'
   const currentTab = Array.isArray(location.query.tab)
     ? location.query.tab[0]
-    : location.query.tab || 'code-coverage';
+    : location.query.tab || 'files-changed';
 
   const handleTabChange = (newTab: string) => {
+    // Mark code-coverage tab as visited when user clicks on it
+    if (newTab === 'code-coverage') {
+      setHasVisitedCodeCoverage(true);
+    }
+
     navigate({
       pathname: location.pathname,
       query: {
@@ -161,7 +171,19 @@ export default function PullDetailWrapper() {
               <TabList>
                 <TabList.Item key="files-changed">{t('Files Changed')}</TabList.Item>
                 <TabList.Item key="size-analysis">{t('Size Analysis')}</TabList.Item>
-                <TabList.Item key="code-coverage">{t('Code Coverage')}</TabList.Item>
+                <TabList.Item key="snapshots">{t('Snapshots')}</TabList.Item>
+                <TabList.Item key="code-coverage">
+                  <TabLabelWithIndicator>
+                    {t('Code Coverage')}
+                    {!hasVisitedCodeCoverage && (
+                      <TabUnreadIndicator>
+                        <Tooltip title={t('Unread')} skipWrapper>
+                          <UnreadIndicator />
+                        </Tooltip>
+                      </TabUnreadIndicator>
+                    )}
+                  </TabLabelWithIndicator>
+                </TabList.Item>
               </TabList>
               <TabPanels>
                 <TabPanels.Item key="files-changed">
@@ -169,6 +191,9 @@ export default function PullDetailWrapper() {
                 </TabPanels.Item>
                 <TabPanels.Item key="size-analysis">
                   <SizeAnalysisView />
+                </TabPanels.Item>
+                <TabPanels.Item key="snapshots">
+                  <SnapshotsView />
                 </TabPanels.Item>
                 <TabPanels.Item key="code-coverage">
                   <CodeCoverageView CommitLink={CommitLink} />
@@ -277,4 +302,23 @@ const BranchInfo = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
+`;
+
+const TabLabelWithIndicator = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const TabUnreadIndicator = styled('div')`
+  position: absolute;
+  top: -4px;
+  right: -8px;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 6px;
+  height: 6px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
 `;
