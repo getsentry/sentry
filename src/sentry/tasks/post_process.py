@@ -1596,7 +1596,10 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.seer.autofix.utils import (
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+    )
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
@@ -1606,39 +1609,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if group.seer_fixability_score is not None:
         return
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
-        GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
-        GroupCategory.MOBILE,
-        GroupCategory.FRONTEND,
-        GroupCategory.DB_QUERY,
-        GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
-        return
-
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return
-
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return
-
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return
-
-    # Check if automation has already been queued or completed for this group
-    # seer_autofix_last_triggered is set when trigger_autofix is successfully started.
-    # Use cache with short TTL to hold lock for a short since it takes a few minutes to set seer_autofix_last_triggeredes
-    cache_key = f"seer_automation_queued:{group.id}"
-    if cache.get(cache_key) or group.seer_autofix_last_triggered is not None:
+    if is_issue_eligible_for_seer_automation(group) is False:
         return
 
     # Don't run if there's already a task in progress for this issue
@@ -1647,27 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization)
-    if not seer_enabled:
-        return
-
-    from sentry import quotas
-    from sentry.constants import DataCategory
-
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return
-
-    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
-
-    if is_seer_scanner_rate_limited(project, group.organization):
-        return
-
-    # cache.add uses Redis SETNX which atomically sets the key only if it doesn't exist
-    # Returns False if another process already set the key, ensuring only one process proceeds
-    if not cache.add(cache_key, True, timeout=600):  # 10 minute
+    if is_seer_scanner_rate_limited(group.project, group.organization):
         return
 
     start_seer_automation.delay(group.id)
