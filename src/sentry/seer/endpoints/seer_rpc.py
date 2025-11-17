@@ -259,7 +259,7 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_organization_project_ids(*, org_id: int) -> dict:
-    """Get all projects (IDs and slugs) for an organization"""
+    """Get all active projects (IDs and slugs) for an organization"""
     from sentry.models.project import Project
 
     try:
@@ -267,7 +267,11 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     except Organization.DoesNotExist:
         return {"projects": []}
 
-    projects = list(Project.objects.filter(organization=organization).values("id", "slug"))
+    projects = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values(
+            "id", "slug"
+        )
+    )
 
     return {"projects": projects}
 
