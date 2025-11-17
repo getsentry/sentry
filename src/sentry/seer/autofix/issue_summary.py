@@ -411,11 +411,18 @@ def _generate_summary(
             )
 
     if should_run_automation:
-        try:
-            _run_automation(group, user, event, source)
-        except Exception:
-            logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+        if group.seer_fixability_score is not None:
+            try:
+                _run_automation(group, user, event, source)
+            except Exception:
+                logger.exception(
+                    "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+                )
+        else:
+            logger.error(
+                "Skipping automation: fixability score unavailable for group %s",
+                group.id,
+                extra={"group_id": group.id},
             )
 
     summary_dict = issue_summary.dict()
