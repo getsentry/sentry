@@ -518,6 +518,16 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
         )
 
         data = result.get("data")
+        logger.info(
+            "rpc_get_profile_flamegraph: ran spans query in window",
+            extra={
+                "profile_id": profile_id,
+                "organization_id": organization_id,
+                "data": data,
+                "window_start": window_start.isoformat(),
+                "window_end": window_end.isoformat(),
+            },
+        )
         if data:
             row = data[0]
             full_profile_id = row.get("profile.id")
@@ -525,6 +535,22 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             project_id = row.get("project.id")
             min_start_ts = row.get("min(precise.start_ts)")
             max_end_ts = row.get("max(precise.finish_ts)")
+
+            logger.info(
+                "rpc_get_profile_flamegraph: found profile in window",
+                extra={
+                    "profile_id": profile_id,
+                    "organization_id": organization_id,
+                    "data": data,
+                    "window_start": window_start.isoformat(),
+                    "window_end": window_end.isoformat(),
+                    "full_profile_id": full_profile_id,
+                    "full_profiler_id": full_profiler_id,
+                    "project_id": project_id,
+                    "min_start_ts": min_start_ts,
+                    "max_end_ts": max_end_ts,
+                },
+            )
             break
 
     # Determine profile type and actual ID to use
