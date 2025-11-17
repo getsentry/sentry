@@ -239,7 +239,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form with addOns', async () => {
-    mockOrg.features = ['seer-billing', 'prevent-billing'];
+    mockOrg.features = ['seer-billing', 'seer-user-billing'];
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',

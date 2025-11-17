@@ -209,7 +209,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PREVENT_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
-    feature: 'prevent-billing',
+    feature: 'seer-user-billing',
     canProductTrial: true,
     maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
     tallyType: 'seat',
