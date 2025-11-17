@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 from typing import Any
 
 import click
@@ -315,3 +316,33 @@ def list_integrations(organization_slug: str) -> None:
         click.echo(
             f"• id: {oi.integration.id}, provider: {oi.integration.provider}, name: {oi.integration.name}"
         )
+
+
+@notifications.command("exec-slack")
+def exec_slack() -> None:
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.slack.integration import SlackIntegration
+    from sentry.models.organizationmapping import OrganizationMapping
+
+    mapping = OrganizationMapping.objects.get(slug="acme")
+    integration = Integration.objects.get(id=2, provider="slack")
+    install = SlackIntegration(model=integration, organization_id=mapping.organization_id)
+    client = install.get_client()
+
+    # Thread in #testing-hooks
+    # resp = client.conversations_replies(channel="C09SVK9L9AP", ts="1763151689.958609")
+
+    # Thread in #private-eye
+    # resp = client.conversations_replies(channel="C09TF5Q5509", ts="1763153818.713719")
+
+    # Get info on madeleine
+    # resp = client.users_info(user="U09AP9526L8")
+
+    # React to a message in #testing-hooks, 'will this fire'
+    resp = client.reactions_add(channel="C09SVK9L9AP", name="eyes", timestamp="1763151979.634929")
+
+    print(json.dumps(resp.data, indent=2))
