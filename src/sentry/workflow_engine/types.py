@@ -171,7 +171,14 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**self.data.get_snapshot(), "debug_msg": self.msg})
+        data_snapshot = self.data.get_snapshot()
+        # XXX(jferg): This is a temporary fix to avoid logging the event data in the logs, as it's too large
+        try:
+            del data_snapshot["event_data"]
+        except KeyError:
+            pass
+
+        logger.info(log_str, extra={**data_snapshot, "debug_msg": self.msg})
 
 
 class ConfigTransformer(ABC):
