@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/BuildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
@@ -52,6 +55,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openInsightsSidebar = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('insights', 'open');
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
@@ -204,7 +213,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.insights && totalSize > 0
       ? processInsights(appSizeData.insights, totalSize)
       : [];
-
   const categoriesEnabled =
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
@@ -283,42 +291,49 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="sm" minHeight="700px" width="100%">
-      <Flex align="center" gap="md">
-        {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
-          </SegmentedControl>
-        )}
-        {selectedContent === 'treemap' && (
-          <InputGroup style={{flexGrow: 1}}>
-            <InputGroup.LeadingItems>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              placeholder="Search files"
-              value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value || undefined)}
-            />
-            {searchQuery && (
-              <InputGroup.TrailingItems>
-                <Button
-                  onClick={() => setSearchQuery(undefined)}
-                  aria-label="Clear search"
-                  borderless
-                  size="zero"
-                >
-                  <IconClose size="sm" />
-                </Button>
-              </InputGroup.TrailingItems>
-            )}
-          </InputGroup>
-        )}
-      </Flex>
-      <ChartContainer>{visualizationContent}</ChartContainer>
+    <Stack gap="xl" minHeight="700px" width="100%">
+      <BuildDetailsMetricCards
+        sizeInfo={sizeInfo}
+        processedInsights={processedInsights}
+        totalSize={totalSize}
+        platform={buildDetailsData?.app_info?.platform ?? null}
+        onOpenInsightsSidebar={openInsightsSidebar}
+      />
 
-      <Stack gap="xl">
+      <Stack gap="sm">
+        <Flex align="center" gap="md">
+          {categoriesEnabled && (
+            <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+              <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+              <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            </SegmentedControl>
+          )}
+          {selectedContent === 'treemap' && (
+            <InputGroup style={{flexGrow: 1}}>
+              <InputGroup.LeadingItems>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                placeholder="Search files"
+                value={searchQuery || ''}
+                onChange={e => setSearchQuery(e.target.value || undefined)}
+              />
+              {searchQuery && (
+                <InputGroup.TrailingItems>
+                  <Button
+                    onClick={() => setSearchQuery(undefined)}
+                    aria-label="Clear search"
+                    borderless
+                    size="zero"
+                  >
+                    <IconClose size="sm" />
+                  </Button>
+                </InputGroup.TrailingItems>
+              )}
+            </InputGroup>
+          )}
+        </Flex>
+        <ChartContainer>{visualizationContent}</ChartContainer>
         {selectedContent === 'treemap' && appSizeData && (
           <AppSizeLegend
             root={appSizeData.treemap.root}
@@ -326,12 +341,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        <AppSizeInsights
-          processedInsights={processedInsights}
-          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-        />
       </Stack>
-    </Flex>
+
+      <AppSizeInsights
+        processedInsights={processedInsights}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+      />
+    </Stack>
   );
 }
 
