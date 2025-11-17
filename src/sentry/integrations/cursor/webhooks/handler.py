@@ -12,12 +12,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import (
-    MethodNotAllowed,
-    NotFound,
-    ParseError,
-    PermissionDenied,
-)
+from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
