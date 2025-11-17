@@ -356,7 +356,10 @@ def get_issue_summary(
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock_duration = 10  # How long the lock is held if acquired (seconds)
+    # Lock duration must exceed the HTTP timeout (30s) plus processing overhead.
+    # This prevents the lock from expiring while the Seer request is still pending,
+    # which would cause lock release failures when the request completes.
+    lock_duration = 40  # How long the lock is held if acquired (seconds)
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
     # if force_event_id is set, we always generate a new summary
