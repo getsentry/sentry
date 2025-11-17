@@ -5,20 +5,6 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 import {useBlockNavigation} from './useBlockNavigation';
 
 describe('useBlockNavigation', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-    // Mock requestAnimationFrame to execute callback immediately
-    global.requestAnimationFrame = jest.fn(cb => {
-      cb(performance.now());
-      return 1;
-    });
-    global.cancelAnimationFrame = jest.fn();
-  });
-
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-  });
   const mockBlocks: Block[] = [
     {
       id: 'block-1',
@@ -49,40 +35,10 @@ describe('useBlockNavigation', () => {
     },
   ];
 
-  const createMockScrollContainer = () => {
-    const mockScrollTo = jest.fn();
-    const mockGetBoundingClientRect = jest.fn(() => ({
-      top: 0,
-      bottom: 100,
-      left: 0,
-      right: 100,
-      width: 100,
-      height: 100,
-    }));
-    return {
-      scrollTo: mockScrollTo,
-      scrollTop: 0,
-      scrollHeight: 200,
-      clientHeight: 100,
-      getBoundingClientRect: mockGetBoundingClientRect,
-    } as unknown as HTMLDivElement;
-  };
-
   const createMockElement = () => {
     const mockScrollIntoView = jest.fn();
-    const mockGetBoundingClientRect = jest.fn(() => ({
-      top: 50,
-      bottom: 150,
-      left: 0,
-      right: 100,
-      width: 100,
-      height: 100,
-    }));
     return {
       scrollIntoView: mockScrollIntoView,
-      offsetTop: 50,
-      offsetHeight: 100,
-      getBoundingClientRect: mockGetBoundingClientRect,
     } as unknown as HTMLDivElement;
   };
 
@@ -90,21 +46,10 @@ describe('useBlockNavigation', () => {
     const mockFocus = jest.fn();
     const mockBlur = jest.fn();
     const mockScrollIntoView = jest.fn();
-    const mockGetBoundingClientRect = jest.fn(() => ({
-      top: 200,
-      bottom: 250,
-      left: 0,
-      right: 100,
-      width: 100,
-      height: 50,
-    }));
     return {
       focus: mockFocus,
       blur: mockBlur,
       scrollIntoView: mockScrollIntoView,
-      offsetTop: 200,
-      offsetHeight: 50,
-      getBoundingClientRect: mockGetBoundingClientRect,
     } as unknown as HTMLTextAreaElement;
   };
 
@@ -112,7 +57,6 @@ describe('useBlockNavigation', () => {
   const mockElement2 = createMockElement();
   const mockElement3 = createMockElement();
   const mockTextarea = createMockTextarea();
-  const mockScrollContainer = createMockScrollContainer();
 
   const defaultProps = {
     isOpen: true,
@@ -120,7 +64,6 @@ describe('useBlockNavigation', () => {
     blocks: mockBlocks,
     blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
     textareaRef: {current: mockTextarea},
-    scrollContainerRef: {current: mockScrollContainer},
     setFocusedBlockIndex: jest.fn(),
     onDeleteFromIndex: jest.fn(),
   };
@@ -135,7 +78,10 @@ describe('useBlockNavigation', () => {
 
       expect(defaultProps.setFocusedBlockIndex).toHaveBeenCalledWith(2); // Last block index
       expect(mockTextarea.blur).toHaveBeenCalled();
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(mockElement3.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('moves up through blocks on ArrowUp', () => {
@@ -146,7 +92,10 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(1);
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(mockElement2.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('does not move up from first block', () => {
@@ -168,7 +117,10 @@ describe('useBlockNavigation', () => {
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(1);
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(mockElement2.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('moves from last block to input on ArrowDown', () => {
@@ -180,7 +132,10 @@ describe('useBlockNavigation', () => {
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
       expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(mockTextarea.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('does nothing on ArrowDown when already at input', () => {
@@ -203,7 +158,10 @@ describe('useBlockNavigation', () => {
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
       expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(mockTextarea.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('focuses textarea even when already at input', () => {
@@ -280,7 +238,6 @@ describe('useBlockNavigation', () => {
         ...defaultProps,
         blocks: [],
         blockRefs: {current: []},
-        scrollContainerRef: {current: null}, // No scroll container, uses fallback
       };
       renderHook(() => useBlockNavigation(props));
 
@@ -357,9 +314,11 @@ describe('useBlockNavigation', () => {
 
   describe('Ref Handling', () => {
     it('handles null block refs gracefully', () => {
+      const testElement2 = createMockElement();
+      const testElement3 = createMockElement();
       const props = {
         ...defaultProps,
-        blockRefs: {current: [null, createMockElement(), createMockElement()]},
+        blockRefs: {current: [null, testElement2, testElement3]},
       };
       renderHook(() => useBlockNavigation(props));
 
@@ -368,7 +327,10 @@ describe('useBlockNavigation', () => {
 
       // Should not throw error with null refs
       expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(2);
-      expect(mockScrollContainer.scrollTo).toHaveBeenCalled();
+      expect(testElement3.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     });
 
     it('handles null textarea ref gracefully', () => {
