@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -8,6 +9,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
+from sentry.db.models.fields.encryption import EncryptedCharField
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -34,6 +36,10 @@ FEATURES = [
         IntegrationFeatures.CODING_AGENT,
     ),
 ]
+
+
+CURSOR_INTEGRATION_SECRET_FIELD = EncryptedCharField(max_length=255)
+
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -98,14 +104,16 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
         webhook_secret = generate_token()
 
+        metadata: dict[str, Any] = {"domain_name": "cursor.sh"}
+        metadata["api_key"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(config["api_key"])
+        metadata["webhook_secret"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(webhook_secret)
+
         return {
-            "external_id": "cursor",
+            # NOTE(jennmueng): We use UUIDs here for each integration installation because we don't know how many times this USER-LEVEL API key will be used, or if the same org can have multiple cursor agents (in the near future)
+            # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
+            "external_id": uuid.uuid4().hex,
             "name": "Cursor Agent",
-            "metadata": {
-                "api_key": config["api_key"],
-                "domain_name": "cursor.sh",
-                "webhook_secret": webhook_secret,
-            },
+            "metadata": metadata,
         }
 
     def get_agent_name(self) -> str:
@@ -140,10 +148,10 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if not api_key:
             raise IntegrationError("API key is required")
 
-        # Persist on the Integration metadata since this key is global per installation
         metadata = dict(self.model.metadata or {})
-        metadata["api_key"] = api_key
+        metadata["api_key"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(api_key)
         integration_service.update_integration(integration_id=self.model.id, metadata=metadata)
+        self.model.metadata = metadata
 
         # Do not store API key in org config; clear any submitted value
         super().update_organization_config({})
@@ -156,8 +164,16 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     @property
     def webhook_secret(self) -> str:
-        return self.metadata["webhook_secret"]
+        encrypted_value = self.metadata.get("webhook_secret")
+        if encrypted_value:
+            decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
+            return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
+        raise IntegrationError("Webhook secret is not configured")
 
     @property
     def api_key(self) -> str:
-        return self.metadata["api_key"]
+        encrypted_value = self.metadata.get("api_key")
+        if encrypted_value:
+            decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
+            return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
+        raise IntegrationError("API key is not configured")

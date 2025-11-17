@@ -12,7 +12,12 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError, PermissionDenied
+from rest_framework.exceptions import (
+    MethodNotAllowed,
+    NotFound,
+    ParseError,
+    PermissionDenied,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,6 +25,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
@@ -90,15 +96,20 @@ class CursorWebhookEndpoint(Endpoint):
             )
             return None
 
-        integration = integrations[0]
-        if "webhook_secret" in integration.metadata:
-            return integration.metadata["webhook_secret"]
-        else:
-            logger.error(
-                "cursor_webhook.no_webhook_secret", extra={"integration_id": integration.id}
-            )
+        installation = integrations[0].get_installation(organization_id)
 
-        return None
+        if not isinstance(installation, CursorAgentIntegration):
+            logger.error(
+                "cursor_webhook.unexpected_installation_type",
+                extra={
+                    "integration_id": integrations[0].id,
+                    "organization_id": organization_id,
+                    "type": type(installation).__name__,
+                },
+            )
+            return None
+
+        return installation.webhook_secret
 
     def _validate_signature(self, request: Request, raw_body: bytes, organization_id: int) -> bool:
         """Validate webhook signature."""
