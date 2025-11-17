@@ -40,6 +40,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
                   preload(routeConfig, normalizedTo);
                 }
               },
+              viewTransition: true,
               ...props,
             };
           },
