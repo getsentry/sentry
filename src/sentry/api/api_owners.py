@@ -18,6 +18,7 @@ class ApiOwner(Enum):
     EXPLORE = "explore"
     FEEDBACK = "feedback-backend"
     FLAG = "replay-backend"
+    FOUNDATIONAL_STORAGE = "foundational-storage"
     GDX = "gdx"
     HYBRID_CLOUD = "hybrid-cloud"
     INFRA_ENG = "sre-infrastructure-engineering"
