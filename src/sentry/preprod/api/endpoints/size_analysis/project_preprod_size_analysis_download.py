@@ -62,7 +62,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
         )
 
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-artifact-assemble", project.organization, actor=request.user
+            "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 

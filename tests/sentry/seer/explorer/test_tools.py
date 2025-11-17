@@ -1,25 +1,38 @@
 import uuid
-from datetime import datetime, timedelta
-from typing import Literal
+from datetime import UTC, datetime, timedelta
+from typing import Any, Literal
 from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
 
+from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.replays.testutils import mock_replay
+from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
+    EVENT_TIMESERIES_RESOLUTIONS,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
+    rpc_get_profile_flamegraph,
 )
 from sentry.seer.sentry_data_models import EAPTrace
-from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    APITransactionTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -371,17 +384,22 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
 
     def test_get_organization_project_ids(self):
         """Test the get_organization_project_ids RPC method"""
-        from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
-        assert "project_ids" in result
-        assert isinstance(result["project_ids"], list)
-        assert self.project.id in result["project_ids"]
+        assert "projects" in result
+        assert isinstance(result["projects"], list)
+        assert len(result["projects"]) > 0
+        # Check that projects have both id and slug
+        project = result["projects"][0]
+        assert "id" in project
+        assert "slug" in project
+        # Check that our project is in the results
+        project_ids = [p["id"] for p in result["projects"]]
+        assert self.project.id in project_ids
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"project_ids": []}
+        assert result == {"projects": []}
 
 
 class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase):
@@ -603,7 +621,7 @@ class _IssueMetadata(BaseModel):
     issueCategory: str
     hasSeen: bool
     project: _Project
-    assignedTo: _Actor | None
+    assignedTo: _Actor | None = None
 
     # Optionals
     isUnhandled: bool | None = None
@@ -624,6 +642,19 @@ class _SentryEventData(BaseModel):
 
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+    def _validate_event_timeseries(self, timeseries: dict):
+        assert isinstance(timeseries, dict)
+        assert "count()" in timeseries
+        assert "data" in timeseries["count()"]
+        assert isinstance(timeseries["count()"]["data"], list)
+        for item in timeseries["count()"]["data"]:
+            assert len(item) == 2
+            assert isinstance(item[0], int)
+            assert isinstance(item[1], list)
+            assert len(item[1]) == 1
+            assert isinstance(item[1][0], dict)
+            assert "count" in item[1][0]
+            assert isinstance(item[1][0]["count"], int)
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -710,6 +741,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
                 assert result["event_trace_id"] == event0_trace_id
             else:
                 assert result["event_trace_id"] is None
+
+            # Validate timeseries dict structure.
+            self._validate_event_timeseries(result["event_timeseries"])
 
     def test_get_issue_details_success_int_id(self):
         self._test_get_issue_details_success(use_short_id=False)
@@ -854,6 +888,64 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert md.assignedTo.id == str(self.team.id)
         assert md.assignedTo.name == self.team.slug
         assert md.assignedTo.email is None
+
+    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_timeseries_resolution(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+        mock_api_client,
+    ):
+        """Test groups with different first_seen dates"""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        # Passthrough to real client - allows testing call args
+        mock_api_client.get.side_effect = client.get
+
+        for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
+            delta = parse_stats_period(stats_period)
+            assert delta is not None
+            if delta > timedelta(days=30):
+                # Skip the 90d test as the retention for testutils is 30d.
+                continue
+
+            # Set a first_seen date slightly newer than the stats period we're testing.
+            first_seen = datetime.now(UTC) - delta + timedelta(minutes=6, seconds=7)
+            data = load_data("python", timestamp=first_seen)
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+            mock_get_recommended_event.return_value = event
+
+            # Second newer event
+            data = load_data("python", timestamp=first_seen + timedelta(minutes=6, seconds=7))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
+            group = event.group
+            assert isinstance(group, Group)
+            assert group.first_seen == first_seen
+
+            result = get_issue_details(
+                issue_id=str(group.id),
+                organization_id=self.organization.id,
+                selected_event="recommended",
+            )
+
+            # Assert expected stats params were passed to the API.
+            _, kwargs = mock_api_client.get.call_args
+            assert kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/"
+            assert kwargs["params"]["statsPeriod"] == stats_period
+            assert kwargs["params"]["interval"] == interval
+
+            # Validate final results.
+            assert result is not None
+            self._validate_event_timeseries(result["event_timeseries"])
+            assert result["timeseries_stats_period"] == stats_period
+            assert result["timeseries_interval"] == interval
+
+            # Ensure next iteration makes a fresh group.
+            group.delete()
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -1060,3 +1152,387 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
+
+
+class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.ten_mins_ago = before_now(minutes=10)
+
+    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_finds_transaction_profile(
+        self, mock_fetch_profile, mock_convert_tree
+    ):
+        """Test finding transaction profile via profile.id with wildcard query"""
+        profile_id_8char = "a1b2c3d4"
+        full_profile_id = profile_id_8char + "e5f6789012345678901234567"
+
+        # Create span with profile_id (top-level field)
+        span = self.create_span(
+            {
+                "description": "test span",
+                "profile_id": full_profile_id,
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
+        # Mock the profile data fetch and conversion
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = [{"function": "main", "module": "app"}]
+
+        result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
+
+        # Should find the profile via wildcard query
+        assert "execution_tree" in result
+        assert result["metadata"]["profile_id"] == full_profile_id
+        assert result["metadata"]["is_continuous"] is False
+
+    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_finds_continuous_profile(
+        self, mock_fetch_profile, mock_convert_tree
+    ):
+        """Test finding continuous profile via profiler.id with wildcard query"""
+        profiler_id_8char = "b1c2d3e4"
+        full_profiler_id = profiler_id_8char + "f5a6b7c8d9e0f1a2b3c4d5e6"
+
+        # Create span with profiler_id in sentry_tags (continuous profile)
+        # Set profile_id to None since continuous profiles use profiler_id instead
+        span = self.create_span(
+            {
+                "description": "continuous span",
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": full_profiler_id,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+            duration=200,
+        )
+        self.store_spans([span], is_eap=True)
+
+        # Mock the profile data
+        mock_fetch_profile.return_value = {
+            "chunk": {"profile": {"frames": [], "stacks": [], "samples": []}}
+        }
+        mock_convert_tree.return_value = [{"function": "worker", "module": "tasks"}]
+
+        result = rpc_get_profile_flamegraph(profiler_id_8char, self.organization.id)
+
+        # Should find via profiler.id and identify as continuous
+        assert "execution_tree" in result
+        assert result["metadata"]["profile_id"] == full_profiler_id
+        assert result["metadata"]["is_continuous"] is True
+
+    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_aggregates_timestamps_across_spans(
+        self, mock_fetch_profile, mock_convert_tree
+    ):
+        """Test that min/max timestamps are aggregated across multiple spans with same profile"""
+        profile_id_8char = "c1d2e3f4"
+        full_profile_id = profile_id_8char + "a5b6c7d8e9f0a1b2c3d4e5f6"
+
+        # Create multiple spans with the same profile at different times
+        span1_time = self.ten_mins_ago
+        span2_time = self.ten_mins_ago + timedelta(minutes=2)
+        span3_time = self.ten_mins_ago + timedelta(minutes=5)
+
+        spans = [
+            self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "profile_id": full_profile_id,
+                },
+                start_ts=start_time,
+                duration=100,
+            )
+            for i, start_time in enumerate([span1_time, span2_time, span3_time])
+        ]
+        self.store_spans(spans, is_eap=True)
+
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = [{"function": "test", "module": "test"}]
+
+        result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
+
+        # Verify the aggregate query worked and got min/max timestamps
+        assert "execution_tree" in result
+        metadata = result["metadata"]
+        assert metadata["profile_id"] == full_profile_id
+
+        # Should have aggregated start_ts and end_ts from all spans
+        assert metadata["start_ts"] is not None
+        assert metadata["end_ts"] is not None
+        # The min should be from span1, max from span3
+        assert metadata["start_ts"] <= metadata["end_ts"]
+
+    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_sliding_window_finds_old_profile(
+        self, mock_fetch_profile, mock_convert_tree
+    ):
+        """Test that sliding 14-day windows can find profiles from 20 days ago"""
+        profile_id_8char = "d1e2f3a4"
+        full_profile_id = profile_id_8char + "b5c6d7e8f9a0b1c2d3e4f5a6"
+        twenty_days_ago = before_now(days=20)
+
+        # Create span 20 days ago
+        span = self.create_span(
+            {
+                "description": "old span",
+                "profile_id": full_profile_id,
+            },
+            start_ts=twenty_days_ago,
+            duration=150,
+        )
+        self.store_spans([span], is_eap=True)
+
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = [{"function": "old_function", "module": "old"}]
+
+        result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
+
+        # Should find it via sliding window (second 14-day window)
+        assert "execution_tree" in result
+        assert result["metadata"]["profile_id"] == full_profile_id
+
+    @patch("sentry.seer.explorer.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.explorer.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_full_32char_id(self, mock_fetch_profile, mock_convert_tree):
+        """Test with full 32-character profile ID (no wildcard needed)"""
+        full_profile_id = "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6"
+
+        span = self.create_span(
+            {
+                "description": "test span",
+                "profile_id": full_profile_id,
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = [{"function": "handler", "module": "server"}]
+
+        result = rpc_get_profile_flamegraph(full_profile_id, self.organization.id)
+
+        # Should work with full ID
+        assert "execution_tree" in result
+        assert result["metadata"]["profile_id"] == full_profile_id
+
+    def test_rpc_get_profile_flamegraph_not_found_in_90_days(self):
+        """Test when profile ID doesn't match any spans in 90-day window"""
+        # Create a span without the profile we're looking for
+        span = self.create_span(
+            {
+                "description": "unrelated span",
+                "profile_id": "different12345678901234567890123",
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+        )
+        self.store_spans([span], is_eap=True)
+
+        result = rpc_get_profile_flamegraph("notfound", self.organization.id)
+
+        # Should return error indicating not found
+        assert "error" in result
+        assert "not found in the last 90 days" in result["error"]
+
+
+class TestGetReplayMetadata(ReplaysSnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    class _ReplayMetadataResponse(BaseModel):
+        """Extended from the ReplayDetailsResponse type. Though that type has total=False, we expect all fields to be present for this tool."""
+
+        id: str
+        project_id: str
+        project_slug: str  # Added for this tool.
+        trace_ids: list[str]
+        error_ids: list[str]
+        environment: str | None
+        tags: dict[str, list[str]] | list
+        user: dict[str, Any]
+        sdk: dict[str, Any]
+        os: dict[str, Any]
+        browser: dict[str, Any]
+        device: dict[str, Any]
+        ota_updates: dict[str, Any]
+        is_archived: bool | None
+        urls: list[str] | None
+        clicks: list[dict[str, Any]]
+        count_dead_clicks: int | None
+        count_rage_clicks: int | None
+        count_errors: int | None
+        duration: int | None
+        finished_at: str | None
+        started_at: str | None
+        activity: int | None
+        count_urls: int | None
+        replay_type: str
+        count_segments: int | None
+        platform: str | None
+        releases: list[str]
+        dist: str | None
+        warning_ids: list[str] | None
+        info_ids: list[str] | None
+        count_warnings: int | None
+        count_infos: int | None
+        has_viewed: bool
+
+    def test_get_replay_metadata_full_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.now(UTC) - timedelta(seconds=10)
+        seq2_timestamp = datetime.now(UTC) - timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay2_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay2_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # With dashes
+            result = get_replay_metadata(
+                replay_id=str(uuid.UUID(replay1_id)),
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Invalid
+            result = get_replay_metadata(
+                replay_id=str(uuid.UUID(replay1_id))[:-2] + "gg",
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is None
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id,
+                organization_id=self.organization.id,
+                project_slug=self.project.slug,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # No project slug
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Different project slug
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_slug="banana",
+            )
+            assert result is None
+
+    def test_get_replay_metadata_short_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=10), self.project.id, replay1_id)
+        )
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
+        )
+
+        # Store a replay at the very start of the retention period.
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Upper (supported but not expected)
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8].upper(),
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Short ID < 8 characters or not hex - returns None
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:7],
+                    organization_id=self.organization.id,
+                )
+                is None
+            )
+
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:6] + "gg",
+                    organization_id=self.organization.id,
+                )
+                is None
+            )

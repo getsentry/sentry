@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -71,7 +71,12 @@ class RetentionSettings:
 
 # This mirrors the Retentions struct in relay
 # https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
-RETENTIONS_CONFIG_MAPPING = {DataCategory.SPAN: "span", DataCategory.LOG_BYTE: "log"}
+RETENTIONS_CONFIG_MAPPING = {
+    DataCategory.LOG_BYTE: "log",
+    DataCategory.TRANSACTION: "span",
+    DataCategory.SPAN: "span",
+    DataCategory.TRACE_METRIC: "traceMetric",
+}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -324,7 +329,6 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
-        "assign_monitor_seat",
         "check_accept_monitor_checkin",
         "update_monitor_slug",
     )
@@ -600,7 +604,7 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seats(
-        self, data_category: DataCategory, seat_objects: list[SeatObject]
+        self, data_category: DataCategory, seat_objects: Sequence[SeatObject]
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.

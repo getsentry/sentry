@@ -1,9 +1,10 @@
 from uuid import uuid4
 
 import sentry_sdk
+from django.conf import settings
 
+from sentry.utils import redis
 from sentry.utils.json import dumps, loads
-from sentry.utils.redis import clusters
 
 EXPIRATION_TTL = 10 * 60
 
@@ -57,7 +58,7 @@ class RedisSessionStore:
 
     @property
     def _client(self):
-        return clusters.get("default").get_local_client_for_key(self.redis_key)
+        return redis.redis_clusters.get(settings.SENTRY_SESSION_STORE_REDIS_CLUSTER)
 
     @property
     def session_key(self) -> str:

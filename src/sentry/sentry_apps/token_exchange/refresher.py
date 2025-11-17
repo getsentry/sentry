@@ -6,7 +6,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.metrics import (
@@ -56,7 +56,7 @@ class Refresher:
                     self._record_analytics()
                     token = self._create_new_token()
                     return token
-            except OutboxDatabaseError as e:
+            except (OutboxDatabaseError, OutboxFlushError) as e:
                 if token is not None:
                     logger.warning(
                         "refresher.outbox-failure",

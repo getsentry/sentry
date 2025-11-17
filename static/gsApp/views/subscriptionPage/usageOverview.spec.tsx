@@ -48,6 +48,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
@@ -73,11 +74,16 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
-    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
-    expect(screen.queryByText('Pay-as-you-go spend')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Reserved spend'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'View usage history'})
     ).not.toBeInTheDocument();
@@ -89,7 +95,57 @@ describe('UsageOverview', () => {
     );
   });
 
+  it('renders some spend columns for non-self-serve with PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: true,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not render spend columns for non-self-serve without PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: false,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders table based on subscription state', () => {
+    subscription.onDemandPeriodStart = '2025-05-02';
+    subscription.onDemandPeriodEnd = '2025-06-01';
     subscription.onDemandMaxSpend = 100_00;
     subscription.productTrials = [
       {
@@ -138,6 +194,8 @@ describe('UsageOverview', () => {
       />
     );
 
+    expect(screen.getByText('May 2 - Jun 1, 2025')).toBeInTheDocument();
+
     // Continuous profile hours product trial available
     expect(
       screen.getByRole('button', {
@@ -168,7 +226,7 @@ describe('UsageOverview', () => {
   });
 
   it('renders table based on add-on state', () => {
-    organization.features.push('prevent-billing');
+    organization.features.push('seer-user-billing');
     const subWithSeer = SubscriptionWithSeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(

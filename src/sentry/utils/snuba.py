@@ -27,7 +27,6 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
-from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -894,8 +893,8 @@ class SnubaQueryParams:
     def __init__(
         self,
         dataset=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         groupby=None,
         conditions=None,
         filter_keys=None,
@@ -928,28 +927,61 @@ class SnubaQueryParams:
         # account for merges, here we expand queries to include all group IDs that have
         # been merged together.
 
-        if options.get("snuba.preprocess-group-redirects") and self.dataset in {
+        if self.dataset in {
             Dataset.Events,
             Dataset.IssuePlatform,
         }:
-            if "group_id" in self.filter_keys:
-                self.filter_keys["group_id"] = get_all_merged_group_ids(
-                    self.filter_keys["group_id"]
-                )
-            for i in range(len(self.conditions)):
-                triple = self.conditions[i]
-                if triple[0] == "group_id":
-                    if triple[1] in {"IN", "NOT IN"}:
-                        self.conditions[i] = [
-                            "group_id",
-                            triple[1],
-                            get_all_merged_group_ids(triple[2]),
-                        ]
-                        continue
-                    elif triple[1] in {"=", "!="}:
-                        op = "IN" if triple[1] == "=" else "NOT IN"
-                        self.conditions[i] = ["group_id", op, get_all_merged_group_ids([triple[2]])]
-                        continue
+            self._preprocess_group_id_redirects()
+
+    def _preprocess_group_id_redirects(self):
+        # Conditions are a series of "AND" statements. For "group_id", to dedupe,
+        # we pre-collapse these. This helps us reduce the size of queries.
+        in_groups = None
+        out_groups: set[int | str] = set()
+        if "group_id" in self.filter_keys:
+            self.filter_keys = self.filter_keys.copy()
+            in_groups = get_all_merged_group_ids(self.filter_keys["group_id"])
+            del self.filter_keys["group_id"]
+
+        new_conditions = []
+
+        for triple in self.conditions:
+            if triple[0] != "group_id":
+                new_conditions.append(triple)
+                continue
+
+            op = triple[1]
+            # IN statements need to intersect
+            if op == "IN":
+                new_in_groups = get_all_merged_group_ids(triple[2])
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            elif op == "=":
+                new_in_groups = get_all_merged_group_ids([triple[2]])
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            # NOT IN statements can union and be differenced at the end
+            elif op == "NOT IN":
+                out_groups.update(triple[2])
+            elif op == "!=":
+                out_groups.add(triple[2])
+
+        out_groups = get_all_merged_group_ids(list(out_groups))
+        triple = None
+        # If there is an "IN" statement, we don't need a "NOT IN" statement. We can
+        # just subtract the NOT IN groups from the IN groups.
+        if in_groups is not None:
+            in_groups.difference_update(out_groups)
+            triple = ["group_id", "IN", in_groups]
+        elif len(out_groups) > 0:
+            triple = ["group_id", "NOT IN", out_groups]
+
+        if triple is not None:
+            new_conditions.append(triple)
+
+        self.conditions = new_conditions
 
 
 def raw_query(
@@ -1469,8 +1501,8 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
 def query(
     dataset=None,
-    start=None,
-    end=None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     groupby=None,
     conditions=None,
     filter_keys=None,

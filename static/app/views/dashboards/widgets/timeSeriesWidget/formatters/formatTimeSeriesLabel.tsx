@@ -28,8 +28,10 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return formatVersion(groupBy.value);
         }
 
-        // String interpolation converts `null` to `"null"` and `undefined` to
-        // `"undefined"`, which is what we want, rather than an empty string
+        if (groupBy.value === null) {
+          return t('(no value)');
+        }
+
         return `${groupBy.value}`;
       })
       .join(',')}`;

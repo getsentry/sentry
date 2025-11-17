@@ -5,6 +5,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AnomalyDetectionComparison,
   Detector,
   MetricCondition,
   MetricConditionGroup,
@@ -59,10 +60,10 @@ interface MetricDetectorConditionFormData {
    */
   conditionType?: DataConditionType.GREATER | DataConditionType.LESS;
   /**
-   * When this value is exceeded the issue is created at initialPriorityLevel
+   * High priority threshold value
    * Both kind=threshold and kind=change
    */
-  conditionValue?: string;
+  highThreshold?: string;
   /**
    * Strategy for how an issue should be resolved
    * - default: resolves based on the primary condition value
@@ -90,6 +91,7 @@ export interface MetricDetectorFormData
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
+  description: string | null;
   detectionType: MetricDetectorConfig['detectionType'];
   name: string;
   owner: string;
@@ -110,6 +112,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   projectId: 'projectId',
   owner: 'owner',
   workflowIds: 'workflowIds',
+  description: 'description',
 
   // Snuba query fields
   dataset: 'dataset',
@@ -126,7 +129,6 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   // Condition fields
   conditionComparisonAgo: 'conditionComparisonAgo',
   conditionType: 'conditionType',
-  conditionValue: 'conditionValue',
   resolutionStrategy: 'resolutionStrategy',
   resolutionValue: 'resolutionValue',
 
@@ -142,7 +144,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   // Metric detectors only support MEDIUM and HIGH priority levels
   initialPriorityLevel: DetectorPriorityLevel.HIGH,
   conditionType: DataConditionType.GREATER,
-  conditionValue: '',
+  highThreshold: '',
   resolutionStrategy: 'default',
   resolutionValue: '',
   conditionComparisonAgo: 60 * 60, // One hour in seconds
@@ -182,6 +184,22 @@ interface NewDataSource {
   timeWindow: number;
 }
 
+function createAnomalyDetectionCondition(
+  data: Pick<MetricDetectorFormData, 'sensitivity' | 'thresholdType'>
+): NewConditionGroup['conditions'] {
+  return [
+    {
+      type: DataConditionType.ANOMALY_DETECTION,
+      comparison: {
+        sensitivity: data.sensitivity,
+        seasonality: 'auto' as const,
+        thresholdType: data.thresholdType,
+      },
+      conditionResult: DetectorPriorityLevel.HIGH,
+    },
+  ];
+}
+
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
@@ -189,56 +207,55 @@ export function createConditions(
   data: Pick<
     MetricDetectorFormData,
     | 'conditionType'
-    | 'conditionValue'
-    | 'initialPriorityLevel'
     | 'highThreshold'
+    | 'mediumThreshold'
     | 'resolutionStrategy'
     | 'resolutionValue'
   >
 ): NewConditionGroup['conditions'] {
-  if (!defined(data.conditionType) || !defined(data.conditionValue)) {
+  if (!defined(data.conditionType) || !defined(data.highThreshold)) {
     return [];
   }
 
   const conditions: NewConditionGroup['conditions'] = [
-    // Always create the main condition for the initial priority level
+    // Always create HIGH condition from highThreshold (high priority row is required)
     {
-      type: data.conditionType,
-      comparison: parseFloat(data.conditionValue) || 0,
-      conditionResult: data.initialPriorityLevel,
-    },
-  ];
-
-  // Only add HIGH escalation if initial priority is MEDIUM and highThreshold is provided
-  if (
-    data.initialPriorityLevel === DetectorPriorityLevel.MEDIUM &&
-    defined(data.highThreshold) &&
-    data.highThreshold !== ''
-  ) {
-    conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.highThreshold) || 0,
       conditionResult: DetectorPriorityLevel.HIGH,
+    },
+  ];
+
+  // Add MEDIUM condition if mediumThreshold is provided (optional medium priority row)
+  if (defined(data.mediumThreshold) && data.mediumThreshold !== '') {
+    conditions.push({
+      type: data.conditionType,
+      comparison: parseFloat(data.mediumThreshold) || 0,
+      conditionResult: DetectorPriorityLevel.MEDIUM,
     });
   }
 
-  // Optionally add explicit resolution (OK) condition when manual strategy is chosen
-  if (
+  // Always add an explicit resolution (OK) condition
+  // Use custom value if provided, otherwise use MEDIUM threshold if available, else HIGH threshold
+  const resolutionConditionType =
+    data.conditionType === DataConditionType.GREATER
+      ? DataConditionType.LESS_OR_EQUAL
+      : DataConditionType.GREATER_OR_EQUAL;
+
+  const resolutionComparison =
     data.resolutionStrategy === 'custom' &&
     defined(data.resolutionValue) &&
     data.resolutionValue !== ''
-  ) {
-    const resolutionConditionType =
-      data.conditionType === DataConditionType.GREATER
-        ? DataConditionType.LESS
-        : DataConditionType.GREATER;
+      ? parseFloat(data.resolutionValue) || 0
+      : defined(data.mediumThreshold) && data.mediumThreshold !== ''
+        ? parseFloat(data.mediumThreshold) || 0
+        : parseFloat(data.highThreshold) || 0;
 
-    conditions.push({
-      type: resolutionConditionType,
-      comparison: parseFloat(data.resolutionValue) || 0,
-      conditionResult: DetectorPriorityLevel.OK,
-    });
-  }
+  conditions.push({
+    type: resolutionConditionType,
+    comparison: resolutionComparison,
+    conditionResult: DetectorPriorityLevel.OK,
+  });
 
   return conditions;
 }
@@ -303,7 +320,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
 export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
 ): MetricDetectorUpdatePayload {
-  const conditions = createConditions(data);
+  const conditions =
+    data.detectionType === 'dynamic'
+      ? createAnomalyDetectionCondition(data)
+      : createConditions(data);
+
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
@@ -311,22 +332,18 @@ export function metricDetectorFormDataToEndpointPayload(
   switch (data.detectionType) {
     case 'percent':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'percent',
         comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'dynamic',
-        sensitivity: data.sensitivity,
       };
       break;
     case 'static':
     default:
       config = {
-        thresholdPeriod: 1,
         detectionType: 'static',
       };
       break;
@@ -337,12 +354,13 @@ export function metricDetectorFormDataToEndpointPayload(
     type: 'metric_issue',
     projectId: data.projectId,
     owner: data.owner || null,
+    description: data.description || null,
     conditionGroup: {
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
     },
     config,
-    dataSource,
+    dataSources: [dataSource],
     workflowIds: data.workflowIds,
   };
 }
@@ -355,23 +373,19 @@ function processDetectorConditions(
 ): PrioritizeLevelFormData &
   Pick<
     MetricDetectorFormData,
-    'conditionValue' | 'conditionType' | 'resolutionStrategy' | 'resolutionValue'
+    'highThreshold' | 'conditionType' | 'resolutionStrategy' | 'resolutionValue'
   > {
   // Get conditions from the condition group
   const conditions = detector.conditionGroup?.conditions || [];
-  // Sort by priority level, lowest first
-  const sortedConditions = conditions.toSorted((a, b) => {
-    return (a.conditionResult || 0) - (b.conditionResult || 0);
-  });
 
-  // Find the condition with the lowest non-zero priority level
-  const mainCondition = sortedConditions.find(
-    condition => condition.conditionResult !== DetectorPriorityLevel.OK
-  );
-
-  // Find high priority escalation condition
+  // Find HIGH priority condition
   const highCondition = conditions.find(
     condition => condition.conditionResult === DetectorPriorityLevel.HIGH
+  );
+
+  // Find MEDIUM priority condition
+  const mediumCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.MEDIUM
   );
 
   // Find explicit resolution (OK) condition, if present
@@ -379,15 +393,13 @@ function processDetectorConditions(
     condition => condition.conditionResult === DetectorPriorityLevel.OK
   );
 
-  // Determine initial priority level, ensuring it's valid for the form
-  let initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
-    DetectorPriorityLevel.MEDIUM;
+  // Use HIGH condition as the main condition (highThreshold)
+  // If no HIGH condition, fall back to MEDIUM (for backward compatibility)
+  const mainCondition = highCondition || mediumCondition;
 
-  if (mainCondition?.conditionResult === DetectorPriorityLevel.HIGH) {
-    initialPriorityLevel = DetectorPriorityLevel.HIGH;
-  } else if (mainCondition?.conditionResult === DetectorPriorityLevel.MEDIUM) {
-    initialPriorityLevel = DetectorPriorityLevel.MEDIUM;
-  }
+  // Always set initialPriorityLevel to HIGH since high priority row is required
+  const initialPriorityLevel: DetectorPriorityLevel.MEDIUM | DetectorPriorityLevel.HIGH =
+    DetectorPriorityLevel.HIGH;
 
   // Ensure condition type is valid for the form
   let conditionType: DataConditionType.GREATER | DataConditionType.LESS =
@@ -403,26 +415,46 @@ function processDetectorConditions(
   const resolutionValue = okCondition?.comparison ?? undefined;
   const computedResolutionStrategy: 'default' | 'custom' =
     defined(resolutionValue) &&
-    ![mainCondition?.comparison, highCondition?.comparison].includes(resolutionValue)
+    ![highCondition?.comparison, mediumCondition?.comparison].includes(resolutionValue)
       ? 'custom'
       : 'default';
 
   return {
     initialPriorityLevel,
-    conditionValue:
-      typeof mainCondition?.comparison === 'number'
-        ? mainCondition.comparison.toString()
-        : '',
-    conditionType,
     highThreshold:
       typeof highCondition?.comparison === 'number'
         ? highCondition.comparison.toString()
+        : typeof mainCondition?.comparison === 'number'
+          ? mainCondition.comparison.toString()
+          : '',
+    conditionType,
+    mediumThreshold:
+      typeof mediumCondition?.comparison === 'number'
+        ? mediumCondition.comparison.toString()
         : '',
     resolutionStrategy: computedResolutionStrategy,
     resolutionValue:
       typeof okCondition?.comparison === 'number'
         ? okCondition.comparison.toString()
         : '',
+  };
+}
+
+function getAnomalyCondition(detector: MetricDetector): AnomalyDetectionComparison {
+  const anomalyCondition = detector.conditionGroup?.conditions?.find(
+    condition => condition.type === DataConditionType.ANOMALY_DETECTION
+  );
+
+  const comparison = anomalyCondition?.comparison;
+  if (typeof comparison === 'object') {
+    return comparison;
+  }
+
+  // Fallback to default values
+  return {
+    sensitivity: AlertRuleSensitivity.MEDIUM,
+    seasonality: 'auto',
+    thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
   };
 }
 
@@ -447,6 +479,7 @@ export function metricSavedDetectorToFormData(
     : DetectorDataset.SPANS;
 
   const datasetConfig = getDatasetConfig(dataset);
+  const anomalyCondition = getAnomalyCondition(detector);
 
   return {
     // Core detector fields
@@ -455,6 +488,7 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
+    description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
@@ -473,15 +507,8 @@ export function metricSavedDetectorToFormData(
         ? detector.config.comparisonDelta
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
-    // Dynamic fields - extract from config for dynamic detectors
-    sensitivity:
-      detector.config.detectionType === 'dynamic' && defined(detector.config.sensitivity)
-        ? detector.config.sensitivity
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
-    thresholdType:
-      detector.config.detectionType === 'dynamic' &&
-      defined(detector.config.thresholdType)
-        ? detector.config.thresholdType
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
+    // Dynamic fields - extract from anomaly detection condition for dynamic detectors
+    sensitivity: anomalyCondition.sensitivity,
+    thresholdType: anomalyCondition.thresholdType,
   };
 }

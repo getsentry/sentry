@@ -1,5 +1,5 @@
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
@@ -918,7 +918,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def _update_or_create_field_links(
         self,
         query: DashboardWidgetQuery,
-        linked_dashboards: Iterable[LinkedDashboard],
+        linked_dashboards: list[LinkedDashboard],
         widget: DashboardWidget,
     ):
         """
@@ -929,44 +929,96 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         """
 
         organization = self.context["organization"]
-        if not features.has("organizations:dashboards-drilldown-flow", organization):
+        user = self.context["request"].user
+        if not features.has("organizations:dashboards-drilldown-flow", organization, actor=user):
             return
 
-        # Get the set of fields that should exist
-        new_fields = set()
-        field_links_to_create = []
+        with sentry_sdk.start_span(
+            op="function", name="dashboard.update_or_create_field_links"
+        ) as span:
+            # Get the set of fields that should exist
+            new_fields = set()
+            field_links_to_create = []
 
-        widget_display_type = widget.display_type
+            widget_display_type = widget.display_type
+            span.set_data(
+                "linked_dashboards",
+                [
+                    {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                    for ld in linked_dashboards
+                ],
+            )
+            span.set_data("widget_display_type", widget_display_type)
+            span.set_data("query_id", query.id)
+            span.set_data("widget_id", widget.id)
 
-        if widget_display_type is not DashboardWidgetDisplayTypes.TABLE:
-            raise serializers.ValidationError("Field links are only supported for table widgets")
-
-        for link_data in linked_dashboards:
-            field = link_data.get("field")
-            dashboard_id = link_data.get("dashboard_id")
-            if field and dashboard_id:
-                new_fields.add(field)
-                field_links_to_create.append(
-                    DashboardFieldLink(
-                        dashboard_widget_query=query,
-                        field=field,
-                        dashboard_id=int(dashboard_id),
-                    )
+            if (
+                widget_display_type is not DashboardWidgetDisplayTypes.TABLE
+                and len(linked_dashboards) > 0
+            ):
+                raise serializers.ValidationError(
+                    "Field links are only supported for table widgets"
                 )
 
-        # Delete field links that are no longer in the request
-        DashboardFieldLink.objects.filter(dashboard_widget_query=query).exclude(
-            field__in=new_fields
-        ).delete()
+            if (
+                widget_display_type is not DashboardWidgetDisplayTypes.TABLE
+                and len(linked_dashboards) < 1
+            ):
+                return
 
-        # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
-        if field_links_to_create:
-            DashboardFieldLink.objects.bulk_create(
-                field_links_to_create,
-                update_conflicts=True,
-                unique_fields=["dashboard_widget_query", "field"],
-                update_fields=["dashboard_id"],
-            )
+            # check if the linked dashboard appears in the fields of the query
+            if not all(
+                field in query.fields
+                for field in [
+                    linked_dashboard.get("field") for linked_dashboard in linked_dashboards
+                ]
+            ):
+                raise serializers.ValidationError(
+                    "Linked dashboard does not appear in the fields of the query"
+                )
+
+            for link_data in linked_dashboards:
+                field = link_data.get("field")
+                dashboard_id = link_data.get("dashboard_id")
+                if field and dashboard_id:
+                    new_fields.add(field)
+                    field_links_to_create.append(
+                        DashboardFieldLink(
+                            dashboard_widget_query=query,
+                            field=field,
+                            dashboard_id=int(dashboard_id),
+                        )
+                    )
+
+            # Delete field links that are no longer in the request
+            DashboardFieldLink.objects.filter(dashboard_widget_query=query).exclude(
+                field__in=new_fields
+            ).delete()
+
+            with sentry_sdk.start_span(
+                op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
+            ) as span:
+                span.set_data("new_fields", list(new_fields))
+                span.set_data("query_id", query.id)
+                span.set_data("widget_id", widget.id)
+                span.set_data("widget_display_type", widget.display_type)
+                span.set_data(
+                    "linked_dashboards",
+                    [
+                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                        for ld in linked_dashboards
+                    ],
+                )
+                span.set_data("field_links_count", len(field_links_to_create))
+
+                # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
+                if field_links_to_create:
+                    DashboardFieldLink.objects.bulk_create(
+                        field_links_to_create,
+                        update_conflicts=True,
+                        unique_fields=["dashboard_widget_query", "field"],
+                        update_fields=["dashboard_id"],
+                    )
 
     def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
@@ -984,13 +1036,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
 
-        if (
-            new_dataset_source == DatasetSourcesTypes.USER.value
-            and widget.widget_type == DashboardWidgetTypes.SPANS
-        ):
-            widget.changed_reason = None
-
-        if widget.widget_type not in [
+        if widget.widget_type == DashboardWidgetTypes.SPANS:
+            if new_dataset_source == DatasetSourcesTypes.USER.value:
+                widget.changed_reason = None
+        # we don't want to reset dataset source for spans widgets in case they are part of the migration
+        elif widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,
             DashboardWidgetTypes.TRANSACTION_LIKE,
             DashboardWidgetTypes.ERROR_EVENTS,

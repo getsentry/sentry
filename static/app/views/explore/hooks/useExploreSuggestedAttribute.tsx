@@ -13,21 +13,21 @@ export function useExploreSuggestedAttribute({
 }: UseExploreSuggestedAttributeOptions) {
   return useCallback(
     (key: string): string | null => {
-      if (stringAttributes.hasOwnProperty(key)) {
+      if (key in stringAttributes) {
         return key;
       }
 
-      if (numberAttributes.hasOwnProperty(key)) {
+      if (key in numberAttributes) {
         return key;
       }
 
       const explicitStringAttribute = `tags[${key},string]`;
-      if (stringAttributes.hasOwnProperty(explicitStringAttribute)) {
+      if (explicitStringAttribute in stringAttributes) {
         return explicitStringAttribute;
       }
 
       const explicitNumberAttribute = `tags[${key},number]`;
-      if (numberAttributes.hasOwnProperty(explicitNumberAttribute)) {
+      if (explicitNumberAttribute in numberAttributes) {
         return explicitNumberAttribute;
       }
 

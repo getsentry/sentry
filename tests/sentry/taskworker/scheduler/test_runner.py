@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
+from sentry.silo.base import SiloMode
 from sentry.taskworker.app import TaskworkerApp
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
 from sentry.testutils.helpers.datetime import freeze_time
@@ -424,3 +425,47 @@ def test_schedulerunner_tick_fast_and_slow(
 
 def extract_sent_tasks(mock: Mock) -> list[str]:
     return [call[0][0].taskname for call in mock.call_args_list]
+
+
+@pytest.mark.django_db
+def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
+    app = TaskworkerApp()
+    namespace = app.taskregistry.create_namespace("test")
+
+    @namespace.register(
+        name="region_task",
+        at_most_once=True,
+        wait_for_delivery=True,
+        silo_mode=SiloMode.REGION,
+    )
+    def region_task() -> None:
+        pass
+
+    for attr in region_task.__dict__.keys():
+        if attr.startswith("_") and not attr.startswith("__"):
+            continue
+        assert hasattr(region_task, attr)
+
+    assert region_task.fullname == "test:region_task"
+    assert region_task.namespace.name == "test"
+    assert region_task.name == "region_task"
+    assert region_task.at_most_once is True
+    assert region_task.wait_for_delivery is True
+
+    run_storage = Mock(spec=RunStorage)
+    schedule_set = ScheduleRunner(app=app, run_storage=run_storage)
+    schedule_set.add(
+        "region-task",
+        {
+            "task": "test:region_task",
+            "schedule": timedelta(minutes=5),
+        },
+    )
+
+    schedule_set.log_startup()
+
+    assert len(schedule_set._entries) == 1
+    entry = schedule_set._entries[0]
+    assert entry.fullname == "test:region_task"
+    assert entry.namespace == "test"
+    assert entry.taskname == "region_task"

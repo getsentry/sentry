@@ -2,9 +2,8 @@ import logging
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Q
@@ -12,35 +11,24 @@ from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import nodestore, options
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
-    BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
-    CreateGroupingRecordsRequest,
     call_seer_to_delete_project_grouping_records,
-    post_bulk_grouping_records,
-)
-from sentry.seer.similarity.types import (
-    IncompleteSeerDataError,
-    SeerSimilarIssueData,
-    SimilarHashMissingGroupError,
-    SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.tasks.embeddings_grouping.constants import (
     BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     BACKFILL_NAME,
@@ -413,9 +401,9 @@ def get_events_from_nodestore(
         if event and event_content_has_stacktrace(event):
             variants = event.get_grouping_variants(normalize_stacktraces=True)
 
-            if has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+            if stacktrace_exceeds_limits(event, variants, ReferrerOptions.BACKFILL):
                 invalid_event_group_ids.append(group_id)
-                invalid_event_reasons["excess_frames"] += 1
+                invalid_event_reasons["stacktrace_too_long"] += 1
                 continue
 
             grouping_info = get_grouping_info_from_variants_legacy(variants)
@@ -464,179 +452,6 @@ def get_events_from_nodestore(
     return (
         GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         group_hashes_dict,
-    )
-
-
-def _make_seer_call(
-    create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
-) -> BulkCreateGroupingRecordsResponse | None:
-    seer_response = _retry_operation(
-        post_bulk_grouping_records,
-        create_grouping_records_request,
-        retries=20,
-        delay=15,
-        exceptions=Exception,
-    )
-
-    return seer_response
-
-
-@sentry_sdk.tracing.trace
-def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
-    project_id,
-):
-    with metrics.timer(
-        f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-    ):
-        return _make_seer_call(
-            CreateGroupingRecordsRequest(
-                group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-                data=nodestore_results["data"],
-                stacktrace_list=nodestore_results["stacktrace_list"],
-                use_reranking=options.get("similarity.backfill_use_reranking"),
-            ),
-            project_id,
-        )
-
-
-@sentry_sdk.tracing.trace
-def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
-    project_id,
-):
-    def process_chunk(chunk_data, chunk_stacktrace):
-        return _make_seer_call(
-            CreateGroupingRecordsRequest(
-                group_id_list=chunk_data["group_ids"],
-                data=chunk_data["data"],
-                stacktrace_list=chunk_stacktrace,
-                use_reranking=options.get("similarity.backfill_use_reranking"),
-            ),
-            project_id,
-        )
-
-    with metrics.timer(
-        f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-    ):
-        chunk_size = options.get("similarity.backfill_seer_chunk_size")
-        chunks = [
-            {
-                "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
-                    i : i + chunk_size
-                ],
-                "data": nodestore_results["data"][i : i + chunk_size],
-            }
-            for i in range(
-                0,
-                len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
-                chunk_size,
-            )
-        ]
-        stacktrace_chunks = [
-            nodestore_results["stacktrace_list"][i : i + chunk_size]
-            for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
-        ]
-
-        seer_responses = []
-        with ThreadPoolExecutor(
-            max_workers=options.get("similarity.backfill_seer_threads")
-        ) as executor:
-            future_to_chunk = {
-                executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
-                for i, chunk in enumerate(chunks)
-            }
-            for future in as_completed(future_to_chunk):
-                chunk_response = future.result()
-                seer_responses.append(chunk_response)
-
-        aggregated_response: dict[str, Any] = {
-            "success": True,
-            "groups_with_neighbor": {},
-        }
-        for seer_response in seer_responses:
-            if not seer_response["success"]:
-                aggregated_response["success"] = False
-                aggregated_response.update({"reason": seer_response["reason"]})
-                return aggregated_response
-
-            aggregated_response["groups_with_neighbor"].update(
-                seer_response["groups_with_neighbor"]
-            )
-
-        return aggregated_response
-
-
-@sentry_sdk.tracing.trace
-def update_groups(
-    project,
-    seer_response,
-    group_id_batch_filtered,
-    group_hashes_dict,
-    worker_number,
-    project_index_in_cohort,
-):
-    groups_with_neighbor = seer_response["groups_with_neighbor"]
-    groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
-    for group in groups:
-        seer_similarity: dict[str, Any] = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": group_hashes_dict[group.id],
-        }
-        if str(group.id) in groups_with_neighbor:
-            # TODO: remove this try catch once the helper is made
-            try:
-                seer_similarity["results"] = [
-                    asdict(
-                        SeerSimilarIssueData.from_raw(
-                            project.id, groups_with_neighbor[str(group.id)]
-                        )
-                    )
-                ]
-            # we should not update the similarity data for this group cause we'd want to try again once we delete it
-            except (
-                IncompleteSeerDataError,
-                SimilarHashNotFoundError,
-                SimilarHashMissingGroupError,
-            ) as err:
-                parent_hash = groups_with_neighbor[str(group.id)]["parent_hash"]
-
-                if isinstance(err, SimilarHashNotFoundError):
-                    # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
-                    # which doesn't exist
-                    delete_seer_grouping_records_by_hash.delay(project.id, [parent_hash])
-
-                logger.exception(
-                    "backfill_seer_grouping_records.invalid_parent_group",
-                    extra={
-                        "project_id": project.id,
-                        "group_id": group.id,
-                        "parent_hash": parent_hash,
-                        "worker_number": worker_number,
-                        "project_index_in_cohort": project_index_in_cohort,
-                    },
-                )
-                seer_similarity = {}
-
-        if seer_similarity:
-            if group.data.get("metadata"):
-                group.data["metadata"]["seer_similarity"] = seer_similarity
-            else:
-                group.data["metadata"] = {"seer_similarity": seer_similarity}
-
-    num_updated = Group.objects.bulk_update(groups, ["data"])
-    logger.info(
-        "backfill_seer_grouping_records.bulk_update",
-        extra={
-            "project_id": project.id,
-            "num_updated": num_updated,
-            "worker_number": worker_number,
-            "project_index_in_cohort": project_index_in_cohort,
-        },
     )
 
 

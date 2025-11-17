@@ -24,7 +24,12 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
@@ -287,6 +292,9 @@ describe('DetectorEdit', () => {
       await userEvent.clear(nameInputField);
       await userEvent.type(nameInputField, 'Updated Detector Name');
 
+      const descriptionField = await screen.findByRole('textbox', {name: 'description'});
+      await userEvent.type(descriptionField, 'This is the description');
+
       // Update environment
       await userEvent.click(screen.getByText('All Environments'));
       await userEvent.click(
@@ -304,24 +312,32 @@ describe('DetectorEdit', () => {
             data: {
               detectorId: mockDetector.id,
               name: 'Updated Detector Name',
+              description: 'This is the description',
               owner: null,
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
-              dataSource: {
-                environment: 'production',
-                aggregate: snubaQuery.aggregate,
-                dataset: snubaQuery.dataset,
-                query: snubaQuery.query,
-                timeWindow: snubaQuery.timeWindow,
-                eventTypes: ['error'],
-                queryType: 0,
+              config: {
+                detectionType: 'static',
               },
+              dataSources: [
+                {
+                  environment: 'production',
+                  aggregate: snubaQuery.aggregate,
+                  dataset: snubaQuery.dataset,
+                  query: snubaQuery.query,
+                  timeWindow: snubaQuery.timeWindow,
+                  eventTypes: ['error'],
+                  queryType: 0,
+                },
+              ],
               conditionGroup: {
-                conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
+                conditions: [
+                  {comparison: 8, conditionResult: 75, type: 'gt'},
+                  {comparison: 8, conditionResult: 0, type: 'lte'},
+                ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
             },
           })
         );
@@ -429,7 +445,7 @@ describe('DetectorEdit', () => {
       );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value
-      await userEvent.click(screen.getByText('Custom').closest('label')!);
+      await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
       const resolutionInput = await screen.findByLabelText('Resolution threshold');
       expect(resolutionInput).toHaveValue(10);
     });
@@ -468,8 +484,8 @@ describe('DetectorEdit', () => {
 
       // Set % change value to 10%
       const newThresholdValue = '22';
-      await userEvent.clear(screen.getByLabelText('Initial threshold'));
-      await userEvent.type(screen.getByLabelText('Initial threshold'), newThresholdValue);
+      await userEvent.clear(screen.getByLabelText('High threshold'));
+      await userEvent.type(screen.getByLabelText('High threshold'), newThresholdValue);
 
       // Wait for the events-stats request to be made with comparisonDelta
       // Default comparisonDelta is 1 hour (3600 seconds)
@@ -618,6 +634,56 @@ describe('DetectorEdit', () => {
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
     });
 
+    it('prefills thresholdType from anomaly detection condition when editing dynamic detector', async () => {
+      const dynamicDetector = MetricDetectorFixture({
+        name: 'Dynamic Detector',
+        projectId: project.id,
+        config: {
+          detectionType: 'dynamic',
+        },
+        conditionGroup: {
+          id: 'cg-dynamic',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-anomaly',
+              type: DataConditionType.ANOMALY_DETECTION,
+              comparison: {
+                sensitivity: AlertRuleSensitivity.HIGH,
+                seasonality: 'auto',
+                thresholdType: AlertRuleThresholdType.BELOW,
+              },
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/`,
+        body: dynamicDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${dynamicDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'Dynamic Detector'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
+
+      // Verify thresholdType field is prefilled with "Below"
+      expect(screen.getByText('Below')).toBeInTheDocument();
+    });
+
     it('calls anomaly API when using dynamic detection', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
@@ -727,14 +793,16 @@ describe('DetectorEdit', () => {
             expect.anything(),
             expect.objectContaining({
               data: expect.objectContaining({
-                dataSource: expect.objectContaining({
-                  // Aggreate needs to be transformed to this in order to save correctly
-                  aggregate:
-                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
-                  dataset: Dataset.METRICS,
-                  eventTypes: [],
-                  queryType: SnubaQueryType.CRASH_RATE,
-                }),
+                dataSources: expect.arrayContaining([
+                  expect.objectContaining({
+                    // Aggreate needs to be transformed to this in order to save correctly
+                    aggregate:
+                      'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                    dataset: Dataset.METRICS,
+                    eventTypes: [],
+                    queryType: SnubaQueryType.CRASH_RATE,
+                  }),
+                ]),
               }),
             })
           );
@@ -808,6 +876,56 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
+
+    it('disables interval, aggregate, and query when using the transactions dataset', async () => {
+      const transactionsDetector = MetricDetectorFixture({
+        id: '321',
+        name: 'Transaction Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'p75()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${transactionsDetector.id}/`,
+        body: transactionsDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${transactionsDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: transactionsDetector.name})
+      ).toBeInTheDocument();
+
+      // Interval select should be disabled
+      const intervalField = screen.getByLabelText('Interval');
+      expect(intervalField).toBeDisabled();
+
+      // Aggregate selector should be disabled
+      expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
   });
 });

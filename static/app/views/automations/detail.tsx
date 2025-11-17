@@ -1,5 +1,4 @@
-import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -14,20 +13,18 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -43,37 +40,18 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
-
-const AUTOMATION_DETECTORS_LIMIT = 10;
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const {
-    data: detectors,
-    isLoading,
-    isError,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
-      ids: automation.detectorIds,
-      limit: AUTOMATION_DETECTORS_LIMIT,
-      cursor: location.query.cursor as string | undefined,
-    },
-    {
-      enabled: automation.detectorIds.length > 0,
-    }
-  );
 
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
   const warning = getAutomationActionsWarning(automation);
+
+  const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
+    undefined
+  );
 
   return (
     <SentryDocumentTitle title={automation.name}>
@@ -84,10 +62,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               crumbs={[
                 {
                   label: t('Alerts'),
-                  to: makeAutomationBasePathname(
-                    organization.slug,
-                    automationsLinkPrefix
-                  ),
+                  to: makeAutomationBasePathname(organization.slug),
                 },
                 {label: automation.name},
               ]}
@@ -132,23 +107,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               <Section title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectors={detectors ?? []}
-                    isLoading={isLoading}
-                    isError={isError}
-                    connectedDetectorIds={automation.detectorIds}
-                    numSkeletons={Math.min(
-                      automation.detectorIds.length,
-                      AUTOMATION_DETECTORS_LIMIT
-                    )}
-                  />
-                  <StyledPagination
-                    pageLinks={getResponseHeader?.('Link')}
-                    onCursor={cursor => {
-                      navigate({
-                        pathname: location.pathname,
-                        query: {...location.query, cursor},
-                      });
-                    }}
+                    detectorIds={automation.detectorIds}
+                    cursor={monitorListCursor}
+                    onCursor={setMonitorListCursor}
                   />
                 </ErrorBoundary>
               </Section>
@@ -208,31 +169,49 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   );
 }
 
-export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
-  const params = useParams<{automationId: string}>();
-
+function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {
     data: automation,
     isPending,
     isError,
+    error,
     refetch,
-  } = useAutomationQuery(params.automationId);
+  } = useAutomationQuery(automationId);
 
   if (isPending) {
     return <LoadingIndicator />;
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   return <AutomationDetailContent automation={automation} />;
 }
 
+export default function AutomationDetail() {
+  const params = useParams<{automationId: string}>();
+
+  const {data: automation, isPending} = useAutomationQuery(params.automationId);
+
+  return (
+    <VisuallyCompleteWithData
+      id="AutomationDetails-Body"
+      isLoading={isPending}
+      hasData={defined(automation)}
+    >
+      <AutomationDetailLoadingStates automationId={params.automationId} />
+    </VisuallyCompleteWithData>
+  );
+}
+
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -258,11 +237,7 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(
-          organization.slug,
-          automation.id,
-          automationsLinkPrefix
-        )}
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
@@ -278,14 +253,10 @@ function UserDisplayName({id}: {id: string | undefined}) {
     id: id ? Number(id) : undefined,
   });
   if (!id) {
-    return t('Sentry');
+    return '—';
   }
   if (isPending) {
     return <Placeholder height="20px" />;
   }
   return createdByUser?.name || createdByUser?.email || t('Unknown');
 }
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
-`;

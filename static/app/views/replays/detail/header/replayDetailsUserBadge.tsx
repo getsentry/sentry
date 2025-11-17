@@ -1,15 +1,21 @@
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {
+  getLiveDurationMs,
+  getReplayExpiresAtMs,
+  LIVE_TOOLTIP_MESSAGE,
+  LiveIndicator,
+} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -30,7 +36,6 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replayReader = readerResult.replay;
 
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
@@ -80,30 +85,22 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     }
   };
 
-  const ONE_HOUR_MS = 3_600_000;
-
-  // We poll for the replay record for 60 minutes after the replay started.
-  const REPLAY_EXPIRY_TIMESTAMP = replayReader
-    ? replayReader.getStartTimestampMs() + ONE_HOUR_MS
-    : 0;
+  const isReplayExpired =
+    Date.now() > getReplayExpiresAtMs(replayRecord?.started_at ?? null);
 
   const polledReplayRecord = usePollReplayRecord({
-    enabled: Date.now() < REPLAY_EXPIRY_TIMESTAMP,
+    enabled: !isReplayExpired,
     replayId,
     orgSlug,
   });
 
   const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
-  const polledFinishedAt = polledReplayRecord?.finished_at?.getTime() ?? 0;
-
   const prevSegments = replayRecord?.count_segments ?? 0;
 
   const showRefreshButton = polledCountSegments > prevSegments;
 
-  const FIVE_MINUTE_MS = 300_000;
-  const showIsLive =
-    Date.now() < polledFinishedAt + FIVE_MINUTE_MS &&
-    Date.now() < REPLAY_EXPIRY_TIMESTAMP;
+  const showLiveIndicator =
+    !isReplayExpired && replayRecord && getLiveDurationMs(replayRecord.finished_at) > 0;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -137,13 +134,18 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {showIsLive ? (
+              {showLiveIndicator ? (
                 <Tooltip
-                  showUnderline
+                  title={LIVE_TOOLTIP_MESSAGE}
                   underlineColor="success"
-                  title={t('This replay is still in progress.')}
+                  showUnderline
                 >
-                  <Live />
+                  <Flex align="center">
+                    <Text bold variant="success" data-test-id="live-badge">
+                      {t('LIVE')}
+                    </Text>
+                    <LiveIndicator />
+                  </Flex>
                 </Tooltip>
               ) : null}
               <Button
@@ -177,7 +179,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       renderError={() => null}
       renderThrottled={() => null}
       renderLoading={() =>
-        replayRecord ? badge : <Placeholder width="30%" height="45px" />
+        replayRecord ? badge : <Placeholder width="30%" height="66px" />
       }
       renderMissing={() => null}
       renderProcessingError={() => badge}
@@ -199,55 +201,4 @@ const TimeContainer = styled('div')`
 const DisplayHeader = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-function Live() {
-  return (
-    <Flex align="center">
-      <Text bold variant="success" data-test-id="live-badge">
-        {t('LIVE')}
-      </Text>
-      <LiveIndicator />
-    </Flex>
-  );
-}
-
-const pulse = keyframes`
-  0% {
-    transform: scale(0.1);
-    opacity: 1
-  }
-
-  40%, 100% {
-    transform: scale(1);
-    opacity: 0;
-  }
-`;
-
-const LiveIndicator = styled('div')`
-  background: ${p => p.theme.successText};
-  height: 8px;
-  width: 8px;
-  position: relative;
-  border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
-  margin-right: ${p => p.theme.space.sm};
-
-  @media (prefers-reduced-motion: reduce) {
-    &:before {
-      display: none;
-    }
-  }
-
-  &:before {
-    content: '';
-    animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.successText};
-    position: absolute;
-    border-radius: 50%;
-    height: 20px;
-    width: 20px;
-    top: -6px;
-    left: -6px;
-  }
 `;

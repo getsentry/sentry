@@ -12,9 +12,11 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
+    APIException,
     AuthenticationFailed,
     NotFound,
     ParseError,
@@ -55,6 +57,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -65,7 +68,17 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
+from sentry.seer.assisted_query.issues_tools import (
+    execute_issues_query,
+    get_filter_key_values,
+    get_issue_filter_keys,
+    get_issues_stats,
+)
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+from sentry.seer.autofix.utils import AutofixTriggerSource
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -73,10 +86,15 @@ from sentry.seer.explorer.index_data import (
     rpc_get_transactions_for_project,
 )
 from sentry.seer.explorer.tools import (
+    execute_table_query,
+    execute_timeseries_query,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
@@ -242,21 +260,27 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_organization_project_ids(*, org_id: int) -> dict:
-    """Get all project IDs for an organization"""
+    """Get all active projects (IDs and slugs) for an organization"""
     from sentry.models.project import Project
 
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
-        return {"project_ids": []}
+        return {"projects": []}
 
-    project_ids = list(
-        Project.objects.filter(organization=organization).values_list("id", flat=True)
+    projects = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values(
+            "id", "slug"
+        )
     )
-    return {"project_ids": project_ids}
+
+    return {"projects": projects}
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
+    if not features.has("organizations:gen-ai-features", org):
+        return False
+
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(
@@ -267,32 +291,53 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
     return not hide_ai_features and pr_review_test_generation_enabled
 
 
+class SentryOrganizaionIdsAndSlugs(TypedDict):
+    org_ids: list[int]
+    org_slugs: list[str]
+
+
 def get_sentry_organization_ids(
-    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
-) -> dict:
+    *, external_id: str, provider: str = "integrations:github", **kwargs
+) -> SentryOrganizaionIdsAndSlugs:
     """
     Get the Sentry organization ID for a given Repository.
 
     Args:
-        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
         external_id: The id of the repo in the provider's system
         provider: The provider of the repository (e.g. "integrations:github")
     """
 
     # It's possible that multiple orgs will be returned for a given repo.
-    organization_ids = Repository.objects.filter(
-        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
-    ).values_list("organization_id", flat=True)
+    repositories = Repository.objects.filter(
+        provider=provider,
+        external_id=external_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    repo_ids = repositories.values_list("id", flat=True)
+
+    # Filter to only repositories that have code mappings.
+    repo_ids_with_config = (
+        RepositoryProjectPathConfig.objects.filter(repository_id__in=repo_ids)
+        .values_list("repository_id", flat=True)
+        .distinct()
+    )
+
+    organization_ids = repositories.filter(id__in=repo_ids_with_config).values_list(
+        "organization_id", flat=True
+    )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
     orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
 
-    return {"org_ids": [organization.id for organization in orgs_with_consent]}
+    return {
+        "org_ids": [organization.id for organization in orgs_with_consent],
+        "org_slugs": [organization.slug for organization in orgs_with_consent],
+    }
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+    seer_org_acknowledgement = get_seer_org_acknowledgement(org)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
         "consent": seer_org_acknowledgement or github_extension_enabled,
@@ -990,11 +1035,142 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
+def trigger_coding_agent_launch(
+    *,
+    organization_id: int,
+    integration_id: int,
+    run_id: int,
+    trigger_source: str = "solution",
+) -> dict:
+    """
+    Trigger a coding agent launch for an autofix run.
+
+    Args:
+        organization_id: The organization ID
+        integration_id: The coding agent integration ID
+        run_id: The autofix run ID
+        trigger_source: Either "root_cause" or "solution" (default: "solution")
+
+    Returns:
+        dict: {"success": bool}
+    """
+    try:
+        launch_coding_agents_for_run(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            run_id=run_id,
+            trigger_source=AutofixTriggerSource(trigger_source),
+        )
+        return {"success": True}
+    except (NotFound, PermissionDenied, ValidationError, APIException):
+        logger.exception(
+            "coding_agent.rpc_launch_error",
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+            },
+        )
+        return {"success": False}
+
+
+def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
+    """
+    Check whether repository integrations exist and are active.
+
+    Args:
+        repository_integrations: List of dicts, each containing:
+            - organization_id: Organization ID (required)
+            - external_id: External repository ID (required)
+            - provider: Provider identifier (required, e.g., "github", "github_enterprise")
+                       Supports both with and without "integrations:" prefix
+
+    Returns:
+        dict: {
+            "integration_ids": list of integration IDs (as integers) from the database,
+                              or None if repository doesn't exist/isn't active/doesn't have an integration id
+        }
+        e.g., {"integration_ids": [123, None, 456]}
+        None indicates repository not found, inactive, or has unsupported SCM provider.
+        The integration_ids are returned so Seer can store them for future reference.
+
+    Note:
+        - Repositories are matched by (organization_id, provider, external_id) which has a unique constraint
+        - integration_id is NOT required in the request and NOT used in matching
+        - integration_id from the database is returned as an integer so Seer can store it for future reference
+    """
+
+    if not repository_integrations:
+        return {"integration_ids": []}
+
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.called",
+        extra={
+            "repository_integrations_count": len(repository_integrations),
+            "repository_integrations_sample": repository_integrations[:10],
+        },
+    )
+
+    q_objects = Q()
+
+    for item in repository_integrations:
+        # Match only by organization_id, provider, and external_id
+        q_objects |= Q(
+            organization_id=item["organization_id"],
+            provider=f"integrations:{item['provider']}",
+            external_id=item["external_id"],
+        ) | Q(
+            organization_id=item["organization_id"],
+            provider=item["provider"],
+            external_id=item["external_id"],
+        )
+
+    existing_repos = Repository.objects.filter(
+        q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
+    ).values_list("organization_id", "provider", "integration_id", "external_id")
+
+    existing_map: dict[tuple, int | None] = {}
+
+    for org_id, provider, integration_id, external_id in existing_repos:
+        key = (org_id, provider, external_id)
+        # If multiple repos match (shouldn't happen), keep the first one
+        if key not in existing_map:
+            existing_map[key] = integration_id
+
+    integration_ids = []
+
+    for item in repository_integrations:
+        repo_tuple_with_prefix = (
+            item["organization_id"],
+            f"integrations:{item['provider']}",
+            item["external_id"],
+        )
+        repo_tuple_without_prefix = (
+            item["organization_id"],
+            item["provider"],
+            item["external_id"],
+        )
+
+        found_integration_id = existing_map.get(repo_tuple_with_prefix) or existing_map.get(
+            repo_tuple_without_prefix
+        )
+
+        integration_ids.append(found_integration_id)
+
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.completed",
+        extra={"integration_ids": integration_ids},
+    )
+
+    return {"integration_ids": integration_ids}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
+    "check_repository_integrations_status": check_repository_integrations_status,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
@@ -1003,6 +1179,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
+    "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
     "get_sentry_organization_ids": get_sentry_organization_ids,
@@ -1016,6 +1193,10 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
     "get_spans": get_spans,
+    "get_issue_filter_keys": get_issue_filter_keys,
+    "get_filter_key_values": get_filter_key_values,
+    "execute_issues_query": execute_issues_query,
+    "get_issues_stats": get_issues_stats,
     #
     # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
@@ -1024,12 +1205,18 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_details": get_issue_details,
+    "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
+    "execute_table_query": execute_table_query,
+    "execute_timeseries_query": execute_timeseries_query,
+    "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
+    "call_custom_tool": call_custom_tool,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
+    "get_replay_metadata": get_replay_metadata,
 }
 
 

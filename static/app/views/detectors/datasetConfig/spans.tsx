@@ -79,4 +79,10 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.SPANS,
+  formatAggregateForTitle: aggregate => {
+    if (aggregate.startsWith('count(span.duration)')) {
+      return t('Number of spans');
+    }
+    return aggregate;
+  },
 };

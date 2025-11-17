@@ -15,6 +15,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.project import Project
 from sentry.models.release import Release, _get_cache_key
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
@@ -168,6 +169,21 @@ class GroupTest(TestCase, SnubaTestCase):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
             )
+
+    def test_by_qualified_short_id_bulk_case_insensitive_project_slug(self) -> None:
+        project = self.create_project(slug="mixedcaseslug")
+        group = self.create_group(project=project, short_id=project.next_short_id())
+
+        Project.objects.filter(id=project.id).update(slug="MixedCaseSlug")
+        assert Project.objects.get(id=project.id).slug == "MixedCaseSlug"
+
+        # Re-fetch to ensure updated relation is used when computing qualified_short_id
+        group = Group.objects.get(id=group.id)
+        short_id = group.qualified_short_id
+
+        # Should resolve via case-insensitive slug fallback
+        resolved = Group.objects.by_qualified_short_id_bulk(group.organization.id, [short_id])
+        assert resolved == [group]
 
     def test_first_last_release(self) -> None:
         project = self.create_project()

@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -92,9 +93,14 @@ function ReleaseHeader({
             <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
-          <NavTabsBadge type="default">
-            {formatAbbreviatedNumber(numberOfMobileBuilds)}
-          </NavTabsBadge>
+          <React.Fragment>
+            <NavTabsBadge type="default">
+              {formatAbbreviatedNumber(numberOfMobileBuilds)}
+            </NavTabsBadge>
+            <BadgeWrapper>
+              <FeatureBadge type="beta" />
+            </BadgeWrapper>
+          </React.Fragment>
         ),
     }),
     textValue: t('Builds %s', numberOfMobileBuilds),
@@ -151,6 +157,7 @@ function ReleaseHeader({
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (

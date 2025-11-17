@@ -1,5 +1,6 @@
 import unittest
 import uuid
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call
 
@@ -72,9 +73,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def setUp(self) -> None:
         super().setUp()
 
-    def build_data_packet(self, **kwargs):
+    def build_data_packet(self, **kwargs: Any) -> DataPacket[dict[str, Any]]:
         source_id = "1234"
-        return DataPacket[dict](
+        return DataPacket[dict[str, Any]](
             source_id, {"source_id": source_id, "group_vals": {"group_1": 6}, **kwargs}
         )
 
@@ -199,31 +200,18 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             any_order=True,
         )
 
-    def test_no_issue_type(self) -> None:
-        detector = self.create_detector(type=self.handler_state_type.slug)
-        data_packet = self.build_data_packet()
-        with (
-            mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger,
-            mock.patch(
-                "sentry.workflow_engine.models.Detector.group_type",
-                return_value=None,
-                new_callable=mock.PropertyMock,
-            ),
-        ):
-            results = process_detectors(data_packet, [detector])
-            assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
-        assert results == []
-
     def test_no_handler(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
-            results = process_detectors(data_packet, [detector])
-            assert (
-                mock_logger.error.call_args[0][0]
-                == "Registered grouptype for detector has no detector_handler"
-            )
-        assert results == []
+            with pytest.raises(ValueError):
+                results = process_detectors(data_packet, [detector])
+                assert (
+                    mock_logger.error.call_args[0][0]
+                    == "Registered grouptype for detector has no detector_handler"
+                )
+
+                assert results == []
 
     def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -232,17 +220,25 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
 
-            mock_incr.assert_called_once_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_detector",
                 tags={"detector_type": detector.type},
+            )
+            mock_incr.assert_any_call(
+                "workflow_engine_detector.evaluation",
+                tags={"detector_type": detector.type, "result": "success"},
+                sample_rate=1.0,
             )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     @mock.patch("sentry.workflow_engine.processors.detector.logger")
     def test_metrics_and_logs_fire(
-        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+        mock_produce_occurrence_to_kafka: mock.MagicMock,
+    ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -294,8 +290,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     @mock.patch("sentry.workflow_engine.processors.detector.logger")
     def test_metrics_and_logs_resolve(
-        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+        mock_produce_occurrence_to_kafka: mock.MagicMock,
+    ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         process_detectors(data_packet, [detector])
@@ -334,11 +333,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = self.build_data_packet()
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_detectors(data_packet, [detector])
-            calls = mock_incr.call_args_list
-            # We can have background threads emitting metrics as tasks are scheduled
-            filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
-            assert len(filtered_calls) == 0
+            with pytest.raises(ValueError):
+                process_detectors(data_packet, [detector])
+
+                calls = mock_incr.call_args_list
+                # We can have background threads emitting metrics as tasks are scheduled
+                filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
+                assert len(filtered_calls) == 0
 
 
 @django_db_all
@@ -762,7 +763,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             handler.state_manager.enqueue_dedupe_update("group_key", 99)
             handler.state_manager.commit_state_updates()
 
-            data_packet = DataPacket[dict](
+            data_packet = DataPacket[dict[str, Any]](
                 source_id="1234",
                 packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
             )
@@ -789,7 +790,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             handler.state_manager.commit_state_updates()
 
             handler.evaluate(
-                DataPacket[dict](
+                DataPacket[dict[str, Any]](
                     source_id="1234",
                     packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
                 ),
@@ -800,7 +801,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
 
     def test_status_change(self) -> None:
         handler = self.build_handler()
-        data_packet = DataPacket[dict](
+        data_packet = DataPacket[dict[str, Any]](
             source_id="1234", packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100}
         )
 
@@ -834,8 +835,8 @@ class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
-        self.detector = self.create_detector(project=self.project, type="metric_issue")
-        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
         self.occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -1057,3 +1058,15 @@ class TestAssociateNewGroupWithDetector(TestCase):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
         assert not associate_new_group_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_deleted_detector_creates_null_association(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        deleted_detector_id = self.metric_detector.id
+
+        self.metric_detector.delete()
+
+        assert associate_new_group_with_detector(group, deleted_detector_id)
+
+        detector_group = DetectorGroup.objects.get(group_id=group.id)
+        assert detector_group.detector_id is None
+        assert detector_group.group_id == group.id

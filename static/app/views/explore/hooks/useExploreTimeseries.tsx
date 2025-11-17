@@ -4,7 +4,6 @@ import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -20,6 +19,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -65,7 +65,7 @@ function useExploreTimeseriesImpl({
   query,
   queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
   const groupBys = useQueryParamsGroupBys();
   const sortBys = useQueryParamsAggregateSortBys();
   const visualizes = useQueryParamsVisualizes({validate: true});
@@ -124,7 +124,7 @@ function useExploreTimeseriesImpl({
   };
 }
 
-function shouldTriggerHighAccuracy(
+export function shouldTriggerHighAccuracy(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   visualizes: readonly Visualize[],
   isTopN: boolean

@@ -14,7 +14,6 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
@@ -29,11 +28,9 @@ import type {PickableDays} from 'sentry/views/explore/utils';
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     </SpansQueryParamsProvider>
   );
 }
@@ -93,7 +90,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -417,6 +414,24 @@ describe('SpansTabContent', () => {
             userHasAcknowledged: true,
           },
         }),
+      });
+    });
+
+    describe('when the AI features are disabled', () => {
+      it('does not display the Ask Seer combobox', async () => {
+        render(
+          <Wrapper>
+            <SpansTabContent datePageFilterProps={datePageFilterProps} />
+          </Wrapper>,
+          {organization: {...organization, features: []}}
+        );
+
+        const input = screen.getByRole('combobox');
+        await userEvent.click(input);
+
+        expect(
+          screen.queryByText(/Ask Seer to build your query/)
+        ).not.toBeInTheDocument();
       });
     });
 

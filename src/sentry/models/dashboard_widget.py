@@ -68,6 +68,10 @@ class DashboardWidgetTypes(TypesClass):
     These represent the logs trace item type on the EAP dataset.
     """
     LOGS = 103
+    """
+    These represent the tracemetrics item type on the EAP dataset.
+    """
+    TRACEMETRICS = 104
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -80,6 +84,7 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
         (LOGS, "logs"),
+        (TRACEMETRICS, "tracemetrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -123,6 +128,18 @@ class DatasetSourcesTypes(Enum):
      Dataset modified by the transaction -> span migration version 2
     """
     SPAN_MIGRATION_VERSION_2 = 8
+    """
+    Dataset modified by the transaction -> span migration version 3
+    """
+    SPAN_MIGRATION_VERSION_3 = 9
+    """
+    Dataset modified by the transaction -> span migration version 4 (fixing boolean bug)
+    """
+    SPAN_MIGRATION_VERSION_4 = 10
+    """
+    Dataset modified by the transaction -> span migration version 5 (fixing boolean bug again)
+    """
+    SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
     def as_choices(cls):

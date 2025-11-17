@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -52,6 +53,10 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
 
+  const attributeBreakdownsEnabled = organization.features.includes(
+    'performance-spans-suspect-attributes'
+  );
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -90,6 +95,11 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            {attributeBreakdownsEnabled ? (
+              <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
+                {t('Attribute Breakdowns')}
+              </TabList.Item>
+            ) : null}
           </TabList>
         </Tabs>
         {props.tab === Tab.SPAN ? (
@@ -118,6 +128,7 @@ export function ExploreTables(props: ExploreTablesProps) {
       {props.tab === Tab.SPAN && <SpansTable {...props} />}
       {props.tab === Tab.TRACE && <TracesTable {...props} />}
       {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {props.tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
 }

@@ -18,7 +18,11 @@ from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import client
 from sentry.integrations.github import integration as github_integration
-from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
+from sentry.integrations.github.client import (
+    MINIMUM_REQUESTS,
+    GitHubApiClient,
+    GithubSetupApiClient,
+)
 from sentry.integrations.github.integration import (
     API_ERRORS,
     GitHubInstallationError,
@@ -1661,8 +1665,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @responses.activate
-    @with_feature("organizations:integrations-github-inbound-assignee-sync")
-    @with_feature("organizations:integrations-github-outbound-assignee-sync")
+    @with_feature("organizations:integrations-github-project-management")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1675,6 +1678,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert [field["name"] for field in fields] == [
             "sync_reverse_assignment",
             "sync_forward_assignment",
+            "sync_status_reverse",
+            "resolution_strategy",
+            "sync_comments",
         ]
 
     @responses.activate
@@ -1792,6 +1798,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert orjson.loads(request.body) == {"assignees": ["octocat"]}
 
     @responses.activate
+    def test_sync_assignee_outbound_case_insensitive(self) -> None:
+        """Test assigning a GitHub issue to a user with linked GitHub account"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            external_name="@JohnDoe"
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["johndoe"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": ["johndoe"]}
+
+    @responses.activate
     def test_sync_assignee_outbound_unassign(self) -> None:
         """Test unassigning a GitHub issue"""
 
@@ -1900,3 +1931,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Should not make any API calls when user is None and assign=True
         assert len(responses.calls) == 0
+
+    def test_create_comment(self) -> None:
+        self.user.name = "Sentry Admin"
+        self.user.save()
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(GitHubApiClient, "create_comment") as mock_create_comment:
+            installation.create_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_create_comment.call_args[0][1] == "123"
+            assert mock_create_comment.call_args[0][2] == {
+                "body": "**Sentry Admin** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     Glad it's quoted"
+            }
+
+    def test_update_comment(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(GitHubApiClient, "update_comment") as mock_update_comment:
+            installation.update_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_update_comment.call_args[0] == (
+                "Test-Organization/foo",
+                "123",
+                "123",
+                {
+                    "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
+                },
+            )

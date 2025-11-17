@@ -7,12 +7,19 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
+import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
@@ -24,18 +31,12 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ISSUE, t('Issues')],
 ]);
 
-const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
+const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
+const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
+const IGNORE_DEFAULT_VALUES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
-}
-
-function getTagType(tag: Tag, dataset: WidgetType) {
-  const fieldType =
-    dataset === WidgetType.SPANS ? 'span' : dataset === WidgetType.LOGS ? 'log' : 'event';
-  const fieldDefinition = getFieldDefinition(tag.key, fieldType, tag.kind);
-
-  return <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />;
 }
 
 type AddFilterProps = {
@@ -68,14 +69,30 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       )
     : {};
 
+  // Maps filter keys to their field definitions
+  const fieldDefinitionMap = new Map<string, FieldDefinition | null>();
+
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
-    ? Object.entries(filterKeys).map(([_, tag]) => {
+    ? Object.entries(filterKeys).flatMap(([_, tag]) => {
+        const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
+        const valueType = fieldDefinition?.valueType;
+        if (valueType && UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+          return [];
+        }
+        fieldDefinitionMap.set(tag.key, fieldDefinition);
+
         return {
           value: tag.key,
           label: prettifyTagKey(tag.key),
-          trailingItems: <TagBadge>{getTagType(tag, selectedDataset)}</TagBadge>,
-          disabled: globalFilters.some(filter => filter.tag.key === tag.key),
+          trailingItems: (
+            <TagBadge>
+              <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
+            </TagBadge>
+          ),
+          disabled: globalFilters.some(
+            filter => filter.tag.key === tag.key && filter.dataset === selectedDataset
+          ),
         };
       })
     : [];
@@ -109,10 +126,22 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           onClick={() => {
             if (!selectedFilterKey || !selectedDataset) return;
 
+            let defaultFilterValue = '';
+            const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+            const valueType = fieldDefinition?.valueType;
+
+            if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
+              defaultFilterValue = getInitialFilterText(
+                selectedFilterKey.key,
+                fieldDefinition,
+                false
+              );
+            }
+
             const newFilter: GlobalFilter = {
               dataset: selectedDataset,
               tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
-              value: '',
+              value: defaultFilterValue,
             };
             onAddFilter(newFilter);
             setIsSelectingFilterKey(false);

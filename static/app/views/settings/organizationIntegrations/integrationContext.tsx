@@ -11,7 +11,8 @@ type IntegrationContextProps = {
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
-      | 'project_creation';
+      | 'project_creation'
+      | 'test_analytics_onboarding';
     referrer?: string;
   };
   installStatus: string;

@@ -29,6 +29,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ExtrapolationMode(Enum):
+    UNKNOWN = 0
+    NONE = 1
+    CLIENT_AND_SERVER_WEIGHTED = 2
+    SERVER_WEIGHTED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((mode.value, mode.name.lower()) for mode in cls)
+
+    @classmethod
+    def as_text_choices(cls):
+        return tuple((mode.name.lower(), mode.value) for mode in cls)
+
+
 @region_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -52,6 +67,14 @@ class SnubaQuery(Model):
     aggregate = models.TextField()
     time_window = models.IntegerField()
     resolution = models.IntegerField()
+    extrapolation_mode = models.IntegerField(
+        choices=ExtrapolationMode.as_choices(),
+        default=ExtrapolationMode.UNKNOWN.value,
+        db_default=ExtrapolationMode.UNKNOWN.value,
+    )
+    # This field is used for transactions -> spans alert migration.
+    # This field is used to store a snapshot of the query before the migration.
+    query_snapshot = models.JSONField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -159,6 +182,7 @@ class QuerySubscription(Model):
 
 @data_source_type_registry.register(DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -180,6 +204,7 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
@@ -200,3 +225,8 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
                 QuerySubscription.Status.UPDATING.value,
             ),
         ).count()
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "sentry.querysubscription"

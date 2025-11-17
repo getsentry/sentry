@@ -145,7 +145,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-function TimestampRenderer(props: LogFieldRendererProps) {
+export function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
@@ -163,6 +163,12 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       </LogsTimestampTooltip>
     </LogDate>
   );
+}
+
+function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
+  const ingestedAt =
+    props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
+  return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
 }
 
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {
@@ -637,6 +643,7 @@ export const LogAttributesRendererMap: Record<
     }
     return TimestampRenderer(props);
   },
+  [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,

@@ -1,8 +1,6 @@
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -13,17 +11,9 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 describe('ScreenshotModal', () => {
-  let initialData: ReturnType<typeof initializeOrg>;
   const project = ProjectFixture();
 
   beforeEach(() => {
-    initialData = initializeOrg({
-      organization: OrganizationFixture(),
-      router: {
-        params: {groupId: 'group-id'},
-        location: {query: {types: 'event.screenshot'}},
-      },
-    });
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
   });
@@ -52,10 +42,7 @@ describe('ScreenshotModal', () => {
         downloadUrl="/testing/download-href"
         groupId="group-id"
         attachments={attachments}
-      />,
-      {
-        organization: initialData.organization,
-      }
+      />
     );
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -91,10 +78,7 @@ describe('ScreenshotModal', () => {
         attachments={attachments}
         downloadUrl="/testing/download-href"
         groupId="group-id"
-      />,
-      {
-        organization: initialData.organization,
-      }
+      />
     );
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
@@ -120,10 +104,7 @@ describe('ScreenshotModal', () => {
         eventAttachment={eventAttachment}
         downloadUrl="/testing/download-href"
         groupId="group-id"
-      />,
-      {
-        organization: initialData.organization,
-      }
+      />
     );
 
     expect(screen.getByText(eventAttachment.name)).toBeInTheDocument();

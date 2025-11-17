@@ -1,56 +1,51 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import Pagination from 'sentry/components/pagination';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 interface Props {
   connectedIds: Automation['detectorIds'];
   setConnectedIds: (ids: Automation['detectorIds']) => void;
 }
 
-function SelectedMonitors({
+function ConnectedMonitors({
   connectedIds,
   toggleConnected,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement> & {
+}: {
   connectedIds: Automation['detectorIds'];
   toggleConnected?: (params: {detector: Detector}) => void;
 }) {
-  const {
-    data: monitors = [],
-    isLoading,
-    isError,
-  } = useDetectorsQuery({ids: connectedIds}, {enabled: connectedIds.length > 0});
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
     <StyledSection title={t('Connected Monitors')}>
       <ConnectedMonitorsList
-        detectors={monitors}
-        connectedDetectorIds={connectedIds}
-        isLoading={isLoading}
-        isError={isError}
+        data-test-id="drawer-connected-monitors-list"
+        detectorIds={connectedIds}
+        connectedDetectorIds={new Set(connectedIds)}
         toggleConnected={toggleConnected}
-        numSkeletons={connectedIds.length}
-        {...props}
+        cursor={cursor}
+        onCursor={setCursor}
+        limit={null}
+        openInNewTab
       />
     </StyledSection>
   );
@@ -59,29 +54,16 @@ function SelectedMonitors({
 function AllMonitors({
   connectedIds,
   toggleConnected,
-  footerContent,
 }: {
   connectedIds: Automation['detectorIds'];
   toggleConnected: (params: {detector: Detector}) => void;
-  footerContent?: React.ReactNode;
 }) {
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const {selection, isReady} = usePageFilters();
-  const {
-    data: monitors = [],
-    isLoading,
-    isError,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
-      query,
-      cursor,
-      limit: 10,
-      projects: selection.projects,
-    },
-    {enabled: isReady}
-  );
+  const onSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCursor(undefined);
+  }, []);
 
   return (
     <PageFiltersContainer>
@@ -89,107 +71,81 @@ function AllMonitors({
         <Flex gap="xl">
           <ProjectPageFilter storageNamespace="automationDrawer" />
           <div style={{flexGrow: 1}}>
-            <DetectorSearch initialQuery={query} onSearch={setQuery} />
+            <DetectorSearch initialQuery={searchQuery} onSearch={onSearch} />
           </div>
         </Flex>
         <ConnectedMonitorsList
           data-test-id="drawer-all-monitors-list"
-          detectors={monitors}
-          connectedDetectorIds={connectedIds}
-          isLoading={isLoading}
-          isError={isError}
+          detectorIds={null}
+          connectedDetectorIds={new Set(connectedIds)}
           toggleConnected={toggleConnected}
           emptyMessage={t('No monitors found')}
-          numSkeletons={10}
+          cursor={cursor}
+          onCursor={setCursor}
+          query={searchQuery}
+          openInNewTab
         />
-        <Flex justify="between">
-          <div>{footerContent}</div>
-          <PaginationWithoutMargin
-            onCursor={setCursor}
-            pageLinks={getResponseHeader?.('Link')}
-          />
-        </Flex>
       </Section>
     </PageFiltersContainer>
   );
 }
 
-function ConnectMonitorsContent({
+function ConnectMonitorsDrawer({
   initialIds,
-  saveConnectedIds,
-  footerContent,
+  setDetectorIds,
 }: {
-  initialIds: Automation['detectorIds'];
-  saveConnectedIds: (ids: Automation['detectorIds']) => void;
-  footerContent?: React.ReactNode;
+  initialIds: string[];
+  setDetectorIds: (ids: Automation['detectorIds']) => void;
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+
   // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
-  const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(
-    initialIds.toSorted()
-  );
+  const [localDetectorIds, setLocalDetectorIds] = useState(initialIds);
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
-    const newDetectorIds = (
-      connectedIds.includes(detector.id)
-        ? connectedIds.filter(id => id !== detector.id)
-        : [...connectedIds, detector.id]
-    )
-      // Sort by ID to match the API response order
-      .toSorted((a, b) => Number(a) - Number(b));
-
-    setConnectedIds(newDetectorIds);
-    saveConnectedIds(newDetectorIds);
-
-    const cachedConnectedDetectors =
+    const oldDetectorsData =
       getApiQueryData<Detector[]>(
         queryClient,
         makeDetectorListQueryKey({
           orgSlug: organization.slug,
-          ids: connectedIds,
+          ids: localDetectorIds,
+          includeIssueStreamDetectors: true,
         })
       ) ?? [];
-    const connectedDetectorsData = newDetectorIds
-      .map(id => {
-        if (id === detector.id) {
-          return detector;
-        }
-        return cachedConnectedDetectors.find(d => d.id === id);
-      })
-      .filter(defined);
 
-    // If for some reason the cached data doesn't match the full list of connected detectors,
-    // don't optimistically update the cache. React query will show a loading state in this case.
-    if (connectedDetectorsData.length !== newDetectorIds.length) {
-      return;
-    }
+    const newDetectors = (
+      oldDetectorsData.some(d => d.id === detector.id)
+        ? oldDetectorsData.filter(d => d.id !== detector.id)
+        : [...oldDetectorsData, detector]
+    ).sort((a, b) => a.id.localeCompare(b.id)); // API will return ID ascending, so this avoids re-ordering
+    const newDetectorIds = newDetectors.map(d => d.id);
 
-    // If we do have the correct data already, optimistically update the cache to avoid a loading state.
+    // Update the query cache to prevent the list from being fetched anew
     setApiQueryData<Detector[]>(
       queryClient,
       makeDetectorListQueryKey({
         orgSlug: organization.slug,
         ids: newDetectorIds,
+        includeIssueStreamDetectors: true,
       }),
-      connectedDetectorsData
+      newDetectors
     );
+
+    setLocalDetectorIds(newDetectorIds);
+    setDetectorIds(newDetectorIds);
   };
 
   return (
     <Fragment>
-      {connectedIds.length > 0 && (
-        <SelectedMonitors
-          data-test-id="drawer-connected-monitors-list"
-          connectedIds={connectedIds}
+      <DrawerHeader hideBar />
+      <DrawerContent>
+        <ConnectedMonitors
+          connectedIds={localDetectorIds}
           toggleConnected={toggleConnected}
         />
-      )}
-      <AllMonitors
-        connectedIds={connectedIds}
-        toggleConnected={toggleConnected}
-        footerContent={footerContent}
-      />
+        <AllMonitors connectedIds={localDetectorIds} toggleConnected={toggleConnected} />
+      </DrawerContent>
     </Fragment>
   );
 }
@@ -197,6 +153,7 @@ function ConnectMonitorsContent({
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -206,15 +163,10 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
 
     openDrawer(
       () => (
-        <Fragment>
-          <DrawerHeader hideBar />
-          <DrawerContent>
-            <ConnectMonitorsContent
-              initialIds={connectedIds}
-              saveConnectedIds={setConnectedIds}
-            />
-          </DrawerContent>
-        </Fragment>
+        <ConnectMonitorsDrawer
+          initialIds={connectedIds}
+          setDetectorIds={setConnectedIds}
+        />
       ),
       {
         ariaLabel: t('Connect Monitors'),
@@ -233,11 +185,24 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
   if (connectedIds.length > 0) {
     return (
       <Container>
-        <SelectedMonitors connectedIds={connectedIds} />
+        <Section title={t('Connected Monitors')}>
+          <ConnectedMonitorsList
+            detectorIds={connectedIds}
+            cursor={undefined}
+            onCursor={() => {}}
+            limit={null}
+            openInNewTab
+          />
+        </Section>
         <ButtonWrapper justify="between">
-          <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
+          <LinkButton
+            size="sm"
+            icon={<IconAdd />}
+            href={makeMonitorCreatePathname(organization.slug)}
+            external
+          >
             {t('Create New Monitor')}
-          </Button>
+          </LinkButton>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
             {t('Edit Monitors')}
           </Button>
@@ -275,10 +240,6 @@ const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.lg};
   margin: -${p => p.theme.space.lg};
-`;
-
-const PaginationWithoutMargin = styled(Pagination)`
-  margin: ${p => p.theme.space['0']};
 `;
 
 const StyledSection = styled(Section)`

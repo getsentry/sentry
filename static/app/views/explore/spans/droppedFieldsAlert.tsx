@@ -6,11 +6,11 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {useExploreId} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
 
 export function DroppedFieldsAlert(): React.JSX.Element | null {
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const {data: savedQuery} = useGetSavedQuery(id);
 
   if (!savedQuery) {

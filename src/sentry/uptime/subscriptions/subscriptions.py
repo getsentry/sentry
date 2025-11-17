@@ -39,6 +39,7 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
+from sentry.uptime.utils import build_fingerprint, build_last_update_key, get_cluster
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -54,14 +55,6 @@ UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
-
-
-def build_detector_fingerprint_component(detector: Detector) -> str:
-    return f"uptime-detector:{detector.id}"
-
-
-def build_fingerprint(detector: Detector) -> list[str]:
-    return [build_detector_fingerprint_component(detector)]
 
 
 def resolve_uptime_issue(detector: Detector) -> None:
@@ -108,14 +101,9 @@ class UptimeMonitorNoSeatAvailable(Exception):
     uptime monitor.
     """
 
-    result: SeatAssignmentResult | None
-    """
-    The assignment result. In rare cases may be None when there is a race
-    condition and seat assignment is not accepted after passing the assignment
-    check.
-    """
+    result: SeatAssignmentResult
 
-    def __init__(self, result: SeatAssignmentResult | None) -> None:
+    def __init__(self, result: SeatAssignmentResult) -> None:
         super().__init__()
         self.result = result
 
@@ -464,6 +452,10 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             # start from a good state
             detector_state.update(state=DetectorPriorityLevel.OK, is_triggered=False)
 
+        cluster = get_cluster()
+        last_update_key = build_last_update_key(detector)
+        cluster.delete(last_update_key)
+
         detector.update(enabled=False)
 
         if not skip_quotas:
@@ -484,6 +476,18 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
+def ensure_uptime_seat(detector: Detector) -> None:
+    """
+    Ensures that a billing seat is assigned for the uptime detector.
+
+    Raises UptimeMonitorNoSeatAvailable if no seats are available.
+    """
+    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
+    if outcome != Outcome.ACCEPTED:
+        result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+        raise UptimeMonitorNoSeatAvailable(result)
+
+
 def enable_uptime_detector(
     detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
 ):
@@ -495,24 +499,18 @@ def enable_uptime_detector(
     are no available seats the monitor will be disabled and a
     `UptimeMonitorNoSeatAvailable` will be raised.
 
-    By default if the monitor is already marked as ACTIVE this function is a
+    By default if the detector is already marked as enabled this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     if not ensure_assignment and detector.enabled:
         return
 
     if not skip_quotas:
-        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
-        if not seat_assignment.assignable:
-            disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(seat_assignment)
-
-        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
-        if outcome != Outcome.ACCEPTED:
-            # Race condition, we were unable to assign the seat even though the
-            # earlier assignment check indicated assignability
-            disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(None)
+        try:
+            ensure_uptime_seat(detector)
+        except UptimeMonitorNoSeatAvailable:
+            disable_uptime_detector(detector, skip_quotas=True)
+            raise
 
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
@@ -527,25 +525,17 @@ def enable_uptime_detector(
         )
 
 
+def remove_uptime_seat(detector: Detector):
+    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+
+
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
-    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+
+    remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
-    remove_uptime_subscription_if_unused(uptime_subscription)
-
-
-def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
-    """
-    Determines if an uptime subscription is no longer used by any detectors and removes it if so
-    """
-    # If the uptime subscription is no longer used, we also remove it.
-    has_active_detector = Detector.objects.filter(
-        data_sources__source_id=str(uptime_subscription.id),
-        status=ObjectStatus.ACTIVE,
-    ).exists()
-    if not has_active_detector:
-        delete_uptime_subscription(uptime_subscription)
+    delete_uptime_subscription(uptime_subscription)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:

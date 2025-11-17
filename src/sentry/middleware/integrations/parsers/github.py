@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import orjson
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
 import sentry.options as options
@@ -14,9 +14,11 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
+from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.overwatch_webhooks.webhook_forwarder import OverwatchGithubWebhookForwarder
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -32,6 +34,11 @@ class GithubRequestParser(BaseRequestParser):
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
         return get_github_external_id(event)
+
+    def should_route_to_control_silo(
+        self, parsed_event: Mapping[str, Any], request: HttpRequest
+    ) -> bool:
+        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) == GithubWebhookType.INSTALLATION
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
@@ -61,11 +68,7 @@ class GithubRequestParser(BaseRequestParser):
         except orjson.JSONDecodeError:
             return HttpResponse(status=400)
 
-        if (
-            event.get("installation")
-            and not event.get("issue")
-            and event.get("action") in {"created", "deleted"}
-        ):
+        if self.should_route_to_control_silo(parsed_event=event, request=self.request):
             self.try_forward_to_codecov(event=event)
             return self.get_response_from_control_silo()
 
@@ -90,6 +93,13 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        return self.get_response_from_webhookpayload(
+        response = self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
         )
+
+        # The overwatch forwarder implements its own region-based checks
+        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
+            event=event, headers=self.request.headers
+        )
+
+        return response

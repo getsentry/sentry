@@ -1,5 +1,6 @@
+from django.urls import reverse
+
 from sentry.integrations.models.data_forwarder import DataForwarder
-from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -13,9 +14,42 @@ class DataForwardingIndexEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    def get_response(self, *args, **kwargs):
+        """
+        Override get_response to always add the required feature flag.
+        """
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            return super().get_response(*args, **kwargs)
+
 
 @region_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
+
+    def test_without_revamp_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 200
+
     def test_get_single_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -61,13 +95,13 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        project_config1 = DataForwarderProject.objects.create(
+        project_config1 = self.create_data_forwarder_project(
             data_forwarder=data_forwarder,
             project=project1,
             is_enabled=True,
             overrides={"custom": "value1"},
         )
-        project_config2 = DataForwarderProject.objects.create(
+        project_config2 = self.create_data_forwarder_project(
             data_forwarder=data_forwarder,
             project=project2,
             is_enabled=False,
@@ -124,12 +158,33 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
 class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
     method = "POST"
 
+    def test_without_revamp_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
+
     def test_create_segment_data_forwarder(self) -> None:
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_segment_key"},
             "is_enabled": True,
             "enroll_new_projects": False,
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -153,6 +208,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -171,6 +227,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "source": "sentry",
                 "token": "12345678-1234-1234-1234-123456789abc",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -184,6 +241,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -200,6 +258,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
@@ -220,6 +279,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_success_response(self.organization.slug, status_code=201, **payload)
@@ -237,6 +297,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "invalid key"},
+            "project_ids": [],
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "config" in str(response.data).lower()
@@ -248,6 +309,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         self.get_error_response(self.organization.slug, status_code=403, **payload)
@@ -256,6 +318,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": "invalid_provider",
             "config": {"write_key": "test_key"},
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
@@ -270,6 +333,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "new_key"},
+            "project_ids": [],
         }
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "already exists" in str(response.data).lower()
@@ -282,6 +346,15 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "config" in str(response.data).lower()
 
+    def test_create_missing_project_ids(self) -> None:
+        payload = {
+            "provider": DataForwarderProviderSlug.SEGMENT,
+            "config": {"write_key": "test_key"},
+        }
+
+        response = self.get_error_response(self.organization.slug, status_code=400, **payload)
+        assert "project_ids" in str(response.data).lower()
+
     def test_create_sqs_fifo_queue_validation(self) -> None:
         payload = {
             "provider": DataForwarderProviderSlug.SQS,
@@ -291,33 +364,8 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
                 "access_key": "AKIAIOSFODNN7EXAMPLE",
                 "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             },
+            "project_ids": [],
         }
 
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "message_group_id" in str(response.data).lower()
-
-    def test_create_auto_enrolls_all_organization_projects(self) -> None:
-        # should be enrolled
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-        project3 = self.create_project(organization=self.organization)
-
-        # should not be enrolled
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-
-        payload = {
-            "provider": DataForwarderProviderSlug.SEGMENT,
-            "config": {"write_key": "test_key"},
-        }
-
-        response = self.get_success_response(self.organization.slug, status_code=201, **payload)
-
-        data_forwarder = DataForwarder.objects.get(id=response.data["id"])
-
-        enrolled_projects = DataForwarderProject.objects.filter(
-            data_forwarder=data_forwarder
-        ).values_list("project_id", flat=True)
-
-        assert set(enrolled_projects) == {project1.id, project2.id, project3.id}
-        assert other_project.id not in enrolled_projects

@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import types from '!!type-loader!sentry/components/core/input';
+import documentation from '!!type-loader!sentry/components/core/input';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -8,7 +8,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Input', (story, APIReference) => {
-  APIReference(types.Input);
+  APIReference(documentation.props.Input);
 
   story('Sizes', () => {
     return (

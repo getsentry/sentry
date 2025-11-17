@@ -11,9 +11,9 @@ import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/separator';
+import documentation from '!!type-loader!@sentry/scraps/separator';
 
-export const types = {Separator: APIReference.Separator};
+export {documentation};
 
 The `Separator` component creates visual divisions between content areas. It renders as an HTML `<hr>` element with flexible styling options and supports both horizontal and vertical orientations.
 

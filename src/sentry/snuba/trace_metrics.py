@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
@@ -54,6 +54,8 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
                 selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
 
+        search_resolver = search_resolver or cls.get_resolver(params=params, config=config)
+
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
@@ -63,11 +65,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
-                resolver=search_resolver
-                or cls.get_resolver(
-                    params=params,
-                    config=config,
-                ),
+                resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
             ),
@@ -89,6 +87,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
+
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
@@ -104,10 +103,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
 
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         for resolved_field in aggregates + groupbys:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 

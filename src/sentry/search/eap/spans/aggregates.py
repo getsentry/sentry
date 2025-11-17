@@ -3,6 +3,7 @@ from typing import Literal, cast
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     StrArray,
 )
@@ -21,6 +22,7 @@ from sentry.search.eap.columns import (
     ConditionalAggregateDefinition,
     ResolvedArguments,
     ValueArgumentDefinition,
+    count_argument_resolver_optimized,
 )
 from sentry.search.eap.normalizer import unquote_literal
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
@@ -32,6 +34,11 @@ def count_processor(count_value: int | None) -> int:
         return 0
     else:
         return count_value
+
+
+SPANS_ALWAYS_PRESENT_ATTRIBUTES = [
+    AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+]
 
 
 def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -445,7 +452,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
 }
 
@@ -502,7 +509,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -523,6 +530,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        attribute_resolver=count_argument_resolver_optimized(SPANS_ALWAYS_PRESENT_ATTRIBUTES),
     ),
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -542,7 +550,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -578,7 +586,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,

@@ -359,16 +359,39 @@ class GroupManager(BaseManager["Group"]):
             ],
         )
 
-        groups = list(
-            self.exclude(
-                status__in=[
-                    GroupStatus.PENDING_DELETION,
-                    GroupStatus.DELETION_IN_PROGRESS,
-                    GroupStatus.PENDING_MERGE,
-                ]
-            ).filter(short_id_lookup, project__organization=organization_id)
-        )
+        base_group_queryset = self.exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        ).filter(project__organization=organization_id)
+
+        groups = list(base_group_queryset.filter(short_id_lookup))
         group_lookup: set[int] = {group.short_id for group in groups}
+
+        # If any requested short_ids are missing after the exact slug match,
+        # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
+        # Handles legacy project slugs that may not be entirely lowercase.
+        missing_by_slug = defaultdict(list)
+        for sid in short_ids:
+            if sid.short_id not in group_lookup:
+                missing_by_slug[sid.project_slug].append(sid.short_id)
+
+        if len(missing_by_slug) > 0:
+            ci_short_id_lookup = reduce(
+                or_,
+                [
+                    Q(project__slug__iexact=slug, short_id__in=sids)
+                    for slug, sids in missing_by_slug.items()
+                ],
+            )
+
+            fallback_groups = list(base_group_queryset.filter(ci_short_id_lookup))
+
+            groups.extend(fallback_groups)
+            group_lookup.update(group.short_id for group in fallback_groups)
+
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
                 raise Group.DoesNotExist()
@@ -819,10 +842,14 @@ class Group(Model):
                 if not snooze.is_valid(group=self):
                     status = GroupStatus.UNRESOLVED
 
-        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
+        # unresolved it after it was resolved. We should respect that and not override
+        # the status back to RESOLVED.
+        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age() and not self.resolved_at:
             # Only auto-resolve if this group type has auto-resolve enabled
             if self.issue_type.enable_auto_resolve:
                 return GroupStatus.RESOLVED
+
         return status
 
     def get_share_id(self):

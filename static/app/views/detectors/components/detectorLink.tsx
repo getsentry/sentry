@@ -28,15 +28,15 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {getDetectorSystemCreatedNotice} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
+  openInNewTab?: boolean;
 };
 
 function formatConditionType(condition: MetricCondition) {
@@ -197,6 +197,7 @@ function Details({detector}: {detector: Detector}) {
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
     case 'error':
+    case 'issue_stream':
       return null;
     default:
       unreachable(detectorType);
@@ -204,18 +205,28 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className}: DetectorLinkProps) {
+export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const project = useProjectFromId({project_id: detector.projectId});
+
+  const detectorName =
+    detector.type === 'issue_stream'
+      ? t('All Issues in %s', project?.name || 'project')
+      : detector.name;
+
+  const detectorLink =
+    detector.type === 'issue_stream'
+      ? null
+      : makeMonitorDetailsPathname(org.slug, detector.id);
 
   return (
     <TitleCell
       className={className}
-      name={detector.name}
-      link={makeMonitorDetailsPathname(org.slug, detector.id, monitorsLinkPrefix)}
-      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      name={detectorName}
+      link={detectorLink}
+      systemCreated={getDetectorSystemCreatedNotice(detector)}
       disabled={!detector.enabled}
+      openInNewTab={openInNewTab}
       details={
         <Fragment>
           {project && (

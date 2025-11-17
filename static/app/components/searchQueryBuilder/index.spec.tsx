@@ -224,7 +224,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('does not display footer when using a wildcard operator', async () => {
+      it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
           {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -250,10 +250,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-
         expect(
-          screen.queryByText('Wildcard (*) matching allowed')
-        ).not.toBeInTheDocument();
+          screen.getByText('Switch to "is" operator to use wildcard (*) matching')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -426,7 +425,9 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+      });
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
@@ -714,6 +715,29 @@ describe('SearchQueryBuilder', () => {
         );
       });
     });
+
+    describe('logic category', () => {
+      it('does not render logic category when on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument();
+      });
+
+      it('renders logic category when not on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="span.op:test" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        // Should show conditionals button
+        expect(await screen.findByRole('button', {name: 'Logic'})).toBeInTheDocument();
+      });
+    });
   });
 
   describe('mouse interactions', () => {
@@ -811,13 +835,50 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops by clicking the delete button', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+    describe('logic ops', () => {
+      describe('flag disabled', () => {
+        it('can remove logic ops by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
 
-      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+      });
+
+      describe('flag enabled', () => {
+        it('can remove logic selector by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Remove logic operator: OR'})
+          );
+
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+
+        it('can select a different logic operator', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit logic operator: OR'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
+
+          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
+        });
+      });
     });
 
     it('can click and drag to select tokens', async () => {
@@ -1484,7 +1545,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops with the keyboard', async () => {
+    it('can remove logic ops with the keyboard', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
 
       expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
@@ -3700,6 +3761,26 @@ describe('SearchQueryBuilder', () => {
         await screen.findByText('Parentheses are not supported in this search')
       ).toBeInTheDocument();
     });
+
+    it('should not add the conditionals section to filter key menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="span.op:test"
+          disallowLogicalOperators
+        />,
+        {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+      await waitFor(() =>
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument()
+      );
+    });
   });
 
   describe('disallowWildcard', () => {
@@ -4216,6 +4297,25 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('escapes * for is op but not contains op', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'test*');
+
+      const options = within(screen.getByRole('listbox')).getAllByRole('option');
+      expect(options).toHaveLength(2);
+
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[1]).toHaveTextContent('span.description is test*');
+    });
+
     describe('with wildcard operators enabled', () => {
       describe('selecting suggestions', () => {
         it('should replace raw search keys with defined key:contains:value', async () => {
@@ -4344,7 +4444,12 @@ describe('SearchQueryBuilder', () => {
           // Should have tokenized the pasted text
           expect(
             screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}[test,randomValue]`,
+              name: `span.description:${WildcardOperators.CONTAINS}test`,
+            })
+          ).toBeInTheDocument();
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
             })
           ).toBeInTheDocument();
           // Focus should be at the end of the pasted text
@@ -4422,6 +4527,49 @@ describe('SearchQueryBuilder', () => {
             })
           ).toBeInTheDocument();
           expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('selecting from filter key suggestions', () => {
+        beforeEach(() => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/recent-searches/',
+            body: [{query: 'a or b'}, {query: 'some recent query'}],
+          });
+        });
+
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              recentSearches={SavedSearchType.ISSUE}
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+
+          const aOrBOption = await screen.findByRole('option', {name: 'a or b'});
+          expect(aOrBOption).toBeInTheDocument();
+
+          await userEvent.hover(aOrBOption);
+          await userEvent.keyboard('{enter}{enter}');
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}a`,
+            })
+          ).toBeInTheDocument();
+
+          expect(await screen.findByRole('row', {name: 'OR'})).toBeInTheDocument();
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}b`,
+            })
+          ).toBeInTheDocument();
         });
       });
     });
@@ -4601,6 +4749,8 @@ describe('SearchQueryBuilder', () => {
           return displayAskSeer ? (
             <AskSeerComboBox
               initialQuery={query}
+              analyticsSource="test"
+              feedbackSource="test"
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (_value: string) => {
@@ -4758,7 +4908,7 @@ describe('SearchQueryBuilder', () => {
                 'gen-ai-features',
                 'gen-ai-explore-traces',
                 'gen-ai-explore-traces-consent-ui',
-                'ask-seer-consent-flow-update',
+                'gen-ai-consent-flow-removal',
               ],
             },
           }
@@ -4772,18 +4922,16 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.hover(askSeerText);
 
-        const tooltipTitle = await screen.findByText(
-          /The assistant requires Generative AI/
-        );
+        const tooltipTitle = await screen.findByText(/Powered by genAI/);
         expect(tooltipTitle).toBeInTheDocument();
         expect(tooltipTitle).toBeVisible();
 
-        const tooltipLink = screen.getByText(/data processing policy/);
+        const tooltipLink = screen.getByText(/Learn more/);
         expect(tooltipLink).toBeInTheDocument();
         expect(tooltipLink).toBeVisible();
         expect(tooltipLink).toHaveAttribute(
           'href',
-          'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+          'https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/'
         );
       });
     });

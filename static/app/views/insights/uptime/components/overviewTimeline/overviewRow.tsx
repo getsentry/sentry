@@ -31,6 +31,7 @@ import {
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
+import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
 interface Props {
@@ -67,8 +68,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
   // XXX(epurkhiser): This is a hack, we're seeing some uptime detectors with
   // missing dataSources. That should never happen, but for now let's make sure
   // we're not totally blowing up customers views
-  // @ts-expect-error - See above
-  if (uptimeDetector.dataSources.length === 0) {
+  if (uptimeDetector.dataSources === null) {
     return null;
   }
 
@@ -76,7 +76,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
 
   const ruleDetails = single ? null : (
     <DetailsLink to={{pathname: detailsPath, query}}>
-      <Name>{uptimeDetector.name}</Name>
+      <Name>{monitorName(uptimeDetector)}</Name>
       <Details>
         <DetailsLine>
           {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
@@ -111,12 +111,10 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
                   )}
                 />
               </Flex>
-              {summary.avgDurationUs !== null && (
-                <Flex gap="xs" align="center">
-                  <IconClock />
-                  <UptimeDuration size="xs" summary={summary} />
-                </Flex>
-              )}
+              <Flex gap="xs" align="center">
+                <IconClock />
+                <UptimeDuration size="xs" summary={summary} />
+              </Flex>
             </Fragment>
           )}
         </DetailsLine>

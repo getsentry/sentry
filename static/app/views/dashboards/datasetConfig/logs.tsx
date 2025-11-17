@@ -275,15 +275,6 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...logTags};
 }
 
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
-}
-
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
   // Allow for unknown values to be used for aggregate functions
   // This supports showing the tag value even if it's not in the current
@@ -331,6 +322,9 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
@@ -354,10 +348,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }
@@ -373,11 +370,7 @@ function getGroupByFieldOptions(
     customMeasurements
   );
   const yAxisFilter = filterYAxisOptions();
-
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }

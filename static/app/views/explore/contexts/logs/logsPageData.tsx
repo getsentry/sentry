@@ -21,16 +21,19 @@ export const useLogsPageData = _useLogsPageData;
 
 export function LogsPageDataProvider({
   children,
+  allowHighFidelity,
+  disabled,
 }: {
   children: React.ReactNode;
+  allowHighFidelity?: boolean;
   disabled?: boolean;
 }) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
   const highFidelity = useLogsQueryHighFidelity();
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
-    disabled: !feature,
-    highFidelity,
+    disabled: disabled || !feature,
+    highFidelity: allowHighFidelity && highFidelity,
   });
   const value = useMemo(() => {
     return {

@@ -26,7 +26,6 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
-import PaymentFailureAlert from 'getsentry/views/subscriptionPage/components/paymentFailureAlert';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
 import HeaderCards from './headerCards/headerCards';
@@ -180,7 +179,7 @@ function SubscriptionHeader(props: Props) {
   }
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
       <Flex
@@ -193,7 +192,12 @@ function SubscriptionHeader(props: Props) {
         <Heading as="h1" size="md">
           {t('Subscription')}
         </Heading>
-        <Flex justify="between" align="center">
+        <Flex
+          justify="between"
+          align={{xs: 'start', sm: 'center'}}
+          direction={{xs: 'column', sm: 'row'}}
+          gap="xl"
+        >
           <Flex align="center" gap="sm">
             {isValidElement(planIcon)
               ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
@@ -263,7 +267,6 @@ function BodyWithBillingPerms({
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
-      <PaymentFailureAlert subscription={subscription} organization={organization} />
       <TrialAlert subscription={subscription} organization={organization} />
       {hasPartnerMigrationFeature(organization) && (
         <PartnerPlanEndingBanner

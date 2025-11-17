@@ -1,66 +1,33 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import Feature from 'sentry/components/acl/feature';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getFormattedDate} from 'sentry/utils/dates';
-import {unreachable} from 'sentry/utils/unreachable';
+import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  getMainArtifactSizeMetric,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
-
-interface Labels {
-  appId: string;
-  buildConfiguration: string;
-  downloadSize: string;
-  installSize: string;
-  installSizeText: string;
-  installUnavailableTooltip: string;
-}
-
-function getLabels(platform: Platform | undefined): Labels {
-  switch (platform) {
-    case 'android':
-      return {
-        installSizeText: t('Uncompressed Size'),
-        appId: t('Package name'),
-        installSize: t('Size on disk not including AOT DEX'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-        installUnavailableTooltip: t('This app cannot be installed.'),
-      };
-    case 'ios':
-    case 'macos':
-    case undefined:
-      return {
-        installSizeText: t('Install Size'),
-        appId: t('Bundle identifier'),
-        installSize: t('Unencrypted install size'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-        installUnavailableTooltip: t(
-          'Code signature must be valid for this app to be installed.'
-        ),
-      };
-    default:
-      return unreachable(platform);
-  }
-}
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
@@ -72,6 +39,106 @@ interface BuildDetailsSidebarAppInfoProps {
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const labels = getLabels(props.appInfo.platform ?? undefined);
 
+  const datetimeFormat = getFormat({
+    seconds: true,
+    timeZone: true,
+  });
+
+  let sizeInfoGroup = null;
+  if (
+    props.sizeInfo &&
+    props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED
+  ) {
+    const primarySizeMetric = getMainArtifactSizeMetric(props.sizeInfo);
+    const watchAppMetrics = props.sizeInfo.size_metrics.find(
+      metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
+    );
+
+    let installSizeContent = (
+      <Text size="md">{formattedPrimaryMetricInstallSize(props.sizeInfo)}</Text>
+    );
+    let downloadSizeContent = (
+      <Text size="md">{formattedPrimaryMetricDownloadSize(props.sizeInfo)}</Text>
+    );
+    if (watchAppMetrics) {
+      installSizeContent = (
+        <Tooltip
+          title={
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.install_size_bytes)}
+                </Text>
+              </Flex>
+            </Stack>
+          }
+          position="left"
+        >
+          <Text size="md" underline="dotted">
+            {formattedPrimaryMetricInstallSize(props.sizeInfo)}
+          </Text>
+        </Tooltip>
+      );
+      downloadSizeContent = (
+        <Tooltip
+          title={
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
+            </Stack>
+          }
+          position="left"
+        >
+          <Text size="md" underline="dotted">
+            {formattedPrimaryMetricDownloadSize(props.sizeInfo)}
+          </Text>
+        </Tooltip>
+      );
+    }
+
+    sizeInfoGroup = (
+      <Flex gap="sm">
+        <Flex direction="column" gap="xs" flex={1}>
+          <Tooltip title={labels.installSizeDescription} position="left">
+            <Heading as="h4">{labels.installSizeLabel}</Heading>
+          </Tooltip>
+          {installSizeContent}
+        </Flex>
+        <Flex direction="column" gap="xs" flex={1}>
+          <Tooltip title={labels.downloadSizeDescription} position="left">
+            <Heading as="h4">{labels.downloadSizeLabel}</Heading>
+          </Tooltip>
+          {downloadSizeContent}
+        </Flex>
+      </Flex>
+    );
+  }
+
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
@@ -81,27 +148,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
-      {props.sizeInfo &&
-        props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
-          <Flex gap="sm">
-            <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.installSize} position="left">
-                <Heading as="h4">{labels.installSizeText}</Heading>
-              </Tooltip>
-              <Text size="md">
-                {formatBytesBase10(props.sizeInfo.install_size_bytes)}
-              </Text>
-            </Flex>
-            <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.downloadSize} position="left">
-                <Heading as="h4">{t('Download Size')}</Heading>
-              </Tooltip>
-              <Text size="md">
-                {formatBytesBase10(props.sizeInfo.download_size_bytes)}
-              </Text>
-            </Flex>
-          </Flex>
-        )}
+      {sizeInfoGroup}
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
@@ -135,7 +182,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 <IconClock />
               </InfoIcon>
               <Text>
-                {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+                {getFormattedDate(
+                  getUtcToSystem(props.appInfo.date_added),
+                  datetimeFormat,
+                  {local: true}
+                )}
               </Text>
             </Flex>
           </Tooltip>
@@ -152,24 +203,24 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconLink />
-          </InfoIcon>
-          <Text>
-            {props.projectId && props.appInfo.is_installable ? (
-              <InstallableLink
-                onClick={() => {
-                  openInstallModal(props.projectId!, props.artifactId);
-                }}
-              >
-                Installable
-              </InstallableLink>
-            ) : (
-              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
-            )}
-          </Text>
-        </Flex>
+        <Feature features="organizations:preprod-build-distribution">
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconLink />
+            </InfoIcon>
+            <Text>
+              {props.projectId ? (
+                <InstallableLink
+                  onClick={() => {
+                    openInstallModal(props.projectId!, props.artifactId);
+                  }}
+                >
+                  Install
+                </InstallableLink>
+              ) : null}
+            </Text>
+          </Flex>
+        </Feature>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">

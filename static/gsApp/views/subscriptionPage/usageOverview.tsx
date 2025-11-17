@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -56,6 +57,7 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   MILLISECONDS_IN_HOUR,
+  supportsPayg,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -110,7 +112,6 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 }
 
 function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
-  const hasBillingPerms = organization.access.includes('org:billing');
   const navigate = useNavigate();
   const location = useLocation();
   const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
@@ -272,22 +273,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       },
     ].filter(
       column =>
-        (hasBillingPerms || !column.key.endsWith('Spend')) &&
         (subscription.canSelfServe ||
           !column.key.endsWith('Spend') ||
-          ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
-            column.key === 'budgetSpend')) &&
+          (supportsPayg(subscription) && column.key === 'budgetSpend')) &&
         (hasAnyPotentialOrActiveProductTrial || column.key !== 'trialInfo')
     );
-  }, [
-    hasBillingPerms,
-    subscription.planDetails,
-    subscription.productTrials,
-    subscription.canSelfServe,
-    subscription.onDemandInvoiced,
-    subscription.onDemandInvoicedManual,
-    isXlScreen,
-  ]);
+  }, [subscription, isXlScreen]);
 
   // TODO(isabella): refactor this to have better types
   const productData: Array<{
@@ -483,6 +474,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
   return (
     <GridEditable
+      resizable={false}
       bodyStyle={{
         borderTopLeftRadius: '0px',
         borderTopRightRadius: '0px',
@@ -497,7 +489,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       columnSortBy={[]}
       grid={{
         renderHeadCell: column => {
-          return <Text>{column.name}</Text>;
+          const isSpendColumn = column.key.toString().toLowerCase().endsWith('spend');
+          return (
+            <Container width="100%" justifySelf={isSpendColumn ? 'end' : 'start'}>
+              <Text align={isSpendColumn ? 'right' : 'left'}>{column.name}</Text>
+            </Container>
+          );
         },
         renderBodyCell: (column, row) => {
           const {
@@ -799,6 +796,9 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
   const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed, layout} = useNavContext();
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
+  const startDate = moment(subscription.onDemandPeriodStart);
+  const endDate = moment(subscription.onDemandPeriodEnd);
+  const startsAndEndsSameYear = startDate.year() === endDate.year();
   return (
     <Container
       radius="md"
@@ -822,11 +822,16 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         gap="xl"
         direction={{xs: 'column', sm: 'row'}}
       >
-        <Heading as="h3" size="lg">
-          {t('Usage Overview')}
-        </Heading>
+        <Flex direction="column" gap="sm">
+          <Heading as="h3" size="lg">
+            {t('Usage Overview')}
+          </Heading>
+          <Text variant="muted">
+            {`${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`}
+          </Text>
+        </Flex>
         {hasBillingPerms && (
-          <Flex gap="lg">
+          <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
             <LinkButton
               icon={<IconGraph />}
               aria-label={t('View usage history')}

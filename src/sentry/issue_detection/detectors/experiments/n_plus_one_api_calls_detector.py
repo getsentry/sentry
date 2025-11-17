@@ -25,6 +25,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.safe import get_path
 
 
 class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
@@ -144,6 +145,10 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
+            return False
+
+        is_prefetch_span = get_path(span, "data", "http.request.prefetch")
+        if is_prefetch_span:
             return False
 
         return True

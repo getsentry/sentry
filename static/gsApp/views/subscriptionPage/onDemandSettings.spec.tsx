@@ -32,7 +32,7 @@ describe('edit on-demand budget', () => {
     });
   });
 
-  it('allows VC partner accounts to edit on-demand budget without payment source', () => {
+  it('allows self-serve partner accounts to edit on-demand budget without payment source', () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_business',
       planTier: PlanTier.AM3,
@@ -41,16 +41,7 @@ describe('edit on-demand budget', () => {
       supportsOnDemand: true,
       organization: onDemandOrg,
       paymentSource: null,
-      partner: {
-        externalId: 'x123x',
-        name: 'VC Org',
-        partnership: {
-          id: 'VC',
-          displayName: 'VC',
-          supportNote: '',
-        },
-        isActive: true,
-      },
+      isSelfServePartner: true,
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.SHARED,

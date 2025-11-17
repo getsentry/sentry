@@ -665,7 +665,6 @@ class InsightModules(Enum):
     VITAL = "vital"
     CACHE = "cache"
     QUEUE = "queue"
-    LLM_MONITORING = "llm_monitoring"
     AGENTS = "agents"
     MCP = "mcp"
 

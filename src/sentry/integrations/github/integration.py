@@ -36,20 +36,12 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
+from sentry.integrations.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
-    OPEN_PR_MAX_FILES_CHANGED,
-    OPEN_PR_MAX_LINES_CHANGED,
     CommitContextIntegration,
-    OpenPRCommentWorkflow,
     PRCommentWorkflow,
-    PullRequestFile,
-    PullRequestIssue,
-)
-from sentry.integrations.source_code_management.language_parsers import (
-    get_patch_parsers_for_organization,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -73,10 +65,10 @@ from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
-from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -85,6 +77,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .types import IssueEvenntWebhookActionType
 from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -112,6 +105,20 @@ FEATURES = [
         Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from GitHub. Don't get confused
+        who's fixing what, let us handle ensuring your issues and tickets match up
+        to your Sentry and GitHub assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize Comments on Sentry Issues directly to the linked GitHub issue.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
     ),
     FeatureDescription(
         """
@@ -233,11 +240,12 @@ class GitHubIntegration(
     integration_name = IntegrationProviderSlug.GITHUB
 
     # IssueSyncIntegration configuration keys
-    comment_key = None
+    comment_key = "sync_comments"
     outbound_status_key = None
-    inbound_status_key = None
+    inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    resolution_strategy_key = "resolution_strategy"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -451,6 +459,8 @@ class GitHubIntegration(
 
             # Strip the @ from the username
             github_username = external_actor.external_name.lstrip("@")
+            # lowercase the username
+            github_username = github_username.lower()
 
         # Only update GitHub if we have a username to assign or if we're explicitly deassigning
         if github_username or not assign:
@@ -473,42 +483,75 @@ class GitHubIntegration(
         Given webhook data, check whether the GitHub issue status changed.
         GitHub issues only have open/closed state.
         """
-        # Not implemented yet, so we return NOOP
+        if not features.has(
+            "organizations:integrations-github-project-management", self.organization
+        ):
+            return ResolveSyncAction.NOOP
+
+        if data.get("action") == IssueEvenntWebhookActionType.CLOSED.value:
+            return ResolveSyncAction.RESOLVE
+        elif data.get("action") == IssueEvenntWebhookActionType.REOPENED.value:
+            return ResolveSyncAction.UNRESOLVE
         return ResolveSyncAction.NOOP
 
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Return configuration options for the GitHub integration.
         """
-        config = []
+        config: list[dict[str, Any]] = []
 
-        if features.has(
-            "organizations:integrations-github-inbound-assignee-sync", self.organization
-        ):
-            config.append(
-                {
-                    "name": self.inbound_assignee_key,
-                    "type": "boolean",
-                    "label": _("Sync Github Assignment to Sentry"),
-                    "help": _(
-                        "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
-                    ),
-                    "default": False,
-                }
-            )
-        if features.has(
-            "organizations:integrations-github-outbound-assignee-sync", self.organization
-        ):
-            config.append(
-                {
-                    "name": self.outbound_assignee_key,
-                    "type": "boolean",
-                    "label": _("Sync Sentry Assignment to GitHub"),
-                    "help": _(
-                        "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
-                    ),
-                    "default": False,
-                }
+        if features.has("organizations:integrations-github-project-management", self.organization):
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Github Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitHub"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitHub Status to Sentry"),
+                        "help": _(
+                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.resolution_strategy_key,
+                        "label": "Resolve",
+                        "type": "select",
+                        "placeholder": "Resolve",
+                        "choices": [
+                            ("resolve", "Resolve"),
+                            ("resolve_current_release", "Resolve in Current Release"),
+                            ("resolve_next_release", "Resolve in Next Release"),
+                        ],
+                        "help": _(
+                            "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                        ),
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitHub"),
+                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                    },
+                ]
             )
 
         context = organization_service.get_organization_by_id(
@@ -547,8 +590,32 @@ class GitHubIntegration(
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
 
-    def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
-        return GitHubOpenPRCommentWorkflow(integration=self)
+    def create_comment_attribution(self, user_id, comment_text):
+        user = user_service.get_user(user_id)
+        username = "Unknown User" if user is None else user.name
+
+        attribution = f"**{username}** wrote:\n\n"
+        # GitHub uses markdown blockquotes
+        quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
+        return f"{attribution}{quoted_text}"
+
+    def update_comment(self, issue_id, user_id, group_note):
+        quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().update_comment(
+            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
+        )
+
+    def create_comment(self, issue_id, user_id, group_note):
+        # GitHub uses markdown syntax directly without needing special formatting
+        comment = group_note.data["text"]
+        quoted_comment = self.create_comment_attribution(user_id, comment)
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
@@ -613,31 +680,6 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
         return comment_data
 
 
-OPEN_PR_COMMENT_BODY_TEMPLATE = """\
-## 🔍 Existing Issues For Review
-Your pull request is modifying functions with the following pre-existing issues:
-
-{issue_tables}""".rstrip()
-
-OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
-📄 File: **{filename}**
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}"""
-
-OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
-<details>
-<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}
-</details>"""
-
-OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
-
-
 def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
     if e.json:
         message = e.json.get("message", "")
@@ -652,127 +694,6 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
     return None
 
 
-class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
-    integration: GitHubIntegration
-    organization_option_key = "sentry:github_open_pr_bot"
-    referrer = Referrer.GITHUB_PR_COMMENT_BOT
-    referrer_id = GITHUB_OPEN_PR_BOT_REFERRER
-
-    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
-        client = self.integration.get_client()
-        try:
-            pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
-        except ApiError as e:
-            api_error_resp = process_api_error(e)
-            if api_error_resp is not None:
-                return api_error_resp
-            else:
-                raise
-
-        changed_file_count = 0
-        changed_lines_count = 0
-        filtered_pr_files = []
-
-        organization = Organization.objects.get_from_cache(id=repo.organization_id)
-        patch_parsers = get_patch_parsers_for_organization(organization)
-
-        for file in pr_files:
-            filename = file["filename"]
-            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
-            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
-            if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
-                continue
-
-            changed_file_count += 1
-            changed_lines_count += file["changes"]
-            filtered_pr_files.append(file)
-
-            if (
-                changed_file_count > OPEN_PR_MAX_FILES_CHANGED
-                or changed_lines_count > OPEN_PR_MAX_LINES_CHANGED
-            ):
-                return []
-
-        return filtered_pr_files
-
-    def get_pr_files(self, pr_files: list[dict[str, Any]]) -> list[PullRequestFile]:
-        # new files will not have sentry issues associated with them
-        # only fetch Python files
-        pullrequest_files = [
-            PullRequestFile(filename=file["filename"], patch=file["patch"])
-            for file in pr_files
-            if "patch" in file
-        ]
-
-        return pullrequest_files
-
-    def get_pr_files_safe_for_comment(
-        self, repo: Repository, pr: PullRequest
-    ) -> list[PullRequestFile]:
-        pr_files = self.safe_for_comment(repo=repo, pr=pr)
-
-        if len(pr_files) == 0:
-            return []
-
-        return self.get_pr_files(pr_files)
-
-    def get_comment_data(self, comment_body: str) -> dict[str, Any]:
-        return {
-            "body": comment_body,
-        }
-
-    @staticmethod
-    def format_comment_url(url: str, referrer: str) -> str:
-        return url + "?referrer=" + referrer
-
-    @staticmethod
-    def format_open_pr_comment(issue_tables: list[str]) -> str:
-        return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
-
-    @staticmethod
-    def format_open_pr_comment_subtitle(title_length, subtitle):
-        # the title length + " " + subtitle should be <= 52
-        subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
-        return (
-            subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
-        )
-
-    def format_issue_table(
-        self,
-        diff_filename: str,
-        issues: list[PullRequestIssue],
-        patch_parsers: dict[str, Any],
-        toggle: bool,
-    ) -> str:
-        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
-
-        if not language_parser:
-            return ""
-
-        issue_row_template = language_parser.issue_row_template
-
-        issue_rows = "\n".join(
-            [
-                issue_row_template.format(
-                    title=issue.title,
-                    subtitle=self.format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
-                    url=self.format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
-                    event_count=small_count(issue.event_count),
-                    function_name=issue.function_name,
-                    affected_users=small_count(issue.affected_users),
-                )
-                for issue in issues
-            ]
-        )
-
-        if toggle:
-            return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
-                filename=diff_filename, issue_rows=issue_rows
-            )
-
-        return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
-
-
 class GitHubIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GITHUB.value
     name = "GitHub"
@@ -782,6 +703,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         [
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]

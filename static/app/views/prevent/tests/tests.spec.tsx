@@ -1,3 +1,4 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -136,6 +137,13 @@ const mockApiCall = () => {
     method: 'GET',
     body: mockRepoData,
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/config/integrations/`,
+    method: 'GET',
+    body: {
+      providers: [GitHubIntegrationProviderFixture()],
+    },
+  });
 };
 
 describe('CoveragePageWrapper', () => {
@@ -197,6 +205,14 @@ describe('CoveragePageWrapper', () => {
   });
   describe('when the organization is not in the US region', () => {
     it('renders the pre-onboarding page', () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/`,
+        method: 'GET',
+        body: {
+          providers: [],
+        },
+      });
+
       mockGetRegionData.mockReturnValue({
         name: 'eu',
         displayName: 'European Union (EU)',

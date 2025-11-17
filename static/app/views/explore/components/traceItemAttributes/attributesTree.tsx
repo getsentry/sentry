@@ -395,9 +395,7 @@ function AttributesTreeRowDropdown({
   content: AttributesTreeContent;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: String(content.value),
-  });
+  const {copy} = useCopyToClipboard();
   const [isVisible, setIsVisible] = useState(false);
 
   let customActions: MenuItemProps[] = [];
@@ -410,7 +408,10 @@ function AttributesTreeRowDropdown({
     {
       key: 'copy-value',
       label: t('Copy attribute value to clipboard'),
-      onAction: handleCopy,
+      onAction: () =>
+        copy(String(content.value), {
+          successMessage: t('Attribute value copied to clipboard'),
+        }),
     },
   ];
 

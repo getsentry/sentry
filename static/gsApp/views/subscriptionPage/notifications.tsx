@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -27,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -68,6 +70,8 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   const organization = useOrganization();
   const api = useApi();
   const isNewBillingUI = hasNewBillingUI(organization);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {
     data: backendThresholds,
@@ -191,6 +195,20 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           "Receive notifications when your organization's usage exceeds a threshold"
         )}
         action={
+          !isSmallScreen && (
+            <NotificationButtons
+              isNewBillingUI={isNewBillingUI}
+              onDemandEnabled={subscription.planDetails.allowOnDemand}
+              backendThresholds={backendThresholds}
+              notificationThresholds={notificationThresholds}
+              setNotificationThresholds={setNotificationThresholds}
+              onSubmit={onSubmit}
+            />
+          )
+        }
+      />
+      <Flex direction="column" gap="2xl">
+        {isSmallScreen && (
           <NotificationButtons
             isNewBillingUI={isNewBillingUI}
             onDemandEnabled={subscription.planDetails.allowOnDemand}
@@ -199,9 +217,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
             setNotificationThresholds={setNotificationThresholds}
             onSubmit={onSubmit}
           />
-        }
-      />
-      <Flex direction="column" gap="2xl">
+        )}
         <AlertLink
           to="/settings/account/notifications/quota/"
           type="info"

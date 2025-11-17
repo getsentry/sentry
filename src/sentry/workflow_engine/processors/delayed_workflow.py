@@ -533,7 +533,7 @@ def _group_result_for_dcg(
 
     return evaluate_data_conditions(
         conditions_to_evaluate, DataConditionGroup.Type(dcg.logic_type)
-    ).logic_result
+    ).logic_result.triggered
 
 
 @sentry_sdk.trace
@@ -596,7 +596,8 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
 
     bulk_data = {}
     for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
-        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        with metrics.timer("workflow_engine.process_workflows.fetch_from_nodestore"):
+            bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
         bulk_data.update(bulk_results)
 
     result: dict[str, Event] = {}

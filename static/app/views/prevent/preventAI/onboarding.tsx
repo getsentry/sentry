@@ -12,6 +12,7 @@ import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -38,13 +39,14 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
 }
 
 export function FeatureOverview() {
+  const organization = useOrganization();
   return (
     <Flex direction="column" gap="md" padding="xl" background="secondary" radius="md">
       <Text variant="primary" size="md" bold>
         {t('How to use AI Code Review')}
       </Text>
       <Text variant="muted" size="md">
-        {t('AI Code Review helps you ship better code with three features:')}
+        {t('AI Code Review helps you ship better code with new features:')}
       </Text>
       <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
         <li>
@@ -75,24 +77,23 @@ export function FeatureOverview() {
             )}
           </Text>
         </li>
-        <li>
-          <Text variant="muted" size="sm">
-            {tct('It generates unit tests for your PR when you prompt [sentryCommand].', {
-              sentryCommand: (
-                <Text variant="accent" size="sm" bold>
-                  @sentry generate-test
-                </Text>
-              ),
-            })}
-          </Text>
-        </li>
       </Container>
       <Text variant="muted" size="xs">
         {tct(
           'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/"
+                onClick={() => {
+                  trackAnalytics(
+                    'prevent.ai_onboarding.ai_code_review_docs_link.clicked',
+                    {
+                      organization,
+                    }
+                  );
+                }}
+              />
             ),
           }
         )}
@@ -131,7 +132,7 @@ export default function PreventAIOnboarding() {
         <StyledImg src={preventHero} alt="AI Code Review Hero" />
         <Flex direction="column" gap="md" maxWidth="500px" padding="2xl 0">
           <Heading as="h1" style={{maxWidth: '400px'}}>
-            {t('Ship Code That Breaks Less With Code Reviews And Tests')}
+            {t('Ship Code That Breaks Less With Code Reviews')}
           </Heading>
           <Text variant="primary" size="md">
             {t('AI Code Review is an AI agent that automates tasks in your PR:')}
@@ -141,9 +142,6 @@ export default function PreventAIOnboarding() {
               {t(
                 'It reviews your pull requests, predicting errors and suggesting code fixes.'
               )}
-            </Container>
-            <Container as="li">
-              {t('It generates unit tests for untested code in your PR.')}
             </Container>
           </Container>
         </Flex>
@@ -193,6 +191,11 @@ export default function PreventAIOnboarding() {
                         pathname: `/settings/${organization.slug}/`,
                         hash: 'hideAiFeatures',
                       }}
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.settings_link.clicked', {
+                          organization,
+                        });
+                      }}
                     />
                   ),
                 }
@@ -205,10 +208,27 @@ export default function PreventAIOnboarding() {
                 'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
                   sentryGitHubApp: (
-                    <Link to={`/settings/${organization.slug}/integrations/github/`} />
+                    <Link
+                      to={`/settings/${organization.slug}/integrations/github/`}
+                      onClick={() => {
+                        trackAnalytics(
+                          'prevent.ai_onboarding.github_integration_link.clicked',
+                          {
+                            organization,
+                          }
+                        );
+                      }}
+                    />
                   ),
                   gitHubIntegration: (
-                    <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
+                    <ExternalLink
+                      href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github"
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.github_docs_link.clicked', {
+                          organization,
+                        });
+                      }}
+                    />
                   ),
                 }
               )}
@@ -219,7 +239,16 @@ export default function PreventAIOnboarding() {
               description={tct(
                 'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the [link:Seer by Sentry GitHub App] within the same GitHub organization.',
                 {
-                  link: <ExternalLink href="https://github.com/apps/seer-by-sentry" />,
+                  link: (
+                    <ExternalLink
+                      href="https://github.com/apps/seer-by-sentry"
+                      onClick={() => {
+                        trackAnalytics('prevent.ai_onboarding.seer_app_link.clicked', {
+                          organization,
+                        });
+                      }}
+                    />
+                  ),
                 }
               )}
             />

@@ -24,7 +24,8 @@ from sentry.utils import json
 def test_export_blob_data() -> None:
     # Function parameters which could be abstracted to test multiple variations of this behavior.
     gcs_project_id = "1"
-    pubsub_topic = "PUBSUB_TOPIC"
+    notification_topic = "PUBSUB_TOPIC"
+    pubsub_topic = f"projects/{gcs_project_id}/topics/{notification_topic}"
     bucket_name = "BUCKET"
     bucket_prefix = "PREFIX"
     start_date = datetime(year=2025, month=1, day=31)
@@ -37,7 +38,8 @@ def test_export_blob_data() -> None:
         source_bucket=bucket_name,
         source_prefix=bucket_prefix,
         destination_bucket="b",
-        notification_topic=pubsub_topic,
+        destination_prefix="destination_prefix/",
+        notification_topic=notification_topic,
         job_description=job_description,
         job_duration=job_duration,
         transfer_job_name=None,
@@ -52,7 +54,7 @@ def test_export_blob_data() -> None:
             status=storage_transfer_v1.TransferJob.Status.ENABLED,
             transfer_spec=TransferSpec(
                 gcs_data_source=GcsData(bucket_name=bucket_name, path=bucket_prefix),
-                gcs_data_sink=GcsData(bucket_name="b"),
+                gcs_data_sink=GcsData(bucket_name="b", path="destination_prefix/"),
             ),
             schedule=Schedule(
                 schedule_start_date=date_pb2.Date(
@@ -68,7 +70,11 @@ def test_export_blob_data() -> None:
             ),
             notification_config=NotificationConfig(
                 pubsub_topic=pubsub_topic,
-                event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+                event_types=[
+                    NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_ABORTED,
+                ],
                 payload_format=NotificationConfig.PayloadFormat.JSON,
             ),
         )
@@ -97,7 +103,9 @@ def test_retry_export_blob_data() -> None:
 
 def test_export_replay_blob_data() -> None:
     jobs = []
-    export_replay_blob_data(1, "1", "test", timedelta(days=1), lambda job: jobs.append(job))
+    export_replay_blob_data(
+        1, "1", "test", "dest_prefix/", timedelta(days=1), lambda job: jobs.append(job)
+    )
 
     # Assert a job is created for each retention-period.
     assert len(jobs) == 3

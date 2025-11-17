@@ -40,8 +40,8 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
         onClick={toggleVisibility}
       />
       <MetricSelector traceMetric={traceMetric} />
-      <AggregateDropdown type={traceMetric.type} />
-      <GroupBySelector metricName={traceMetric.name} />
+      <AggregateDropdown traceMetric={traceMetric} />
+      <GroupBySelector traceMetric={traceMetric} />
       <Filter traceMetric={traceMetric} />
       {metricQueries.length > 1 && <DeleteMetricButton />}
     </Grid>

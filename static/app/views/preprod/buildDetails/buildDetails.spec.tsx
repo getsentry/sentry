@@ -4,23 +4,15 @@ import {
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import BuildDetails from './buildDetails';
 
 describe('BuildDetails', () => {
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-    router: {
-      params: {
-        projectId: 'project-1',
-        artifactId: 'artifact-1',
-      },
-    },
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig = {
     location: {
@@ -107,8 +99,13 @@ describe('BuildDetails', () => {
       body: PreprodBuildDetailsWithSizeInfoFixture(
         {
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -177,8 +174,13 @@ describe('BuildDetails', () => {
         }
         return PreprodBuildDetailsWithSizeInfoFixture({
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          install_size_bytes: 1024000,
-          download_size_bytes: 512000,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
         });
       },
     });
@@ -224,8 +226,13 @@ describe('BuildDetails', () => {
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture({
         state: BuildDetailsSizeAnalysisState.COMPLETED,
-        install_size_bytes: 1024000,
-        download_size_bytes: 512000,
+        size_metrics: [
+          {
+            metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+            install_size_bytes: 1024000,
+            download_size_bytes: 512000,
+          },
+        ],
       }),
     });
 

@@ -111,19 +111,20 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
 }
 
 const HoverStyleFlex = styled(Flex)`
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
+  ${p =>
+    p.theme.isChonk
+      ? ''
+      : css`
+          &:hover {
+            background-color: ${p.theme.backgroundSecondary};
+          }
+        `}
 `;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
-
-  &:hover {
-    background-color: transparent;
-  }
 
   ${p =>
     p.theme.isChonk

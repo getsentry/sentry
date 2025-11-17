@@ -37,7 +37,7 @@ describe('TokenRegenerationConfirmationModal', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
 
-    const copyButtons = screen.getAllByRole('button', {name: 'Copy'});
+    const copyButtons = screen.getAllByRole('button', {name: 'Copy to clipboard'});
     expect(copyButtons).toHaveLength(2);
   });
 });

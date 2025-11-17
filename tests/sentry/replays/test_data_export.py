@@ -52,6 +52,7 @@ def test_replay_data_export(default_organization, default_project, replay_store)
             organization_id=default_organization.id,
             gcp_project_id="1",
             destination_bucket="destination",
+            destination_prefix="destination_prefix/",
             database_rows_per_page=1,
         )
         assert create_job.called
@@ -82,6 +83,7 @@ def test_replay_data_export_invalid_organization(default_project, replay_store) 
             organization_id=1,
             gcp_project_id="1",
             destination_bucket="destination",
+            destination_prefix="destination_prefix/",
             database_rows_per_page=1,
         )
         assert not create_job.called
@@ -107,6 +109,7 @@ def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
             organization_id=default_organization.id,
             gcp_project_id="1",
             destination_bucket="destination",
+            destination_prefix="destination_prefix/",
             database_rows_per_page=1,
         )
         assert not create_job.called
@@ -133,6 +136,7 @@ def test_replay_data_export_no_replay_data(  # type: ignore[no-untyped-def]
             organization_id=default_organization.id,
             gcp_project_id="1",
             destination_bucket="destination",
+            destination_prefix="destination_prefix/",
             database_rows_per_page=1,
         )
 

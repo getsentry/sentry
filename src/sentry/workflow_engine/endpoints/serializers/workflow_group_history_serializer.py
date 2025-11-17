@@ -114,7 +114,6 @@ def fetch_workflow_groups_paginated(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
-        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
@@ -131,6 +130,8 @@ def fetch_workflow_groups_paginated(
     return cast(
         CursorResult[Group],
         OffsetPaginator(
-            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
-        ).get_result(per_page, cursor),
+            qs,
+            order_by=("-count", "-last_triggered"),
+            on_results=convert_results,
+        ).get_result(per_page, cursor, count_hits=True),
     )

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   setApiQueryData,
@@ -79,12 +79,9 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
-  if (!sessionData) {
-    return true;
-  }
-
-  // Poll if status is processing or if any message is loading
   return (
+    !sessionData ||
+    runStarted ||
     sessionData.status === 'processing' ||
     sessionData.blocks.some(message => message.loading)
   );
@@ -97,9 +94,10 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
-  const [currentRunId, setCurrentRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
+  const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -110,11 +108,11 @@ export const useSeerExplorer = () => {
   } | null>(null);
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', currentRunId || undefined),
+    makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
     {
       staleTime: 0,
       retry: false,
-      enabled: !!currentRunId && !!orgSlug,
+      enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
         if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
           return POLL_INTERVAL;
@@ -140,9 +138,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Generate timestamp in seconds to match backend format
-      const timestamp = Date.now() / 1000;
-
       // Record current real blocks signature to know when to clear optimistic UI
       const baselineSignature = JSON.stringify(
         (apiData?.session?.blocks || []).map(b => [
@@ -153,8 +148,15 @@ export const useSeerExplorer = () => {
         ])
       );
 
+      // Generate deterministic block IDs matching backend logic
+      // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
+      const generateBlockId = (prefix: string, content: string, index: number) => {
+        const contentPrefix = content.slice(0, 16).replace(/ /g, '-');
+        return `${prefix}-${index}-${contentPrefix}`;
+      };
+
       // Set optimistic UI: show user's message and a thinking placeholder,
-      // and hide all real blocks after the insert point. IDs mimic real pattern.
+      // and hide all real blocks after the insert point.
       const assistantContent =
         OPTIMISTIC_ASSISTANT_TEXTS[
           Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
@@ -163,28 +165,31 @@ export const useSeerExplorer = () => {
         insertIndex: calculatedInsertIndex,
         userQuery: query,
         baselineSignature,
-        userBlockId: `user-${timestamp}`,
-        assistantBlockId: `assistant-${timestamp}`,
+        userBlockId: generateBlockId('user', query, calculatedInsertIndex),
+        assistantBlockId: generateBlockId(
+          'loading',
+          assistantContent || '',
+          calculatedInsertIndex + 1
+        ),
         assistantContent: assistantContent || 'Thinking...',
       });
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/${currentRunId ? `${currentRunId}/` : ''}`,
+          `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
           {
             method: 'POST',
             data: {
               query,
               insert_index: calculatedInsertIndex,
-              message_timestamp: timestamp,
               on_page_context: screenshot,
             },
           }
         )) as SeerExplorerChatResponse;
 
         // Set run ID if this is a new session
-        if (!currentRunId) {
-          setCurrentRunId(response.run_id);
+        if (!runId) {
+          setRunId(response.run_id);
         }
 
         // Invalidate queries to fetch fresh data
@@ -196,7 +201,7 @@ export const useSeerExplorer = () => {
         setOptimistic(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
-          makeSeerExplorerQueryKey(orgSlug, currentRunId || undefined),
+          makeSeerExplorerQueryKey(orgSlug, runId || undefined),
           makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
@@ -205,35 +210,47 @@ export const useSeerExplorer = () => {
       queryClient,
       api,
       orgSlug,
-      currentRunId,
+      runId,
       apiData,
       deletedFromIndex,
       captureAsciiSnapshot,
+      setRunId,
     ]
   );
-
-  const startNewSession = useCallback(() => {
-    setCurrentRunId(null);
-    setWaitingForResponse(false);
-    setDeletedFromIndex(null);
-    setOptimistic(null);
-    if (orgSlug) {
-      setApiQueryData<SeerExplorerResponse>(
-        queryClient,
-        makeSeerExplorerQueryKey(orgSlug),
-        makeInitialSeerExplorerData()
-      );
-    }
-  }, [queryClient, orgSlug]);
 
   const deleteFromIndex = useCallback((index: number) => {
     setDeletedFromIndex(index);
   }, []);
 
+  const interruptRun = useCallback(async () => {
+    if (!orgSlug || !runId || interruptRequested) {
+      return;
+    }
+
+    setInterruptRequested(true);
+
+    try {
+      await api.requestPromise(
+        `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+        {
+          method: 'POST',
+          data: {
+            payload: {
+              type: 'interrupt',
+            },
+          },
+        }
+      );
+    } catch (e: any) {
+      // If the request fails, reset the interrupt state
+      setInterruptRequested(false);
+    }
+  }, [api, orgSlug, runId, interruptRequested]);
+
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
-  const filteredSessionData = (() => {
+  const filteredSessionData = useMemo(() => {
     const realBlocks = sessionData?.blocks || [];
 
     // Respect rewound/deleted index first for the real blocks view
@@ -264,7 +281,7 @@ export const useSeerExplorer = () => {
       ];
 
       const baseSession: NonNullable<SeerExplorerResponse['session']> = sessionData ?? {
-        run_id: currentRunId ?? undefined,
+        run_id: runId ?? undefined,
         blocks: [],
         status: 'processing',
         updated_at: new Date().toISOString(),
@@ -285,7 +302,7 @@ export const useSeerExplorer = () => {
     }
 
     return sessionData;
-  })();
+  }, [sessionData, deletedFromIndex, optimistic, runId]);
 
   // Clear optimistic blocks once the real blocks change in poll results
   useEffect(() => {
@@ -316,19 +333,53 @@ export const useSeerExplorer = () => {
 
     if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
+      setInterruptRequested(false);
       // Clear deleted index once response is complete
       setDeletedFromIndex(null);
     }
   }
+
+  /** Resets the hook state. The session isn't actually created until the user sends a message. */
+  const startNewSession = useCallback(() => {
+    if (!interruptRequested && isPolling(filteredSessionData, waitingForResponse)) {
+      // Make interrupt request before resetting state.
+      interruptRun();
+    }
+    // Reset state.
+    setRunId(null);
+    setWaitingForResponse(false);
+    setDeletedFromIndex(null);
+    setOptimistic(null);
+    setInterruptRequested(false);
+    if (orgSlug) {
+      setApiQueryData<SeerExplorerResponse>(
+        queryClient,
+        makeSeerExplorerQueryKey(orgSlug),
+        makeInitialSeerExplorerData()
+      );
+    }
+  }, [
+    queryClient,
+    orgSlug,
+    setRunId,
+    filteredSessionData,
+    waitingForResponse,
+    interruptRun,
+    interruptRequested,
+  ]);
 
   return {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
+    runId,
+    setRunId,
+    /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
-    runId: currentRunId,
     deleteFromIndex,
     deletedFromIndex,
+    interruptRun,
+    interruptRequested,
   };
 };

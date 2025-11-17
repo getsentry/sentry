@@ -108,9 +108,7 @@ class Fixtures:
 
     @cached_property
     def project(self):
-        return self.create_project(
-            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
-        )
+        return self.create_project(name="Bar", slug="bar", teams=[self.team])
 
     @cached_property
     def release(self):
@@ -360,6 +358,11 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_data_forwarder(organization, *args, **kwargs)
+
+    def create_data_forwarder_project(self, data_forwarder=None, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_data_forwarder_project(data_forwarder, project, **kwargs)
 
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
@@ -691,15 +694,15 @@ class Fixtures:
 
     def create_detector(
         self,
+        project: Project | None = None,
+        type: str | None = ErrorGroupType.slug,
         *args,
-        project=None,
-        type=ErrorGroupType.slug,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, type=type, **kwargs)
+        return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)

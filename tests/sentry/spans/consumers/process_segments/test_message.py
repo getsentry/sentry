@@ -240,6 +240,38 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_http"]
 
+    def test_segment_name_propagation(self):
+        child_span, segment_span = self.generate_basic_spans()
+        segment_span["name"] = "my segment name"
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment name",
+        }
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes["sentry.segment.name"] == {
+            "type": "string",
+            "value": "my segment name",
+        }
+
+    def test_segment_name_propagation_when_name_missing(self):
+        child_span, segment_span = self.generate_basic_spans()
+        del segment_span["name"]
+
+        processed_spans = process_segment([child_span, segment_span])
+
+        assert len(processed_spans) == 2
+        child_span, segment_span = processed_spans
+        segment_attributes = segment_span["attributes"] or {}
+        assert segment_attributes.get("sentry.segment.name") is None
+        child_attributes = child_span["attributes"] or {}
+        assert child_attributes.get("sentry.segment.name") is None
+
 
 def test_verify_compatibility():
     spans: list[dict[str, Any]] = [

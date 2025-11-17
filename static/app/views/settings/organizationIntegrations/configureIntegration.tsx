@@ -23,17 +23,22 @@ import type {
   OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -46,11 +51,6 @@ import IntegrationItem from './integrationItem';
 import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
-
-type Props = RouteComponentProps<{
-  integrationId: string;
-  providerKey: string;
-}>;
 
 const TABS = [
   'repos',
@@ -72,12 +72,19 @@ const makePluginQuery = (organization: Organization): ApiQueryKey => {
   return [`/organizations/${organization.slug}/plugins/configs/`];
 };
 
-function ConfigureIntegration({params, router, routes, location}: Props) {
+function ConfigureIntegration() {
+  const routes = useRoutes();
+  const location = useLocation();
+  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const tab: Tab = TABS.includes(location.query.tab) ? location.query.tab : 'repos';
-  const {integrationId, providerKey} = params;
+  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
+  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const {integrationId, providerKey} = useParams<{
+    integrationId: string;
+    providerKey: string;
+  }>();
   const {
     data: config = {providers: []},
     isPending: isLoadingConfig,
@@ -127,14 +134,18 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   useEffect(() => {
     // This page should not be accessible by members (unless its github or gitlab)
     const allowMemberConfiguration = ['github', 'gitlab'].includes(providerKey);
-    if (!allowMemberConfiguration && !organization.access.includes('org:integrations')) {
-      router.push(
+    if (
+      !allowMemberConfiguration &&
+      !organization.access.includes('org:integrations') &&
+      !isActiveSuperuser()
+    ) {
+      navigate(
         normalizeUrl({
           pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
         })
       );
     }
-  }, [router, organization, providerKey]);
+  }, [navigate, organization, providerKey]);
 
   if (isLoadingConfig || isLoadingIntegration || isLoadingPlugins) {
     return <LoadingIndicator />;
@@ -151,7 +162,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {...query, tab: value},
     });

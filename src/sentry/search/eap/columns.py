@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypeAlias, TypedDict
+from typing import Any, Literal, TypeAlias, TypedDict, cast
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -22,7 +22,8 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.types import EAPResponse
+from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
+from sentry.search.eap.types import EAPResponse, MetricType, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -33,6 +34,7 @@ class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
     query_result_cache: dict[str, EAPResponse]
+    search_config: SearchResolverConfig
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -191,6 +193,13 @@ class ResolvedFormula(ResolvedFunction):
 
 
 @dataclass(frozen=True, kw_only=True)
+class ResolvedTraceMetricFormula(ResolvedFormula):
+    metric_name: str | None
+    metric_type: MetricType | None
+    metric_unit: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedAggregate(ResolvedFunction):
     """
     An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
@@ -199,8 +208,7 @@ class ResolvedAggregate(ResolvedFunction):
 
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
-    extrapolation: bool = True
+    extrapolation_mode: ExtrapolationMode.ValueType
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
@@ -212,20 +220,22 @@ class ResolvedAggregate(ResolvedFunction):
             aggregate=self.internal_name,
             key=self.argument,
             label=self.public_alias,
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=self.extrapolation_mode,
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedTraceMetricAggregate(ResolvedAggregate):
+    metric_name: str | None
+    metric_type: MetricType | None
+    metric_unit: str | None
 
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
-    extrapolation: bool = True
+    extrapolation_mode: ExtrapolationMode.ValueType
     # The condition to filter on
     filter: TraceItemFilter
     # The attribute to conditionally aggregate on
@@ -241,11 +251,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
             key=self.key,
             filter=self.filter,
             label=self.public_alias,
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=self.extrapolation_mode,
         )
 
 
@@ -278,8 +284,8 @@ class FunctionDefinition:
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
-    extrapolation: bool = True
+    # Extrapolation mode to be used
+    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
@@ -298,7 +304,7 @@ class FunctionDefinition:
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -310,7 +316,7 @@ class AggregateDefinition(FunctionDefinition):
     An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
     If not provided, assumes the aggregate is on the first argument.
     """
-    attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
+    attribute_resolver: Callable[[ResolvedArgument], AttributeKey] | None = None
 
     def resolve(
         self,
@@ -319,7 +325,7 @@ class AggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -333,7 +339,7 @@ class AggregateDefinition(FunctionDefinition):
                 raise InvalidSearchQuery("Aggregates accept attribute keys only")
             resolved_attribute = resolved_arguments[0]
             if self.attribute_resolver is not None:
-                resolved_attribute = self.attribute_resolver(resolved_arguments)
+                resolved_attribute = self.attribute_resolver(resolved_attribute)
 
         return ResolvedAggregate(
             public_alias=alias,
@@ -341,8 +347,53 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
             argument=resolved_attribute,
+        )
+
+
+@dataclass(kw_only=True)
+class TraceMetricAggregateDefinition(AggregateDefinition):
+    def __post_init__(self) -> None:
+        validate_trace_metric_aggregate_arguments(self.arguments)
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+    ) -> ResolvedAggregate:
+        if not isinstance(resolved_arguments[0], AttributeKey):
+            raise InvalidSearchQuery(
+                "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+            )
+
+        resolved_attribute = resolved_arguments[0]
+        if self.attribute_resolver is not None:
+            resolved_attribute = self.attribute_resolver(resolved_attribute)
+
+        metric_name, metric_type, metric_unit = extract_trace_metric_aggregate_arguments(
+            resolved_arguments
+        )
+
+        return ResolvedTraceMetricAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
+            argument=resolved_attribute,
+            metric_name=metric_name,
+            metric_type=metric_type,
+            metric_unit=metric_unit,
         )
 
 
@@ -367,7 +418,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedConditionalAggregate:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -378,7 +429,9 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
         )
 
 
@@ -401,16 +454,15 @@ class FormulaDefinition(FunctionDefinition):
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation and not extrapolation_override
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
             ),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
+            search_config=search_config,
         )
 
         return ResolvedFormula(
@@ -420,6 +472,46 @@ class FormulaDefinition(FunctionDefinition):
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
+        )
+
+
+@dataclass(kw_only=True)
+class TraceMetricFormulaDefinition(FormulaDefinition):
+    def __post_init__(self) -> None:
+        validate_trace_metric_aggregate_arguments(self.arguments)
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+    ) -> ResolvedFormula:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
+            snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
+            search_config=search_config,
+        )
+
+        metric_name, metric_type, metric_unit = extract_trace_metric_aggregate_arguments(
+            resolved_arguments
+        )
+
+        return ResolvedTraceMetricFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
+            is_aggregate=self.is_aggregate,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            metric_name=metric_name,
+            metric_type=metric_type,
+            metric_unit=metric_unit,
         )
 
 
@@ -505,3 +597,72 @@ class ColumnDefinitions:
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
+
+
+def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeKey.Type.ValueType]:
+    return (attribute_key.name, attribute_key.type)
+
+
+def count_argument_resolver_optimized(
+    always_present_attributes: list[AttributeKey],
+) -> Callable[[ResolvedArgument], AttributeKey]:
+    always_present_attributes_set = {
+        attribute_key_to_tuple(attribute) for attribute in always_present_attributes
+    }
+
+    def count_argument_resolver(resolved_argument: ResolvedArgument) -> AttributeKey:
+        if not isinstance(resolved_argument, AttributeKey):
+            raise InvalidSearchQuery("Aggregates accept attribute keys only")
+
+        if attribute_key_to_tuple(resolved_argument) in always_present_attributes_set:
+            return AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+
+        return resolved_argument
+
+    return count_argument_resolver
+
+
+def validate_trace_metric_aggregate_arguments(
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition],
+) -> None:
+    if len(arguments) != 4:
+        raise InvalidSearchQuery(
+            f"Trace metric aggregates expects exactly 4 arguments to be defined, got {len(arguments)}"
+        )
+
+    if not isinstance(arguments[0], AttributeArgumentDefinition):
+        raise InvalidSearchQuery(
+            "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+        )
+
+    for i in range(1, 4):
+        if not isinstance(arguments[i], ValueArgumentDefinition):
+            raise InvalidSearchQuery(
+                f"Trace metric aggregates expects argument {i} to be of type ValueArgumentDefinition"
+            )
+
+
+def extract_trace_metric_aggregate_arguments(
+    resolved_arguments: ResolvedArguments,
+) -> tuple[str | None, MetricType | None, str | None]:
+    metric_name = None
+    metric_type = None
+    metric_unit = None
+
+    if all(
+        isinstance(resolved_argument, str) and resolved_argument != ""
+        for resolved_argument in resolved_arguments[1:]
+    ):
+        # a metric was passed
+        metric_name = cast(str, resolved_arguments[1])
+        metric_type = cast(MetricType, resolved_arguments[2])
+        metric_unit = None if resolved_arguments[3] == "-" else cast(str, resolved_arguments[3])
+    elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
+        # no metrics were specified, assume we query all metrics
+        pass
+    else:
+        raise InvalidSearchQuery(
+            f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
+        )
+
+    return metric_name, metric_type, metric_unit
