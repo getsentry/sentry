@@ -16,6 +16,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
 import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
+import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
@@ -109,6 +110,9 @@ export default function UptimeDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
+          <InsightsRedirectNotice>
+            {t('Uptime monitors have been moved from Insights to Monitors.')}
+          </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
           <DetectorListContent {...detectorListQuery} />
         </WorkflowEngineListLayout>
