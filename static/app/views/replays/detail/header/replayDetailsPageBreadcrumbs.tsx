@@ -94,84 +94,85 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     },
     label: project ? (
       <ProjectBadge disableLink project={project} avatarSize={16} />
-    ) : null,
+    ) : (
+      t('Project')
+    ),
   };
 
   const replayCrumb = {
     label: replayRecord ? (
       <Flex>
-        <Flex
-          align="center"
-          gap="xs"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+        <Flex align="center" gap="xs">
           {organization.features.includes('replay-playlist-view') && (
-            <Flex>
-              <ButtonBar merged gap="0">
-                <LinkButton
-                  size="xs"
-                  icon={<IconPrevious />}
-                  disabled={!previousReplay}
-                  to={{
-                    pathname: previousReplay
-                      ? makeReplaysPathname({
-                          path: `/${previousReplay.id}/`,
-                          organization,
-                        })
-                      : undefined,
-                    query: initialLocation.current.query,
-                  }}
-                  onClick={() =>
-                    trackAnalytics('replay.details-playlist-clicked', {
-                      direction: 'previous',
-                      organization,
-                    })
-                  }
-                />
-                <LinkButton
-                  size="xs"
-                  icon={<IconNext />}
-                  disabled={!nextReplay}
-                  to={{
-                    pathname: nextReplay
-                      ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                      : undefined,
-                    query: initialLocation.current.query,
-                  }}
-                  onClick={() =>
-                    trackAnalytics('replay.details-playlist-clicked', {
-                      direction: 'next',
-                      organization,
-                    })
-                  }
-                />
-              </ButtonBar>
-            </Flex>
+            <StyledButtonBar merged gap="0">
+              <LinkButton
+                size="xs"
+                icon={<IconPrevious />}
+                disabled={!previousReplay}
+                to={{
+                  pathname: previousReplay
+                    ? makeReplaysPathname({
+                        path: `/${previousReplay.id}/`,
+                        organization,
+                      })
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'previous',
+                    organization,
+                  })
+                }
+              />
+              <LinkButton
+                size="xs"
+                icon={<IconNext />}
+                disabled={!nextReplay}
+                to={{
+                  pathname: nextReplay
+                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'next',
+                    organization,
+                  })
+                }
+              />
+            </StyledButtonBar>
           )}
-          <ShortId
-            onClick={() =>
-              copy(replayUrlWithTimestamp, {
-                successMessage: t('Copied replay link to clipboard'),
-              })
-            }
+          <Flex
+            align="center"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
-            {getShortEventId(replayRecord?.id)}
-          </ShortId>
-          <Tooltip title={t('Copy link to replay at current timestamp')}>
-            <Button
-              aria-label={t('Copy link to replay at current timestamp')}
+            <ShortId
               onClick={() =>
                 copy(replayUrlWithTimestamp, {
                   successMessage: t('Copied replay link to clipboard'),
                 })
               }
-              size="zero"
-              borderless
-              style={isHovered ? {} : {visibility: 'hidden'}}
-              icon={<IconCopy size="xs" color="subText" />}
-            />
-          </Tooltip>
+            >
+              {getShortEventId(replayRecord?.id)}
+            </ShortId>
+            <Tooltip title={t('Copy link to replay at current timestamp')}>
+              <Button
+                aria-label={t('Copy link to replay at current timestamp')}
+                onClick={() =>
+                  copy(replayUrlWithTimestamp, {
+                    successMessage: t('Copied replay link to clipboard'),
+                  })
+                }
+                size="zero"
+                borderless
+                style={isHovered ? {} : {visibility: 'hidden'}}
+                icon={<IconCopy size="xs" color="subText" />}
+              />
+            </Tooltip>
+          </Flex>
         </Flex>
       </Flex>
     ) : (
@@ -194,4 +195,10 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
 
 const ShortId = styled('div')`
   margin-left: 10px;
+`;
+
+// Breadcrumbs have overflow: hidden, so we need to set the margin-top to 2px
+// to avoid the buttons from being cut off.
+const StyledButtonBar = styled(ButtonBar)`
+  margin-top: 2px;
 `;

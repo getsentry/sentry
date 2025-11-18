@@ -6247,6 +6247,51 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 400, response.content
         assert "Invalid Parameter " in response.data["detail"].title()
 
+    def test_count_if_integer(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 100}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "bar"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 200}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "baz"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 300}},
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(gen_ai.usage.total_tokens,greater,200)"],
+                "query": "",
+                "orderby": "count_if(gen_ai.usage.total_tokens,greater,200)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(gen_ai.usage.total_tokens,greater,200)": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
     def test_apdex_function(self) -> None:
         """Test the apdex function with span.duration and threshold."""
         # Create spans with different durations to test apdex calculation
@@ -6830,3 +6875,39 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(span.duration)": 1}]
+
+    def test_wildcard_operator_with_backslash(self):
+        span = self.create_span({"description": r"foo\bar"}, start_ts=self.ten_mins_ago)
+        self.store_spans([span], is_eap=True)
+        base_request = {
+            "field": ["project.name", "id"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request({**base_request, "query": r"span.description:foo\bar"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request({**base_request, "query": r"span.description:*foo\\bar*"})
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dContains\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dStartsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+        response = self.do_request(
+            {**base_request, "query": "span.description:\uf00dEndsWith\uf00dfoo\\bar"}
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]

@@ -6,6 +6,7 @@ import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -76,6 +77,11 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
         </CrumbLink>
       }
       onCrumbSelect={handleSelect}
+      onOpenChange={open => {
+        if (open) {
+          trackAnalytics('breadcrumbs.menu.opened', {organization: null});
+        }
+      }}
       hasMenu={hasMenu}
       route={route}
       value={organization.slug}
