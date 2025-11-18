@@ -154,7 +154,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if not api_key:
             raise IntegrationConfigurationError("API key is required")
 
-        metadata = CursorIntegrationMetadata.validate(self.model.metadata or {})
+        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
         metadata.api_key = api_key
         integration_service.update_integration(
             integration_id=self.model.id, metadata=metadata.dict()
@@ -172,8 +172,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     @property
     def webhook_secret(self) -> str:
-        return CursorIntegrationMetadata.validate(self.model.metadata).webhook_secret
+        return CursorIntegrationMetadata.parse_obj(self.model.metadata).webhook_secret
 
     @property
     def api_key(self) -> str:
-        return CursorIntegrationMetadata.validate(self.model.metadata).api_key
+        return CursorIntegrationMetadata.parse_obj(self.model.metadata).api_key

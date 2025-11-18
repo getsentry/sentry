@@ -224,6 +224,28 @@ class CursorIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationConfigurationError, match="API key is required"):
             installation.update_organization_config({})
 
+    def test_property_getters(self):
+        """Test that api_key and webhook_secret property getters return correct values"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "test_api_key_value",
+                "webhook_secret": "test_webhook_secret_value",
+                "domain_name": "cursor.sh",
+            },
+        )
+
+        installation = cast(
+            CursorAgentIntegration,
+            integration.get_installation(organization_id=self.organization.id),
+        )
+
+        assert installation.api_key == "test_api_key_value"
+        assert installation.webhook_secret == "test_webhook_secret_value"
+
     def test_build_integration_creates_unique_installations(self):
         """Test that each call to build_integration creates a unique integration"""
         state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
