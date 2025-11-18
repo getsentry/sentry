@@ -70,3 +70,15 @@ class TestEAPDeletion(TestCase):
                 project_id=self.project_id,
                 group_ids=[],
             )
+
+    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    def test_exception_does_not_propagate(self, mock_rpc):
+        mock_rpc.side_effect = Exception("RPC connection failed")
+
+        # Should not raise - exception should be caught
+        try:
+            delete_events_from_eap(
+                self.organization_id, self.project_id, self.group_ids, Dataset.Events
+            )
+        except Exception:
+            pytest.fail("Exception should have been caught and not propagated")
