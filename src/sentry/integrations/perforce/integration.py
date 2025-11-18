@@ -96,18 +96,21 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         if auth_mode == "ticket":
             # Ticket authentication mode
+            # P4PORT still required for multi-server environments with login forwarding
             self._client = PerforceClient(
                 ticket=config.get("ticket"),
+                p4port=config.get("p4port", "localhost:1666"),
                 client=config.get("client"),
+                ssl_fingerprint=config.get("ssl_fingerprint"),
             )
         else:
             # Password authentication mode
             self._client = PerforceClient(
-                host=config.get("host", "localhost"),
-                port=config.get("port", 1666),
+                p4port=config.get("p4port", "localhost:1666"),
                 user=config.get("user", ""),
                 password=config.get("password"),
                 client=config.get("client"),
+                ssl_fingerprint=config.get("ssl_fingerprint"),
             )
         return self._client
 
@@ -331,23 +334,20 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "depends_on": {"auth_mode": "ticket"},
             },
             {
-                "name": "host",
+                "name": "p4port",
                 "type": "string",
-                "label": "Perforce Server Host",
-                "placeholder": "perforce.company.com",
-                "help": "The hostname or IP address of your Perforce server",
+                "label": "P4PORT (Server Address)",
+                "placeholder": "ssl:perforce.company.com:1666",
+                "help": "Perforce server address in P4PORT format. Required even with tickets for multi-server environments. Examples: 'ssl:perforce.company.com:1666' (encrypted), 'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). SSL is strongly recommended.",
                 "required": False,
-                "depends_on": {"auth_mode": "password"},
             },
             {
-                "name": "port",
-                "type": "number",
-                "label": "Perforce Server Port",
-                "placeholder": "1666",
-                "help": "The port number for your Perforce server (default: 1666)",
+                "name": "ssl_fingerprint",
+                "type": "string",
+                "label": "SSL Fingerprint (Required for SSL)",
+                "placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
+                "help": "SSL fingerprint for secure connections. Required when using 'ssl:' protocol. Obtain with: p4 -p ssl:host:port trust -y",
                 "required": False,
-                "default": "1666",
-                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "user",
@@ -415,13 +415,17 @@ class PerforceIntegrationProvider(IntegrationProvider):
         Returns:
             Integration data dictionary
         """
+        # Use p4port if available, otherwise fall back to host:port for legacy
+        p4port = (
+            state.get("p4port") or f"{state.get('host', 'localhost')}:{state.get('port', '1666')}"
+        )
+
         return {
-            "name": state.get("name", f"Perforce ({state['host']})"),
-            "external_id": f"{state['host']}:{state['port']}",
+            "name": state.get("name", f"Perforce ({p4port})"),
+            "external_id": p4port,
             "metadata": {
-                "host": state["host"],
-                "port": state["port"],
-                "user": state["user"],
+                "p4port": p4port,
+                "user": state.get("user"),
                 "password": state.get("password"),
                 "client": state.get("client"),
                 "ssl_fingerprint": state.get("ssl_fingerprint"),
@@ -468,8 +472,7 @@ class PerforceInstallationView:
             pipeline: Installation pipeline
         """
         # Set some default values that users will configure later
-        pipeline.bind_state("host", "localhost")
-        pipeline.bind_state("port", "1666")
+        pipeline.bind_state("p4port", "localhost:1666")
         pipeline.bind_state("user", "")
         pipeline.bind_state("name", "Perforce Integration")
 
