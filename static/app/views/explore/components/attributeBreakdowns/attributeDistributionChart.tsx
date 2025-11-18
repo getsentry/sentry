@@ -91,10 +91,11 @@ export function Chart({
     const pct = percentageFormatter(Number(data));
 
     const value = Array.isArray(p) ? p[0]?.name : p.name;
-    const truncatedValue =
-      value && value.length > TOOLTIP_MAX_VALUE_LENGTH
+    const truncatedValue = value
+      ? value.length > TOOLTIP_MAX_VALUE_LENGTH
         ? `${value.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
-        : `\u2014`;
+        : value
+      : '\u2014';
     return [
       '<div class="tooltip-series" style="padding: 0;">',
       `<div><span class="tooltip-label" style="margin: 0 auto; text-align: center; padding:8px 20px; min-width: 100px; max-width: 300px; word-break: break-word; white-space: normal; overflow-wrap: anywhere;"><strong>${truncatedValue}</strong></span></div>`,
