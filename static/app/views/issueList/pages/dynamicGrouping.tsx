@@ -8,7 +8,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -173,7 +172,6 @@ function DynamicGrouping() {
   const organization = useOrganization();
   const user = useUser();
   const {teams} = useUserTeams();
-  const [minClusterSize, setMinClusterSize] = useState(1);
   const [jsonInput, setJsonInput] = useState('');
   const [clusterData, setClusterData] = useState<ClusterSummary[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -247,10 +245,6 @@ function DynamicGrouping() {
   // Filter and sort clusters by fixability score (descending)
   const filteredAndSortedClusters = useMemo(() => {
     return [...clusterData]
-      .filter(
-        (cluster: ClusterSummary) =>
-          (cluster.cluster_size ?? cluster.group_ids.length) >= minClusterSize
-      )
       .filter((cluster: ClusterSummary) => {
         // If "Assigned to Me" filter is enabled, only show clusters assigned to the user
         if (filterByAssignedToMe) {
@@ -262,7 +256,7 @@ function DynamicGrouping() {
         (a: ClusterSummary, b: ClusterSummary) =>
           (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
       );
-  }, [clusterData, minClusterSize, filterByAssignedToMe, isClusterAssignedToMe]);
+  }, [clusterData, filterByAssignedToMe, isClusterAssignedToMe]);
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
@@ -345,30 +339,16 @@ function DynamicGrouping() {
             background="primary"
           >
             <Flex gap="md" align="center" justify="between">
-              <Flex gap="md" align="center" style={{flexShrink: 0}}>
-                <Flex gap="sm" align="center">
-                  <Text size="sm" variant="muted">
-                    {t('Minimum issues per cluster:')}
-                  </Text>
-                  <NumberInput
-                    min={1}
-                    value={minClusterSize}
-                    onChange={value => setMinClusterSize(value ?? 1)}
-                    aria-label={t('Minimum issues per cluster')}
-                    size="sm"
-                  />
-                </Flex>
-                <Flex gap="sm" align="center">
-                  <Checkbox
-                    checked={filterByAssignedToMe}
-                    onChange={e => setFilterByAssignedToMe(e.target.checked)}
-                    aria-label={t('Show only issues assigned to me')}
-                    size="sm"
-                  />
-                  <Text size="sm" variant="muted">
-                    {t('Only show issues assigned to me')}
-                  </Text>
-                </Flex>
+              <Flex gap="sm" align="center">
+                <Checkbox
+                  checked={filterByAssignedToMe}
+                  onChange={e => setFilterByAssignedToMe(e.target.checked)}
+                  aria-label={t('Show only issues assigned to me')}
+                  size="sm"
+                />
+                <Text size="sm" variant="muted">
+                  {t('Only show issues assigned to me')}
+                </Text>
               </Flex>
               <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
                 {tn(
