@@ -108,11 +108,7 @@ class FindAlertRuleActionUiComponentTest(TestCase):
                 "metric_alert": {
                     "alert_rule": {
                         "triggers": [
-                            {
-                                "actions": [
-                                    {"type": "sentry_app", "settings": {"name": "Example"}}
-                                ]
-                            }
+                            {"actions": [{"type": "sentry_app", "settings": {"name": "Example"}}]}
                         ]
                     }
                 }
