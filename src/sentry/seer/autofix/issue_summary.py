@@ -315,7 +315,7 @@ def _run_automation(
     )
 
     fixability_score = group.seer_fixability_score
-    # Re-try generating fixability score if it failed in _generate_summary or was skiped.
+    # Re-try generating fixability score if it failed in _generate_summary or was skipped
     if fixability_score is None:
         with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
             fixability_response = _generate_fixability_score(group)
