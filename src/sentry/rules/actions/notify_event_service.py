@@ -103,12 +103,10 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     Loop through the triggers for the alert rule event. For each trigger, check
     if an action is an alert rule UI Component
     """
-    triggers = (
-        getattr(app_platform_event, "data", {})
-        .get("metric_alert", {})
-        .get("alert_rule", {})
-        .get("triggers", [])
-    )
+    data = getattr(app_platform_event, "data", {}) or {}
+    metric_alert = data.get("metric_alert") or {}
+    alert_rule = metric_alert.get("alert_rule") or {}
+    triggers = alert_rule.get("triggers") or []
 
     actions = [
         action
