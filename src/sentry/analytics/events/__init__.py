@@ -99,6 +99,7 @@ from .sso_enabled import *  # noqa: F401,F403
 from .suspectcommit_assignment import *  # noqa: F401,F403
 from .team_created import *  # noqa: F401,F403
 from .user_created import *  # noqa: F401,F403
+from .user_removed import *  # noqa: F401,F403
 from .user_signup import *  # noqa: F401,F403
 from .webhook_repository_created import *  # noqa: F401,F403
 from .weekly_report import *  # noqa: F401,F403

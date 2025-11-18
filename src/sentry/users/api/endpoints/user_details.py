@@ -1,15 +1,20 @@
 import logging
+from datetime import timedelta
+from types import SimpleNamespace
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
+from django.utils import timezone as django_timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
-from sentry import roles
+from sentry import analytics, roles
+from sentry.analytics.events.user_removed import UserRemovedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
@@ -23,6 +28,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
@@ -36,6 +42,60 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
+
+
+def record_user_deletion(
+    *,
+    actor: User,
+    ip_address: str,
+    hard_delete: bool,
+    user: User | None = None,
+    user_id: int | None = None,
+    user_email: str | None = None,
+) -> None:
+    if hard_delete:
+        # Since we record the deletion after a hard_delete, we have no user object left
+        # and need to construct an account object containing the user attributes
+        assert user_id is not None and user_email is not None
+        account = SimpleNamespace(id=user_id, email=user_email)
+    else:
+        assert user is not None
+        account = user
+
+    deletion_request_datetime = django_timezone.now()
+    deletion_datetime = (
+        deletion_request_datetime if hard_delete else deletion_request_datetime + timedelta(days=30)
+    )
+
+    try:
+        analytics.record(
+            UserRemovedEvent(
+                user_id=account.id,
+                actor_id=actor.id,
+                deletion_request_datetime=deletion_request_datetime.isoformat(),
+                deletion_datetime=deletion_datetime.isoformat(),
+            )
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    if hard_delete:
+        context = {"deletion_datetime": deletion_request_datetime.isoformat()}
+    else:
+        context = {
+            "deactivation_datetime": deletion_request_datetime.isoformat(),
+            "scheduled_deletion_datetime": deletion_datetime.isoformat(),
+        }
+
+    capture_security_activity(
+        account=account,
+        type="user.removed" if hard_delete else "user.deactivated",
+        actor=actor,
+        ip_address=ip_address,
+        context=context,
+        send_email=False,
+        current_datetime=deletion_request_datetime,
+    )
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
@@ -357,11 +417,26 @@ class UserDetailsEndpoint(UserEndpoint):
         is_current_user = request.user.id == user.id
 
         if hard_delete:
+            user_id = user.id
+            user_email = user.email
             user.delete()
             delete_logger.info("user.removed", extra=logging_data)
+            record_user_deletion(
+                user_id=user_id,
+                user_email=user_email,
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                hard_delete=True,
+            )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
             delete_logger.info("user.deactivate", extra=logging_data)
+            record_user_deletion(
+                user=user,
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                hard_delete=False,
+            )
 
         # if the user deleted their own account log them out
         if is_current_user:
