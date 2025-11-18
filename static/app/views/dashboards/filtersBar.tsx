@@ -196,7 +196,7 @@ export default function FiltersBar({
         <ButtonBar>
           <Button
             title={
-              !hasEditAccess && t('You do not have permission to edit this dashboard')
+              !hasEditAccess && t('You do not have perission to edit this dashboard')
             }
             priority="primary"
             onClick={async () => {
