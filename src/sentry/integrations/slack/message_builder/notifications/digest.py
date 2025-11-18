@@ -31,7 +31,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         digest: Digest = self.context.get("digest", {})
         digest_groups = get_groups(digest)
         total_issues = len(digest_groups)
-        blocks = []
+        blocks: list[SlackBlock] = []
 
         for issue_index, (rule, group, event) in enumerate(digest_groups, start=1):
             alert_as_blocks = SlackIssuesMessageBuilder(
