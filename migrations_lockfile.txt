@@ -17,7 +17,7 @@ hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0010_delete_orphaned_detectors
+monitors: 0011_backfill_monitor_environment_is_muted
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
