@@ -1,37 +1,16 @@
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-interface Props extends SVGIconProps {
-  direction?: 'up' | 'right' | 'down' | 'left';
-}
-
-export function IconSliders({direction = 'up', ...props}: Props) {
+export function IconSliders(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
-    <SvgIcon
-      {...props}
-      kind={theme.isChonk ? 'stroke' : 'path'}
-      css={
-        direction
-          ? css`
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
-          : undefined
-      }
-    >
+    <SvgIcon {...props}>
       {theme.isChonk ? (
-        <Fragment>
-          <circle cx="5.25" cy="6" r="1.75" />
-          <line x1="5.25" y1="2.75" x2="5.25" y2="4.25" />
-          <line x1="5.25" y1="13.25" x2="5.25" y2="7.75" />
-          <circle cx="10.75" cy="10" r="1.75" />
-          <line x1="10.75" y1="13.25" x2="10.75" y2="11.75" />
-          <line x1="10.75" y1="2.75" x2="10.75" y2="8.25" />
-        </Fragment>
+        <path d="M4 0C4.41421 0 4.75 0.335786 4.75 0.75V3.09766C6.04354 3.43095 7 4.60239 7 6C7 7.39752 6.04342 8.56799 4.75 8.90137V15.25C4.75 15.6642 4.41421 16 4 16C3.58579 16 3.25 15.6642 3.25 15.25V8.90137C1.95658 8.56799 1 7.39752 1 6C1 4.60239 1.95646 3.43095 3.25 3.09766V0.75C3.25 0.335786 3.58579 0 4 0ZM12 0C12.3882 3.87824e-08 12.7075 0.294882 12.7461 0.672852L12.75 0.75V7.09766C14.0435 7.43095 15 8.60239 15 10C15 11.3975 14.0434 12.568 12.75 12.9014V15.25C12.75 15.6642 12.4142 16 12 16C11.5858 16 11.25 15.6642 11.25 15.25V12.9014C9.95658 12.568 9 11.3975 9 10C9 8.60239 9.95646 7.43095 11.25 7.09766V0.75L11.2539 0.672852C11.2925 0.294882 11.6118 3.09099e-07 12 0ZM12 8.5C11.1716 8.5 10.5 9.17157 10.5 10C10.5 10.8284 11.1716 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5ZM4 4.5C3.17157 4.5 2.5 5.17157 2.5 6C2.5 6.82843 3.17157 7.5 4 7.5C4.82843 7.5 5.5 6.82843 5.5 6C5.5 5.17157 4.82843 4.5 4 4.5Z" />
       ) : (
         <Fragment>
           <path d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z" />
