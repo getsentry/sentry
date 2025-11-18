@@ -91,7 +91,8 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
   {
     key: 'insights',
     displayStringMap: {
-      business: t('Insights (90 day lookback) + 13 month sampled retention'),
+      team: t('Insights w/ 30 day lookback'),
+      business: t('+ 13 month sampled retention'),
     },
     excludedTiers: [PlanTier.AM1],
   },
