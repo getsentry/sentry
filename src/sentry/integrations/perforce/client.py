@@ -118,7 +118,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         p4 = self._connect()
         try:
-            depot_path = self._build_depot_path(repo, path)
+            depot_path = self.build_depot_path(repo, path)
             result = p4.run("files", depot_path)
 
             if result and len(result) > 0:
@@ -134,27 +134,54 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Build full depot path from repo config and file path.
 
+        Handles both relative and absolute paths:
+        - Relative: "depot/app/file.py" or "app/file.py" → "//depot/app/file.py"
+        - Absolute: "//depot/app/file.py" → "//depot/app/file.py" (unchanged)
+        - With branch/stream: "app/file.py" + branch="main" → "//depot/main/app/file.py"
+
         Args:
             repo: Repository object
             path: File path (may include @revision syntax like "file.cpp@42")
-            ref: Optional ref/revision (for compatibility, but Perforce uses @revision in path)
+            branch: Optional branch/stream name to insert after depot (e.g., "main", "dev")
 
         Returns:
             Full depot path with @revision preserved if present
         """
-        depot_root = repo.config.get("depot_path", repo.name).rstrip("/")
+        # Extract revision if present
+        revision = None
+        path_without_rev = path
+        if "@" in path:
+            path_without_rev, revision = path.rsplit("@", 1)
 
-        # Ensure path doesn't start with /
-        path = path.lstrip("/")
+        # If already absolute depot path, use as-is
+        if path_without_rev.startswith("//"):
+            full_path = path_without_rev
+        else:
+            depot_root = repo.config.get("depot_path", repo.name).rstrip("/")
 
-        # If path contains @revision, preserve it (e.g., "file.cpp@42")
-        # If ref is provided and path doesn't have @revision, append it
-        full_path = f"{depot_root}/{path}"
+            # Normalize depot_root to ensure it starts with //
+            if not depot_root.startswith("//"):
+                depot_root = f"//{depot_root}"
 
-        # If ref is provided and path doesn't already have @revision, append it
-        # Skip "master" as it's a Git concept and not valid in Perforce
-        if ref and "@" not in path and ref != "master":
-            full_path = f"{full_path}@{ref}"
+            # Strip depot name from path if it duplicates depot_root
+            # e.g., depot_root="//depot", path="depot/app/file.py" → "app/file.py"
+            depot_name = depot_root.lstrip("/")  # "depot"
+            if path_without_rev.startswith(depot_name + "/") or path_without_rev == depot_name:
+                path_without_rev = path_without_rev[len(depot_name) :].lstrip("/")
+
+            # Remove leading slashes from relative path
+            path_without_rev = path_without_rev.lstrip("/")
+
+            # Handle Perforce streams: insert branch/stream after depot
+            # Format: //depot/stream/path/to/file
+            if branch:
+                full_path = f"{depot_root}/{branch}/{path_without_rev}"
+            else:
+                full_path = f"{depot_root}/{path_without_rev}"
+
+        # Add revision back if present
+        if revision:
+            full_path = f"{full_path}@{revision}"
 
         return full_path
 
@@ -242,7 +269,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 try:
                     # Build depot path for the file (includes stream if specified)
                     # file.ref contains the revision/changelist if available
-                    depot_path = self._build_depot_path(file.repo, file.path, file.ref)
+                    depot_path = self.build_depot_path(file.repo, file.path)
 
                     # Use faster p4 filelog approach to get most recent changelist
                     # This is much faster than p4 annotate

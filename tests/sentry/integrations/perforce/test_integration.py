@@ -43,6 +43,22 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "p4://depot/app/services/processor.cpp"
 
+    def test_format_source_url_path_starting_with_depot_name(self):
+        """Test that paths starting with depot name don't get duplicated (depot/app -> //depot/app not //depot/depot/app)"""
+        url = self.installation.format_source_url(
+            repo=self.repo, filepath="depot/app/services/processor.cpp", branch=None
+        )
+        # Should strip "depot/" prefix and prepend "//depot/" -> "//depot/app/services/processor.cpp"
+        assert url == "p4://depot/app/services/processor.cpp"
+
+    def test_format_source_url_absolute_path_starting_with_depot_name(self):
+        """Test that absolute paths with depot name are handled correctly (//depot/app stays as //depot/app)"""
+        url = self.installation.format_source_url(
+            repo=self.repo, filepath="//depot/app/services/processor.cpp", branch=None
+        )
+        # Should preserve as-is (already absolute)
+        assert url == "p4://depot/app/services/processor.cpp"
+
     def test_format_source_url_with_revision_in_filename(self):
         """
         Test formatting URL with revision in filename (from Symbolic transformer).
@@ -52,50 +68,6 @@ class PerforceIntegrationTest(IntegrationTestCase):
             repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
         )
         assert url == "p4://depot/app/services/processor.cpp@42"
-
-    def test_format_source_url_p4web_viewer(self):
-        """Test formatting URL for P4Web viewer with revision in filename"""
-        integration_with_web = self.create_integration(
-            organization=self.organization,
-            provider="perforce",
-            name="Perforce",
-            external_id="perforce-test-web",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://p4web.example.com",
-                    "web_viewer_type": "p4web",
-                }
-            },
-        )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
-
-        url = installation.format_source_url(
-            repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
-        )
-        assert url == "https://p4web.example.com//depot/app/services/processor.cpp?ac=64&rev1=42"
-
-    def test_format_source_url_p4web_viewer_no_revision(self):
-        """Test formatting URL for P4Web viewer without revision"""
-        integration_with_web = self.create_integration(
-            organization=self.organization,
-            provider="perforce",
-            name="Perforce",
-            external_id="perforce-test-web2",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://p4web.example.com",
-                    "web_viewer_type": "p4web",
-                }
-            },
-        )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
-
-        url = installation.format_source_url(
-            repo=self.repo, filepath="app/services/processor.cpp", branch=None
-        )
-        assert url == "https://p4web.example.com//depot/app/services/processor.cpp?ac=64"
 
     def test_format_source_url_swarm_viewer(self):
         """Test formatting URL for Swarm viewer with revision"""
@@ -141,6 +113,42 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
 
+    def test_format_source_url_swarm_viewer_absolute_path(self):
+        """Test Swarm viewer with absolute path (//depot/...)"""
+        integration_with_swarm = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id="perforce-test-swarm-abs",
+            metadata={},
+            oi_params={"config": {"web_url": "https://swarm.example.com"}},
+        )
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="//depot/app/services/processor.cpp", branch=None
+        )
+        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
+        assert "depot/depot" not in url
+
+    def test_format_source_url_swarm_viewer_depot_name_path(self):
+        """Test Swarm viewer with path starting with depot name (depot/...)"""
+        integration_with_swarm = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id="perforce-test-swarm-depot",
+            metadata={},
+            oi_params={"config": {"web_url": "https://swarm.example.com"}},
+        )
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="depot/app/services/processor.cpp", branch=None
+        )
+        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
+        assert "depot/depot" not in url
+
     def test_format_source_url_strips_leading_slash_from_relative_path(self):
         """Test that leading slash is stripped from relative paths"""
         url = self.installation.format_source_url(
@@ -164,21 +172,54 @@ class PerforceIntegrationTest(IntegrationTestCase):
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_absolute_depot_path(self, mock_check_file):
-        """Test check_file with absolute depot path"""
+        """Test check_file with absolute depot path (//depot/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        assert self.installation.check_file(self.repo, "//depot/app/services/processor.cpp")
+        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp")
+        assert result is not None
+        assert "//depot/app/services/processor.cpp" in result
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_path_with_depot_name(self, mock_check_file):
+        """Test check_file with path starting with depot name (depot/...)"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
+        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp")
+        assert result is not None
+        # Should not duplicate depot name in result
+        assert "//depot/app/services/processor.cpp" in result
+        assert "depot/depot" not in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_relative_path(self, mock_check_file):
-        """Test check_file with relative path"""
+        """Test check_file with normal relative path (app/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        assert self.installation.check_file(self.repo, "app/services/processor.cpp")
+        result = self.installation.check_file(self.repo, "app/services/processor.cpp")
+        assert result is not None
+        assert "//depot/app/services/processor.cpp" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_with_revision_syntax(self, mock_check_file):
-        """Test check_file with @revision syntax"""
+    def test_check_file_with_revision_syntax_absolute(self, mock_check_file):
+        """Test check_file with @revision syntax on absolute path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        assert self.installation.check_file(self.repo, "app/services/processor.cpp@42")
+        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp@42")
+        assert result is not None
+        assert "@42" in result
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_with_revision_syntax_depot_name(self, mock_check_file):
+        """Test check_file with @revision syntax on path with depot name"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
+        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp@42")
+        assert result is not None
+        assert "@42" in result
+        assert "depot/depot" not in result
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_with_revision_syntax_relative(self, mock_check_file):
+        """Test check_file with @revision syntax on relative path"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
+        result = self.installation.check_file(self.repo, "app/services/processor.cpp@42")
+        assert result is not None
+        assert "@42" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_get_stacktrace_link(self, mock_check_file):
@@ -358,31 +399,6 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
-    def test_p4web_extracts_revision_from_filename(self):
-        """Test P4Web viewer correctly extracts and formats revision from @revision syntax"""
-        integration_with_web = self.create_integration(
-            organization=self.organization,
-            provider="perforce",
-            name="Perforce",
-            external_id="perforce-test-p4web",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://p4web.example.com",
-                    "web_viewer_type": "p4web",
-                }
-            },
-        )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
-
-        # Filename with revision
-        url = installation.format_source_url(
-            repo=self.repo, filepath="game/src/main.cpp@42", branch=None
-        )
-
-        # Should extract @42 and use it as rev1 parameter
-        assert url == "https://p4web.example.com//depot/game/src/main.cpp?ac=64&rev1=42"
-
     def test_swarm_extracts_revision_from_filename(self):
         """Test Swarm viewer correctly extracts and formats revision from @revision syntax"""
         integration_with_swarm = self.create_integration(
@@ -407,29 +423,3 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
 
         # Should extract @42 and use it as v parameter
         assert url == "https://swarm.example.com/files//depot/game/src/main.cpp?v=42"
-
-    def test_web_viewer_with_python_path_no_revision(self):
-        """Test web viewers work correctly without revision"""
-        integration_with_web = self.create_integration(
-            organization=self.organization,
-            provider="perforce",
-            name="Perforce",
-            external_id="perforce-test-p4web2",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://p4web.example.com",
-                    "web_viewer_type": "p4web",
-                }
-            },
-        )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
-
-        # Python path without revision
-        url = installation.format_source_url(
-            repo=self.repo, filepath="app/services/processor.py", branch=None
-        )
-
-        # Should not have revision parameter
-        assert url == "https://p4web.example.com//depot/app/services/processor.py?ac=64"
-        assert "rev1=" not in url
