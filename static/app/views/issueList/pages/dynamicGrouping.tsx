@@ -24,6 +24,7 @@ interface ClusterSummary {
   cluster_min_similarity: number;
   cluster_size: number;
   description: string;
+  fixability_score: number;
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
@@ -93,6 +94,11 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
       <CardHeader>
         <ClusterTitle as="h3" size="md">
           {cluster.title}
+          {cluster.fixability_score !== null && (
+            <FixabilityText size="sm" variant="muted">
+              {t('%s%% fixable', Math.round(cluster.fixability_score * 100))}
+            </FixabilityText>
+          )}
         </ClusterTitle>
         <IssueCount>
           <CountNumber>{cluster.cluster_size}</CountNumber>
@@ -142,10 +148,10 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 function DynamicGrouping() {
   const organization = useOrganization();
 
-  // Sort clusters by size (descending)
+  // Sort clusters by fixability score (descending)
   const sortedClusters = useMemo(() => {
     return [...clusterSummariesData].sort(
-      (a: ClusterSummary, b: ClusterSummary) => b.cluster_size - a.cluster_size
+      (a: ClusterSummary, b: ClusterSummary) => b.fixability_score - a.fixability_score
     );
   }, []);
 
@@ -245,6 +251,13 @@ const ClusterTitle = styled(Heading)`
   flex: 1;
   line-height: 1.3;
   color: ${p => p.theme.headingColor};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const FixabilityText = styled(Text)`
+  font-weight: normal;
 `;
 
 const IssueCount = styled('div')`
