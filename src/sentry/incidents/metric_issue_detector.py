@@ -314,7 +314,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         is_update_dynamic_detector = (
             validated_data.get("config", {}).get("detection_type") == AlertRuleDetectionType.DYNAMIC
         )
-
         if not is_currently_dynamic_detector and is_update_dynamic_detector:
             # Detector has been changed to become a dynamic detector
             try:
@@ -326,7 +325,11 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     "Failed to send data to Seer, cannot update detector"
                 )
 
-        elif is_currently_dynamic_detector and not is_update_dynamic_detector:
+        elif (
+            validated_data.get("config")
+            and is_currently_dynamic_detector
+            and not is_update_dynamic_detector
+        ):
             # Detector has been changed from a dynamic detector to another type
             delete_data_in_seer_for_detector(instance)
 
