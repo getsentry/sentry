@@ -284,7 +284,7 @@ function SeerSuggestionsSection({
     !isLoading &&
     autofix &&
     autofix.length > 0 && (
-      <div>
+      <Fragment>
         <SectionHeading>
           {t('Seer Suggestions')}
           <FeatureBadge type="beta" />
@@ -302,7 +302,7 @@ function SeerSuggestionsSection({
               ))}
           </SeerSuggestionGrid>
         </Content>
-      </div>
+      </Fragment>
     )
   );
 }
@@ -495,7 +495,7 @@ const SeerSuggestionCard = styled('div')`
 
 const CardTitle = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: ${p => p.theme.space.xs};
   padding-bottom: ${p => p.theme.space.xs};
 `;
