@@ -14,7 +14,10 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import AutomationNewSettings from 'sentry/views/automations/new';
+
+jest.mock('sentry/utils/analytics');
 
 describe('AutomationNewSettings', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
@@ -165,5 +168,17 @@ describe('AutomationNewSettings', () => {
         `/organizations/${organization.slug}/monitors/alerts/${created.id}/`
       )
     );
+
+    // Verify analytics was called with correct event and payload structure
+    await waitFor(() => {
+      expect(trackAnalytics).toHaveBeenCalledWith('automation.created', {
+        organization,
+        frequency_minutes: expect.any(Number),
+        environment: expect.anything(),
+        detectors_count: expect.any(Number),
+        trigger_conditions_count: expect.any(Number),
+        actions_count: expect.any(Number),
+      });
+    });
   });
 });
