@@ -40,6 +40,7 @@ interface SearchQueryBuilderContextData {
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
+  disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displayAskSeer: boolean;
@@ -204,6 +205,7 @@ export function SearchQueryBuilderProvider({
       ...state,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
+      disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       enableAISearch,
       parseQuery,
@@ -245,6 +247,7 @@ export function SearchQueryBuilderProvider({
     caseInsensitive,
     disabled,
     disallowFreeText,
+    disallowLogicalOperators,
     disallowWildcard,
     dispatch,
     displayAskSeer,

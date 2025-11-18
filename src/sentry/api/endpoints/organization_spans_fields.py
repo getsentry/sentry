@@ -58,7 +58,7 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):

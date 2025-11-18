@@ -74,6 +74,7 @@ class DataForwarderProjectSerializer(Serializer):
     ) -> dict[str, Any]:
         return {
             "id": str(obj.id),
+            "isEnabled": obj.is_enabled,
             "dataForwarderId": str(obj.data_forwarder_id),
             "project": {
                 "id": str(obj.project_id),

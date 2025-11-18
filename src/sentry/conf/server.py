@@ -20,6 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
+from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -794,17 +795,13 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
-# Fernet keys for database encryption.
-# First key in the dict is used as a primary key, and if
-# encryption method options is "fernet", the first key will be
-# used to decrypt the data.
-#
-# Other keys are used only for data decryption. This structure
-# is used to allow easier key rotation when "fernet" is used
-# as an encryption method.
-DATABASE_ENCRYPTION_FERNET_KEYS = {
-    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+# Settings for encrypted database fields.
+DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
+    "method": "plaintext",
+    "fernet_primary_key_id": os.getenv("DATABASE_ENCRYPTION_FERNET_PRIMARY_KEY_ID"),
+    "fernet_keys_location": os.getenv("DATABASE_ENCRYPTION_FERNET_KEYS_LOCATION"),
 }
+
 
 #######################
 # Taskworker settings #
@@ -2124,7 +2121,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.10.0"
+SELF_HOSTED_STABLE_VERSION = "25.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

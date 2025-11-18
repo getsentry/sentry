@@ -196,7 +196,7 @@ def create_transfer_job[T](
 
     if notification_topic:
         transfer_job.notification_config = NotificationConfig(
-            pubsub_topic=notification_topic,
+            pubsub_topic=f"projects/{gcp_project_id}/topics/{notification_topic}",
             event_types=[
                 NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
                 NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
@@ -593,7 +593,7 @@ def export_replay_blob_data[T](
             gcp_project_id=gcp_project_id,
             transfer_job_name=None,
             source_bucket=source_bucket,
-            source_prefix=f"{retention_days}/{project_id}",
+            source_prefix=f"{retention_days}/{project_id}/",
             destination_bucket=destination_bucket,
             destination_prefix=destination_prefix,
             notification_topic=pubsub_topic_name,
