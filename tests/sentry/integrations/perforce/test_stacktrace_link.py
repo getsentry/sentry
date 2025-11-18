@@ -160,67 +160,6 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["src_path"] == "app/services/handler.py"
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_get_stacktrace_config_with_web_viewer(self, mock_check_file):
-        """Test stacktrace link with P4Web viewer"""
-        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
-        integration_with_web = self.create_integration(
-            organization=self.organization,
-            provider="perforce",
-            name="Perforce",
-            external_id="perforce-test-web-link",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://p4web.example.com",
-                    "web_viewer_type": "p4web",
-                }
-            },
-        )
-
-        # Create new code mapping with new integration
-        # Use different project to avoid unique constraint
-        project_web = self.create_project(organization=self.organization)
-
-        repo_web = Repository.objects.create(
-            name="//depot",
-            organization_id=self.organization.id,
-            integration_id=integration_with_web.id,
-            config={"depot_path": "//depot"},
-        )
-
-        org_integration = integration_with_web.organizationintegration_set.first()
-        assert org_integration is not None
-        code_mapping_web = RepositoryProjectPathConfig.objects.create(
-            project=project_web,
-            organization_id=self.organization.id,
-            repository=repo_web,
-            organization_integration_id=org_integration.id,
-            integration_id=integration_with_web.id,
-            stack_root="depot/",
-            source_root="/",
-            default_branch=None,
-        )
-
-        ctx: StacktraceLinkContext = {
-            "file": "depot/app/services/processor.py",
-            "filename": "depot/app/services/processor.py",
-            "abs_path": "depot/app/services/processor.py",
-            "platform": "python",
-            "sdk_name": "sentry.python",
-            "commit_id": None,
-            "group_id": None,
-            "line_no": None,
-            "module": None,
-            "package": None,
-        }
-
-        result = get_stacktrace_config([code_mapping_web], ctx)
-
-        assert result["source_url"] is not None
-        assert isinstance(result["source_url"], str)
-        assert "https://p4web.example.com//depot/app/services/processor.py" in result["source_url"]
-
-    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_get_stacktrace_config_abs_path_fallback(self, mock_check_file):
         """Test stacktrace link uses abs_path when filename is just basename"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}

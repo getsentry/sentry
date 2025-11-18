@@ -358,7 +358,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 try:
                     # Build depot path for the file (includes stream if specified)
                     # file.ref contains the revision/changelist if available
-                    depot_path = self._build_depot_path(file.repo, file.path, file.ref)
+                    depot_path = self.build_depot_path(file.repo, file.path)
 
                     # Use faster p4 filelog approach to get most recent changelist
                     # This is much faster than p4 annotate
