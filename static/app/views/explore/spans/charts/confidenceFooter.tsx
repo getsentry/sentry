@@ -1,13 +1,16 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import {Placeholder} from 'sentry/views/explore/components/chart/placeholder';
+import {
+  Placeholder,
+  WarningIcon,
+} from 'sentry/views/explore/components/chart/placeholder';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 type Props = {
@@ -67,6 +70,7 @@ function confidenceMessage({
   const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
 
   // The multi query mode does not fetch the raw span counts
+  // so make sure to have a backup when this happens.
   if (!defined(rawSpanCounts)) {
     const matchingSpansCount =
       sampleCount > 1
@@ -145,13 +149,11 @@ function confidenceMessage({
     });
   }
 
-  const warning = <IconWarning size="sm" />;
-
   if (isTopN) {
     return tct(
       '[warning] Extrapolated from [matchingSpansCount] for top [topEvents] groups after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
       {
-        warning,
+        warning: <WarningIcon />,
         topEvents,
         matchingSpansCount,
         downSampledSpansCount,
@@ -164,7 +166,7 @@ function confidenceMessage({
   return tct(
     '[warning] Extrapolated from [matchingSpansCount] after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
     {
-      warning,
+      warning: <WarningIcon />,
       matchingSpansCount,
       downSampledSpansCount,
       allSpansCount,
@@ -191,13 +193,17 @@ function _LowAccuracyFullTooltip({
           {t(
             "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
           )}
-          <br />
-          {t(
-            'You can also increase your sampling rates to get more samples and accurate trends.'
+          {/* Do not show if no sampling happened to the data points in the series as they are already at 100% sampling  */}
+          {!noSampling && (
+            <Fragment>
+              <br />
+              {t(
+                'You can also increase your sampling rates to get more samples and accurate trends.'
+              )}
+            </Fragment>
           )}
         </div>
       }
-      disabled={noSampling}
       maxWidth={270}
       showUnderline
     >

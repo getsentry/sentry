@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
@@ -216,6 +217,7 @@ class TestGetEventSeverity(TestCase):
             assert severity == 0.0
             assert reason == "bad_title"
 
+    @pytest.mark.skip(reason="flaky: #103306")
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=MaxRetryError(

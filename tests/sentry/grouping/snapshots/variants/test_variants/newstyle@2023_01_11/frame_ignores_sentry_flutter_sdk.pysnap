@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:47.867485+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,7 +8,7 @@ app:
   root_component:
     app
       stacktrace (ignored because it contains no in-app frames)
-        frame (marked out of app by stack trace rule (path:package:sentry_flutter/** -app))
+        frame (marked out of app by built-in stack trace rule (path:package:sentry_flutter/** -app))
           filename*
             "sentry_exception_factory.dart"
           function*
@@ -26,7 +24,7 @@ system:
   root_component:
     system
       stacktrace (ignored because it contains no contributing frames)
-        frame (ignored by stack trace rule (path:package:sentry_flutter/** -group))
+        frame (ignored by built-in stack trace rule (path:package:sentry_flutter/** -group))
           filename*
             "sentry_exception_factory.dart"
           function*

@@ -623,7 +623,6 @@ describe('autogrouping', () => {
                 makeEAPSpan({
                   event_id: '0001',
                   op: 'db',
-                  description: 'redis GET x1',
                   name: 'GET',
                   start_timestamp: start,
                   end_timestamp: start + 1,
@@ -632,7 +631,6 @@ describe('autogrouping', () => {
                 makeEAPSpan({
                   event_id: '0002',
                   op: 'db',
-                  description: 'redis GET x2',
                   name: 'GET',
                   start_timestamp: start,
                   end_timestamp: start + 1,
@@ -641,7 +639,6 @@ describe('autogrouping', () => {
                 makeEAPSpan({
                   event_id: '0003',
                   op: 'db',
-                  description: 'redis GET x3',
                   name: 'GET',
                   start_timestamp: start,
                   end_timestamp: start + 1,
@@ -650,7 +647,6 @@ describe('autogrouping', () => {
                 makeEAPSpan({
                   event_id: '0003',
                   op: 'db',
-                  description: 'redis GET x4',
                   name: 'GET',
                   start_timestamp: start,
                   end_timestamp: start + 1,
@@ -659,7 +655,6 @@ describe('autogrouping', () => {
                 makeEAPSpan({
                   event_id: '0003',
                   op: 'db',
-                  description: 'redis GET x5',
                   name: 'GET',
                   start_timestamp: start,
                   end_timestamp: start + 1,

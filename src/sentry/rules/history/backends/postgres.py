@@ -86,7 +86,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                             UNION ALL
                             SELECT group_id, date_added, event_id
                             FROM workflow_engine_workflowfirehistory
-                            WHERE workflow_id = %s AND is_single_written = true
+                            WHERE workflow_id = %s
                             AND date_added >= %s AND date_added < %s
                         )
                         SELECT
@@ -180,7 +180,6 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                             SELECT date_added
                             FROM workflow_engine_workflowfirehistory
                             WHERE workflow_id = %s
-                                AND is_single_written = true
                                 AND date_added >= %s
                                 AND date_added < %s
                         ) combined_data

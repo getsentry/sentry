@@ -90,6 +90,12 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
+
+  // Get the OK condition (resolution condition)
+  const okCondition = conditions.find(
+    condition => condition.conditionResult === DetectorPriorityLevel.OK
+  );
+
   const thresholdSuffix = getMetricDetectorSuffix(
     detector.config?.detectionType || 'static',
     detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
@@ -102,6 +108,8 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
       typeof mainCondition?.comparison === 'number'
         ? mainCondition.comparison
         : undefined,
+    resolutionThreshold:
+      typeof okCondition?.comparison === 'number' ? okCondition.comparison : undefined,
     comparisonDelta: (detector.config as any)?.comparison_delta,
     thresholdSuffix,
   });

@@ -1,3 +1,6 @@
+/* eslint-disable typescript-sort-keys/interface */
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
+
 import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
@@ -42,6 +45,12 @@ export interface BuildDetailsVcsInfo {
   provider?: string | null;
 }
 
+export interface BuildDetailsSizeInfoSizeMetric {
+  metrics_artifact_type: MetricsArtifactType;
+  install_size_bytes: number;
+  download_size_bytes: number;
+}
+
 interface BuildDetailsSizeInfoPending {
   state: BuildDetailsSizeAnalysisState.PENDING;
 }
@@ -51,9 +60,8 @@ interface BuildDetailsSizeInfoProcessing {
 }
 
 interface BuildDetailsSizeInfoCompleted {
-  download_size_bytes: number;
-  install_size_bytes: number;
   state: BuildDetailsSizeAnalysisState.COMPLETED;
+  size_metrics: BuildDetailsSizeInfoSizeMetric[];
 }
 
 interface BuildDetailsSizeInfoFailed {
@@ -80,6 +88,14 @@ export function isSizeInfoProcessing(
   return (
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
+  );
+}
+
+export function getMainArtifactSizeMetric(
+  sizeInfo: BuildDetailsSizeInfoCompleted
+): BuildDetailsSizeInfoSizeMetric | undefined {
+  return sizeInfo.size_metrics.find(
+    metric => metric.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
   );
 }
 

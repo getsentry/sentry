@@ -615,4 +615,41 @@ describe('Billing details form', () => {
       inModal.queryByRole('textbox', {name: 'Street Address 1'})
     ).not.toBeInTheDocument();
   });
+
+  it('displays credit card expiration date', async () => {
+    organization.features = ['subscriptions-v3'];
+
+    const subscriptionWithCard = SubscriptionFixture({
+      organization,
+      paymentSource: {
+        last4: '4242',
+        countryCode: 'US',
+        zipCode: '94242',
+        expMonth: 8,
+        expYear: 2030,
+        brand: 'Visa',
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/subscriptions/${organization.slug}/`,
+      method: 'GET',
+      body: subscriptionWithCard,
+    });
+
+    render(
+      <BillingInformation
+        organization={organization}
+        subscription={subscriptionWithCard}
+        location={router.location}
+      />
+    );
+
+    await screen.findByText('Billing Information');
+
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+
+    // Verify payment method displays with correct expiration date format (MM/YY)
+    expect(within(cardPanel).getByText(/\*\*\*\*4242 08\/30/)).toBeInTheDocument();
+  });
 });
