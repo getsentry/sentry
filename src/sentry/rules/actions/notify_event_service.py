@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from typing import Any
 
 from django import forms
@@ -103,12 +103,21 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     Loop through the triggers for the alert rule event. For each trigger, check
     if an action is an alert rule UI Component
     """
-    triggers = (
-        getattr(app_platform_event, "data", {})
-        .get("metric_alert", {})
-        .get("alert_rule", {})
-        .get("triggers", [])
-    )
+    data = getattr(app_platform_event, "data", {})
+    if not isinstance(data, Mapping):
+        data = {}
+
+    metric_alert = data.get("metric_alert")
+    if not isinstance(metric_alert, Mapping):
+        metric_alert = {}
+
+    alert_rule = metric_alert.get("alert_rule")
+    if not isinstance(alert_rule, Mapping):
+        alert_rule = {}
+
+    triggers = alert_rule.get("triggers")
+    if not isinstance(triggers, Sequence) or isinstance(triggers, (bytes, str)):
+        triggers = []
 
     actions = [
         action
