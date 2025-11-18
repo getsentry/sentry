@@ -98,11 +98,19 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 }
 
 // Individual cluster card
-function ClusterCard({cluster}: {cluster: ClusterSummary}) {
+function ClusterCard({
+  cluster,
+  onRemove,
+  isRemoving,
+}: {
+  cluster: ClusterSummary;
+  isRemoving: boolean;
+  onRemove: (clusterId: number) => void;
+}) {
   const organization = useOrganization();
 
   return (
-    <CardContainer>
+    <CardContainer isRemoving={isRemoving}>
       <Flex
         justify="between"
         align="start"
@@ -158,11 +166,28 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
             </Tag>
           )}
         </Flex>
-        <Link
-          to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-        >
-          <Button size="sm">{t('View All Issues')}</Button>
-        </Link>
+        <Flex gap="xs">
+          <Button
+            size="sm"
+            priority="primary"
+            onClick={() => onRemove(cluster.cluster_id)}
+            title={t('Resolve this cluster')}
+          >
+            {t('Resolve')}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => onRemove(cluster.cluster_id)}
+            title={t('Ignore this cluster')}
+          >
+            {t('Ignore')}
+          </Button>
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
+          >
+            <Button size="sm">{t('View All Issues')}</Button>
+          </Link>
+        </Flex>
       </Flex>
     </CardContainer>
   );
@@ -177,6 +202,7 @@ function DynamicGrouping() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(true);
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
+  const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -216,6 +242,27 @@ function DynamicGrouping() {
     setParseError(null);
     setShowInput(true);
     localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const handleRemoveCluster = (clusterId: number) => {
+    // Start animation
+    setRemovingClusterId(clusterId);
+
+    // Wait for animation to complete before removing
+    setTimeout(() => {
+      const updatedClusters = clusterData.filter(
+        cluster => cluster.cluster_id !== clusterId
+      );
+      setClusterData(updatedClusters);
+      setRemovingClusterId(null);
+
+      // Update localStorage with the new data
+      if (updatedClusters.length > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedClusters));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }, 300); // Match the animation duration
   };
 
   // Check if a cluster has at least one issue assigned to the current user or their teams
@@ -363,7 +410,12 @@ function DynamicGrouping() {
 
           <CardsGrid>
             {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
-              <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+              <ClusterCard
+                key={cluster.cluster_id}
+                cluster={cluster}
+                onRemove={handleRemoveCluster}
+                isRemoving={removingClusterId === cluster.cluster_id}
+              />
             ))}
           </CardsGrid>
         </Fragment>
@@ -395,7 +447,7 @@ const CardsGrid = styled('div')`
   gap: ${space(3)};
 `;
 
-const CardContainer = styled('div')`
+const CardContainer = styled('div')<{isRemoving: boolean}>`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -403,7 +455,13 @@ const CardContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  transition: all 0.2s ease;
+  opacity: ${p => (p.isRemoving ? 0 : 1)};
+  transform: ${p => (p.isRemoving ? 'scale(0.95)' : 'scale(1)')};
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     border-color: ${p => p.theme.purple300};
