@@ -24,7 +24,7 @@ function EndPeriodEarlyModal({
   Header,
   Body,
 }: EndPeriodEarlyModalProps) {
-  const {mutateAsync: endPeriodEarly, isPending} = useMutation({
+  const {mutateAsync: endPeriodEarly, isPending} = useMutation<any>({
     mutationFn: () =>
       fetchMutation({
         url: `/customers/${orgId}/`,
