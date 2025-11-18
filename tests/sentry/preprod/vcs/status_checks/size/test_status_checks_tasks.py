@@ -727,3 +727,144 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
         assert summary.endswith("..."), "Truncated summary should end with '...'"
+
+    def test_sibling_deduplication_after_reprocessing(self):
+        """Test that get_sibling_artifacts_for_commit() deduplicates by app_id.
+
+        When artifacts are reprocessed (e.g., CI retry), new artifacts are created
+        with the same app_id. This test verifies that the sibling lookup returns
+        only one artifact per app_id to prevent duplicate rows in status checks.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/reprocess-test",
+            base_ref="main",
+        )
+
+        # Create initial artifacts (simulating first upload)
+        ios_old = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            app_name="iOS App Old",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_old,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        android_old = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            app_name="Android App Old",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_old,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        # Simulate passage of time before reprocessing
+        later_time = timezone.now() + timedelta(hours=1)
+
+        # Create reprocessed artifacts (simulating CI retry)
+        ios_new = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            app_name="iOS App New",
+            build_version="1.0.0",
+            build_number=2,
+            commit_comparison=commit_comparison,
+        )
+        ios_new.date_added = later_time
+        ios_new.save(update_fields=["date_added"])
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_new,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        android_new = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            app_name="Android App New",
+            build_version="1.0.0",
+            build_number=2,
+            commit_comparison=commit_comparison,
+        )
+        android_new.date_added = later_time
+        android_new.save(update_fields=["date_added"])
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_new,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        # Test 1: When ios_new triggers, should get ios_new + android_old
+        siblings_from_ios_new = list(ios_new.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_ios_new) == 2, (
+            f"Expected 2 siblings (one per app_id), got {len(siblings_from_ios_new)}. "
+            f"Deduplication by app_id should prevent showing all 4 artifacts."
+        )
+
+        sibling_ids_from_ios_new = {s.id for s in siblings_from_ios_new}
+        assert (
+            ios_new.id in sibling_ids_from_ios_new
+        ), "Triggering artifact (ios_new) should be included in its own app_id group"
+        assert (
+            android_old.id in sibling_ids_from_ios_new
+        ), "For other app_ids, should use earliest artifact (android_old, not android_new)"
+
+        # Test 2: When android_new triggers, should get android_new + ios_old
+        siblings_from_android_new = list(android_new.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_android_new) == 2
+
+        sibling_ids_from_android_new = {s.id for s in siblings_from_android_new}
+        assert (
+            android_new.id in sibling_ids_from_android_new
+        ), "Triggering artifact (android_new) should be included in its own app_id group"
+        assert (
+            ios_old.id in sibling_ids_from_android_new
+        ), "For other app_ids, should use earliest artifact (ios_old, not ios_new)"
+
+        # Test 3: Verify old artifacts also get deduplicated siblings
+        siblings_from_ios_old = list(ios_old.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_ios_old) == 2
+        sibling_ids_from_ios_old = {s.id for s in siblings_from_ios_old}
+        assert ios_old.id in sibling_ids_from_ios_old
+        assert android_old.id in sibling_ids_from_ios_old
