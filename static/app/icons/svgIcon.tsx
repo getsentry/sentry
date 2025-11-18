@@ -17,14 +17,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize;
 }
 
-interface IconProps extends SVGIconProps {
-  /**
-   * Determines if the icon coloring is done using stroke or fill
-   */
-  kind?: 'stroke' | 'path';
-}
-
-export function SvgIcon(props: IconProps) {
+export function SvgIcon(props: SVGIconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -36,24 +29,6 @@ export function SvgIcon(props: IconProps) {
   const theme = useTheme();
   const color = useResolvedIconColor(providedColor);
   const size = legacySize ?? theme.iconSizes[providedSize];
-
-  // Stroke based icons are only available in Chonk
-  if (props.kind === 'stroke' && theme.isChonk) {
-    return (
-      <svg
-        role="img"
-        viewBox="1 1 14 14"
-        height={size}
-        width={size}
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1px"
-        {...rest}
-      />
-    );
-  }
 
   return (
     <svg

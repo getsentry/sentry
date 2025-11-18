@@ -82,7 +82,7 @@ export default function ReplayComparisonModal({
                 >
                   <Button
                     aria-label={t('Adjust diff')}
-                    icon={<IconSliders size="md" direction="up" />}
+                    icon={<IconSliders size="md" />}
                     borderless
                   />
                 </AutoWideHovercard>

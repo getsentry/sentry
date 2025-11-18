@@ -14,13 +14,9 @@ interface Props extends SVGIconProps {
 export function IconSubtract({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon
-      {...props}
-      data-test-id="icon-subtract"
-      kind={theme.isChonk ? 'stroke' : 'path'}
-    >
+    <SvgIcon {...props} data-test-id="icon-subtract">
       {theme.isChonk ? (
-        <line x1="2.75" y1="8" x2="13.25" y2="8" />
+        <path d="M14.25 7.25C14.6642 7.25 15 7.58579 15 8C15 8.41421 14.6642 8.75 14.25 8.75H1.75C1.33579 8.75 1 8.41421 1 8C1 7.58579 1.33579 7.25 1.75 7.25H14.25Z" />
       ) : isCircled ? (
         <Fragment>
           <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />

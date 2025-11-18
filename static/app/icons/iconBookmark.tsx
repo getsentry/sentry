@@ -1,7 +1,5 @@
 import {useTheme} from '@emotion/react';
 
-import {useIconDefaults} from 'sentry/icons/useIconDefaults';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
@@ -11,19 +9,14 @@ interface Props extends SVGIconProps {
 
 export function IconBookmark({isSolid = false, ...props}: Props) {
   const theme = useTheme();
-
-  const {color: providedColor = 'currentColor'} = useIconDefaults(props);
-
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const color = theme[providedColor] ?? providedColor;
-
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props}>
       {theme.isChonk ? (
-        <path
-          fill={isSolid ? color : 'none'}
-          d="m5.25,2.75h5.5c.55,0,1,.45,1,1v9.31c0,.23-.29.34-.44.16l-2.92-3.51c-.2-.24-.57-.24-.77,0l-2.92,3.51c-.15.18-.44.07-.44-.16V3.75c0-.55.45-1,1-1Z"
-        />
+        isSolid ? (
+          <path d="M12.25 0C13.2165 0 14 0.783502 14 1.75V14.25C14 14.5429 13.8296 14.8093 13.5635 14.9316C13.2974 15.054 12.9841 15.0099 12.7617 14.8193L8 10.7373L3.23828 14.8193C3.0159 15.0099 2.70262 15.054 2.43652 14.9316C2.17042 14.8093 2 14.5429 2 14.25V1.75C2 0.783502 2.7835 0 3.75 0H12.25Z" />
+        ) : (
+          <path d="M12.25 0C13.2165 0 14 0.783502 14 1.75V14.25C14 14.5429 13.8296 14.8093 13.5635 14.9316C13.2974 15.054 12.9841 15.0099 12.7617 14.8193L8 10.7373L3.23828 14.8193C3.0159 15.0099 2.70262 15.054 2.43652 14.9316C2.17042 14.8093 2 14.5429 2 14.25V1.75C2 0.783502 2.7835 1.00665e-08 3.75 0H12.25ZM3.75 1.5C3.61193 1.5 3.5 1.61193 3.5 1.75V12.6191L7.51172 9.18066L7.62305 9.10156C7.89437 8.94361 8.24254 8.97003 8.48828 9.18066L12.5 12.6191V1.75C12.5 1.61193 12.3881 1.5 12.25 1.5H3.75Z" />
+        )
       ) : isSolid ? (
         <path d="M14.09,16a.71.71,0,0,1-.4-.11L8,12.32,2.31,15.88a.76.76,0,0,1-.76,0,.75.75,0,0,1-.39-.66V2.4A2.38,2.38,0,0,1,3.54,0h8.92A2.38,2.38,0,0,1,14.84,2.4V15.24a.75.75,0,0,1-.39.66A.77.77,0,0,1,14.09,16Z" />
       ) : (
