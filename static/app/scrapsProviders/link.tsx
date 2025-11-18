@@ -6,8 +6,6 @@ import {LinkBehaviorContextProvider} from '@sentry/scraps/link/linkBehaviorConte
 
 import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,8 +13,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 export function SentryLinkBehaviorProvider({children}: {children: React.ReactNode}) {
   const location = useLocation();
   const routeConfig = useRouteConfig();
-  const {organization} = useLegacyStore(OrganizationStore);
-  const intentPreloading = organization?.features?.includes('route-intent-preloading');
 
   return (
     <LinkBehaviorContextProvider
@@ -30,13 +26,13 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
               to: normalizedTo,
               onMouseEnter: e => {
                 onMouseEnter?.(e);
-                if (routeConfig && intentPreloading) {
+                if (routeConfig) {
                   preload(routeConfig, normalizedTo);
                 }
               },
               onFocus: e => {
                 onFocus?.(e);
-                if (routeConfig && intentPreloading) {
+                if (routeConfig) {
                   preload(routeConfig, normalizedTo);
                 }
               },
@@ -44,7 +40,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
             };
           },
         }),
-        [routeConfig, location, intentPreloading]
+        [routeConfig, location]
       )}
     >
       {children}
