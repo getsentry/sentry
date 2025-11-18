@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from typing import Any
 
 from django import forms
@@ -28,6 +28,10 @@ from sentry.utils.forms import set_field_choices
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
+
+
+def _as_mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 def build_incident_attachment(
@@ -103,21 +107,28 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     Loop through the triggers for the alert rule event. For each trigger, check
     if an action is an alert rule UI Component
     """
-    triggers = (
-        getattr(app_platform_event, "data", {})
-        .get("metric_alert", {})
-        .get("alert_rule", {})
-        .get("triggers", [])
-    )
+    data = _as_mapping(getattr(app_platform_event, "data", None))
+    metric_alert = _as_mapping(data.get("metric_alert"))
+    alert_rule = _as_mapping(metric_alert.get("alert_rule"))
 
-    actions = [
-        action
-        for trigger in triggers
-        for action in trigger.get("actions", {})
-        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
-    ]
+    triggers = alert_rule.get("triggers")
+    if not isinstance(triggers, Sequence) or isinstance(triggers, (str, bytes)):
+        triggers = []
 
-    return bool(len(actions))
+    actions = []
+    for trigger in triggers:
+        if not isinstance(trigger, Mapping):
+            continue
+        action_configs = trigger.get("actions") or []
+        if not isinstance(action_configs, Sequence) or isinstance(action_configs, (str, bytes)):
+            continue
+        for action in action_configs:
+            if not isinstance(action, Mapping):
+                continue
+            if action.get("type") == "sentry_app" and action.get("settings") is not None:
+                actions.append(action)
+
+    return bool(actions)
 
 
 class NotifyEventServiceForm(forms.Form):
