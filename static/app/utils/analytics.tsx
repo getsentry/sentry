@@ -65,11 +65,8 @@ import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvent
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
 import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
 import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
-import type {
-  AutomationsEventParameters,
-  MonitorsEventParameters,
-} from './analytics/monitorsAnalyticsEvents';
-import {automationsEventMap, monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
+import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
+import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
@@ -101,7 +98,6 @@ interface EventParameters
   extends GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
-    AutomationsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DiscoverEventParameters,
@@ -139,7 +135,6 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
-  ...automationsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,

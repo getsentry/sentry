@@ -10,6 +10,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationEdit from 'sentry/views/automations/edit';
@@ -135,30 +140,11 @@ describe('EditAutomation', () => {
     expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
   });
 
-  it('updates automation via form submission', async () => {
+  it('updates automation', async () => {
     const updated = AutomationFixture({
       ...automation,
       detectorIds: ['detector-1'],
       config: {frequency: 720},
-      environment: 'staging',
-      triggers: {
-        id: 'when',
-        logicType: 'any-short',
-        conditions: [
-          {id: 'cond-1', type: 'first_seen_event', comparison: true},
-          {id: 'cond-2', type: 'reappeared_event', comparison: true},
-        ],
-      },
-      actionFilters: [
-        {
-          id: 'filter-1',
-          logicType: 'any-short',
-          conditions: [],
-          actions: [
-            {id: 'action-1', type: 'slack', config: {}, data: {}, status: 'active'},
-          ],
-        },
-      ],
     });
     const mockUpdateAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
@@ -173,12 +159,27 @@ describe('EditAutomation', () => {
     // Wait for the component to fully load
     expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
 
+    // Edit the automation name
+    await userEvent.click(screen.getByTestId('editable-text-label'));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Automation 1'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Automation 1'}),
+      'Automation 1 Updated'
+    );
+
     // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     // Wait for the update to complete
     await waitFor(() => {
-      expect(mockUpdateAutomation).toHaveBeenCalled();
+      expect(mockUpdateAutomation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Automation 1 Updated',
+          }),
+        })
+      );
     });
 
     // Verify analytics was called with correct event and payload structure
