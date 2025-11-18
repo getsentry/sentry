@@ -29,7 +29,16 @@ class TagType:
         )
 
     def __lt__(self, other: object) -> bool:
-        return getattr(self, self._sort_key) < getattr(other, self._sort_key)
+        self_val = getattr(self, self._sort_key)
+        other_val = getattr(other, self._sort_key)
+        # Handle None values in sorting - None sorts before any non-None value
+        if self_val is None and other_val is None:
+            return False
+        if self_val is None:
+            return True
+        if other_val is None:
+            return False
+        return self_val < other_val
 
     def __getstate__(self) -> dict[str, Any]:
         return {name: getattr(self, name) for name in self.__slots__}
@@ -68,7 +77,7 @@ class TagValue(TagType):
     def __init__(
         self,
         key: str,
-        value,
+        value: str | None,
         times_seen: int | None,
         first_seen: datetime | None,
         last_seen: datetime | None,
@@ -107,7 +116,7 @@ class GroupTagValue(TagType):
         self,
         group_id: int,
         key: str,
-        value,
+        value: str | None,
         times_seen: int,
         first_seen,
         last_seen,
