@@ -106,8 +106,13 @@ class EncryptedField(Field):
         # xxx(vgrozdanic): this is a temporary solution during a rollout
         # so that we can quickly rollback if needed.
         encryption_method = options.get("database.encryption.method")
+        # Default to plaintext if method is not recognized
         if encryption_method not in self._encryption_handlers:
-            raise ValueError(f"Invalid encryption method: {encryption_method}")
+            logger.error(
+                "Unknown encryption method '%s', defaulting to plaintext", encryption_method
+            )
+            encryption_method = "plaintext"
+
         handler = self._encryption_handlers[encryption_method]
         return handler["encrypt"](value)
 
