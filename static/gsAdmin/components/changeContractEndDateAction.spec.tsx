@@ -19,21 +19,16 @@ describe('ChangeContractEndDateAction', () => {
     jest.clearAllMocks();
   });
 
-  function renderComponent() {
-    const utils = render(
+  it('submits updated contract end date', async () => {
+    onAction.mockResolvedValue(undefined);
+
+    render(
       <ChangeContractEndDateAction
         contractPeriodEnd={contractPeriodEnd}
         onAction={onAction}
       />
     );
-    const modal = renderGlobalModal();
-    return {...utils, ...modal};
-  }
-
-  it('submits updated contract end date', async () => {
-    onAction.mockResolvedValue(undefined);
-
-    const {waitForModalToHide} = renderComponent();
+    const {waitForModalToHide} = renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: /2024/}));
 
