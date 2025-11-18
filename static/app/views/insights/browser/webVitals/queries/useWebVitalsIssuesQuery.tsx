@@ -1,15 +1,11 @@
-import {useCallback} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IssueType, type Group, type ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-
-export const POLL_INTERVAL = 1000;
 
 const DEFAULT_ISSUE_TYPES = [IssueType.WEB_VITALS];
 
@@ -62,19 +58,6 @@ function useWebVitalsIssuesQueryKey({
       },
     },
   ];
-}
-
-export function useInvalidateWebVitalsIssuesQuery({
-  issueTypes = DEFAULT_ISSUE_TYPES,
-  webVital,
-  transaction,
-}: QueryProps) {
-  const queryClient = useQueryClient();
-  const queryKey = useWebVitalsIssuesQueryKey({issueTypes, transaction, webVital});
-  return useCallback(() => {
-    queryClient.setQueryData(queryKey, undefined);
-    queryClient.invalidateQueries({queryKey});
-  }, [queryClient, queryKey]);
 }
 
 export function useWebVitalsIssuesQuery({
