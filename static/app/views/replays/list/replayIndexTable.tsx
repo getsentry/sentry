@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
+import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -83,6 +84,8 @@ export default function ReplayIndexTable({
     replays,
   });
 
+  const playlistQuery = usePlaylistQuery('replayList');
+
   return (
     <Fragment>
       <Flex gap="md" wrap="wrap">
@@ -121,6 +124,7 @@ export default function ReplayIndexTable({
           </Fragment>
         ) : (
           <ReplayTable
+            query={playlistQuery}
             ref={tableRef}
             columns={columns}
             error={error}

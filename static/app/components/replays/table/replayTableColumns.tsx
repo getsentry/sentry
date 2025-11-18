@@ -18,7 +18,6 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -27,7 +26,6 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -58,6 +56,7 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  query?: Query;
 }
 
 export interface ReplayTableColumn {
@@ -316,10 +315,15 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay}) => {
+  Component: ({replay, query}) => {
     const organization = useOrganization();
     return (
-      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+      <DetailsLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+      >
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -507,9 +511,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay}) => {
+  Component: ({replay, query}) => {
     const routes = useRoutes();
-    const location = useLocation();
+    const referrer = getRouteStringFromRoutes(routes);
+
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -522,50 +527,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       'For TypeScript: replay.started_at is implied because replay.is_archived is false'
     );
 
-    const referrer = getRouteStringFromRoutes(routes);
-    const eventView = EventView.fromLocation(location);
-
-    const {statsPeriod, start, end, ...eventViewQuery} =
-      eventView.generateQueryStringObject();
-
-    const detailsTabQuery: Query = {
-      referrer,
-      ...eventViewQuery,
-    };
-
-    if (typeof statsPeriod === 'string') {
-      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
-        statsPeriod,
-        undefined,
-        true
-      );
-      detailsTabQuery.playlistStart = playlistStart;
-      detailsTabQuery.playlistEnd = playlistEnd;
-    } else if (start && end) {
-      detailsTabQuery.playlistStart = start;
-      detailsTabQuery.playlistEnd = end;
-    }
-
-    // Because the sort and cursor field is only generated in EventView conditionally and we
-    // want to avoid dirtying the URL with fields, we manually add them to the query here.
-    if (location.query.sort) {
-      detailsTabQuery.playlistSort = location.query.sort;
-    }
-    if (location.query.cursor) {
-      detailsTabQuery.cursor = location.query.cursor;
-    }
-
-    const replayDetailsPathname = makeReplaysPathname({
-      path: `/${replay.id}/`,
-      organization,
-    });
-
-    const detailsTab = () => {
-      return {
-        pathname: replayDetailsPathname,
-        query: detailsTabQuery,
-      };
-    };
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,
@@ -576,7 +537,13 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
+      <CellLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+        onClick={trackNavigationEvent}
+      >
         <ReplayBadge replay={replay} />
       </CellLink>
     );
