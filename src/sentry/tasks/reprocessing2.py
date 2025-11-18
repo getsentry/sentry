@@ -65,7 +65,6 @@ def reprocess_group(
 
     assert new_group_id is not None
 
-    # TODO (2): querying Snuba here to get the group's events to run reprocessing on
     query_state, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
@@ -191,7 +190,6 @@ def handle_remaining_events(
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
         nodestore.backend.delete_multi(node_ids)
 
-        # TODO (4): events deleted from Snuba
         # Tell Snuba to delete the event data.
         eventstream.backend.tombstone_events_unsafe(
             project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
@@ -202,7 +200,6 @@ def handle_remaining_events(
                 group_id=new_group_id
             )
 
-        # TODO (5): events moved into new group in Snuba
         eventstream.backend.replace_group_unsafe(
             project_id,
             event_ids,
