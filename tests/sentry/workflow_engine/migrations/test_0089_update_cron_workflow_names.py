@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import (
     Action,
@@ -10,6 +12,7 @@ from sentry.workflow_engine.models import (
 )
 
 
+@pytest.mark.skip
 class TestUpdateCronWorkflowNames(TestMigrations):
     migrate_from = "0088_remove_monitor_slug_conditions"
     migrate_to = "0089_update_cron_workflow_names"

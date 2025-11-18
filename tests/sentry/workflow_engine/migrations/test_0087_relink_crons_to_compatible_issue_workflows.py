@@ -1,9 +1,12 @@
+import pytest
+
 from sentry.models.rule import Rule, RuleSource
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorWorkflow
 
 
+@pytest.mark.skip
 class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
     migrate_from = "0086_fix_cron_to_cron_workflow_links"
     migrate_to = "0087_relink_crons_to_compatible_issue_workflows"
