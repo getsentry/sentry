@@ -63,6 +63,8 @@ MAX_RETRIES = 2
 # Do not delete or modify existing entries. These enums are required to match ids in the frontend.
 class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
+    BACKEND_QUERIES = 2
+    BACKEND_QUERIES_SUMMARY = 3
 
 
 class PrebuiltDashboard(TypedDict):
@@ -82,6 +84,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         "title": "Frontend Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
+        "title": "Queries Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+        "title": "Query Summary",
     },
 ]
 
