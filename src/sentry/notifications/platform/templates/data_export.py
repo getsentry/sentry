@@ -7,11 +7,15 @@ from django.utils import timezone
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
+    CodeBlock,
+    CodeTextBlock,
     NotificationCategory,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationTemplate,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 
 
@@ -37,12 +41,16 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
     def render(self, data: DataExportSuccess) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Your data is ready.",
-            body=(
-                "See, that wasn't so bad. We're all done assembling your download. Now have at it."
-            ),
-            actions=[
-                NotificationRenderedAction(label="Take Me There", link=data.export_url),
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(
+                            text="See, that wasn't so bad. We're all done assembling your download. Now have at it."
+                        )
+                    ],
+                )
             ],
+            actions=[NotificationRenderedAction(label="Take Me There", link=data.export_url)],
             footer=f"This download file expires at {format_date(data.expiration_date)}. So don't get attached.",
         )
 
@@ -71,12 +79,29 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
     def render(self, data: DataExportFailure) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="We couldn't export your data.",
-            body=(
-                f"Well, this is a little awkward. The data export you created at {format_date(data.creation_date)} didn't work. Sorry about that."
-                f"It looks like there was an error: {data.error_message}."
-                f"The error payload is: {data.error_payload}."
-                f"This is what you sent us. Maybe it'll help you sort this out: {orjson.dumps(data.error_payload).decode()}."
-            ),
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(
+                            text=f"Well, this is a little awkward. The data export you created at {format_date(data.creation_date)} didn't work. Sorry about that."
+                        )
+                    ]
+                ),
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="It looks like there was an error: "),
+                        CodeTextBlock(text=data.error_message),
+                    ]
+                ),
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(
+                            text="This is what you sent us. Maybe it'll help you sort this out: "
+                        )
+                    ]
+                ),
+                CodeBlock(blocks=[PlainTextBlock(text=orjson.dumps(data.error_payload).decode())]),
+            ],
             actions=[
                 NotificationRenderedAction(label="Documentation", link="https://docs.sentry.io/"),
                 NotificationRenderedAction(

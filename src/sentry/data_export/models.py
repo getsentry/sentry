@@ -124,7 +124,7 @@ class ExportedData(Model):
             expiration_date=self.date_expired,
         )
         if NotificationService.has_access(self.organization, data.source):
-            NotificationService(data=data).notify(
+            NotificationService(data=data).notify_async(
                 targets=[
                     GenericNotificationTarget(
                         provider_key=NotificationProviderKey.EMAIL,
@@ -158,7 +158,7 @@ class ExportedData(Model):
             creation_date=self.date_added,
         )
         if NotificationService.has_access(self.organization, data.source):
-            NotificationService(data=data).notify(
+            NotificationService(data=data).notify_async(
                 targets=[
                     GenericNotificationTarget(
                         provider_key=NotificationProviderKey.EMAIL,

@@ -3012,8 +3012,16 @@ register(
 
 # Notification Options - Start
 # Options for migrating to the notification platform
+# Data Export Success notifications
 register(
-    "notifications.platform-rate.data-export",
+    "notifications.platform-rate.data-export-success",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Data Export Failure notifications
+register(
+    "notifications.platform-rate.data-export-failure",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
