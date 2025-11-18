@@ -124,13 +124,17 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
+  const groupBy = fields?.filter(
+    field => !(yAxis as unknown as string[]).includes(field)
+  );
+
   const timeSeriesResult = useFetchEventsTimeSeries(
     dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
       topEvents,
-      groupBy: fields as unknown as any,
+      groupBy,
       pageFilters: pageFilters.selection,
       sort: decodeSorts(orderby)[0],
       interval,
