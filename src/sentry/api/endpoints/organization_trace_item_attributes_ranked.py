@@ -38,7 +38,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
 

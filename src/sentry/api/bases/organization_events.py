@@ -93,7 +93,7 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
@@ -223,7 +223,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint

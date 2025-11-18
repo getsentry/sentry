@@ -20,7 +20,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(

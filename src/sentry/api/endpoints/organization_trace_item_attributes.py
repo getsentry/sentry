@@ -104,7 +104,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
@@ -231,7 +231,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
         use_sentry_conventions = features.has(
-            "organizations:performance-sentry-conventions-fields", organization, actor=request.user
+            "organizations:performance-sentry-conventions-fields",
+            organization,
+            actor=request.user,
         )
 
         sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
@@ -248,7 +250,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
         column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=column_definitions
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=column_definitions,
         )
         query_filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
@@ -287,16 +291,22 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 attribute_keys = {}
                 for attribute in rpc_response.attributes:
                     if attribute.name and can_expose_attribute(
-                        attribute.name, trace_item_type, include_internal=include_internal
+                        attribute.name,
+                        trace_item_type,
+                        include_internal=include_internal,
                     ):
                         attr_key = as_attribute_key(
-                            attribute.name, serialized["attribute_type"], trace_item_type
+                            attribute.name,
+                            serialized["attribute_type"],
+                            trace_item_type,
                         )
                         public_alias = attr_key["name"]
                         replacement = translate_to_sentry_conventions(public_alias, trace_item_type)
                         if public_alias != replacement:
                             attr_key = as_attribute_key(
-                                replacement, serialized["attribute_type"], trace_item_type
+                                replacement,
+                                serialized["attribute_type"],
+                                trace_item_type,
                             )
 
                         attribute_keys[attr_key["name"]] = attr_key
@@ -312,12 +322,16 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     ),
                     [
                         as_attribute_key(
-                            attribute.name, serialized["attribute_type"], trace_item_type
+                            attribute.name,
+                            serialized["attribute_type"],
+                            trace_item_type,
                         )
                         for attribute in rpc_response.attributes
                         if attribute.name
                         and can_expose_attribute(
-                            attribute.name, trace_item_type, include_internal=include_internal
+                            attribute.name,
+                            trace_item_type,
+                            include_internal=include_internal,
                         )
                     ],
                 )
@@ -425,7 +439,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         resolved_attr, context_definition = self.resolver.resolve_attribute(key)
         if context_definition:
             resolved_attr = self.resolver.map_context_to_original_column(context_definition)
-        return resolved_attr.search_type, resolved_attr.proto_definition, context_definition
+        return (
+            resolved_attr.search_type,
+            resolved_attr.proto_definition,
+            context_definition,
+        )
 
     def execute(self) -> list[TagValue]:
         func = self.autocomplete_function.get(self.key)
@@ -545,7 +563,8 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
     def semver_package_autocomplete_function(self):
         packages = (
             Release.objects.filter(
-                organization_id=self.snuba_params.organization_id, package__startswith=self.query
+                organization_id=self.snuba_params.organization_id,
+                package__startswith=self.query,
             )
             .values_list("package")
             .distinct()
