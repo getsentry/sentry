@@ -24,6 +24,7 @@ interface ClusterSummary {
   cluster_min_similarity: number;
   cluster_size: number;
   description: string;
+  fixability_score: number;
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
@@ -142,10 +143,10 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 function DynamicGrouping() {
   const organization = useOrganization();
 
-  // Sort clusters by size (descending)
+  // Sort clusters by fixability score (descending)
   const sortedClusters = useMemo(() => {
     return [...clusterSummariesData].sort(
-      (a: ClusterSummary, b: ClusterSummary) => b.cluster_size - a.cluster_size
+      (a: ClusterSummary, b: ClusterSummary) => b.fixability_score - a.fixability_score
     );
   }, []);
 
