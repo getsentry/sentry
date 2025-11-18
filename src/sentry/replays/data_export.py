@@ -593,7 +593,7 @@ def export_replay_blob_data[T](
             gcp_project_id=gcp_project_id,
             transfer_job_name=None,
             source_bucket=source_bucket,
-            source_prefix=f"{retention_days}/{project_id}",
+            source_prefix=f"{retention_days}/{project_id}/",
             destination_bucket=destination_bucket,
             destination_prefix=destination_prefix,
             notification_topic=pubsub_topic_name,
