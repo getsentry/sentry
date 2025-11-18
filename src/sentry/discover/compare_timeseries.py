@@ -90,10 +90,13 @@ def make_rpc_request(
     query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
     extrapolation_mode = None
+    extrapolation_mode_str = None
     if dataset == Dataset.PerformanceMetrics.value:
         extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        extrapolation_mode_str = "serverOnly"
     if dataset == Dataset.Transactions.value:
         extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+        extrapolation_mode_str = "none"
 
     results = Spans.run_timeseries_query(
         params=snuba_params,
@@ -103,8 +106,10 @@ def make_rpc_request(
         config=SearchResolverConfig(
             extrapolation_mode=extrapolation_mode,
         ),
-        sampling_mode=None,
+        sampling_mode="NORMAL",
     )
+
+    sentry_sdk.set_tag("extrapolation_mode", extrapolation_mode_str)
 
     assert snuba_params.start is not None
     assert snuba_params.end is not None
@@ -119,6 +124,7 @@ def make_rpc_request(
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         sampling="NORMAL",
+        extrapolationMode=extrapolation_mode_str,
     )
     sentry_sdk.set_extra("eap_call", api_call)
 
