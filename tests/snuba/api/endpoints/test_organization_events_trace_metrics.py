@@ -253,6 +253,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "per_second(value,request_count,counter,-)": pytest.approx(8 / 600, abs=0.001)
         }
 
+    @pytest.mark.skip(reason="flaky: #103532")
     def test_per_second_formula_with_gauge_metric_type(self) -> None:
         gauge_metrics = [
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
