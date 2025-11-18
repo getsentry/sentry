@@ -54,25 +54,26 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self.user = user or ""
         self.password = password
         self.client_name = client
-        self.base_url = f"p4://{self.host}:{self.port}"
         self.P4 = P4
         self.P4Exception = P4Exception
 
     def _connect(self):
-        """Create and connect a P4 instance."""
+        """Create and connect a P4 instance with SSL support."""
         is_ticket_auth = bool(self.ticket)
 
         p4 = self.P4()
 
+        # Always set P4PORT (required for multi-server environments and SSL)
+        p4.port = self.p4port
+
         if is_ticket_auth:
-            # Ticket authentication: P4Python auto-extracts host/port/user from ticket
-            # Just set the ticket as password and P4 will handle the rest
+            # Ticket authentication: In multi-server deployments with login forwarding,
+            # tickets are identical across servers. Must still set p4.port to connect
+            # to the correct server endpoint.
             p4.password = self.ticket
         else:
-            # Password authentication: set host/port/user explicitly
-            p4.port = f"{self.host}:{self.port}"
+            # Password authentication
             p4.user = self.user
-
             if self.password:
                 p4.password = self.password
 
@@ -84,6 +85,18 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         try:
             p4.connect()
 
+            # Establish SSL trust if fingerprint is provided
+            # Must be done AFTER connect but BEFORE login
+            if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
+                try:
+                    p4.run_trust("-i", self.ssl_fingerprint)
+                except self.P4Exception as trust_error:
+                    p4.disconnect()
+                    raise ApiError(
+                        f"Failed to establish SSL trust: {trust_error}. "
+                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                    )
+
             # Authenticate with the server if password is provided (not ticket)
             if self.password and not is_ticket_auth:
                 try:
@@ -94,7 +107,14 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
             return p4
         except self.P4Exception as e:
-            raise ApiError(f"Failed to connect to Perforce: {e}")
+            error_msg = str(e)
+            # Provide helpful error message for SSL issues
+            if "SSL" in error_msg or "trust" in error_msg.lower():
+                raise ApiError(
+                    f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                )
+            raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
     def _disconnect(self, p4):
         """Disconnect P4 instance."""
