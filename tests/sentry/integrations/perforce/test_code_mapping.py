@@ -391,9 +391,9 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         url = self.installation.format_source_url(repo=self.repo, filepath=mapped_path, branch=None)
         assert url == "p4://depot/game/src/main.cpp@42"
 
-    def test_full_flow_with_web_viewer(self):
-        """Test full flow with P4Web viewer configuration"""
-        integration_with_web = self.create_integration(
+    def test_full_flow_with_swarm_viewer(self):
+        """Test full flow with Swarm viewer configuration"""
+        integration_with_swarm = self.create_integration(
             organization=self.organization,
             provider="perforce",
             name="Perforce",
@@ -406,28 +406,28 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
                 "web_url": "https://p4web.example.com",
             },
         )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Create repo with web viewer integration
-        repo_web = Repository.objects.create(
+        repo_swarm = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
-            integration_id=integration_with_web.id,
+            integration_id=integration_with_swarm.id,
             config={"depot_path": "//depot"},
         )
 
         # Use a new project to avoid unique constraint on (project_id, stack_root)
-        project_web = self.create_project(organization=self.organization)
+        project_swarm = self.create_project(organization=self.organization)
 
-        org_integration_web = integration_with_web.organizationintegration_set.first()
-        assert org_integration_web is not None
+        org_integration_swarm = integration_with_swarm.organizationintegration_set.first()
+        assert org_integration_swarm is not None
 
-        code_mapping_web = RepositoryProjectPathConfig.objects.create(
-            project=project_web,
+        code_mapping_swarm = RepositoryProjectPathConfig.objects.create(
+            project=project_swarm,
             organization_id=self.organization.id,
-            repository=repo_web,
-            organization_integration_id=org_integration_web.id,
-            integration_id=integration_with_web.id,
+            repository=repo_swarm,
+            organization_integration_id=org_integration_swarm.id,
+            integration_id=integration_with_swarm.id,
             stack_root="depot/",
             source_root="/",
             default_branch=None,
@@ -442,14 +442,14 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         # Code mapping
         mapped_path = convert_stacktrace_frame_path_to_source_path(
             frame=frame,
-            code_mapping=code_mapping_web,
+            code_mapping=code_mapping_swarm,
             platform="python",
             sdk_name="sentry.python",
         )
 
-        # format_source_url with web viewer (revision extracted from filename)
+        # format_source_url with Swarm viewer (revision extracted from filename)
         assert mapped_path is not None
-        url = installation.format_source_url(repo=repo_web, filepath=mapped_path, branch=None)
+        url = installation.format_source_url(repo=repo_swarm, filepath=mapped_path, branch=None)
 
         # Swarm format: /files/<depot_path>?v=<revision>
         assert url == "https://p4web.example.com/files//depot/app/services/processor.py?v=42"

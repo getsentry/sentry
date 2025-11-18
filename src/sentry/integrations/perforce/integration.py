@@ -504,24 +504,11 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
             },
             {
-                "name": "web_viewer_type",
-                "type": "choice",
-                "label": "Web Viewer Type",
-                "choices": [
-                    ["p4web", "P4Web"],
-                    ["swarm", "Helix Swarm"],
-                    ["other", "Other"],
-                ],
-                "help": "Type of web viewer (if web URL is provided)",
-                "required": False,
-                "default": "p4web",
-            },
-            {
                 "name": "web_url",
                 "type": "string",
-                "label": "Web Viewer URL (Optional)",
-                "placeholder": "https://p4web.company.com",
-                "help": "Optional: URL to P4Web, Swarm, or other web-based Perforce viewer",
+                "label": "Helix Swarm URL (Optional)",
+                "placeholder": "https://swarm.company.com",
+                "help": "Optional: URL to Helix Swarm web viewer for browsing files",
                 "required": False,
             },
         ]
