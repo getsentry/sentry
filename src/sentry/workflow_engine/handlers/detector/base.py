@@ -34,6 +34,7 @@ class EvidenceData(Generic[DataPacketEvaluationType]):
     detector_id: int
     data_packet_source_id: int
     conditions: list[dict[str, Any]]
+    data_source_definition: dict[str, Any] | None
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

@@ -51,8 +51,6 @@ MetricResult = float | dict
 @dataclass
 class MetricIssueEvidenceData(EvidenceData[MetricResult]):
     alert_id: int
-    # Optional: include a generic data source definition used by the detector
-    data_source_definition: dict[str, Any] | None = None
 
 
 class SessionsAggregate(StrEnum):
