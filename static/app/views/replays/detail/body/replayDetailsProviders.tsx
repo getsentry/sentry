@@ -20,7 +20,10 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {type ReplayListRecord} from 'sentry/views/replays/types';
+import {
+  type ReplayListQueryReferrer,
+  type ReplayListRecord,
+} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -54,11 +57,11 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       project: decodeList,
       query: decodeScalar,
       start: decodeScalar,
-      utc: decodeScalar,
       playlistStart: decodeScalar,
       playlistEnd: decodeScalar,
       playlistSort: decodeScalar,
       sort: decodeScalar,
+      referrer: decodeScalar,
     },
   });
 
@@ -74,7 +77,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   const queryKey = useReplayListQueryKey({
     options: {query},
     organization,
-    queryReferrer: 'replaysPlayList',
+    queryReferrer: query.referrer
+      ? (query.referrer as ReplayListQueryReferrer)
+      : 'replayList',
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
