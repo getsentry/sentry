@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.utils import timezone as django_timezone
@@ -40,10 +40,10 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert call_args.user_id == self.user.id
         assert call_args.actor_id == self.staff_user.id
 
-        deletion_request = django_timezone.datetime.fromisoformat(
-            call_args.deletion_request_datetime
-        )
-        deletion_scheduled = django_timezone.datetime.fromisoformat(call_args.deletion_datetime)
+        assert call_args.deletion_request_datetime is not None
+        assert call_args.deletion_datetime is not None
+        deletion_request = datetime.fromisoformat(call_args.deletion_request_datetime)
+        deletion_scheduled = datetime.fromisoformat(call_args.deletion_datetime)
         assert deletion_request >= before_delete
         assert deletion_scheduled >= deletion_request + timedelta(days=29)
         assert deletion_scheduled <= deletion_request + timedelta(days=31)
@@ -53,7 +53,7 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert security_call[1]["type"] == "user.deactivated"
         assert security_call[1]["account"] == user
         assert security_call[1]["actor"].id == self.staff_user.id
-        assert security_call[1]["send_email"] is False
+        assert security_call[1]["send_email"] is True
         assert "deactivation_datetime" in security_call[1]["context"]
         assert "scheduled_deletion_datetime" in security_call[1]["context"]
 
@@ -78,10 +78,10 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert call_args.user_id == user_id
         assert call_args.actor_id == self.staff_user.id
 
-        deletion_request = django_timezone.datetime.fromisoformat(
-            call_args.deletion_request_datetime
-        )
-        deletion_time = django_timezone.datetime.fromisoformat(call_args.deletion_datetime)
+        assert call_args.deletion_request_datetime is not None
+        assert call_args.deletion_datetime is not None
+        deletion_request = datetime.fromisoformat(call_args.deletion_request_datetime)
+        deletion_time = datetime.fromisoformat(call_args.deletion_datetime)
         assert deletion_request >= before_delete
         assert deletion_time == deletion_request
 
@@ -91,7 +91,7 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert security_call[1]["account"].id == user_id
         assert security_call[1]["account"].email == user_email
         assert security_call[1]["actor"].id == self.staff_user.id
-        assert security_call[1]["send_email"] is False
+        assert security_call[1]["send_email"] is True
         assert "deletion_datetime" in security_call[1]["context"]
         assert "scheduled_deletion_datetime" not in security_call[1]["context"]
 
@@ -109,10 +109,10 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         self.get_success_response(self.user.id, organizations=[], status_code=204)
 
         call_args = mock_analytics.call_args[0][0]
-        deletion_request = django_timezone.datetime.fromisoformat(
-            call_args.deletion_request_datetime
-        )
-        deletion_scheduled = django_timezone.datetime.fromisoformat(call_args.deletion_datetime)
+        assert call_args.deletion_request_datetime is not None
+        assert call_args.deletion_datetime is not None
+        deletion_request = datetime.fromisoformat(call_args.deletion_request_datetime)
+        deletion_scheduled = datetime.fromisoformat(call_args.deletion_datetime)
 
         delta = deletion_scheduled - deletion_request
         assert delta >= timedelta(days=29, hours=23, minutes=59)

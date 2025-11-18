@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -46,16 +46,15 @@ TIMEZONE_CHOICES = get_timezone_choices()
 
 def record_user_deletion(
     *,
-    actor: User,
+    actor: Any,
     ip_address: str,
     hard_delete: bool,
     user: User | None = None,
     user_id: int | None = None,
     user_email: str | None = None,
 ) -> None:
+    account: User | Any
     if hard_delete:
-        # Since we record the deletion after a hard_delete, we have no user object left
-        # and need to construct an account object containing the user attributes
         assert user_id is not None and user_email is not None
         account = SimpleNamespace(id=user_id, email=user_email)
     else:
@@ -88,12 +87,12 @@ def record_user_deletion(
         }
 
     capture_security_activity(
-        account=account,
+        account=cast(Any, account),
         type="user.removed" if hard_delete else "user.deactivated",
         actor=actor,
         ip_address=ip_address,
         context=context,
-        send_email=False,
+        send_email=True,
         current_datetime=deletion_request_datetime,
     )
 
