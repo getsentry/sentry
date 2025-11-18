@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconLightning} from 'sentry/icons/iconLightning';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {SvgIcon, type SVGIconProps} from './svgIcon';
@@ -37,11 +36,15 @@ export function IconBusiness({
   const shineId = `icon-business-shine-${uid}`;
 
   if (theme.isChonk) {
-    return <IconLightning {...props} />;
+    return (
+      <SvgIcon {...props}>
+        <path d="M8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C1.77176e-07 3.58172 3.58172 1.7717e-07 8 0ZM8 1.5C4.41015 1.5 1.5 4.41015 1.5 8C1.5 11.5899 4.41015 14.5 8 14.5C11.5899 14.5 14.5 11.5899 14.5 8C14.5 4.41015 11.5899 1.5 8 1.5ZM8.62402 3.60156C8.80495 3.42787 9.09967 3.59852 9.03906 3.8418L8.32812 6.68945C8.28868 6.84724 8.40767 7 8.57031 7H12.3789C12.6039 7.00026 12.7141 7.27478 12.5518 7.43066L7.37598 12.3984C7.19505 12.5721 6.90033 12.4015 6.96094 12.1582L7.67188 9.31055C7.71132 9.15276 7.59233 9 7.42969 9H3.62109C3.39611 8.99974 3.28587 8.72522 3.44824 8.56934L8.62402 3.60156Z" />
+      </SvgIcon>
+    );
   }
 
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props}>
       <mask id={maskId}>
         <path
           fill="white"
