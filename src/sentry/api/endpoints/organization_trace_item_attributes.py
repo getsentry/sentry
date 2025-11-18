@@ -389,7 +389,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
             with handle_query_errors():
                 tag_values = executor.execute()
-            tag_values.sort(key=lambda tag: tag.value)
+            tag_values.sort(key=lambda tag: tag.value or "")
             return tag_values
 
         return self.paginate(
