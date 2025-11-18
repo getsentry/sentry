@@ -534,6 +534,7 @@ def process_workflows(
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
+    workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     if not actions:
         return WorkflowEvaluation(
@@ -553,4 +554,4 @@ def process_workflows(
     )
 
     fire_actions(actions, detector, event_data)
-    return WorkflowEvaluation(tainted=False, msg=None, data=workflow_evaluation_data)
+    return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)
