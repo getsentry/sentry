@@ -83,14 +83,6 @@ def optimize_path_precision(path_data: str, precision: int) -> str:
         rounded = round_number(match.group(0), precision)
         result.append(rounded)
 
-        # Check if we need to add a space after this number
-        # This is needed when: the rounded number ends with a digit,
-        # and the next character is a digit or decimal point (would create ambiguity)
-        if match.end() < len(path_data):
-            next_char = path_data[match.end()]
-            if rounded and rounded[-1].isdigit() and next_char in "0123456789.":
-                result.append(" ")
-
         last_end = match.end()
 
     # Add any remaining text after the last match
