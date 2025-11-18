@@ -47,7 +47,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         help_text="Name of the monitor",
     )
     type = serializers.CharField()
-    config = serializers.JSONField(default=dict)
+    config = serializers.JSONField(required=True)
     owner = ActorField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
