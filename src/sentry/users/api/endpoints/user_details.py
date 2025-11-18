@@ -44,56 +44,65 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
-def record_user_deletion(
-    *,
-    actor: Any,
-    ip_address: str,
-    hard_delete: bool,
-    user: User | None = None,
-    user_id: int | None = None,
-    user_email: str | None = None,
-) -> None:
-    account: User | Any
-    if hard_delete:
-        assert user_id is not None and user_email is not None
-        account = SimpleNamespace(id=user_id, email=user_email)
-    else:
-        assert user is not None
-        account = user
-
-    deletion_request_datetime = django_timezone.now()
-    deletion_datetime = (
-        deletion_request_datetime if hard_delete else deletion_request_datetime + timedelta(days=30)
-    )
+def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
+    deactivation_datetime = django_timezone.now()
+    scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
 
     try:
         analytics.record(
             UserRemovedEvent(
-                user_id=account.id,
+                user_id=user.id,
                 actor_id=actor.id,
-                deletion_request_datetime=deletion_request_datetime.isoformat(),
+                deletion_request_datetime=deactivation_datetime.isoformat(),
+                deletion_datetime=scheduled_deletion_datetime.isoformat(),
+            )
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    capture_security_activity(
+        account=user,
+        type="user.deactivated",
+        actor=actor,
+        ip_address=ip_address,
+        context={
+            "deactivation_datetime": deactivation_datetime.isoformat(),
+            "scheduled_deletion_datetime": scheduled_deletion_datetime.isoformat(),
+        },
+        send_email=True,
+        current_datetime=deactivation_datetime,
+    )
+
+
+def record_hard_user_deletion(
+    *, user_id: int, user_email: str, actor: Any, ip_address: str
+) -> None:
+    deletion_datetime = django_timezone.now()
+
+    try:
+        analytics.record(
+            UserRemovedEvent(
+                user_id=user_id,
+                actor_id=actor.id,
+                deletion_request_datetime=deletion_datetime.isoformat(),
                 deletion_datetime=deletion_datetime.isoformat(),
             )
         )
     except Exception as e:
         capture_exception(e)
 
-    if hard_delete:
-        context = {"deletion_datetime": deletion_request_datetime.isoformat()}
-    else:
-        context = {
-            "deactivation_datetime": deletion_request_datetime.isoformat(),
-            "scheduled_deletion_datetime": deletion_datetime.isoformat(),
-        }
+    # We create a minimal object with id and email since the User was already deleted.
+    # This is only used for email template rendering.
+    account_info = SimpleNamespace(id=user_id, email=user_email)
 
     capture_security_activity(
-        account=cast(Any, account),
-        type="user.removed" if hard_delete else "user.deactivated",
+        account=cast(Any, account_info),
+        type="user.removed",
         actor=actor,
         ip_address=ip_address,
-        context=context,
+        context={"deletion_datetime": deletion_datetime.isoformat()},
         send_email=True,
-        current_datetime=deletion_request_datetime,
+        current_datetime=deletion_datetime,
     )
 
 
@@ -420,21 +429,19 @@ class UserDetailsEndpoint(UserEndpoint):
             user_email = user.email
             user.delete()
             delete_logger.info("user.removed", extra=logging_data)
-            record_user_deletion(
+            record_hard_user_deletion(
                 user_id=user_id,
                 user_email=user_email,
                 actor=request.user,
                 ip_address=request.META["REMOTE_ADDR"],
-                hard_delete=True,
             )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
             delete_logger.info("user.deactivate", extra=logging_data)
-            record_user_deletion(
+            record_user_deactivation(
                 user=user,
                 actor=request.user,
                 ip_address=request.META["REMOTE_ADDR"],
-                hard_delete=False,
             )
 
         # if the user deleted their own account log them out
