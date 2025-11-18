@@ -144,21 +144,50 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_sibling_artifacts_for_commit(self) -> models.QuerySet[PreprodArtifact]:
         """
-        Get all artifacts for the same commit comparison (monorepo scenario).
+        Get sibling artifacts for the same commit, deduplicated by app_id.
 
-        Note: Always includes the calling artifact itself along with any siblings.
-        Results are filtered by the current artifact's organization for security.
+        When multiple artifacts exist for the same app_id (e.g., due to reprocessing),
+        this method returns only one artifact per app_id to prevent duplicate rows
+        in status checks:
+        - For the calling artifact's app_id: Returns the calling artifact itself
+        - For other app_ids: Returns the earliest (oldest) artifact for that app_id
+
+        This matches the behavior of deduplication to ensure status checks show
+        at most one row per app, even after reprocessing creates new artifacts.
+
+        Note: Results are filtered by the current artifact's organization for security.
 
         Returns:
-            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+            QuerySet of PreprodArtifact objects, deduplicated by app_id, ordered by app_id
         """
+        from collections import defaultdict
+
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
 
-        return PreprodArtifact.objects.filter(
+        # Get all artifacts for this commit
+        all_artifacts = PreprodArtifact.objects.filter(
             commit_comparison=self.commit_comparison,
             project__organization_id=self.project.organization_id,
-        ).order_by("app_id")
+        ).order_by("app_id", "date_added")
+
+        # Group by app_id and deduplicate
+        artifacts_by_app_id = defaultdict(list)
+        for artifact in all_artifacts:
+            artifacts_by_app_id[artifact.app_id].append(artifact)
+
+        # Select one artifact per app_id
+        selected_ids = []
+        for app_id, artifacts in artifacts_by_app_id.items():
+            # If the calling artifact is in this app_id group, use it
+            if self.app_id == app_id:
+                selected_ids.append(self.id)
+            else:
+                # Otherwise use the earliest (first in sorted order)
+                selected_ids.append(artifacts[0].id)
+
+        # Return artifacts with selected IDs, maintaining order by app_id
+        return PreprodArtifact.objects.filter(id__in=selected_ids).order_by("app_id")
 
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None

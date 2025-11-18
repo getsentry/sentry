@@ -141,6 +141,15 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     # instead of creating duplicates.
     first_artifact_id = str(all_artifacts[0].id)
 
+    logger.info(
+        "preprod.status_checks.external_id",
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "external_id": first_artifact_id,
+            "all_sibling_ids": [str(a.id) for a in all_artifacts],
+        },
+    )
+
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
