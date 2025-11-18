@@ -59,23 +59,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
     def _connect(self):
         """Create and connect a P4 instance with SSL support."""
-        is_ticket_auth = bool(self.ticket)
-
         p4 = self.P4()
-
-        # Always set P4PORT (required for multi-server environments and SSL)
         p4.port = self.p4port
-
-        if is_ticket_auth:
-            # Ticket authentication: In multi-server deployments with login forwarding,
-            # tickets are identical across servers. Must still set p4.port to connect
-            # to the correct server endpoint.
-            p4.password = self.ticket
-        else:
-            # Password authentication
-            p4.user = self.user
-            if self.password:
-                p4.password = self.password
+        p4.user = self.user
+        p4.password = self.password
 
         if self.client_name:
             p4.client = self.client_name
@@ -85,8 +72,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         try:
             p4.connect()
 
-            # Establish SSL trust if fingerprint is provided
-            # Must be done AFTER connect but BEFORE login
             if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
                 try:
                     p4.run_trust("-i", self.ssl_fingerprint)
@@ -97,8 +82,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                         f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
                     )
 
-            # Authenticate with the server if password is provided (not ticket)
-            if self.password and not is_ticket_auth:
+            if self.password:
                 try:
                     p4.run_login()
                 except self.P4Exception as login_error:
@@ -263,8 +247,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             ]
         finally:
             self._disconnect(p4)
-
-    # CommitContextClient methods (stubbed for now)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
