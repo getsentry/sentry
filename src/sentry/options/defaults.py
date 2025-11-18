@@ -842,7 +842,6 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1158,6 +1157,14 @@ register(
     type=Bool,
     default=True,
     flags=FLAG_MODIFIABLE_BOOL,
+)
+
+# Maximum token count for stacktraces sent to Seer for similarity analysis
+register(
+    "seer.similarity.max_token_count",
+    type=Int,
+    default=7000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -3641,18 +3648,17 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables or disables Github webhook routing based on the type of webhook
-register(
-    "github.webhook-type-routing.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.scanner_no_consent.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )

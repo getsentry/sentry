@@ -34,6 +34,7 @@ class TreemapResults(BaseModel):
 
 # Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 class SizeAnalysisResults(BaseModel):
+    analysis_duration: float
     download_size: int
     install_size: int
     treemap: TreemapResults | None

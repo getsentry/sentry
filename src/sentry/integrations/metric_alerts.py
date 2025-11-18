@@ -253,7 +253,7 @@ def incident_attachment_info(
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 
-    elif features.has("organizations:workflow-engine-ui", organization):
+    elif features.has("organizations:workflow-engine-ui-links", organization):
         if metric_issue_context.group is None:
             raise ValueError("Group is required for workflow engine UI links")
 

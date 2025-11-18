@@ -96,7 +96,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -119,7 +119,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
     def test_invalid_dates_error(self) -> None:
         self.get_error_response(

@@ -213,7 +213,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     );
 
     const hasPreventBilling = organizations.some(organization =>
-      organization.features?.includes('prevent-billing')
+      organization.features?.includes('seer-user-billing')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;

@@ -8,7 +8,7 @@ import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/ut
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {getIssueTypeFromOccurrenceType, IssueType, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -132,7 +132,7 @@ const IssuesTraceContainer = styled('div')`
 `;
 
 const isWebVitalsEvent = (event: Event) => {
-  return event.tags.some((tag: {key: string}) => tag?.key === 'web_vital');
+  return getIssueTypeFromOccurrenceType(event.occurrence?.type) === IssueType.WEB_VITALS; // Web Vitals group type id
 };
 
 interface EventTraceViewProps {

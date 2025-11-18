@@ -1,7 +1,5 @@
 ---
-created: '2025-11-11T21:46:31.736096+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2025-11-21",
@@ -45,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (category:internals -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -89,7 +87,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -133,7 +131,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -177,7 +175,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -221,7 +219,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -529,7 +527,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -573,7 +571,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -617,7 +615,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -661,7 +659,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -705,7 +703,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -749,7 +747,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -793,7 +791,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -837,7 +835,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -881,7 +879,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**/site-packages/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -999,8 +997,8 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1886,7 +1884,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       },
       "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": "6791947bdfd6cf2ca7024f026df974ae",
+      "hash": "1bc764ab44acfab9a38f23ae670038bd",
       "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"
