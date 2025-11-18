@@ -7,15 +7,14 @@ export function getAutomationAnalyticsPayload(automation: Automation): {
   frequency_minutes: number | null;
   trigger_conditions_count: number;
 } {
-  const frequency_minutes = automation.config?.frequency ?? null;
+  const frequency_minutes = automation.config.frequency ?? null;
   const environment = automation.environment;
-  const detectors_count = automation.detectorIds?.length ?? 0;
+  const detectors_count = automation.detectorIds.length;
   const trigger_conditions_count = automation.triggers?.conditions?.length ?? 0;
-  const actions_count =
-    automation.actionFilters?.reduce(
-      (total, filter) => total + (filter.actions?.length ?? 0),
-      0
-    ) ?? 0;
+  const actions_count = automation.actionFilters.reduce(
+    (total, filter) => total + (filter.actions?.length ?? 0),
+    0
+  );
 
   return {
     frequency_minutes,
