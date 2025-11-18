@@ -52,7 +52,7 @@ export function NewUptimeDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{name: 'New Monitor'}}
+      initialFormData={{}}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>

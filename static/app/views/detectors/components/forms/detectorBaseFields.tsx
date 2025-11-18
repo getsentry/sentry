@@ -21,7 +21,7 @@ export function DetectorBaseFields() {
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
             <EditableText
-              isDisabled={false}
+              allowEmpty
               value={value || ''}
               onChange={newValue => {
                 onChange(newValue, {
@@ -31,7 +31,6 @@ export function DetectorBaseFields() {
                 });
                 setHasSetDetectorName(true);
               }}
-              errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
               aria-label={t('Monitor Name')}
             />

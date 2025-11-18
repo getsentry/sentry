@@ -718,7 +718,7 @@ describe('DetectorEdit', () => {
                 url: 'https://uptime.example.com',
               },
             ],
-            name: 'New MonitorUptime Monitor',
+            name: 'Uptime Monitor',
             description: 'This is my uptime monitor description',
             projectId: '2',
             type: 'uptime_domain_failure',

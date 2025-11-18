@@ -75,16 +75,17 @@ export function cronFormDataToEndpointPayload(
           schedule_type: ScheduleType.INTERVAL,
         };
 
+  const name = data.name || 'New Monitor';
   return {
     type: 'monitor_check_in_failure',
-    name: data.name,
+    name,
     description: data.description || null,
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
     dataSources: [
       {
-        name: data.name,
+        name,
         config,
       },
     ],
