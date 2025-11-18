@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.api.serializers import serialize
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -353,6 +354,34 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    def _build_data_source_definition(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[str, Any]:
+        try:
+            data_source = next(
+                (
+                    ds
+                    for ds in self.detector.data_sources.all()
+                    if ds.source_id == data_packet.source_id
+                ),
+                None,
+            )
+            if not data_source:
+                logger.warning(
+                    "Matching data source not found for detector while generating occurrence evidence data",
+                    extra={
+                        "detector_id": self.detector.id,
+                        "data_packet_source_id": data_packet.source_id,
+                    },
+                )
+                return None
+            return serialize(data_source) if data_source else None
+        except Exception:
+            logger.exception(
+                "Failed to serialize data source definition when building workflow engine evidence data"
+            )
+            return None
+
     def _build_workflow_engine_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -363,14 +392,17 @@ class StatefulDetectorHandler(
         Build the workflow engine specific evidence data.
         This is data that is common to all detectors.
         """
-        return {
+        base: dict[str, Any] = {
             "detector_id": self.detector.id,
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
+            "data_source_definition": self._build_data_source_definition(data_packet),
         }
+
+        return base
 
     def evaluate_impl(
         self, data_packet: DataPacket[DataPacketType]

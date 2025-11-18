@@ -108,11 +108,12 @@ class TestProcessDataSources(BaseWorkflowTest):
             )
 
     def test_sql_cascades(self) -> None:
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             """
-            There should be 2 total SQL queries for `bulk_fetch_enabled_detectors`:
+            There should be 3 total SQL queries for `bulk_fetch_enabled_detectors`:
             - Get the detector and data condition group associated with it
             - Get all the data conditions for the group
+            - Get all the data sources for the detectors
             """
             _, detectors = process_data_source(self.two_detector_packet, "test")
             # If the detector is not prefetched this will increase the query count
@@ -126,3 +127,8 @@ class TestProcessDataSources(BaseWorkflowTest):
                     for condition in detector.workflow_condition_group.conditions.all():
                         # Trigger a SQL query if not prefetched, and fail the assertion
                         assert condition.id is not None
+
+                # Verify data sources are prefetched
+                for data_source in detector.data_sources.all():
+                    # Trigger a SQL query if not prefetched, and fail the assertion
+                    assert data_source.id is not None
