@@ -172,48 +172,26 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Returns:
             Formatted URL (p4:// or Swarm web viewer URL)
         """
-        # Handle absolute depot paths (from SRCSRV transformer)
-        if filepath.startswith("//"):
-            full_path = filepath
-        else:
-            # Relative path - prepend depot_path
-            depot_path = repo.config.get("depot_path", repo.name).rstrip("/")
+        # Use client's build_depot_path to handle both relative and absolute paths correctly
+        client = self.get_client()
+        full_path = client.build_depot_path(repo, filepath, branch)
 
-            # Handle Perforce streams: if branch/stream is specified, insert after depot
-            # Format: //depot/stream/path/to/file
-            if branch:
-                # depot_path is like "//depot", branch is like "main"
-                # Result should be "//depot/main/path/to/file"
-                full_path = f"{depot_path}/{branch}/{filepath.lstrip('/')}"
-            else:
-                filepath = filepath.lstrip("/")
-                full_path = f"{depot_path}/{filepath}"
-
-        # If web viewer is configured, use it
+        # If Swarm web viewer is configured, use it
         web_url = None
-        viewer_type = "swarm"
         if self.org_integration:
             web_url = self.org_integration.config.get("web_url")
-            viewer_type = self.org_integration.config.get("web_viewer_type", "swarm")
 
         if web_url:
-
             # Extract revision from filepath if present (e.g., "file.cpp@42")
             revision = None
             path_without_rev = full_path
             if "@" in full_path:
                 path_without_rev, revision = full_path.rsplit("@", 1)
 
-            if viewer_type == "swarm":
-                # Swarm format: /files/<depot_path>?v=<revision>
-                if revision:
-                    return f"{web_url}/files{path_without_rev}?v={revision}"
-                return f"{web_url}/files{full_path}"
-            elif viewer_type == "p4web":
-                # P4Web format: <depot_path>?ac=64&rev1=<revision>
-                if revision:
-                    return f"{web_url}{path_without_rev}?ac=64&rev1={revision}"
-                return f"{web_url}{full_path}?ac=64"
+            # Swarm format: /files/<depot_path>?v=<revision>
+            if revision:
+                return f"{web_url}/files{path_without_rev}?v={revision}"
+            return f"{web_url}/files{full_path}"
 
         # Default: p4:// protocol URL
         # Perforce uses @ for revisions, which is already in the filepath from Symbolic
@@ -398,24 +376,11 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
             },
             {
-                "name": "web_viewer_type",
-                "type": "choice",
-                "label": "Web Viewer Type",
-                "choices": [
-                    ["p4web", "P4Web"],
-                    ["swarm", "Helix Swarm"],
-                    ["other", "Other"],
-                ],
-                "help": "Type of web viewer (if web URL is provided)",
-                "required": False,
-                "default": "p4web",
-            },
-            {
                 "name": "web_url",
                 "type": "string",
-                "label": "Web Viewer URL (Optional)",
-                "placeholder": "https://p4web.company.com",
-                "help": "Optional: URL to P4Web, Swarm, or other web-based Perforce viewer",
+                "label": "Helix Swarm URL (Optional)",
+                "placeholder": "https://swarm.company.com",
+                "help": "Optional: URL to Helix Swarm web viewer for browsing files",
                 "required": False,
             },
         ]
@@ -461,7 +426,6 @@ class PerforceIntegrationProvider(IntegrationProvider):
                 "client": state.get("client"),
                 "ssl_fingerprint": state.get("ssl_fingerprint"),
                 "web_url": state.get("web_url"),
-                "web_viewer_type": state.get("web_viewer_type", "p4web"),
             },
         }
 
