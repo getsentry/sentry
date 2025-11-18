@@ -40,11 +40,12 @@ export function ExploreContent() {
 
   const organization = useOrganization();
   const datePageFilterProps = limitMaxPickableDays(organization);
+  const queryTitle = useQueryParamsTitle();
 
   const onboardingProject = useOnboardingProject();
 
   return (
-    <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+    <SentryDocumentTitle title={queryTitle ?? t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <Layout.Page>
           <SpansTabWrapper>

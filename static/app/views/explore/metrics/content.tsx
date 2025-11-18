@@ -53,8 +53,11 @@ export default function MetricsContent() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
   const {defaultPeriod, maxPickableDays, relativeOptions} = metricsPickableDays();
+  const location = useLocation();
+  const queryTitle = getTitleFromLocation(location, TITLE_KEY);
+
   return (
-    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization?.slug}>
+    <SentryDocumentTitle title={queryTitle ?? t('Metrics')} orgSlug={organization?.slug}>
       <PageFiltersContainer
         defaultSelection={{
           datetime: {

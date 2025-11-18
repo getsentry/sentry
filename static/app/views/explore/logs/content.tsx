@@ -58,11 +58,12 @@ function FeedbackButton() {
 export default function LogsContent() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
+  const queryTitle = useQueryParamsTitle();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   return (
-    <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
+    <SentryDocumentTitle title={queryTitle ?? t('Logs')} orgSlug={organization?.slug}>
       <PageFiltersContainer
         maxPickableDays={maxPickableDays}
         defaultSelection={{
