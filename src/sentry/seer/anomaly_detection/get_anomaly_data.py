@@ -16,9 +16,11 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    AnomalyThresholdDataPoint,
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
+    SeerAlertDataResponse,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
@@ -283,7 +285,7 @@ def get_anomaly_threshold_data_from_seer(
     subscription: QuerySubscription,
     start: float,
     end: float,
-) -> list[dict[str, object]] | None:
+) -> list[AnomalyThresholdDataPoint] | None:
     """
     Get anomaly detection threshold data from Seer for a specific alert rule and time range.
     Returns data points with yhat_lower and yhat_upper threshold values.
@@ -322,7 +324,7 @@ def get_anomaly_threshold_data_from_seer(
         return None
 
     try:
-        results = json.loads(response.data.decode("utf-8"))
+        results: SeerAlertDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
             "Failed to parse Seer alert data response",
