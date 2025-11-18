@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex} from 'sentry/components/core/layout';
@@ -75,10 +74,7 @@ export default function FeedbackSummaryCategories() {
             </Flex>
           }
         >
-          <Flex gap="xs" align="center">
-            <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
-            <FeatureBadge type="new" />
-          </Flex>
+          <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
         </Disclosure.Title>
         <Disclosure.Content>
           <SummaryContainer>
