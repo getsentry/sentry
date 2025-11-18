@@ -356,7 +356,7 @@ class StatefulDetectorHandler(
 
     def _build_data_source_definition(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         try:
             data_source = next(
                 (
