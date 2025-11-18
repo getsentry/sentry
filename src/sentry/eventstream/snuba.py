@@ -17,7 +17,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json, snuba
+from sentry.utils import json, metrics, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
@@ -493,6 +493,40 @@ class SnubaEventStream(SnubaProtocolEventStream):
             return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
+
+    def _send_item(self, trace_item: TraceItem) -> None:
+        try:
+            resp = snuba._snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/eap_items/insert_bytes",
+                fields={"item_0": trace_item.SerializeToString()},
+            )
+
+            if resp.status == 200:
+                metrics.incr("eventstream.eap.occurrence_insert.success")
+            else:
+                logger.warning(
+                    "Failed to insert EAP occurrence item",
+                    extra={
+                        "status": resp.status,
+                        "organization_id": trace_item.organization_id,
+                        "project_id": trace_item.project_id,
+                        "item_id": trace_item.item_id.decode("utf-8"),
+                        "trace_id": trace_item.trace_id,
+                    },
+                )
+                metrics.incr("eventstream.eap.occurrence_insert.failure")
+        except Exception:
+            logger.exception(
+                "Exception while inserting EAP occurrence item",
+                extra={
+                    "organization_id": trace_item.organization_id,
+                    "project_id": trace_item.project_id,
+                    "item_id": trace_item.item_id.decode("utf-8"),
+                    "trace_id": trace_item.trace_id,
+                },
+            )
+            metrics.incr("eventstream.eap.occurrence_insert.failure")
 
     def requires_post_process_forwarder(self) -> bool:
         return False
