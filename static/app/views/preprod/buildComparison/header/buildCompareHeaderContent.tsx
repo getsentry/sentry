@@ -18,8 +18,8 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  formattedDownloadSize,
-  formattedInstallSize,
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
@@ -38,14 +38,14 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
-      label: 'Releases',
+      label: t('Releases'),
     },
     {
       to: `/organizations/${organization.slug}/preprod/${projectId}/${buildDetails.id}/`,
-      label: buildDetails.app_info.version,
+      label: buildDetails.app_info.version ?? t('Build Version'),
     },
     {
-      label: 'Compare',
+      label: t('Compare'),
     },
   ];
 
@@ -100,7 +100,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
+                <Text underline="dotted">
+                  {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
+                </Text>
               </Flex>
             </Tooltip>
           )}
@@ -108,7 +110,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
+                <Text underline="dotted">
+                  {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
+                </Text>
               </Flex>
             </Tooltip>
           )}

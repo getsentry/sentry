@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -117,16 +115,17 @@ describe('WidgetBuilderGroupBySelector', () => {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 
@@ -150,16 +149,17 @@ describe('WidgetBuilderGroupBySelector', () => {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithoutFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithoutFeature,
       }
     );
 
@@ -182,16 +182,17 @@ describe('WidgetBuilderGroupBySelector', () => {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 

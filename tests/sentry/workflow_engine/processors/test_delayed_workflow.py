@@ -15,6 +15,7 @@ from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
@@ -39,6 +40,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
+    TriggerResult,
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
@@ -175,7 +177,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
 
         return workflow, [workflow_action_slow_filter_group, workflow_action_filter_group]
 
-    def setup_event(self, project, environment, name) -> tuple[Event, Group]:
+    def setup_event(
+        self, project: Project, environment: Environment, name: str
+    ) -> tuple[Event, Group]:
         event = self.create_event(project.id, FROZEN_TIME, name, environment.name)
         assert event.group
         return event, event.group
@@ -935,10 +939,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert second_call_kwargs["group_id"] == self.group2.id
         assert second_call_kwargs["workflow_id"] == self.workflow2.id
 
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
+            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
             [],
         )
 

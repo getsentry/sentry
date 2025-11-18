@@ -78,7 +78,6 @@ export function MetricDetectorFixture(
     name: 'detector',
     config: {
       detectionType: 'static',
-      thresholdPeriod: 1,
     },
     type: 'metric_issue',
     enabled: true,

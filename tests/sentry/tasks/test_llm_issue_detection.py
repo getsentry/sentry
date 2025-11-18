@@ -83,7 +83,7 @@ class LLMIssueDetectionTest(TestCase):
         assert len(occurrence.fingerprint) == 1
         assert (
             occurrence.fingerprint[0]
-            == "llm-detected-Database Connection Pool Exhaustion-test_transaction"
+            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
         )
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
@@ -95,32 +95,21 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.evidence_data["impact"] == "High - may cause request failures"
 
         evidence_display = occurrence.evidence_display
-        assert len(evidence_display) == 4
+        assert len(evidence_display) == 3
 
-        explanation_evidence = next(e for e in evidence_display if e.name == "Explanation")
-        assert explanation_evidence.important is True
+        assert evidence_display[0].name == "Explanation"
         assert (
-            explanation_evidence.value == "Your application is running out of database connections"
+            evidence_display[0].value == "Your application is running out of database connections"
         )
-
-        impact_evidence = next(e for e in evidence_display if e.name == "Impact")
-        assert impact_evidence.important is False
-        assert impact_evidence.value == "High - may cause request failures"
-
-        evidence_evidence = next(e for e in evidence_display if e.name == "Evidence")
-        assert evidence_evidence.value == "Connection pool at 95% capacity"
-
-        missing_telemetry_evidence = next(
-            e for e in evidence_display if e.name == "Missing Telemetry"
-        )
-        assert missing_telemetry_evidence.value == "Database connection metrics"
+        assert evidence_display[1].name == "Impact"
+        assert evidence_display[1].value == "High - may cause request failures"
+        assert evidence_display[2].name == "Evidence"
+        assert evidence_display[2].value == "Connection pool at 95% capacity"
 
         event_data = call_kwargs["event_data"]
         assert event_data["project_id"] == self.project.id
         assert event_data["platform"] == "other"
-        assert event_data["tags"]["trace_id"] == "abc123xyz"
-        assert event_data["tags"]["transaction"] == "test_transaction"
-        assert event_data["tags"]["llm_detected"] == "true"
+        assert event_data["contexts"]["trace"]["trace_id"] == "abc123xyz"
         assert "event_id" in event_data
         assert "received" in event_data
         assert "timestamp" in event_data
@@ -173,6 +162,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_trace = Mock()
         mock_trace.trace_id = "trace-abc-123"
+        mock_trace.total_spans = 100
         mock_trace.dict.return_value = {
             "trace_id": "trace-abc-123",
             "spans": [{"op": "db.query", "duration": 1.5}],
@@ -223,7 +213,7 @@ class LLMIssueDetectionTest(TestCase):
         assert first_occurrence.issue_title == "N+1 Query Detected"
         assert first_occurrence.culprit == "api/users/list"
         assert first_occurrence.project_id == self.project.id
-        assert len(first_occurrence.evidence_display) == 4
+        assert len(first_occurrence.evidence_display) == 3
 
         second_occurrence = mock_produce_occurrence.call_args_list[1].kwargs["occurrence"]
         assert second_occurrence.issue_title == "Memory Leak Risk"

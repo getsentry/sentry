@@ -28,6 +28,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -80,6 +81,7 @@ import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerCombo
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   findSuggestedColumns,
@@ -390,6 +392,8 @@ function SpanTabContentSection({
     [selection, maxPickableDays]
   );
 
+  const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
+
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
@@ -507,6 +511,7 @@ function SpanTabContentSection({
             setVisualizes={setVisualizes}
             samplingMode={timeseriesSamplingMode}
             setTab={setTab}
+            rawSpanCounts={rawSpanCounts}
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}

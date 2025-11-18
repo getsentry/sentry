@@ -18,7 +18,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly} from 'sentry/views/alerts/types';
-import {IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -248,7 +247,8 @@ export function getMetricDetectorChartOption(
         const statusChanges = openPeriod.activities
           .filter(
             ({type, value}) =>
-              type === 'status_change' && (value === 'medium' || value === 'high')
+              (type === 'status_change' || type === 'opened') &&
+              (value === 'medium' || value === 'high')
           )
           .sort(
             (a, b) =>
@@ -257,12 +257,11 @@ export function getMetricDetectorChartOption(
 
         const incidentEnd = openPeriod.end ?? Date.now();
 
-        const timeWindowMs = snubaQuery.timeWindow * 60 * 1000;
+        const timeWindowMs = snubaQuery.timeWindow * 1000;
         const incidentColor =
-          warningCondition &&
-          statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.red300
-            : theme.yellow300;
+          warningCondition && !statusChanges.some(({value}) => value === 'high')
+            ? theme.yellow300
+            : theme.red300;
 
         const incidentStartDate = new Date(openPeriod.start).getTime();
         const incidentCloseDate = openPeriod.end
