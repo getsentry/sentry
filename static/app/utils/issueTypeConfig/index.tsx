@@ -87,6 +87,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
+  groupingInfo: {enabled: true},
 };
 
 const issueTypeConfig: Config = {
