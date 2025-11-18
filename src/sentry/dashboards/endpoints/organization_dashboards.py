@@ -236,8 +236,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
         query = request.GET.get("query")
+        prebuilt_ids = request.GET.getlist("prebuiltId")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+        if (
+            prebuilt_ids
+            and len(prebuilt_ids) > 0
+            and features.has(
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                organization,
+                actor=request.user,
+            )
+        ):
+            dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
+
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
