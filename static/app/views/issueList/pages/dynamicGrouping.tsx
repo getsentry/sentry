@@ -153,41 +153,27 @@ function ClusterCard({
         )}
       </Flex>
 
-      <Flex justify="between" align="center" gap="sm" paddingTop="md" borderTop="primary">
-        <Flex wrap="wrap" gap="xs" flex="1">
-          {cluster.tags.slice(0, 5).map(tag => (
-            <Tag key={tag}>
-              <Text size="xs">{tag}</Text>
-            </Tag>
-          ))}
-          {cluster.tags.length > 5 && (
-            <Tag>
-              <Text size="xs">+{cluster.tags.length - 5}</Text>
-            </Tag>
-          )}
-        </Flex>
-        <Flex gap="xs">
-          <Button
-            size="sm"
-            priority="primary"
-            onClick={() => onRemove(cluster.cluster_id)}
-            title={t('Resolve this cluster')}
-          >
-            {t('Resolve')}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onRemove(cluster.cluster_id)}
-            title={t('Ignore this cluster')}
-          >
-            {t('Ignore')}
-          </Button>
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-          >
-            <Button size="sm">{t('View All Issues')}</Button>
-          </Link>
-        </Flex>
+      <Flex justify="end" align="center" gap="xs" paddingTop="md">
+        <Button
+          size="sm"
+          priority="primary"
+          onClick={() => onRemove(cluster.cluster_id)}
+          title={t('Resolve this cluster')}
+        >
+          {t('Resolve')}
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => onRemove(cluster.cluster_id)}
+          title={t('Ignore this cluster')}
+        >
+          {t('Ignore')}
+        </Button>
+        <Link
+          to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
+        >
+          <Button size="sm">{t('View All Issues')}</Button>
+        </Link>
       </Flex>
     </CardContainer>
   );
@@ -517,18 +503,6 @@ const IssuePreviewContainer = styled(Link)`
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transform: translateX(2px);
   }
-`;
-
-const Tag = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.gray100};
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.gray400};
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 `;
 
 const JsonTextarea = styled('textarea')`
