@@ -4,7 +4,7 @@ from django.test import override_settings
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -97,10 +97,8 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             assert attachment.blob_path is not None
             object_key = attachment.blob_path.removeprefix(V1_PREFIX + V2_PREFIX)
             # the file should also be available in objectstore
-            os_response = (
-                get_attachments_client()
-                .for_project(self.organization.id, self.project.id)
-                .get(object_key)
+            os_response = get_attachments_session(self.organization.id, self.project.id).get(
+                object_key
             )
             assert os_response.payload.read() == ATTACHMENT_CONTENT
 

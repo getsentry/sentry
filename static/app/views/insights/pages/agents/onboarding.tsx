@@ -455,8 +455,8 @@ const Body = styled('div')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
+  min-height: 370px;
   margin-top: ${p => p.theme.space['2xl']};
-  height: 522px;
   border: 0;
 `;
 

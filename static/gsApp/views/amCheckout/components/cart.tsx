@@ -43,7 +43,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
-import CartDiff from 'getsentry/views/amCheckout/cartDiff';
+import CartDiff from 'getsentry/views/amCheckout/components/cartDiff';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 

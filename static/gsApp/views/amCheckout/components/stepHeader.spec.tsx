@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 
 describe('StepHeader', () => {
   let onEdit: any;

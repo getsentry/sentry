@@ -88,11 +88,10 @@ from sentry.seer.explorer.index_data import (
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
-    execute_trace_query_chart,
-    execute_trace_query_table,
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
+    get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
@@ -259,7 +258,7 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_organization_project_ids(*, org_id: int) -> dict:
-    """Get all projects (IDs and slugs) for an organization"""
+    """Get all active projects (IDs and slugs) for an organization"""
     from sentry.models.project import Project
 
     try:
@@ -267,7 +266,11 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     except Organization.DoesNotExist:
         return {"projects": []}
 
-    projects = list(Project.objects.filter(organization=organization).values("id", "slug"))
+    projects = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values(
+            "id", "slug"
+        )
+    )
 
     return {"projects": projects}
 
@@ -1201,10 +1204,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_details": get_issue_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
-    "execute_trace_query_chart": execute_trace_query_chart,
-    "execute_trace_query_table": execute_trace_query_table,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
+    "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     #

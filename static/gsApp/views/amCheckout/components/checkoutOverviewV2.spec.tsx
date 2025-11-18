@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
+import CheckoutOverviewV2 from 'getsentry/views/amCheckout/components/checkoutOverviewV2';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverviewV2', () => {

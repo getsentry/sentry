@@ -22,7 +22,7 @@ import {
   isByteCategory,
 } from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import UnitTypeItem from 'getsentry/views/amCheckout/steps/unitTypeItem';
+import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 

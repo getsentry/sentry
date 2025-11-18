@@ -91,6 +91,7 @@ export function WidgetCardDataLoader({
     return (
       <ReleaseWidgetQueries
         widget={widget}
+        queue={queue}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
@@ -126,6 +127,7 @@ export function WidgetCardDataLoader({
   return (
     <WidgetQueries
       api={api}
+      queue={queue}
       organization={organization}
       widget={widget}
       selection={selection}
