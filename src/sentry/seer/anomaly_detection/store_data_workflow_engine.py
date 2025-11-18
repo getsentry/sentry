@@ -100,7 +100,7 @@ def update_detector_data(
     updated_data_source_data = updated_fields.get("data_sources")
     if updated_data_source_data:
         data_source_data = updated_data_source_data[0]
-        event_types = data_source_data.get("eventTypes")
+        event_types = data_source_data.get("event_types")
 
         for k, v in data_source_data.items():
             if k == "dataset":

@@ -22,6 +22,10 @@ export type EcosystemEventParameters = {
     old_project_count: number;
     provider?: DataForwarderProviderSlug;
   };
+  'data_forwarding.edit_override_complete': {
+    platform?: PlatformKey;
+    provider?: DataForwarderProviderSlug;
+  };
   'data_forwarding.onboarding_cta_clicked': Record<string, unknown>;
   'data_forwarding.setup_complete': {
     are_new_projects_enrolled: boolean;
@@ -84,6 +88,7 @@ export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
   'data_forwarding.docs_link_clicked': 'Data Forwarding: Docs Link Clicked',
   'data_forwarding.edit_clicked': 'Data Forwarding: Edit Clicked',
   'data_forwarding.edit_complete': 'Data Forwarding: Edit Complete',
+  'data_forwarding.edit_override_complete': 'Data Forwarding: Edit Override Complete',
   'data_forwarding.onboarding_cta_clicked': 'Data Forwarding: Onboarding CTA Clicked',
   'data_forwarding.setup_complete': 'Data Forwarding: Setup Complete',
   'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',

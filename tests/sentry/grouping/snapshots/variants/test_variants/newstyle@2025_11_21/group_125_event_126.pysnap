@@ -13,10 +13,10 @@ app:
         value* (stripped event-specific values)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "start"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "start"
           frame (non app frame)
@@ -75,12 +75,12 @@ app:
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "type_traits"
             function*
@@ -117,28 +117,28 @@ app:
           frame (non app frame)
             function*
               "CFBundleGetFunctionPointerForName"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "_CFBundleLoadExecutableAndReturnError"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "_CFBundleDlfcnLoadBundle"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "dlopen"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "dlopen_internal"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "dyld::link"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoader::link"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoader::recursiveRebase"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoaderMachOCompressed::rebase"
 --------------------------------------------------------------------------

@@ -49,7 +49,7 @@ app:
           frame (marked out of app by the client)
             function*
               "_dispatch_call_block_and_release"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -63,12 +63,12 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -76,7 +76,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -87,27 +87,27 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
-          frame (marked in-app by the client but ignored due to recursion)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*

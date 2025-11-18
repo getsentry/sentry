@@ -98,7 +98,7 @@ function OnboardingPanel({
 const STEP_TITLES: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install Sentry'),
   [StepType.CONFIGURE]: t('Configure Sentry'),
-  [StepType.VERIFY]: t('Verify Sentry'),
+  [StepType.VERIFY]: t('Send Metrics and Verify'),
 };
 
 function Onboarding({organization, project}: OnboardingProps) {

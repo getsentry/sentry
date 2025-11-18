@@ -12,6 +12,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconCopy, IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -93,7 +94,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     },
     label: project ? (
       <ProjectBadge disableLink project={project} avatarSize={16} />
-    ) : null,
+    ) : (
+      t('Project')
+    ),
   };
 
   const replayCrumb = {
@@ -121,6 +124,12 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                       : undefined,
                     query: initialLocation.current.query,
                   }}
+                  onClick={() =>
+                    trackAnalytics('replay.details-playlist-clicked', {
+                      direction: 'previous',
+                      organization,
+                    })
+                  }
                 />
                 <LinkButton
                   size="xs"
@@ -132,6 +141,12 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                       : undefined,
                     query: initialLocation.current.query,
                   }}
+                  onClick={() =>
+                    trackAnalytics('replay.details-playlist-clicked', {
+                      direction: 'next',
+                      organization,
+                    })
+                  }
                 />
               </ButtonBar>
             </Flex>

@@ -44,6 +44,7 @@ class CompareSizeAnalysisTest(TestCase):
             )
 
         return SizeAnalysisResults(
+            analysis_duration=1.0,
             download_size=download_size,
             install_size=install_size,
             treemap=treemap,
@@ -535,6 +536,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
     def _create_size_analysis_results(self, analysis_version=None):
         """Helper to create SizeAnalysisResults with specified analysis_version."""
         return SizeAnalysisResults(
+            analysis_duration=1.0,
             download_size=500,
             install_size=1000,
             treemap=None,
@@ -680,6 +682,7 @@ class CompareWithVersionSkippingTest(TestCase):
             )
 
         return SizeAnalysisResults(
+            analysis_duration=1.0,
             download_size=download_size,
             install_size=install_size,
             treemap=treemap,
