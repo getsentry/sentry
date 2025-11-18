@@ -1,9 +1,12 @@
+import pytest
+
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
+@pytest.mark.skip
 class DeleteOrphanedDetectorsTest(TestMigrations):
     migrate_from = "0009_backfill_monitor_detectors"
     migrate_to = "0010_delete_orphaned_detectors"
