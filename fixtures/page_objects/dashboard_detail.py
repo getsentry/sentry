@@ -81,7 +81,7 @@ class DashboardDetailPage(BasePage):
         # success toast, however if a previous step of a test shows a success
         # toast, a wait_until([data-test-id="toast-success"]) will return
         # immediately due to the previous toast still being in the DOM.
-        # Since clicking the save dasboard button is removed once the API
+        # Since clicking the save dashboard button is removed once the API
         # call is complete, we can wait for that as a signal
         # that the API is complete.
         self.browser.wait_until_not('[data-test-id="dashboard-commit"]')
