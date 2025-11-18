@@ -126,7 +126,6 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       {buildDetailsData.state === BuildDetailsState.PROCESSED && (
         <BuildDetailsSidebarAppInfo
           appInfo={buildDetailsData.app_info}
-          sizeInfo={buildDetailsData.size_info}
           projectId={projectId}
           artifactId={artifactId}
         />
@@ -147,18 +146,6 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
         <Flex align="center" gap="sm">
           <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
           <Placeholder width="120px" height="24px" />
-        </Flex>
-
-        {/* Size info section */}
-        <Flex gap="sm">
-          <Flex direction="column" gap="xs" flex={1}>
-            <Placeholder width="80px" height="18px" />
-            <Placeholder width="60px" height="20px" />
-          </Flex>
-          <Flex direction="column" gap="xs" flex={1}>
-            <Placeholder width="90px" height="18px" />
-            <Placeholder width="70px" height="20px" />
-          </Flex>
         </Flex>
 
         {/* Additional info */}

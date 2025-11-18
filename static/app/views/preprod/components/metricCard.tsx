@@ -16,8 +16,8 @@ interface MetricCardProps {
   children: ReactNode;
   icon: ReactNode;
   label: string;
+  labelTooltip: ReactNode;
   action?: MetricCardAction;
-  labelTooltip?: ReactNode;
   style?: CSSProperties;
 }
 
