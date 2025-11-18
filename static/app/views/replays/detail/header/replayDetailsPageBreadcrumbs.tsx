@@ -102,12 +102,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayCrumb = {
     label: replayRecord ? (
       <Flex>
-        <Flex
-          align="center"
-          gap="xs"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+        <Flex align="center" gap="xs">
           {organization.features.includes('replay-playlist-view') && (
             <Flex>
               <ButtonBar merged gap="0">
@@ -151,29 +146,35 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               </ButtonBar>
             </Flex>
           )}
-          <ShortId
-            onClick={() =>
-              copy(replayUrlWithTimestamp, {
-                successMessage: t('Copied replay link to clipboard'),
-              })
-            }
+          <Flex
+            align="center"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
-            {getShortEventId(replayRecord?.id)}
-          </ShortId>
-          <Tooltip title={t('Copy link to replay at current timestamp')}>
-            <Button
-              aria-label={t('Copy link to replay at current timestamp')}
+            <ShortId
               onClick={() =>
                 copy(replayUrlWithTimestamp, {
                   successMessage: t('Copied replay link to clipboard'),
                 })
               }
-              size="zero"
-              borderless
-              style={isHovered ? {} : {visibility: 'hidden'}}
-              icon={<IconCopy size="xs" color="subText" />}
-            />
-          </Tooltip>
+            >
+              {getShortEventId(replayRecord?.id)}
+            </ShortId>
+            <Tooltip title={t('Copy link to replay at current timestamp')}>
+              <Button
+                aria-label={t('Copy link to replay at current timestamp')}
+                onClick={() =>
+                  copy(replayUrlWithTimestamp, {
+                    successMessage: t('Copied replay link to clipboard'),
+                  })
+                }
+                size="zero"
+                borderless
+                style={isHovered ? {} : {visibility: 'hidden'}}
+                icon={<IconCopy size="xs" color="subText" />}
+              />
+            </Tooltip>
+          </Flex>
         </Flex>
       </Flex>
     ) : (
