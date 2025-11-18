@@ -35,6 +35,7 @@ class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
         """
         Return anomaly detection threshold data (yhat_lower, yhat_upper) for a metric alert rule.
         """
+
         start = request.GET.get("start")
         end = request.GET.get("end")
 
@@ -50,7 +51,6 @@ class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
         subscription = alert_rule.snuba_query.subscriptions.first()
         if not subscription:
             return Response({"detail": "No subscription found for this alert rule"}, status=404)
-
         data = get_anomaly_threshold_data_from_seer(
             subscription=subscription, start=start_float, end=end_float
         )
@@ -60,4 +60,4 @@ class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
                 {"detail": "Unable to fetch anomaly detection threshold data"}, status=400
             )
 
-        return Response(data)
+        return Response({"data": data}, status=200)
