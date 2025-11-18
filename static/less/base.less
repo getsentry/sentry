@@ -660,3 +660,11 @@ caption {
     background-color: @body-bg;
   }
 }
+
+// View Transitions API Customizations
+// ====================================
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.12s;
+  animation-timing-function: ease;
+}
