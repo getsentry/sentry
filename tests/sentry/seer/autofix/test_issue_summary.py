@@ -930,49 +930,11 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         assert mock_trigger.call_args[1]["stopping_point"] is None
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_missing_fixability_score_generates_and_fails(
-        self, mock_generate_fixability, mock_trigger
-    ):
-        """Test that _run_automation tries to generate fixability score when None and fails if generation fails."""
+    def test_missing_fixability_score_returns_early(self, mock_trigger):
+        """Test that _run_automation returns early when fixability score is None."""
         assert self.group.seer_fixability_score is None
-        mock_generate_fixability.side_effect = Exception("Fixability generation failed")
-
-        with pytest.raises(Exception, match="Fixability generation failed"):
-            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-
-        mock_generate_fixability.assert_called_once_with(self.group)
-        mock_trigger.assert_not_called()
-
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
-        return_value=False,
-    )
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    def test_missing_fixability_score_generates_and_succeeds(
-        self, mock_budget, mock_state, mock_generate_fixability, mock_rate_limit, mock_trigger
-    ):
-        """Test that _run_automation generates fixability score when None and continues if generation succeeds."""
-        assert self.group.seer_fixability_score is None
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        mock_generate_fixability.return_value = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="h",
-            whats_wrong="w",
-            trace="t",
-            possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),
-        )
-
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-
-        mock_generate_fixability.assert_called_once_with(self.group)
-        mock_trigger.assert_called_once()
-        self.group.refresh_from_db()
-        assert self.group.seer_fixability_score == 0.80
+        mock_trigger.assert_not_called()
 
 
 class TestFetchUserPreference:

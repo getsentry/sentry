@@ -315,18 +315,9 @@ def _run_automation(
     )
 
     fixability_score = group.seer_fixability_score
-    # Re-try generating fixability score if it failed in _generate_summary or was skipped
     if fixability_score is None:
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            fixability_response = _generate_fixability_score(group)
-
-        if not fixability_response.scores:
-            raise ValueError("Issue summary scores is None or empty.")
-        if fixability_response.scores.fixability_score is None:
-            raise ValueError("Issue summary fixability score is None.")
-
-        group.update(seer_fixability_score=fixability_response.scores.fixability_score)
-        fixability_score = fixability_response.scores.fixability_score
+        logger.error("Fixability score is not available for group %s", group.id)
+        return
 
     if (
         not _is_issue_fixable(group, fixability_score)
@@ -420,11 +411,18 @@ def _generate_summary(
             )
 
     if should_run_automation:
-        try:
-            _run_automation(group, user, event, source)
-        except Exception:
-            logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+        if group.seer_fixability_score is not None:
+            try:
+                _run_automation(group, user, event, source)
+            except Exception:
+                logger.exception(
+                    "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+                )
+        else:
+            logger.error(
+                "Skipping automation: fixability score unavailable for group %s",
+                group.id,
+                extra={"group_id": group.id},
             )
 
     summary_dict = issue_summary.dict()
