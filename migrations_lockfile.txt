@@ -17,7 +17,7 @@ hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0010_delete_orphaned_detectors
+monitors: 0011_backfill_monitor_environment_is_muted
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -39,4 +39,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0098_detectorgroup_detector_set_null
+workflow_engine: 0099_backfill_metric_issue_detectorgroup

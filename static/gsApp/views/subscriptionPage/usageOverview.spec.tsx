@@ -226,7 +226,7 @@ describe('UsageOverview', () => {
   });
 
   it('renders table based on add-on state', () => {
-    organization.features.push('prevent-billing');
+    organization.features.push('seer-user-billing');
     const subWithSeer = SubscriptionWithSeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(

@@ -17,7 +17,7 @@ export const AM_ADD_ON_CATEGORIES = {
     apiName: AddOnCategory.PREVENT,
     dataCategories: [DataCategory.PREVENT_USER, DataCategory.PREVENT_REVIEW],
     name: 'prevent',
-    billingFlag: 'prevent-billing',
+    billingFlag: 'seer-user-billing',
     order: 2,
     productName: 'prevent',
   },
