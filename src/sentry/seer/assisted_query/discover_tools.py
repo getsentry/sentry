@@ -3,6 +3,7 @@ import re
 from typing import Any
 
 from sentry.api import client
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
@@ -200,7 +201,7 @@ def _get_predefined_field_values(key: str) -> list[dict[str, Any]] | None:
 def get_event_filter_keys(
     *,
     org_id: int,
-    project_ids: list[int],
+    project_ids: list[int] | None = None,
     stats_period: str = "7d",
 ) -> dict[str, list[str]] | None:
     """
@@ -212,6 +213,10 @@ def get_event_filter_keys(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    # Treat empty projects as a query for all projects.
+    if not project_ids:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
 
     static_fields = _get_static_fields()
     tag_keys, flag_keys = _get_tag_and_feature_flag_keys(
@@ -233,10 +238,10 @@ def get_event_filter_keys(
 def get_event_filter_key_values(
     *,
     org_id,
-    project_ids: list[int],
     filter_key: str,
     is_feature_flag: bool,
     substring: str | None = None,
+    project_ids: list[int] | None = None,
     stats_period: str = "7d",
 ) -> list[dict[str, Any]] | None:
     """
@@ -269,6 +274,10 @@ def get_event_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    # Treat empty projects as a query for all projects.
+    if not project_ids:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
 
     predefined_values = _get_predefined_field_values(filter_key)
     if predefined_values is not None:
