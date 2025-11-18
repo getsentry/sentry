@@ -28,7 +28,7 @@ from sentry.models.organization import Organization
 
 
 class DiscoverSavedQueryBase(OrganizationEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def convert_args(self, request: Request, organization_id_or_slug, query_id, *args, **kwargs):
