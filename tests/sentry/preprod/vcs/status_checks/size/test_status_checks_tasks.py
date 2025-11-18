@@ -727,3 +727,66 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
         assert summary.endswith("..."), "Truncated summary should end with '...'"
+
+    def test_create_preprod_status_check_task_external_id_consistency(self):
+        """Test that external_id is always the first sibling's ID, regardless of which artifact triggers the task.
+
+        This prevents duplicate check runs when multiple sibling artifacts exist (monorepo scenario).
+        All sibling artifacts share the same external_id for consistency.
+        """
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/consistency-test",
+            base_ref="main",
+        )
+
+        # Create 3 artifacts with deterministic app_id ordering
+        artifacts = []
+        for i in range(3):
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=f"com.example.app{i}",  # app0, app1, app2 - alphabetically ordered
+                build_version="1.0.0",
+                build_number=i + 1,
+                commit_comparison=commit_comparison,
+            )
+            PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=1024 * 1024,
+                max_download_size=1024 * 1024,
+                min_install_size=2 * 1024 * 1024,
+                max_install_size=2 * 1024 * 1024,
+            )
+            artifacts.append(artifact)
+
+        # First artifact's ID should always be used as external_id
+        expected_external_id = str(artifacts[0].id)
+
+        # Test triggering from each of the 3 artifacts
+        for trigger_index, trigger_artifact in enumerate(artifacts):
+            _, mock_provider, client_patch, provider_patch = (
+                self._create_working_status_check_setup(trigger_artifact)
+            )
+
+            with client_patch, provider_patch:
+                with self.tasks():
+                    create_preprod_status_check_task(trigger_artifact.id)
+
+            # Verify external_id is ALWAYS the first artifact's ID
+            mock_provider.create_status_check.assert_called_once()
+            call_kwargs = mock_provider.create_status_check.call_args.kwargs
+
+            actual_external_id = call_kwargs["external_id"]
+            assert actual_external_id == expected_external_id, (
+                f"When triggered by artifacts[{trigger_index}] (id={trigger_artifact.id}), "
+                f"expected external_id={expected_external_id}, but got {actual_external_id}. "
+                f"All siblings must use the first artifact's ID to prevent duplicate check runs."
+            )

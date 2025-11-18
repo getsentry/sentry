@@ -87,6 +87,13 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     # Get all artifacts for this commit across all projects in the organization
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
+    if not all_artifacts:
+        logger.error(
+            "preprod.status_checks.create.no_sibling_artifacts",
+            extra={"artifact_id": preprod_artifact.id},
+        )
+        return
+
     client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
         # logging handled in _get_status_check_client. for now we can be lax about users potentially
@@ -108,16 +115,15 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         return
 
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
-    if all_artifacts:
-        artifact_ids = [artifact.id for artifact in all_artifacts]
-        size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=artifact_ids,
-        ).select_related("preprod_artifact")
+    artifact_ids = [artifact.id for artifact in all_artifacts]
+    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+        preprod_artifact_id__in=artifact_ids,
+    ).select_related("preprod_artifact")
 
-        for metrics in size_metrics_qs:
-            if metrics.preprod_artifact_id not in size_metrics_map:
-                size_metrics_map[metrics.preprod_artifact_id] = []
-            size_metrics_map[metrics.preprod_artifact_id].append(metrics)
+    for metrics in size_metrics_qs:
+        if metrics.preprod_artifact_id not in size_metrics_map:
+            size_metrics_map[metrics.preprod_artifact_id] = []
+        size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
     status = _compute_overall_status(all_artifacts, size_metrics_map)
 
@@ -129,6 +135,12 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
+    # Use the first sibling artifact's ID as external_id to ensure consistency
+    # across all sibling artifacts (monorepo scenario). This allows GitHub to
+    # recognize all siblings as part of the same check run and update it
+    # instead of creating duplicates.
+    first_artifact_id = str(all_artifacts[0].id)
+
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
@@ -137,7 +149,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         subtitle=subtitle,
         text=None,  # TODO(telkins): add text field support
         summary=summary,
-        external_id=str(preprod_artifact.id),
+        external_id=first_artifact_id,
         target_url=target_url,
         started_at=preprod_artifact.date_added,
         completed_at=completed_at,
