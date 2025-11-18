@@ -104,47 +104,45 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
       <Flex>
         <Flex align="center" gap="xs">
           {organization.features.includes('replay-playlist-view') && (
-            <Flex>
-              <ButtonBar merged gap="0">
-                <LinkButton
-                  size="xs"
-                  icon={<IconPrevious />}
-                  disabled={!previousReplay}
-                  to={{
-                    pathname: previousReplay
-                      ? makeReplaysPathname({
-                          path: `/${previousReplay.id}/`,
-                          organization,
-                        })
-                      : undefined,
-                    query: initialLocation.current.query,
-                  }}
-                  onClick={() =>
-                    trackAnalytics('replay.details-playlist-clicked', {
-                      direction: 'previous',
-                      organization,
-                    })
-                  }
-                />
-                <LinkButton
-                  size="xs"
-                  icon={<IconNext />}
-                  disabled={!nextReplay}
-                  to={{
-                    pathname: nextReplay
-                      ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                      : undefined,
-                    query: initialLocation.current.query,
-                  }}
-                  onClick={() =>
-                    trackAnalytics('replay.details-playlist-clicked', {
-                      direction: 'next',
-                      organization,
-                    })
-                  }
-                />
-              </ButtonBar>
-            </Flex>
+            <StyledButtonBar merged gap="0">
+              <LinkButton
+                size="xs"
+                icon={<IconPrevious />}
+                disabled={!previousReplay}
+                to={{
+                  pathname: previousReplay
+                    ? makeReplaysPathname({
+                        path: `/${previousReplay.id}/`,
+                        organization,
+                      })
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'previous',
+                    organization,
+                  })
+                }
+              />
+              <LinkButton
+                size="xs"
+                icon={<IconNext />}
+                disabled={!nextReplay}
+                to={{
+                  pathname: nextReplay
+                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'next',
+                    organization,
+                  })
+                }
+              />
+            </StyledButtonBar>
           )}
           <Flex
             align="center"
@@ -197,4 +195,10 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
 
 const ShortId = styled('div')`
   margin-left: 10px;
+`;
+
+// Breadcrumbs have overflow: hidden, so we need to set the margin-top to 2px
+// to avoid the buttons from being cut off.
+const StyledButtonBar = styled(ButtonBar)`
+  margin-top: 2px;
 `;
