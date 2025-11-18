@@ -303,7 +303,6 @@ def get_anomaly_threshold_data_from_seer(
         "end": end,
     }
     try:
-        logger.info("Sending threshold data to Seer", extra=payload)
         response = make_signed_seer_api_request(
             connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
