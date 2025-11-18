@@ -6,11 +6,11 @@ from collections.abc import Callable
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet, InvalidToken
-from django.conf import settings
+from cryptography.fernet import InvalidToken
 from django.db.models import CharField, Field
 
 from sentry import options
+from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +102,10 @@ class EncryptedField(Field):
         if value is None:
             return value
 
+        # Get the encryption method from the options
+        # xxx(vgrozdanic): this is a temporary solution during a rollout
+        # so that we can quickly rollback if needed.
         encryption_method = options.get("database.encryption.method")
-
         # Default to plaintext if method is not recognized
         if encryption_method not in self._encryption_handlers:
             logger.error(
@@ -179,15 +181,8 @@ class EncryptedField(Field):
         Always returns formatted string: enc:fernet:key_id:base64data
         The key_id is required to support key rotation.
         """
-        key_id, key = self._get_fernet_key_for_encryption()
-        if not key:
-            raise ValueError(
-                "Fernet encryption key is required but not found. "
-                "Please set DATABASE_ENCRYPTION_FERNET_KEYS in your settings."
-            )
-
         try:
-            f = Fernet(key)
+            key_id, f = FernetKeyStore.get_primary_fernet()
             value_bytes = self._get_value_in_bytes(value)
             encrypted_data = f.encrypt(value_bytes)
             return self._format_encrypted_value(encrypted_data, MARKER_FERNET, key_id)
@@ -215,14 +210,8 @@ class EncryptedField(Field):
             logger.warning("Failed to decode base64 data: %s", e)
             raise ValueError("Invalid base64 encoding") from e
 
-        # Get the decryption key
-        key = self._get_fernet_key(key_id)
-        if not key:
-            logger.warning("No decryption key found for key_id '%s'", key_id)
-            raise ValueError(f"Cannot decrypt without key for key_id '{key_id}'")
-
         try:
-            f = Fernet(key)
+            f = FernetKeyStore.get_fernet_for_key_id(key_id)
             decrypted = f.decrypt(encrypted_data)
             return decrypted
         except InvalidToken:  # noqa
@@ -279,70 +268,6 @@ class EncryptedField(Field):
         # No handler found for this marker (shouldn't happen with known markers)
         logger.warning("No handler found for marker '%s'", marker)
         return value
-
-    def _get_fernet_key_for_encryption(self) -> tuple[str, bytes]:
-        """Get the first Fernet key for encryption along with its key_id."""
-        keys = getattr(settings, "DATABASE_ENCRYPTION_FERNET_KEYS", None)
-        if keys is None:
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS is not configured")
-
-        if not isinstance(keys, dict):
-            logger.error("DATABASE_ENCRYPTION_FERNET_KEYS must be a dict, got %s", type(keys))
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS must be a dictionary")
-
-        if not keys:
-            raise ValueError("DATABASE_ENCRYPTION_FERNET_KEYS is empty")
-
-        # Use the first key for encryption
-        key_id = next(iter(keys.keys()))
-        key = keys[key_id]
-
-        if not key_id or not key:
-            raise ValueError(
-                f"DATABASE_ENCRYPTION_FERNET_KEYS has invalid key_id or key ({key_id}, {key})"
-            )
-
-        if isinstance(key, str):
-            key = key.encode("utf-8")
-
-        # Validate key
-        try:
-            Fernet(key)
-            return (key_id, key)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception("Invalid Fernet key for key_id '%s'", key_id)
-            raise ValueError(f"Invalid Fernet key for key_id '{key_id}'")
-
-    def _get_fernet_key(self, key_id: str) -> bytes | None:
-        """Get the Fernet key for the specified key_id from Django settings."""
-        keys = getattr(settings, "DATABASE_ENCRYPTION_FERNET_KEYS", None)
-        if keys is None:
-            return None
-
-        if not isinstance(keys, dict):
-            logger.error("DATABASE_ENCRYPTION_FERNET_KEYS must be a dict, got %s", type(keys))
-            return None
-
-        # Return specific key by key_id
-        if key_id not in keys:
-            logger.warning("Fernet key with id '%s' not found, cannot decrypt data", key_id)
-            return None
-        key = keys[key_id]
-
-        if isinstance(key, str):
-            # If key is a string, encode it
-            key = key.encode("utf-8")
-
-        # Validate key length (Fernet requires 32 bytes base64 encoded)
-        try:
-            Fernet(key)
-            return key
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception("Invalid Fernet key")
-
-        return None
 
 
 class EncryptedCharField(EncryptedField, CharField):
