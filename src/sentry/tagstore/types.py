@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from datetime import datetime
 from typing import Any, ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -43,7 +44,12 @@ class TagKey(TagType):
     _sort_key = "values_seen"
 
     def __init__(
-        self, key, values_seen=None, status=TagKeyStatus.ACTIVE, count=None, top_values=None
+        self,
+        key: str,
+        values_seen: int | None = None,
+        status: int = TagKeyStatus.ACTIVE,
+        count: int | None = None,
+        top_values=None,
     ):
         self.key = key
         self.values_seen = values_seen
@@ -59,7 +65,14 @@ class TagValue(TagType):
     __slots__ = ("key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, key, value, times_seen, first_seen, last_seen):
+    def __init__(
+        self,
+        key: str,
+        value,
+        times_seen: int | None,
+        first_seen: datetime | None,
+        last_seen: datetime | None,
+    ):
         self.key = key
         self.value = value
         self.times_seen = times_seen
@@ -71,7 +84,14 @@ class GroupTagKey(TagType):
     __slots__ = ("group_id", "key", "values_seen", "count", "top_values")
     _sort_key = "values_seen"
 
-    def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
+    def __init__(
+        self,
+        group_id: int,
+        key: str,
+        values_seen: int | None = None,
+        count: int | None = None,
+        top_values=None,
+    ):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
@@ -83,7 +103,15 @@ class GroupTagValue(TagType):
     __slots__ = ("group_id", "key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
+    def __init__(
+        self,
+        group_id: int,
+        key: str,
+        value,
+        times_seen: int,
+        first_seen,
+        last_seen,
+    ):
         self.group_id = group_id
         self.key = key
         self.value = value

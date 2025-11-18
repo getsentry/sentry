@@ -370,9 +370,46 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
                 return False
             detector_id = Detector.get_error_detector_for_project(group.project.id).id
         else:
+            metrics.incr(
+                "workflow_engine.associate_new_group_with_detector",
+                tags={"group_type": group.type, "result": "failure"},
+            )
+            logger.warning(
+                "associate_new_group_with_detector_failed",
+                extra={
+                    "group_id": group.id,
+                    "group_type": group.type,
+                },
+            )
             return False
+
+    # Check if the detector exists. If not, create DetectorGroup with null detector_id
+    # to make it clear that we were associated with a detector that no longer exists.
+    if not Detector.objects.filter(id=detector_id).exists():
+        metrics.incr(
+            "workflow_engine.associate_new_group_with_detector",
+            tags={"group_type": group.type, "result": "detector_missing"},
+        )
+        logger.warning(
+            "associate_new_group_with_detector_detector_missing",
+            extra={
+                "group_id": group.id,
+                "group_type": group.type,
+                "detector_id": detector_id,
+            },
+        )
+        DetectorGroup.objects.get_or_create(
+            detector_id=None,
+            group_id=group.id,
+        )
+        return True
+
     DetectorGroup.objects.get_or_create(
         detector_id=detector_id,
         group_id=group.id,
+    )
+    metrics.incr(
+        "workflow_engine.associate_new_group_with_detector",
+        tags={"group_type": group.type, "result": "success"},
     )
     return True

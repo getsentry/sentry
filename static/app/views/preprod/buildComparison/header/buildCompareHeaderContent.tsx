@@ -38,14 +38,14 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
-      label: 'Releases',
+      label: t('Releases'),
     },
     {
       to: `/organizations/${organization.slug}/preprod/${projectId}/${buildDetails.id}/`,
-      label: buildDetails.app_info.version,
+      label: buildDetails.app_info.version ?? t('Build Version'),
     },
     {
-      label: 'Compare',
+      label: t('Compare'),
     },
   ];
 
