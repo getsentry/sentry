@@ -73,7 +73,9 @@ interface WidgetQueryOnDemand {
 
 export type LinkedDashboard = {
   dashboardId: string;
+  // Used for static dashboards that are not saved to the database
   field: string;
+  staticDashboardId?: string;
 };
 
 /**

@@ -3,7 +3,10 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  PrebuiltDashboardId,
+  type PrebuiltDashboard,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -128,6 +131,13 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
             `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
             DataTitles.avg,
             DataTitles.timeSpent,
+          ],
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+            },
           ],
         },
       ],
