@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
+from urllib.parse import urlencode
 
 import orjson
 from django.core import mail
@@ -330,10 +331,10 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         )
 
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification_truncates_at_49_blocks(self, digests: MagicMock) -> None:
+    def test_slack_digest_notification_truncates_at_48_blocks(self, digests: MagicMock) -> None:
         """
-        Test that digest notifications are truncated to 49 blocks to respect Slack's 50 block limit.
-        With 13+ events generating ~53 blocks, we truncate to 48 content blocks + 1 warning block.
+        Test that digest notifications are truncated to 48 blocks to respect Slack's 50 block limit.
+        With 13+ events generating ~53 blocks, we truncate to 48 content blocks + 1 warning block + 1 title block.
         """
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         backend = RedisBackend()
@@ -375,7 +376,19 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         last_block = blocks[-1]
         assert last_block["type"] == "context"
         warning_text = last_block["elements"][0]["text"].lower()
-        assert "truncated" in warning_text
         assert "showing" in warning_text
         # Should show X issues out of Y where X < 13 and Y = 13
-        assert "/13" in last_block["elements"][0]["text"]
+        assert "/13" in warning_text
+        assert "view all issues in sentry" in warning_text
+
+        issues_url = self.organization.absolute_url(
+            path=f"/organizations/{self.organization.slug}/issues/",
+            query=urlencode(
+                {
+                    "start": timestamp,
+                    "end": timestamp,
+                    "project": self.project.id,
+                }
+            ),
+        )
+        assert issues_url.lower() in warning_text
