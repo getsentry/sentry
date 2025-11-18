@@ -211,6 +211,7 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "6.1.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "0.5.3",
+    "eslint-plugin-runtime-complexity": "^0.1.1",
     "eslint-plugin-sentry": "^2.10.0",
     "eslint-plugin-testing-library": "^7.1.1",
     "eslint-plugin-typescript-sort-keys": "^3.3.0",

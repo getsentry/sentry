@@ -23,6 +23,7 @@ import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
+import runtimeComplexityPlugin from 'eslint-plugin-runtime-complexity';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -688,6 +689,11 @@ export default typescript.config([
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
     },
+  },
+  {
+    name: 'plugin/runtime-complexity',
+    // https://github.com/JoshuaKGoldberg/eslint-plugin-runtime-complexity
+    ...runtimeComplexityPlugin.configs.recommended,
   },
   {
     name: 'plugin/jest',
