@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, Literal
 
 from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from pydantic import BaseModel
 
-from sentry.db.models.fields.encryption import EncryptedCharField
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -38,7 +38,10 @@ FEATURES = [
 ]
 
 
-CURSOR_INTEGRATION_SECRET_FIELD = EncryptedCharField(max_length=255)
+class CursorIntegrationMetadata(BaseModel):
+    api_key: str
+    webhook_secret: str
+    domain_name: Literal["cursor.sh"] = "cursor.sh"
 
 
 metadata = IntegrationMetadata(
@@ -104,16 +107,19 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
         webhook_secret = generate_token()
 
-        metadata: dict[str, Any] = {"domain_name": "cursor.sh"}
-        metadata["api_key"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(config["api_key"])
-        metadata["webhook_secret"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(webhook_secret)
+        metadata = CursorIntegrationMetadata(
+            domain_name="cursor.sh",
+            api_key=config["api_key"],
+            webhook_secret=webhook_secret,
+        )
 
         return {
-            # NOTE(jennmueng): We use UUIDs here for each integration installation because we don't know how many times this USER-LEVEL API key will be used, or if the same org can have multiple cursor agents (in the near future)
+            # NOTE(jennmueng): We need to create a unique ID for each integration installation. Because of this, new installations will yield a unique external_id and integration.
+            # Why UUIDs? We use UUIDs here for each integration installation because we don't know how many times this USER-LEVEL API key will be used, or if the same org can have multiple cursor agents (in the near future)
             # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
             "external_id": uuid.uuid4().hex,
             "name": "Cursor Agent",
-            "metadata": metadata,
+            "metadata": metadata.dict(),
         }
 
     def get_agent_name(self) -> str:
@@ -148,10 +154,12 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if not api_key:
             raise IntegrationConfigurationError("API key is required")
 
-        metadata = dict(self.model.metadata or {})
-        metadata["api_key"] = CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value(api_key)
-        integration_service.update_integration(integration_id=self.model.id, metadata=metadata)
-        self.model.metadata = metadata
+        metadata = CursorIntegrationMetadata.validate(self.model.metadata or {})
+        metadata.api_key = api_key
+        integration_service.update_integration(
+            integration_id=self.model.id, metadata=metadata.dict()
+        )
+        self.model.metadata = metadata.dict()
 
         # Do not store API key in org config; clear any submitted value
         super().update_organization_config({})
@@ -164,16 +172,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     @property
     def webhook_secret(self) -> str:
-        encrypted_value = self.metadata.get("webhook_secret")
-        if encrypted_value:
-            decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
-            return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
-        raise IntegrationConfigurationError("Webhook secret is not configured")
+        return CursorIntegrationMetadata.validate(self.model.metadata).webhook_secret
 
     @property
     def api_key(self) -> str:
-        encrypted_value = self.metadata.get("api_key")
-        if encrypted_value:
-            decrypted = CURSOR_INTEGRATION_SECRET_FIELD.to_python(encrypted_value)
-            return decrypted.decode("utf-8") if isinstance(decrypted, bytes) else decrypted
-        raise IntegrationConfigurationError("API key is not configured")
+        return CursorIntegrationMetadata.validate(self.model.metadata).api_key

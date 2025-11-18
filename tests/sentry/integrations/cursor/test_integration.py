@@ -8,13 +8,11 @@ from uuid import UUID
 import pytest
 
 from sentry.integrations.cursor.integration import (
-    CURSOR_INTEGRATION_SECRET_FIELD,
     CursorAgentIntegration,
     CursorAgentIntegrationProvider,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 
 
@@ -23,12 +21,11 @@ def provider():
     return CursorAgentIntegrationProvider()
 
 
-def test_build_integration_encrypts_metadata(provider):
+def test_build_integration_stores_metadata(provider):
     fake_uuid = UUID("11111111-2222-3333-4444-555555555555")
     with (
         patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
         patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
-        override_options({"database.encryption.method": "plaintext"}),
     ):
         integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
 
@@ -37,42 +34,23 @@ def test_build_integration_encrypts_metadata(provider):
     assert "api_key" in metadata
     assert "webhook_secret" in metadata
     assert metadata["domain_name"] == "cursor.sh"
-    assert metadata["api_key"] != "cursor-api"
-    assert metadata["webhook_secret"] != "hook-secret"
-    assert integration_data["external_id"] == fake_uuid.hex
-    assert (
-        CURSOR_INTEGRATION_SECRET_FIELD.to_python(metadata["api_key"]).decode("utf-8")
-        == "cursor-api"
-    )
-    assert (
-        CURSOR_INTEGRATION_SECRET_FIELD.to_python(metadata["webhook_secret"]).decode("utf-8")
-        == "hook-secret"
-    )
+    assert metadata["api_key"] == "cursor-api"
+    assert metadata["webhook_secret"] == "hook-secret"
 
 
-def test_build_integration_encrypts_api_key_and_webhook_secret(provider):
-    """Test that build_integration encrypts both API key and webhook secret"""
-    with override_options({"database.encryption.method": "plaintext"}):
-        integration_data = provider.build_integration(state={"config": {"api_key": "new-api"}})
+def test_build_integration_stores_api_key_and_webhook_secret(provider):
+    """Test that build_integration stores both API key and webhook secret"""
+    integration_data = provider.build_integration(state={"config": {"api_key": "new-api"}})
 
     metadata_arg = integration_data["metadata"]
 
-    # Verify values are encrypted (not stored as plaintext)
-    assert metadata_arg["api_key"] != "new-api"
-    assert isinstance(metadata_arg["webhook_secret"], (str, bytes))
+    # Verify values are stored as plaintext
+    assert metadata_arg["api_key"] == "new-api"
+    assert isinstance(metadata_arg["webhook_secret"], str)
 
-    # Verify encrypted values can be decrypted correctly
-    assert (
-        CURSOR_INTEGRATION_SECRET_FIELD.to_python(metadata_arg["api_key"]).decode("utf-8")
-        == "new-api"
-    )
-
-    # Verify webhook secret was generated and encrypted
-    decrypted_webhook = CURSOR_INTEGRATION_SECRET_FIELD.to_python(
-        metadata_arg["webhook_secret"]
-    ).decode("utf-8")
-    assert decrypted_webhook  # Should be a non-empty string
-    assert len(decrypted_webhook) > 0  # Webhook secret should be generated
+    # Verify webhook secret was generated
+    assert metadata_arg["webhook_secret"]  # Should be a non-empty string
+    assert len(metadata_arg["webhook_secret"]) > 0  # Webhook secret should be generated
 
 
 class CursorIntegrationTest(IntegrationTestCase):
@@ -87,7 +65,6 @@ class CursorIntegrationTest(IntegrationTestCase):
             patch(
                 "sentry.integrations.cursor.integration.generate_token", return_value="secret123"
             ),
-            override_options({"database.encryption.method": "plaintext"}),
         ):
             integration_dict = self.provider().build_integration(state)
 
@@ -96,16 +73,8 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert metadata["domain_name"] == "cursor.sh"
         assert "api_key" in metadata
         assert "webhook_secret" in metadata
-        assert metadata["api_key"] != "test_api_key_123"
-        assert metadata["webhook_secret"] != "secret123"
-        assert (
-            CURSOR_INTEGRATION_SECRET_FIELD.to_python(metadata["api_key"]).decode("utf-8")
-            == "test_api_key_123"
-        )
-        assert (
-            CURSOR_INTEGRATION_SECRET_FIELD.to_python(metadata["webhook_secret"]).decode("utf-8")
-            == "secret123"
-        )
+        assert metadata["api_key"] == "test_api_key_123"
+        assert metadata["webhook_secret"] == "secret123"
 
     def test_build_integration_missing_config(self):
         """Test that build_integration raises error when config is missing"""
@@ -122,12 +91,11 @@ class CursorIntegrationTest(IntegrationTestCase):
             self.provider().build_integration(state)
 
     def test_get_client(self):
-        with override_options({"database.encryption.method": "plaintext"}):
-            metadata = {
-                "api_key": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("test_api_key_123"),
-                "webhook_secret": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("test_secret_123"),
-                "domain_name": "cursor.sh",
-            }
+        metadata = {
+            "api_key": "test_api_key_123",
+            "webhook_secret": "test_secret_123",
+            "domain_name": "cursor.sh",
+        }
 
         integration = self.create_provider_integration(
             provider="cursor",
@@ -168,12 +136,11 @@ class CursorIntegrationTest(IntegrationTestCase):
         }
         mock_post.return_value = mock_response
 
-        with override_options({"database.encryption.method": "plaintext"}):
-            metadata = {
-                "api_key": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("test_api_key_123"),
-                "webhook_secret": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("test_secret_123"),
-                "domain_name": "cursor.sh",
-            }
+        metadata = {
+            "api_key": "test_api_key_123",
+            "webhook_secret": "test_secret_123",
+            "domain_name": "cursor.sh",
+        }
 
         integration = self.create_provider_integration(
             provider="cursor",
@@ -209,39 +176,27 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert call_args[0][0] == "/v0/agents"
 
     def test_update_organization_config_persists_api_key_and_clears_org_config(self):
-        with override_options({"database.encryption.method": "plaintext"}):
-            integration = self.create_integration(
-                organization=self.organization,
-                provider="cursor",
-                name="Cursor Agent",
-                external_id="cursor",
-                metadata={
-                    "api_key": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("old_key"),
-                    "webhook_secret": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("secret123"),
-                    "domain_name": "cursor.sh",
-                },
-            )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "old_key",
+                "webhook_secret": "secret123",
+                "domain_name": "cursor.sh",
+            },
+        )
 
         installation = integration.get_installation(organization_id=self.organization.id)
 
-        with override_options({"database.encryption.method": "plaintext"}):
-            installation.update_organization_config({"api_key": "new_secret_key"})
+        installation.update_organization_config({"api_key": "new_secret_key"})
 
         integration.refresh_from_db()
         assert "api_key" in integration.metadata
-        assert (
-            CURSOR_INTEGRATION_SECRET_FIELD.to_python(integration.metadata["api_key"]).decode(
-                "utf-8"
-            )
-            == "new_secret_key"
-        )
+        assert integration.metadata["api_key"] == "new_secret_key"
         assert "webhook_secret" in integration.metadata
-        assert (
-            CURSOR_INTEGRATION_SECRET_FIELD.to_python(
-                integration.metadata["webhook_secret"]
-            ).decode("utf-8")
-            == "secret123"
-        )
+        assert integration.metadata["webhook_secret"] == "secret123"
 
         from sentry.integrations.models.organization_integration import OrganizationIntegration
 
@@ -252,18 +207,17 @@ class CursorIntegrationTest(IntegrationTestCase):
             assert org_integration.config == {}
 
     def test_update_organization_config_missing_api_key_raises(self):
-        with override_options({"database.encryption.method": "plaintext"}):
-            integration = self.create_integration(
-                organization=self.organization,
-                provider="cursor",
-                name="Cursor Agent",
-                external_id="cursor",
-                metadata={
-                    "api_key": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("present_key"),
-                    "webhook_secret": CURSOR_INTEGRATION_SECRET_FIELD.get_prep_value("secret123"),
-                    "domain_name": "cursor.sh",
-                },
-            )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "present_key",
+                "webhook_secret": "secret123",
+                "domain_name": "cursor.sh",
+            },
+        )
 
         installation = integration.get_installation(organization_id=self.organization.id)
 
@@ -274,10 +228,9 @@ class CursorIntegrationTest(IntegrationTestCase):
         """Test that each call to build_integration creates a unique integration"""
         state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
 
-        with override_options({"database.encryption.method": "plaintext"}):
-            integration_dict_1 = self.provider().build_integration(state)
-            integration_dict_2 = self.provider().build_integration(state)
-            integration_dict_3 = self.provider().build_integration(state)
+        integration_dict_1 = self.provider().build_integration(state)
+        integration_dict_2 = self.provider().build_integration(state)
+        integration_dict_3 = self.provider().build_integration(state)
 
         # Each integration should have a unique external_id
         external_ids = {
@@ -299,15 +252,9 @@ class CursorIntegrationTest(IntegrationTestCase):
             assert "webhook_secret" in integration_dict["metadata"]
 
         # Each should have unique webhook secrets too
-        webhook_secret_1 = CURSOR_INTEGRATION_SECRET_FIELD.to_python(
-            integration_dict_1["metadata"]["webhook_secret"]
-        ).decode("utf-8")
-        webhook_secret_2 = CURSOR_INTEGRATION_SECRET_FIELD.to_python(
-            integration_dict_2["metadata"]["webhook_secret"]
-        ).decode("utf-8")
-        webhook_secret_3 = CURSOR_INTEGRATION_SECRET_FIELD.to_python(
-            integration_dict_3["metadata"]["webhook_secret"]
-        ).decode("utf-8")
+        webhook_secret_1 = integration_dict_1["metadata"]["webhook_secret"]
+        webhook_secret_2 = integration_dict_2["metadata"]["webhook_secret"]
+        webhook_secret_3 = integration_dict_3["metadata"]["webhook_secret"]
 
         webhook_secrets = {webhook_secret_1, webhook_secret_2, webhook_secret_3}
         assert len(webhook_secrets) == 3, "Each integration should have a unique webhook secret"
