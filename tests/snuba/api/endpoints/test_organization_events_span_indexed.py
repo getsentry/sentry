@@ -6247,6 +6247,51 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 400, response.content
         assert "Invalid Parameter " in response.data["detail"].title()
 
+    def test_count_if_integer(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 100}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "bar"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 200}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "baz"},
+                    measurements={"gen_ai.usage.total_tokens": {"value": 300}},
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(gen_ai.usage.total_tokens,greater,200)"],
+                "query": "",
+                "orderby": "count_if(gen_ai.usage.total_tokens,greater,200)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(gen_ai.usage.total_tokens,greater,200)": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
     def test_apdex_function(self) -> None:
         """Test the apdex function with span.duration and threshold."""
         # Create spans with different durations to test apdex calculation

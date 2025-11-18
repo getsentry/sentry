@@ -210,6 +210,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "string",
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     "currency",
                     "boolean",
