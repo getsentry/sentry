@@ -78,9 +78,9 @@ describe('automationNameUtils', () => {
         actionFilters: [ActionFilterFixture({actions})],
       }) as AutomationBuilderState;
 
-    it('should return "New Alert" for empty actions', () => {
+    it('should return "" for empty actions', () => {
       const builderState = createBuilderState([]);
-      expect(getAutomationName(builderState)).toBe('New Alert');
+      expect(getAutomationName(builderState)).toBe('');
     });
 
     it('should return single action description', () => {

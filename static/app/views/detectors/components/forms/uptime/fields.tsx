@@ -31,7 +31,7 @@ export function uptimeFormDataToEndpointPayload(
 ): UptimeDetectorUpdatePayload {
   return {
     type: 'uptime_domain_failure',
-    name: data.name,
+    name: data.name || 'New Monitor',
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
