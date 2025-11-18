@@ -10,11 +10,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
-import {
-  DataConditionGroupLogicType,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationEdit from 'sentry/views/automations/edit';
@@ -141,60 +136,55 @@ describe('EditAutomation', () => {
   });
 
   it('updates automation', async () => {
-    const updated = AutomationFixture({
-      ...automation,
-      detectorIds: ['detector-1'],
-      config: {frequency: 720},
-    });
     const mockUpdateAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
       method: 'PUT',
-      body: updated,
+      body: automation,
     });
 
     const {router} = render(<AutomationEdit />, {
       organization,
     });
 
-    // Wait for the component to fully load
-    expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(await screen.findAllByText(/Automation 1/i)).toHaveLength(2);
 
-    // Edit the automation name
-    await userEvent.click(screen.getByTestId('editable-text-label'));
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Automation 1'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Automation 1'}),
-      'Automation 1 Updated'
-    );
+    // Update an existing filter value field
+    const valueInput = screen.getByRole('textbox', {name: 'Value'});
+    await userEvent.clear(valueInput);
+    await userEvent.type(valueInput, 'updated value');
 
-    // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-    // Wait for the update to complete
     await waitFor(() => {
       expect(mockUpdateAutomation).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            name: 'Automation 1 Updated',
+            actionFilters: expect.arrayContaining([
+              expect.objectContaining({
+                conditions: expect.arrayContaining([
+                  expect.objectContaining({
+                    comparison: expect.objectContaining({
+                      value: 'updated value',
+                    }),
+                  }),
+                ]),
+              }),
+            ]),
           }),
         })
       );
     });
 
-    // Verify analytics was called with correct event and payload structure
-    await waitFor(() => {
-      expect(trackAnalytics).toHaveBeenCalledWith('automation.updated', {
-        organization,
-        frequency_minutes: expect.any(Number),
-        environment: expect.anything(),
-        detectors_count: expect.any(Number),
-        trigger_conditions_count: expect.any(Number),
-        actions_count: expect.any(Number),
-      });
+    expect(trackAnalytics).toHaveBeenCalledWith('automation.updated', {
+      organization,
+      frequency_minutes: 1440,
+      environment: 'production',
+      detectors_count: 1,
+      trigger_conditions_count: 0,
+      actions_count: 1,
     });
 
-    // Verify navigation occurred
     await waitFor(() =>
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
