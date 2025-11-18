@@ -98,14 +98,14 @@ class WorkflowEvaluationSnapshot(TypedDict):
     Ensure that this size is kept smaller, since it's used in logging.
     """
 
-    associated_detector: DetectorSnapshot
-    event_id: str  # ID in NodeStore
-    group: str  # repr output
-    workflow_ids: list[int]
-    triggered_workflows: list[WorkflowSnapshot]
-    delayed_conditions: list[str]  # the buffer key for the condition, contains all relevant ids
-    action_filter_conditions: list[DataConditionGroupSnapshot]
-    triggered_actions: list[ActionSnapshot]
+    associated_detector: DetectorSnapshot | None
+    event_id: str | None  # ID in NodeStore
+    group: Group | None
+    workflow_ids: list[int] | None
+    triggered_workflows: list[WorkflowSnapshot] | None
+    delayed_conditions: list[str] | None
+    action_filter_conditions: list[DataConditionGroupSnapshot] | None
+    triggered_actions: list[ActionSnapshot] | None
 
 
 @dataclass
@@ -146,12 +146,12 @@ class WorkflowEvaluationData:
 
         event_id = None
         if hasattr(self.event, "event_id"):
-            event_id = self.event.event_id
+            event_id = str(self.event.event_id)
 
         delayed_conditions = None
         if self.delayed_conditions:
             delayed_conditions = [
-                delayed_item.buffer_key() for _, delayed_item in self.delayed_conditions
+                delayed_item.buffer_key() for _, delayed_item in self.delayed_conditions.items()
             ]
 
         return {
@@ -182,8 +182,8 @@ class WorkflowEvaluation:
     """
 
     tainted: bool
-    msg: str | None = None
     data: WorkflowEvaluationData
+    msg: str | None = None
 
     def to_log(self, logger: Logger) -> None:
         """
@@ -203,10 +203,28 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
+        data_snapshot = self.data.get_snapshot()
+        detection_type = (
+            data_snapshot["associated_detector"]["type"]
+            if data_snapshot["associated_detector"]
+            else None
+        )
+        group_id = data_snapshot["group"].id if data_snapshot["group"] else None
+        triggered_workflows = data_snapshot["triggered_workflows"] or []
+        action_filter_conditions = data_snapshot["action_filter_conditions"] or []
+        triggered_actions = data_snapshot["triggered_actions"] or []
+
         logger.info(
             log_str,
             extra={
-                **self.data.get_snapshot(),
+                "event_id": data_snapshot["event_id"],
+                "group_id": group_id,
+                "detection_type": detection_type,
+                "workflow_ids": data_snapshot["workflow_ids"],
+                "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
+                "delayed_conditions": data_snapshot["delayed_conditions"],
+                "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
+                "triggered_action_ids": [a["id"] for a in triggered_actions],
                 "debug_msg": self.msg,
             },
         )
