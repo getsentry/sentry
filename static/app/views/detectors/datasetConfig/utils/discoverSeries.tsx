@@ -3,6 +3,10 @@ import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {
+  EAP_EXTRAPOLATION_MODE_MAP,
+  type ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * Transform EventsStats API response into Series format for AreaChart
@@ -87,6 +91,7 @@ interface DiscoverSeriesQueryOptions {
   extra?: {
     useOnDemandMetrics: 'true';
   };
+  extrapolationMode?: ExtrapolationMode;
   start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
@@ -106,6 +111,7 @@ export function getDiscoverSeriesQueryOptions({
   comparisonDelta,
   start,
   end,
+  extrapolationMode,
 }: DiscoverSeriesQueryOptions): ApiQueryKey {
   return [
     `/organizations/${organization.slug}/events-stats/`,
@@ -121,6 +127,9 @@ export function getDiscoverSeriesQueryOptions({
         statsPeriod,
         start,
         end,
+        extrapolationMode: extrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+          : undefined,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),

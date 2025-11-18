@@ -39,6 +39,20 @@ export enum Dataset {
   EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
+export enum ExtrapolationMode {
+  CLIENT_AND_SERVER_WEIGHTED = 'client_and_server_weighted',
+  SERVER_WEIGHTED = 'server_weighted',
+  UNKNOWN = 'unknown',
+  NONE = 'none',
+}
+
+export const EAP_EXTRAPOLATION_MODE_MAP = {
+  [ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED]: 'sampleWeighted',
+  [ExtrapolationMode.SERVER_WEIGHTED]: 'serverOnly',
+  [ExtrapolationMode.NONE]: 'none',
+  [ExtrapolationMode.UNKNOWN]: 'sampleWeighted',
+};
+
 export enum EventTypes {
   DEFAULT = 'default',
   ERROR = 'error',
