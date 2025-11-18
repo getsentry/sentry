@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -66,11 +66,11 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
   if (isPending) {
     return (
-      <IssuePreviewList>
+      <Flex direction="column" gap="sm">
         {[0, 1, 2].map(i => (
           <Placeholder key={i} height="60px" />
         ))}
-      </IssuePreviewList>
+      </Flex>
     );
   }
 
@@ -79,19 +79,19 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   }
 
   return (
-    <IssuePreviewList>
+    <Flex direction="column" gap="sm">
       {groups.map(group => (
         <IssuePreviewContainer
           key={group.id}
           to={`/organizations/${organization.slug}/issues/${group.id}/`}
         >
-          <IssuePreviewContent>
+          <Flex direction="column" gap="xs">
             <EventOrGroupHeader data={group} source="dynamic-grouping" />
             <EventOrGroupExtraDetails data={group} showLifetime={false} />
-          </IssuePreviewContent>
+          </Flex>
         </IssuePreviewContainer>
       ))}
-    </IssuePreviewList>
+    </Flex>
   );
 }
 
@@ -101,13 +101,20 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 
   return (
     <CardContainer>
-      <CardHeader>
+      <Flex
+        justify="between"
+        align="start"
+        gap="sm"
+        paddingBottom="md"
+        marginBottom="md"
+        borderBottom="primary"
+      >
         <ClusterTitle as="h3" size="md">
           {cluster.title}
           {cluster.fixability_score !== null && (
-            <FixabilityText size="sm" variant="muted">
-              {t('%s%% fixable', Math.round(cluster.fixability_score * 100))}
-            </FixabilityText>
+            <Text size="sm" variant="muted" style={{fontWeight: 'normal'}}>
+              {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
+            </Text>
           )}
         </ClusterTitle>
         <IssueCount>
@@ -116,24 +123,28 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
             {tn('issue', 'issues', cluster.cluster_size ?? cluster.group_ids.length)}
           </CountLabel>
         </IssueCount>
-      </CardHeader>
+      </Flex>
 
-      <CardBody>
-        <Description>
-          <Text>{cluster.description}</Text>
-        </Description>
+      <Flex direction="column" flex="1">
+        <Text variant="muted" style={{lineHeight: 1.6, marginBottom: space(2)}}>
+          {cluster.description}
+        </Text>
 
         <ClusterIssues groupIds={cluster.group_ids} />
 
         {cluster.group_ids.length > 3 && (
-          <MoreIssuesText size="sm" variant="muted">
+          <Text
+            size="sm"
+            variant="muted"
+            style={{marginTop: space(1), fontStyle: 'italic', textAlign: 'center'}}
+          >
             {t('+ %s more similar issues', cluster.group_ids.length - 3)}
-          </MoreIssuesText>
+          </Text>
         )}
-      </CardBody>
+      </Flex>
 
-      <CardFooter>
-        <TagsContainer>
+      <Flex justify="between" align="center" gap="sm" paddingTop="md" borderTop="primary">
+        <Flex wrap="wrap" gap="xs" flex="1">
           {cluster.tags.slice(0, 5).map(tag => (
             <Tag key={tag}>
               <Text size="xs">{tag}</Text>
@@ -144,13 +155,13 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
               <Text size="xs">+{cluster.tags.length - 5}</Text>
             </Tag>
           )}
-        </TagsContainer>
+        </Flex>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
           <Button size="sm">{t('View All Issues')}</Button>
         </Link>
-      </CardFooter>
+      </Flex>
     </CardContainer>
   );
 }
@@ -238,28 +249,34 @@ function DynamicGrouping() {
       />
 
       <PageHeader>
-        <HeaderContent>
-          <HeaderText>
+        <Flex justify="between" align="start" gap="sm">
+          <div style={{flex: 1}}>
             <Heading as="h1">{t('Dynamic Grouping')}</Heading>
             <Subheading variant="muted">
               {t('AI-powered clustering of related issues across your organization.')}
             </Subheading>
-          </HeaderText>
+          </div>
           {clusterData.length > 0 && !showInput && (
-            <HeaderActions gap="sm">
+            <Flex gap="sm" style={{flexShrink: 0}}>
               <Button size="sm" onClick={() => setShowInput(true)}>
                 {t('Update Data')}
               </Button>
               <Button size="sm" priority="danger" onClick={handleClear}>
                 {t('Clear')}
               </Button>
-            </HeaderActions>
+            </Flex>
           )}
-        </HeaderContent>
+        </Flex>
       </PageHeader>
 
       {showInput || clusterData.length === 0 ? (
-        <InputSection>
+        <Container
+          padding="lg"
+          border="primary"
+          radius="md"
+          marginBottom="lg"
+          background="primary"
+        >
           <Flex direction="column" gap="md">
             <Text size="sm" variant="muted">
               {t('Paste cluster summaries JSON data below:')}
@@ -280,31 +297,39 @@ function DynamicGrouping() {
               )}
             </Flex>
           </Flex>
-        </InputSection>
+        </Container>
       ) : (
         <Fragment>
-          <FilterBar gap="md" align="center" justify="between">
-            <FilterControls gap="sm" align="center">
-              <Text size="sm" variant="muted">
-                {t('Minimum issues per cluster:')}
+          <Container
+            padding="md"
+            border="primary"
+            radius="md"
+            marginBottom="lg"
+            background="primary"
+          >
+            <Flex gap="md" align="center" justify="between">
+              <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+                <Text size="sm" variant="muted">
+                  {t('Minimum issues per cluster:')}
+                </Text>
+                <NumberInput
+                  min={1}
+                  value={minClusterSize}
+                  onChange={value => setMinClusterSize(value ?? 1)}
+                  aria-label={t('Minimum issues per cluster')}
+                  size="sm"
+                />
+              </Flex>
+              <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
+                {tn(
+                  'Viewing %s issue in %s cluster',
+                  'Viewing %s issues across %s clusters',
+                  totalIssues,
+                  filteredAndSortedClusters.length
+                )}
               </Text>
-              <NumberInput
-                min={1}
-                value={minClusterSize}
-                onChange={value => setMinClusterSize(value ?? 1)}
-                aria-label={t('Minimum issues per cluster')}
-                size="sm"
-              />
-            </FilterControls>
-            <ResultsSummary size="sm" variant="muted">
-              {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
-              )}
-            </ResultsSummary>
-          </FilterBar>
+            </Flex>
+          </Container>
 
           <CardsGrid>
             {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
@@ -326,21 +351,6 @@ const PageContainer = styled('div')`
 
 const PageHeader = styled('div')`
   margin-bottom: ${space(4)};
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(2)};
-`;
-
-const HeaderText = styled('div')`
-  flex: 1;
-`;
-
-const HeaderActions = styled(Flex)`
-  flex-shrink: 0;
 `;
 
 const Subheading = styled(Text)`
@@ -371,16 +381,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-const CardHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-  padding-bottom: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
-
 const ClusterTitle = styled(Heading)`
   flex: 1;
   line-height: 1.3;
@@ -388,10 +388,6 @@ const ClusterTitle = styled(Heading)`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-`;
-
-const FixabilityText = styled(Text)`
-  font-weight: normal;
 `;
 
 const IssueCount = styled('div')`
@@ -419,24 +415,6 @@ const CountLabel = styled(Text)`
   font-weight: 500;
 `;
 
-const CardBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
-const Description = styled('div')`
-  line-height: 1.6;
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(2)};
-`;
-
-const IssuePreviewList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const IssuePreviewContainer = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -453,34 +431,6 @@ const IssuePreviewContainer = styled(Link)`
   }
 `;
 
-const IssuePreviewContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const MoreIssuesText = styled(Text)`
-  margin-top: ${space(1)};
-  font-style: italic;
-  text-align: center;
-`;
-
-const CardFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(2)};
-  padding-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  flex: 1;
-`;
-
 const Tag = styled('div')`
   padding: ${space(0.5)} ${space(1)};
   background: ${p => p.theme.gray100};
@@ -491,30 +441,6 @@ const Tag = styled('div')`
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-`;
-
-const FilterBar = styled(Flex)`
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(3)};
-`;
-
-const FilterControls = styled(Flex)`
-  flex-shrink: 0;
-`;
-
-const ResultsSummary = styled(Text)`
-  white-space: nowrap;
-`;
-
-const InputSection = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
-  margin-bottom: ${space(3)};
 `;
 
 const JsonTextarea = styled('textarea')`
