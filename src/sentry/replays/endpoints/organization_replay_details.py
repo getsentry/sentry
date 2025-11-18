@@ -159,7 +159,6 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        # Use EAP query if feature flag is enabled
         if features.has("organizations:replay-details-eap-query", organization, actor=request.user):
             snuba_response = query_replay_instance_eap(
                 project_ids=project_ids,
