@@ -112,7 +112,7 @@ function SpecificDatePicker({
                 if (newDate instanceof Date) {
                   handleSelectDateTime(
                     createDateStringFromSelection({
-                      date: getInternalDate(newDate, utc),
+                      date: newDate,
                       time,
                       utc,
                     })
