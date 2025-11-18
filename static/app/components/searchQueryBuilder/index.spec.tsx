@@ -1293,6 +1293,57 @@ describe('SearchQueryBuilder', () => {
       expect(getLastInput()).toHaveFocus();
       expect(mockOnSearch).toHaveBeenCalledWith('"foo bar"', expect.anything());
     });
+
+    describe('logic items', () => {
+      it('will suggest logic items when typing its value and not on first input', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />,
+          {
+            organization: {
+              features: ['search-query-builder-conditionals-combobox-menus'],
+            },
+          }
+        );
+        await userEvent.click(getLastInput());
+
+        await userEvent.type(getLastInput(), 'and');
+        const andSuggestionItem = await screen.findByRole('option', {
+          name: 'AND',
+        });
+        expect(andSuggestionItem).toBeInTheDocument();
+
+        await userEvent.clear(getLastInput());
+
+        await userEvent.type(getLastInput(), 'or');
+        const orSuggestionItem = await screen.findByRole('option', {
+          name: 'OR',
+        });
+        expect(orSuggestionItem).toBeInTheDocument();
+      });
+
+      it('will not suggest logic items when typing its value on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {
+            features: ['search-query-builder-conditionals-combobox-menus'],
+          },
+        });
+        await userEvent.click(getLastInput());
+
+        await userEvent.type(getLastInput(), 'and');
+        const andSuggestionItem = screen.queryByRole('option', {
+          name: 'AND',
+        });
+        expect(andSuggestionItem).not.toBeInTheDocument();
+
+        await userEvent.clear(getLastInput());
+
+        await userEvent.type(getLastInput(), 'or');
+        const orSuggestionItem = screen.queryByRole('option', {
+          name: 'OR',
+        });
+        expect(orSuggestionItem).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('keyboard interactions', () => {
