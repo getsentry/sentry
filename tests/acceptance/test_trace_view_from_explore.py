@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.db import connections
 
 from fixtures.page_objects.explore_spans import ExploreSpansPage
@@ -46,13 +45,12 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
 
     def tearDown(self) -> None:
         # Close all database connections to prevent
-        # "database is being accessed by other users" error
+        # databases being accessed by other tests
         for connection in connections.all():
             connection.close()
         super().tearDown()
 
     @patch("django.utils.timezone.now")
-    @pytest.mark.flaky(reruns=10)
     def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 

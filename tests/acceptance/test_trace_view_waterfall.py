@@ -42,7 +42,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
 
     def tearDown(self) -> None:
         # Close all database connections to prevent
-        # "database is being accessed by other users" error
+        # databases being accessed by other tests
         for connection in connections.all():
             connection.close()
         super().tearDown()
