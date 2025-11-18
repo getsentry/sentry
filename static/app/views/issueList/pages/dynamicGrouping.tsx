@@ -1,10 +1,12 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
+import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -147,20 +149,23 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 
 function DynamicGrouping() {
   const organization = useOrganization();
+  const [minClusterSize, setMinClusterSize] = useState(1);
 
-  // Sort clusters by fixability score (descending)
-  const sortedClusters = useMemo(() => {
-    return [...clusterSummariesData].sort(
-      (a: ClusterSummary, b: ClusterSummary) => b.fixability_score - a.fixability_score
-    );
-  }, []);
+  // Filter and sort clusters by fixability score (descending)
+  const filteredAndSortedClusters = useMemo(() => {
+    return [...clusterSummariesData]
+      .filter((cluster: ClusterSummary) => cluster.cluster_size >= minClusterSize)
+      .sort(
+        (a: ClusterSummary, b: ClusterSummary) => b.fixability_score - a.fixability_score
+      );
+  }, [minClusterSize]);
 
   const totalIssues = useMemo(() => {
-    return clusterSummariesData.reduce(
+    return filteredAndSortedClusters.reduce(
       (sum: number, c: ClusterSummary) => sum + c.cluster_size,
       0
     );
-  }, []);
+  }, [filteredAndSortedClusters]);
 
   return (
     <PageContainer>
@@ -179,18 +184,35 @@ function DynamicGrouping() {
       <PageHeader>
         <Heading as="h1">{t('Dynamic Grouping')}</Heading>
         <Subheading variant="muted">
-          {t('AI-powered clustering of related issues across your organization.')}{' '}
-          {tn(
-            'Explore %s cluster containing %s total issue.',
-            'Explore %s clusters containing %s total issues.',
-            clusterSummariesData.length,
-            totalIssues
-          )}
+          {t('AI-powered clustering of related issues across your organization.')}
         </Subheading>
       </PageHeader>
 
+      <FilterBar gap="md" align="center" justify="between">
+        <FilterControls gap="sm" align="center">
+          <Text size="sm" variant="muted">
+            {t('Minimum issues per cluster:')}
+          </Text>
+          <NumberInput
+            min={1}
+            value={minClusterSize}
+            onChange={value => setMinClusterSize(value ?? 1)}
+            aria-label={t('Minimum issues per cluster')}
+            size="sm"
+          />
+        </FilterControls>
+        <ResultsSummary size="sm" variant="muted">
+          {tn(
+            'Viewing %s issue in %s cluster',
+            'Viewing %s issues across %s clusters',
+            totalIssues,
+            filteredAndSortedClusters.length
+          )}
+        </ResultsSummary>
+      </FilterBar>
+
       <CardsGrid>
-        {sortedClusters.map((cluster: ClusterSummary) => (
+        {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
           <ClusterCard key={cluster.cluster_id} cluster={cluster} />
         ))}
       </CardsGrid>
@@ -357,6 +379,22 @@ const Tag = styled('div')`
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+`;
+
+const FilterBar = styled(Flex)`
+  padding: ${space(1.5)} ${space(2)};
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(3)};
+`;
+
+const FilterControls = styled(Flex)`
+  flex-shrink: 0;
+`;
+
+const ResultsSummary = styled(Text)`
+  white-space: nowrap;
 `;
 
 export default DynamicGrouping;
