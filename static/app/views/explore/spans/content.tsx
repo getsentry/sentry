@@ -12,6 +12,7 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -20,6 +21,10 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  getTitleFromLocation,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
@@ -40,7 +45,8 @@ export function ExploreContent() {
 
   const organization = useOrganization();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const queryTitle = useQueryParamsTitle();
+  const location = useLocation();
+  const queryTitle = getTitleFromLocation(location, TITLE_KEY);
 
   const onboardingProject = useOnboardingProject();
 

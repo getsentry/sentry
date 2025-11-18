@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -26,6 +27,10 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  getTitleFromLocation,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
@@ -58,7 +63,8 @@ function FeedbackButton() {
 export default function LogsContent() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
-  const queryTitle = useQueryParamsTitle();
+  const location = useLocation();
+  const queryTitle = getTitleFromLocation(location, TITLE_KEY);
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
