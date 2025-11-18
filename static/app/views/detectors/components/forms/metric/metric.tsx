@@ -1,9 +1,10 @@
 import {Fragment, useContext, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -54,9 +55,10 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
+  const theme = useTheme();
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
       <TemplateSection />
       <CustomizeMetricSection />
@@ -64,7 +66,7 @@ function MetricDetectorForm() {
       <AssignSection />
       <DescribeSection />
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
@@ -571,13 +573,6 @@ function TransactionsDatasetWarningListener() {
 
   return <TransactionsDatasetWarning />;
 }
-
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;
 
 const DatasetRow = styled('div')`
   display: grid;
