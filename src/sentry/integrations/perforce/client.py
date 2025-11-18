@@ -333,8 +333,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         finally:
             self._disconnect(p4)
 
-    # CommitContextClient methods (stubbed for now)
-
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:

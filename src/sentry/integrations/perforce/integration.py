@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import hashlib
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django import forms
-from django.http import HttpRequest, HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.base import (
-    FeatureDescription,
-    IntegrationData,
-    IntegrationFeatures,
-    IntegrationMetadata,
-    IntegrationProvider,
-)
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures, IntegrationMetadata
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.perforce.client import PerforceClient
-from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.models.repository import Repository
-from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -417,68 +402,27 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """
         return [
             {
-                "name": "auth_mode",
-                "type": "choice",
-                "label": "Authentication Mode",
-                "choices": [
-                    ["password", "Username & Password"],
-                    ["ticket", "P4 Ticket"],
-                ],
-                "help": "Choose how to authenticate with Perforce. P4 tickets are more secure and don't require storing passwords.",
-                "required": True,
-                "default": "password",
-            },
-            {
-                "name": "ticket",
-                "type": "secret",
-                "label": "P4 Ticket",
-                "placeholder": "••••••••••••••••••••••••••••••••",
-                "help": "P4 authentication ticket (obtained via 'p4 login -p'). Tickets contain server/user info and are more secure than passwords.",
-                "required": False,
-                "depends_on": {"auth_mode": "ticket"},
-            },
-            {
                 "name": "p4port",
                 "type": "string",
                 "label": "P4PORT (Server Address)",
                 "placeholder": "ssl:perforce.company.com:1666",
-                "help": "Perforce server address in P4PORT format. Required even with tickets for multi-server environments. Examples: 'ssl:perforce.company.com:1666' (encrypted), 'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). SSL is strongly recommended.",
-                "required": False,
-            },
-            {
-                "name": "ssl_fingerprint",
-                "type": "string",
-                "label": "SSL Fingerprint (Required for SSL)",
-                "placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
-                "help": "SSL fingerprint for secure connections. Required when using 'ssl:' protocol. Obtain with: p4 -p ssl:host:port trust -y",
-                "required": False,
+                "help": "Perforce server address in P4PORT format. Examples: 'ssl:perforce.company.com:1666' (encrypted), 'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). SSL is strongly recommended for production use.",
+                "required": True,
             },
             {
                 "name": "user",
                 "type": "string",
                 "label": "Perforce Username",
                 "placeholder": "sentry-bot",
-                "help": "Username for authenticating with Perforce",
-                "required": False,
-                "depends_on": {"auth_mode": "password"},
-            },
-            {
-                "name": "auth_type",
-                "type": "choice",
-                "label": "Authentication Type",
-                "choices": [
-                    ["password", "Password"],
-                    ["ticket", "P4 Ticket"],
-                ],
-                "help": "Select whether you're providing a password or a P4 ticket. Tickets are obtained via 'p4 login -p' and don't require re-authentication.",
+                "help": "Username for authenticating with Perforce. Required for both password and ticket authentication.",
                 "required": True,
             },
             {
                 "name": "password",
                 "type": "secret",
-                "label": "Password / Ticket",
+                "label": "Password or P4 Ticket",
                 "placeholder": "••••••••",
-                "help": "Your Perforce password or P4 authentication ticket (depending on the authentication type selected above).",
+                "help": "Perforce password OR P4 authentication ticket. Tickets are obtained via 'p4 login -p' and are more secure than passwords. Both are supported in this field.",
                 "required": True,
             },
             {
@@ -488,7 +432,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
                 "help": "SSL fingerprint for secure connections. Required when using 'ssl:' protocol. Obtain with: p4 -p ssl:host:port trust -y",
                 "required": False,
-                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "client",
