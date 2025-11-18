@@ -15,6 +15,7 @@ import {fadeIn} from 'sentry/styles/animations';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
@@ -28,6 +29,7 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
+import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
 import {
   checkInStatusPrecedent,
   statusToText,
@@ -119,9 +121,12 @@ const DESCRIPTION = t(
 const DOCS_URL = 'https://docs.sentry.io/product/crons/';
 
 export default function CronDetectorsList() {
+  const {selection} = usePageFilters();
   const detectorListQuery = useDetectorListQuery({
     detectorFilter: 'monitor_check_in_failure',
   });
+
+  const selectedProjects = selection.projects.map(String);
 
   const contextValue = useMemo<MonitorViewContextValue>(() => {
     return {
@@ -160,6 +165,7 @@ export default function CronDetectorsList() {
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <GlobalMonitorProcessingErrors project={selectedProjects} />
           <DetectorListContent
             {...detectorListQuery}
             emptyState={<CronsLandingPanel />}
