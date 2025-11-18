@@ -3178,6 +3178,13 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,

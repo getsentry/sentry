@@ -36,7 +36,10 @@ from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
-from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -319,6 +322,11 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+        detector_id = None
+        if occurrence.evidence_data:
+            detector_id = occurrence.evidence_data.get("detector_id")
+        ensure_association_with_detector(group, detector_id)
 
         # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
         # row if applicable. Otherwise, we should record a new row if applicable.
