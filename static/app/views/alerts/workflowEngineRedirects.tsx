@@ -1,3 +1,5 @@
+import {cloneElement, isValidElement} from 'react';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -23,6 +25,7 @@ interface AlertRuleWorkflow {
 function WorkflowEngineRedirect({
   children,
   redirectTo,
+  ...props
 }: {
   children: React.ReactNode;
   redirectTo: string;
@@ -37,6 +40,11 @@ function WorkflowEngineRedirect({
     return <Redirect to={redirectTo} />;
   }
 
+  // Pass through all props to children
+  if (isValidElement(children)) {
+    return cloneElement(children, props);
+  }
+
   return children;
 }
 
@@ -47,6 +55,7 @@ function WorkflowEngineRedirect({
 function WorkflowEngineRedirectWithData({
   children,
   makeRedirectPath,
+  ...props
 }: {
   children: React.ReactNode;
   makeRedirectPath: (workflowId: string, orgSlug: string) => string;
@@ -84,6 +93,11 @@ function WorkflowEngineRedirectWithData({
     }
   }
 
+  // Pass through all props to children
+  if (isValidElement(children)) {
+    return cloneElement(children, props);
+  }
+
   return children;
 }
 
@@ -91,12 +105,16 @@ function WorkflowEngineRedirectWithData({
 
 export function WorkflowEngineRedirectToAutomationList({
   children,
+  ...props
 }: {
   children: React.ReactNode;
 }) {
   const organization = useOrganization();
   return (
-    <WorkflowEngineRedirect redirectTo={makeAutomationBasePathname(organization.slug)}>
+    <WorkflowEngineRedirect
+      redirectTo={makeAutomationBasePathname(organization.slug)}
+      {...props}
+    >
       {children}
     </WorkflowEngineRedirect>
   );
@@ -106,6 +124,7 @@ export function WorkflowEngineRedirectToAutomationList({
 
 export function WorkflowEngineRedirectToAutomationDetails({
   children,
+  ...props
 }: {
   children: React.ReactNode;
 }) {
@@ -114,6 +133,7 @@ export function WorkflowEngineRedirectToAutomationDetails({
       makeRedirectPath={(workflowId, orgSlug) =>
         makeAutomationDetailsPathname(orgSlug, workflowId)
       }
+      {...props}
     >
       {children}
     </WorkflowEngineRedirectWithData>
@@ -122,6 +142,7 @@ export function WorkflowEngineRedirectToAutomationDetails({
 
 export function WorkflowEngineRedirectToAutomationEdit({
   children,
+  ...props
 }: {
   children: React.ReactNode;
 }) {
@@ -130,6 +151,7 @@ export function WorkflowEngineRedirectToAutomationEdit({
       makeRedirectPath={(workflowId, orgSlug) =>
         makeAutomationEditPathname(orgSlug, workflowId)
       }
+      {...props}
     >
       {children}
     </WorkflowEngineRedirectWithData>
