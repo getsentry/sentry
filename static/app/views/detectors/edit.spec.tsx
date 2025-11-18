@@ -142,9 +142,9 @@ describe('DetectorEdit', () => {
         expect.anything()
       );
 
-      // Redirect to the monitors list
+      // Redirect to the detector type-specific list page (metrics for MetricDetectorFixture)
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/monitors/`
+        `/organizations/${organization.slug}/monitors/metrics/`
       );
     });
 
