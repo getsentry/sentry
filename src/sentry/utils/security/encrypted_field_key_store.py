@@ -10,7 +10,7 @@ logger = getLogger(__name__)
 
 
 class FernetKeyStore:
-    _keys = {}
+    _keys: dict | None = {}
     _is_loaded = False
 
     @classmethod

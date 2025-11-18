@@ -7,9 +7,9 @@ from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from cryptography.fernet import InvalidToken
-from django.conf import settings
 from django.db.models import CharField, Field
 
+from sentry import options
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,12 @@ class EncryptedField(Field):
         if value is None:
             return value
 
-        encryption_method = settings.DATABASE_ENCRYPTION_SETTINGS["method"]
+        # Get the encryption method from the options
+        # xxx(vgrozdanic): this is a temporary solution during a rollout
+        # so that we can quickly rollback if needed.
+        encryption_method = options.get("database.encryption.method")
+        if encryption_method not in self._encryption_handlers:
+            raise ValueError(f"Invalid encryption method: {encryption_method}")
         handler = self._encryption_handlers[encryption_method]
         return handler["encrypt"](value)
 
