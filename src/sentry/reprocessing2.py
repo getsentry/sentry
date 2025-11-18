@@ -7,30 +7,35 @@ How reprocessing works
 ======================
 
 1. In `start_group_reprocessing`, the group is put into REPROCESSING state. In
-   this state it must not be modified or receive events. Much like with group
-   merging, all its hashes are detached, they are moved to a new, empty group.
+   this state it must not be modified or receive events. A new group is created
+   with duplicate attributes, and all group-level models (GROUP_MODELS_TO_MIGRATE),
+   including group hashes, are migrated immediately to the new group.
 
-   The group gets a new activity entry that contains metadata about who
-   triggered reprocessing with how many events. This is purely to serve UI.
+   The old group gets a new activity entry that contains metadata about who
+   triggered reprocessing with how many events. This is purely to serve the UI.
 
-   If a user at this point navigates to the group, they will not be able to
+   If a user at this point navigates to the old group, they will not be able to
    interact with it at all, but only watch the progress of reprocessing.
 
-2. All events from the group are iterated through and enqueued into
+2. All events from the old group are iterated through and enqueued into
    preprocess_event. The event payload is taken from a backup that was made on
    first ingestion in preprocess_event.
 
-3. `mark_event_reprocessed` will decrement the pending event counter in Redis
+   Each event falls into one of three modes:
+   - **Reprocess**: Re-run symbolication and grouping, re-insert into Snuba
+   - **Keep**: Move to new group without reprocessing
+   - **Delete**: Remove from nodestore, Postgres, and Snuba (via tombstone)
+
+3. `mark_event_reprocessed` decrements the pending event counter in Redis
    to see if reprocessing is done.
 
-   When the counter reaches zero, it will trigger the `finish_reprocessing` task,
-   which will move all associated models like assignee and activity into the new group.
+   When the counter reaches zero, it triggers the `finish_reprocessing` task,
+   which moves the reprocessing activity to the new group and creates a
+   GroupRedirect from old_group_id -> new_group_id. The old group is then
+   deleted from Postgres.
 
-   A group redirect is installed. The old group is deleted, while the new group
-   is unresolved. This effectively unsets the REPROCESSING status.
-
-   A user looking at the progress bar on the old group's URL is supposed to be
-   redirected at this point. The new group can either:
+   A user looking at the progress bar on the old group's URL is redirected
+   at this point. The new group can either:
 
    a. Have events by itself, but also show a success message based on the data in activity.
    b. Be totally empty but suggest a search for original_issue_id based on data in activity.
@@ -487,9 +492,14 @@ def buffered_handle_remaining_events(
     Ideally we'd have batching implemented via a service like buffers, but for
     more than counters.
     """
-    llen = reprocessing_store.get_remaining_event_count(project_id, old_group_id, datetime_to_event)
+    buffered_event_count = reprocessing_store.get_remaining_event_count(
+        project_id, old_group_id, datetime_to_event
+    )
 
-    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+    if (
+        force_flush_batch
+        or buffered_event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
+    ):
         new_key = reprocessing_store.rename_key(project_id, old_group_id)
         if not new_key:
             return
@@ -625,7 +635,7 @@ def start_group_reprocessing(
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    new_activity = models.Activity.objects.create(
+    reprocessing_activity = models.Activity.objects.create(
         type=ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
@@ -633,9 +643,7 @@ def start_group_reprocessing(
         user_id=acting_user_id,
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
     )
-
-    # New Activity Timestamp
-    date_created = new_activity.datetime
+    date_created = reprocessing_activity.datetime
 
     reprocessing_store.start_reprocessing(group_id, date_created, sync_count, event_count)
 
