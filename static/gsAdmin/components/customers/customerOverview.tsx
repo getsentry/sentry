@@ -32,10 +32,12 @@ import type {
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
   getProductTrial,
+  RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -129,6 +131,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             <small>{customer.contractInterval}</small>
           </DetailLabel>
         )}
+        {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
         <DetailLabel title="On-Demand">
           <OnDemandSummary customer={customer} />
         </DetailLabel>
@@ -212,7 +215,9 @@ function ReservedData({customer}: ReservedDataProps) {
                   : 'None'}
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
-                <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
+                <DetailLabel
+                  title={`${displayBudgetName(customer.planDetails, {title: true})} Cost-Per-Event ${categoryName}`}
+                >
                   {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
                         cents: categoryHistory.paygCpe,
@@ -780,6 +785,50 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ProductTrialsDetailListContainer>
           </Fragment>
         )}
+        <Fragment>
+          <h6>Retention Settings</h6>
+          <table style={{borderSpacing: '15px', borderCollapse: 'separate'}}>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Standard</th>
+                <th>
+                  <Tooltip title="Null means use the Downsample default">
+                    Downsampled
+                  </Tooltip>
+                </th>
+                <th>
+                  <Tooltip title="Zero means use the standard retention.">
+                    Downsample Default
+                  </Tooltip>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortCategories(customer.categories || {})
+                .filter(bmh => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
+                .map(bmh => (
+                  <tr key={bmh.category}>
+                    <td>
+                      {getPlanCategoryName({
+                        plan: customer.planDetails,
+                        category: bmh.category,
+                      })}
+                    </td>
+                    <td>{bmh.retention?.standard}</td>
+                    <td>
+                      {bmh.retention?.downsampled === null
+                        ? 'null'
+                        : bmh.retention?.downsampled}
+                    </td>
+                    <td>
+                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </Fragment>
       </div>
     </DetailsContainer>
   );

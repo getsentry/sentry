@@ -18,10 +18,10 @@ interface UseMetricDetectorSeriesProps {
   projectId: string;
   query: string;
   comparisonDelta?: number;
-  end?: string;
+  end?: string | null;
   options?: Partial<UseApiQueryOptions<any>>;
-  start?: string;
-  statsPeriod?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
 }
 
 interface UseMetricDetectorSeriesResult {
@@ -74,6 +74,14 @@ export function useMetricDetectorSeries({
   >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, apiError: RequestError) => {
+      // Disable retries for 400 status code
+      if (apiError?.status === 400) {
+        return false;
+      }
+
+      return failureCount < 2;
+    },
     ...options,
   });
 

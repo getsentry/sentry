@@ -21,7 +21,7 @@ class SingletonProducer:
     A Kafka producer that can be instantiated as a global
     variable/singleton/service.
 
-    It is supposed to be used in Celery tasks, where we want to flush the
+    It is supposed to be used in tasks, where we want to flush the
     producer on process shutdown.
     """
 

@@ -2,8 +2,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 
 import {DataCategory} from 'sentry/types/core';
 
-import {InvoiceItemType, PlanTier} from 'getsentry/types';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {AddOnCategory, InvoiceItemType, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -14,8 +13,8 @@ describe('utils', () => {
   const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
   const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
   const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
-  const DEFAULT_SELECTED_PRODUCTS = {
-    [SelectableProduct.SEER]: {
+  const DEFAULT_ADDONS = {
+    [AddOnCategory.SEER]: {
       enabled: false,
     },
   };
@@ -29,7 +28,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -42,7 +41,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('312');
     });
@@ -55,7 +54,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('89');
     });
@@ -68,7 +67,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('960');
     });
@@ -81,7 +80,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('1,992');
     });
@@ -95,8 +94,8 @@ describe('utils', () => {
           replays: 50,
           attachments: 1,
         },
-        selectedProducts: {
-          [SelectableProduct.SEER]: {
+        addOns: {
+          [AddOnCategory.SEER]: {
             enabled: true,
           },
         },
@@ -113,8 +112,8 @@ describe('utils', () => {
           replays: 50,
           attachments: 1,
         },
-        selectedProducts: {
-          [SelectableProduct.SEER]: {
+        addOns: {
+          [AddOnCategory.SEER]: {
             enabled: true,
           },
         },
@@ -130,7 +129,7 @@ describe('utils', () => {
           transactions: 100_000,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -405,7 +404,7 @@ describe('utils', () => {
           attachments: 70,
           profileDuration: 80,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        addOns: DEFAULT_ADDONS,
       };
 
       expect(getCheckoutAPIData({formData})).toEqual({
@@ -420,55 +419,8 @@ describe('utils', () => {
         reservedUptime: 60,
         reservedAttachments: 70,
         reservedProfileDuration: 80,
-        seer: false,
+        addOnSeer: false,
       });
-    });
-  });
-
-  describe('utils.getCreditApplied', () => {
-    it('returns correct credit applied', () => {
-      expect(utils.getCreditApplied({creditApplied: 100, invoiceItems: []})).toBe(100);
-      const commonCreditProps = {
-        amount: 50,
-        data: {},
-        description: '',
-        period_end: '',
-        period_start: '',
-      };
-      expect(
-        utils.getCreditApplied({
-          creditApplied: 100,
-          invoiceItems: [
-            {
-              type: InvoiceItemType.SUBSCRIPTION_CREDIT,
-              ...commonCreditProps,
-            },
-          ],
-        })
-      ).toBe(100);
-      expect(
-        utils.getCreditApplied({
-          creditApplied: 100,
-          invoiceItems: [
-            {
-              type: InvoiceItemType.BALANCE_CHANGE,
-              ...commonCreditProps,
-            },
-          ],
-        })
-      ).toBe(100);
-      expect(
-        utils.getCreditApplied({
-          creditApplied: 100,
-          invoiceItems: [
-            {
-              type: InvoiceItemType.BALANCE_CHANGE,
-              ...commonCreditProps,
-              amount: -50,
-            },
-          ],
-        })
-      ).toBe(0);
     });
   });
 });

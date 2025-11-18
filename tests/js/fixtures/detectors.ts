@@ -36,6 +36,7 @@ const BASE_DETECTOR = {
   projectId: '1',
   enabled: true,
   latestGroup: SimpleGroupFixture(),
+  description: null,
 };
 
 function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCondition {
@@ -52,7 +53,16 @@ function DataConditionGroupFixture(
   params: Partial<MetricConditionGroup> = {}
 ): MetricConditionGroup {
   return {
-    conditions: [DataConditionFixture()],
+    conditions: [
+      // HIGH priority condition
+      DataConditionFixture(),
+      // OK (resolution) condition - uses same comparison value with swapped operator
+      DataConditionFixture({
+        id: '2',
+        type: DataConditionType.LESS_OR_EQUAL,
+        conditionResult: DetectorPriorityLevel.OK,
+      }),
+    ],
     id: '1',
     logicType: DataConditionGroupLogicType.ANY,
     ...params,
@@ -68,7 +78,6 @@ export function MetricDetectorFixture(
     name: 'detector',
     config: {
       detectionType: 'static',
-      thresholdPeriod: 1,
     },
     type: 'metric_issue',
     enabled: true,
@@ -100,6 +109,9 @@ export function UptimeDetectorFixture(
     type: 'uptime_domain_failure',
     config: {
       environment: 'production',
+      mode: 1,
+      recoveryThreshold: 1,
+      downtimeThreshold: 3,
     },
     dataSources: [UptimeSubscriptionDataSourceFixture()],
     ...params,

@@ -8,8 +8,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
@@ -17,6 +16,10 @@ from sentry.grouping.utils import get_fingerprint_type
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.seer.similarity.config import (
+    get_grouping_model_version,
+    should_send_new_model_embeddings,
+)
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
@@ -25,9 +28,9 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
     killswitch_enabled,
     record_did_call_seer_metric,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
@@ -57,7 +60,6 @@ def should_call_seer_for_grouping(
 
     if (
         _has_custom_fingerprint(event, variants)
-        or _has_too_many_contributing_frames(event, variants)
         or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -65,6 +67,8 @@ def should_call_seer_for_grouping(
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
         # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
+        # do this after the empty stacktrace string check because it calculates the stacktrace string
+        or _stacktrace_exceeds_limits(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #
@@ -154,9 +158,9 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def _has_too_many_contributing_frames(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    if has_too_many_contributing_frames(event, variants, ReferrerOptions.INGEST):
-        record_did_call_seer_metric(event, call_made=False, blocker="excess-frames")
+def _stacktrace_exceeds_limits(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST):
+        record_did_call_seer_metric(event, call_made=False, blocker="stacktrace-too-long")
         return True
 
     return False
@@ -240,7 +244,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     if not stacktrace_string:
         if stacktrace_string == "":
             record_did_call_seer_metric(event, call_made=False, blocker="empty-stacktrace-string")
@@ -256,10 +260,17 @@ def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
+    training_mode: bool = False,
 ) -> tuple[float | None, GroupHash | None]:
     """
     Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
     matching GroupHash of the closest match (if any), or `(None, None)` if no match found.
+
+    Args:
+        event: The event being grouped
+        event_grouphash: The grouphash for this event
+        variants: Grouping variants for the event
+        training_mode: If True, only possibly insert embedding without returning matches
     """
     event_hash = event.get_primary_hash()
     exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -268,8 +279,10 @@ def get_seer_similar_issues(
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
-        get_stacktrace_string(get_grouping_info_from_variants(variants)),
+        get_stacktrace_string(get_grouping_info_from_variants_legacy(variants)),
     )
+
+    model_version = get_grouping_model_version(event.project)
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
@@ -280,10 +293,16 @@ def get_seer_similar_issues(
         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
+        "model": model_version,
+        "training_mode": training_mode,
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"platform": event.platform or "unknown"}
+    seer_request_metric_tags: dict[str, str | int | bool] = {
+        "platform": event.platform or "unknown",
+        "model_version": model_version.value,
+        "training_mode": training_mode,
+    }
 
     seer_results = get_similarity_data_from_seer(
         request_data,
@@ -380,12 +399,20 @@ def get_seer_similar_issues(
         "grouping.similarity.seer_results_returned",
         len(seer_results),
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+        tags={
+            **metrics_tags,
+            "is_hybrid": is_hybrid_fingerprint_case,
+            "training_mode": training_mode,
+        },
     )
     metrics.incr(
         "grouping.similarity.get_seer_similar_issues",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+        tags={
+            **metrics_tags,
+            "is_hybrid": is_hybrid_fingerprint_case,
+            "training_mode": training_mode,
+        },
     )
 
     logger.info(
@@ -516,6 +543,8 @@ def maybe_check_seer_for_matching_grouphash(
 
             timestamp = timezone.now()
 
+            model_version = get_grouping_model_version(event.project)
+
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
                 # request will be some milliseconds apart, but a) the difference isn't meaningful
@@ -529,9 +558,55 @@ def maybe_check_seer_for_matching_grouphash(
                 date_added=gh_metadata.date_added or timestamp,
                 seer_date_sent=gh_metadata.date_added or timestamp,
                 seer_event_sent=event.event_id,
-                seer_model=SEER_SIMILARITY_MODEL_VERSION,
+                seer_model=model_version.value,
                 seer_matched_grouphash=seer_matched_grouphash,
                 seer_match_distance=seer_match_distance,
             )
 
     return seer_matched_grouphash
+
+
+@sentry_sdk.tracing.trace
+def maybe_send_seer_for_new_model_training(
+    event: Event,
+    existing_grouphash: GroupHash,
+    variants: dict[str, BaseVariant],
+) -> None:
+    """
+    Send a training_mode=true request to Seer to build embeddings for the new model
+    version if the existing grouphash hasn't been sent to the new version yet.
+
+    This only happens for projects that have the new model rolled out. It helps
+    build embeddings for existing groups without affecting production grouping decisions.
+
+    Args:
+        event: The event being grouped
+        existing_grouphash: The grouphash that was found for this event
+        variants: Grouping variants for the event
+    """
+
+    # Check if we should send embeddings for the new model
+    gh_metadata = existing_grouphash.metadata
+    grouphash_seer_model = gh_metadata.seer_model if gh_metadata else None
+
+    if not should_send_new_model_embeddings(event.project, grouphash_seer_model):
+        return
+
+    # Send training mode request (honor all checks like rate limits, circuit breaker, etc.)
+    if not should_call_seer_for_grouping(event, variants, existing_grouphash):
+        return
+
+    record_did_call_seer_metric(event, call_made=True, blocker="none", training_mode=True)
+
+    try:
+        # Call Seer with training_mode=True (results won't be used for grouping)
+        get_seer_similar_issues(event, existing_grouphash, variants, training_mode=True)
+    except Exception as e:
+        sentry_sdk.capture_exception(
+            e,
+            tags={
+                "event": event.event_id,
+                "project": event.project.id,
+                "grouphash": existing_grouphash.hash,
+            },
+        )

@@ -11,9 +11,10 @@ from functools import partial
 from typing import Any, Final
 
 import sentry_sdk
+from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
-from rb.clients import LocalClient
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_sdk import set_tag
 
 from sentry import analytics
@@ -34,7 +35,6 @@ from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
@@ -61,7 +61,7 @@ class WeeklyReportProgressTracker:
 
     beginning_of_day_timestamp: float
     duration: int
-    _redis_connection: LocalClient
+    _redis_connection: RedisCluster[str] | StrictRedis[str]
 
     REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
@@ -77,8 +77,8 @@ class WeeklyReportProgressTracker:
             duration = ONE_DAY * 7
 
         self.duration = duration
-        self._redis_connection = redis.clusters.get("default").get_local_client_for_key(
-            self.REPORT_REDIS_CLIENT_KEY
+        self._redis_connection = redis.redis_clusters.get(
+            settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER
         )
 
     @property
@@ -99,15 +99,10 @@ class WeeklyReportProgressTracker:
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
+    processing_deadline_duration=timedelta(minutes=30),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=30),
-    ),
 )
 @retry(timeouts=True)
 def schedule_organizations(
@@ -137,7 +132,7 @@ def schedule_organizations(
                 result_value_getter=lambda item: item.id,
                 min_id=minimum_organization_id,
             ):
-                # Create a celery task per organization
+                # Create a task per organization
                 logger.info(
                     "weekly_reports.schedule_organizations",
                     extra={
@@ -164,18 +159,10 @@ def schedule_organizations(
 # This task is launched per-organization.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    processing_deadline_duration=60 * 10,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        processing_deadline_duration=60 * 10,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def prepare_organization_report(
@@ -360,8 +347,8 @@ class _DuplicateDeliveryCheck:
         # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
         self.count: int | None = None
 
-    def _get_redis_cluster(self) -> LocalClient:
-        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+    def _get_redis_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
+        return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
     @property
     def _redis_name(self) -> str:
@@ -407,7 +394,7 @@ class _DuplicateDeliveryCheck:
         if is_duplicate_detected:
             # There is no lock for concurrency, which leaves open the possibility of
             # a race condition, in case another thread or server node received a
-            # duplicate Celery task somehow. But we do not think this is a likely
+            # duplicate task somehow. But we do not think this is a likely
             # failure mode.
             #
             # Nonetheless, the `cluster.incr` operation is atomic, so if concurrent

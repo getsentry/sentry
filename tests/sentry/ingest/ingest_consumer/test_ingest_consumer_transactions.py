@@ -71,19 +71,14 @@ def random_group_id() -> str:
 
 
 @django_db_all(transaction=True)
-@pytest.mark.parametrize("no_celery_mode", [True, False])
 @thread_leak_allowlist(reason="ingest consumers", issue=97037)
 def test_ingest_consumer_reads_from_topic_and_saves_event(
-    no_celery_mode,
     task_runner,
     kafka_producer,
     kafka_admin,
     default_project,
     random_group_id,
 ):
-    """
-    Tests both the celery and no-celery-mode variant of ingest transactions consumer
-    """
     topic = Topic.INGEST_TRANSACTIONS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
@@ -100,11 +95,7 @@ def test_ingest_consumer_reads_from_topic_and_saves_event(
         "--max-batch-size=2",
         "--max-batch-time-ms=5000",
         "--processes=10",
-        "--no-celery-mode",
     ]
-
-    if no_celery_mode:
-        consumer_args.append("--no-celery-mode")
 
     consumer = get_stream_processor(
         "ingest-transactions",

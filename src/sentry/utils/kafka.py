@@ -1,5 +1,7 @@
+import faulthandler
 import logging
 import signal
+import sys
 import time
 from threading import Thread
 from typing import Any
@@ -28,15 +30,25 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     time.sleep(sleep_secs)
 
 
-def delay_shutdown(processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int) -> None:
+def delay_shutdown(
+    processor: StreamProcessor[Any],
+    quantized_rebalance_delay_secs: int,
+    dump_stacktrace_on_shutdown: bool,
+) -> None:
     if quantized_rebalance_delay_secs:
         delay_kafka_rebalance(quantized_rebalance_delay_secs)
+
+    if dump_stacktrace_on_shutdown:
+        logger.info("Dumping stacktrace")
+        faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
 
     processor.signal_shutdown()
 
 
 def run_processor_with_signals(
-    processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int | None = None
+    processor: StreamProcessor[Any],
+    quantized_rebalance_delay_secs: int | None = None,
+    dump_stacktrace_on_shutdown: bool = False,
 ) -> None:
     if quantized_rebalance_delay_secs:
         # delay startup for quantization
@@ -44,7 +56,10 @@ def run_processor_with_signals(
 
     def handler(signum: object, frame: object) -> None:
         # delay shutdown for quantization
-        t = Thread(target=delay_shutdown, args=(processor, quantized_rebalance_delay_secs))
+        t = Thread(
+            target=delay_shutdown,
+            args=(processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown),
+        )
         t.start()
 
     signal.signal(signal.SIGINT, handler)

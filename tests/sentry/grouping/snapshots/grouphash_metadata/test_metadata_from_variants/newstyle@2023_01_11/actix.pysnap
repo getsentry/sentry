@@ -1,7 +1,5 @@
 ---
-created: '2025-04-25T21:24:24.179882+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -26,7 +24,8 @@ contributing variants:
   app*
     hash: "738e7d2503464bc264b4f791286f5122"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       app*
         exception*
           stacktrace*
@@ -273,7 +272,8 @@ contributing variants:
   system*
     hash: "19a96e0438d28e48355653def82f887a"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*

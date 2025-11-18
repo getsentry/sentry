@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 
 import sentry_sdk
 from django.db import models, router, transaction
-from django.db.models import UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
@@ -13,7 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
@@ -223,13 +223,14 @@ class Dashboard(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
-    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
 
     MAX_WIDGETS = 30
 
@@ -237,6 +238,18 @@ class Dashboard(Model):
         app_label = "sentry"
         db_table = "sentry_dashboard"
         unique_together = (("organization", "title"),)
+        constraints = [
+            UniqueConstraint(
+                fields=["organization", "prebuilt_id"],
+                condition=Q(prebuilt_id__isnull=False),
+                name="sentry_dashboard_organization_prebuilt_id_uniq",
+            ),
+            # prebuilt dashboards cannot have a created_by_id
+            CheckConstraint(
+                condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
+                name="sentry_dashboard_prebuilt_null_created_by",
+            ),
+        ]
 
     __repr__ = sane_repr("organization", "title")
 

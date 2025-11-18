@@ -33,6 +33,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
   // Any time the dashboards prop changes (e.g. when the user stars or unstars a dashboard),
   // we need to reset the savedDashboards state.
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setSavedDashboards(initialDashboards);
   }, [initialDashboards]);
 

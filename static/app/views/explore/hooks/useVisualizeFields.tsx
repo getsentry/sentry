@@ -132,7 +132,7 @@ function getSupportedAttributes({
     }
 
     if (functionName === AggregationKey.COUNT_UNIQUE) {
-      return stringTags;
+      return {...numberTags, ...stringTags};
     }
 
     return numberTags;

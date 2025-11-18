@@ -127,11 +127,15 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           id: 'audit-log',
         },
         {
-          path: `${organizationSettingsPathPrefix}/rate-limits/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features?.has('legacy-rate-limits') ?? false,
-          description: t('Configure rate limits for all projects in the organization'),
-          id: 'rate-limits',
+          path: `${organizationSettingsPathPrefix}/data-forwarding/`,
+          title: t('Data Forwarding'),
+          description: t('Manage data forwarding across your organization'),
+          id: 'data-forwarding',
+          badge: () => <FeatureBadge type="beta" />,
+          recordAnalytics: true,
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('data-forwarding-revamp-access'),
         },
         {
           path: `${organizationSettingsPathPrefix}/relay/`,

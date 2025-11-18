@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
@@ -5,6 +6,8 @@ import pytest
 from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
 from snuba_sdk import (
     Column,
     Condition,
@@ -25,6 +28,7 @@ from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
     DateTimePaginator,
+    EAPPageTokenPaginator,
     GenericOffsetPaginator,
     OffsetPaginator,
     Paginator,
@@ -955,3 +959,60 @@ class CallbackPaginatorTest(APITestCase, SnubaTestCase):
         assert third_page.next.has_results is False
         assert third_page.prev.offset == 1
         assert third_page.prev.has_results
+
+
+class TestEAPPageTokenPaginator:
+    cls = EAPPageTokenPaginator
+
+    def test_first_page_empty(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == []
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_all_data(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [1, 2, 3],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_partial_data(self) -> None:
+        expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
+
+        def data_fn(limit, page_token):
+            if page_token is None:
+                return {
+                    "data": [1, 2, 3],
+                    "page_token": expected_page_token,
+                }
+
+            return {
+                "data": [4, 5],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is True
+
+        actual_page_token = PageToken()
+        actual_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
+        assert actual_page_token == expected_page_token
+
+        page = paginator.get_result(limit=3, cursor=page.next)

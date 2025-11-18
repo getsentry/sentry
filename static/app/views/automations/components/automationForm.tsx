@@ -2,9 +2,9 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
-import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
+import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 const FREQUENCY_OPTIONS = [
   {value: 5, label: t('5 minutes')},
@@ -40,6 +41,8 @@ export default function AutomationForm({model}: {model: FormModel}) {
     model.setValue('environment', env || null);
   };
 
+  useSetAutomaticAutomationName();
+
   return (
     <Flex direction="column" gap="lg">
       <EditConnectedMonitors
@@ -47,22 +50,33 @@ export default function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Flex direction="column" gap="xs">
-          <Heading>{t('Choose Environment')}</Heading>
-          <Description>
+        <Flex direction="column" gap="sm">
+          <Heading as="h2" size="lg">
+            {t('Choose Environment')}
+          </Heading>
+          <Text size="sm" variant="muted">
             {t(
               'If you select environments different than your monitors then the automation will not fire.'
             )}
-          </Description>
+          </Text>
         </Flex>
         <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
-        <Heading>{t('Automation Builder')}</Heading>
+        <Heading as="h2" size="lg">
+          {t('Alert Builder')}
+        </Heading>
         <AutomationBuilder />
       </Card>
       <Card>
-        <Heading>{t('Action Interval')}</Heading>
+        <Flex direction="column" gap="sm">
+          <Heading as="h2" size="lg">
+            {t('Action Interval')}
+          </Heading>
+          <Text size="sm" variant="muted">
+            {t('Perform the actions above this often for an issue.')}
+          </Text>
+        </Flex>
         <EmbeddedSelectField
           required
           name="frequency"
@@ -71,22 +85,9 @@ export default function AutomationForm({model}: {model: FormModel}) {
           options={FREQUENCY_OPTIONS}
         />
       </Card>
-      <DebugForm />
     </Flex>
   );
 }
-
-const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin: 0;
-`;
-
-const Description = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  margin: 0;
-  padding: 0;
-`;
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;

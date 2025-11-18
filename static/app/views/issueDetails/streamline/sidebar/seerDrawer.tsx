@@ -3,13 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -47,6 +48,30 @@ const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
+
+function WelcomeScreen({
+  group,
+  project,
+  event,
+}: {
+  event: Event;
+  group: Group;
+  project: Project;
+}) {
+  const organization = useOrganization();
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
+  return (
+    <Stack gap="2xl">
+      {skipConsentFlow && (
+        <StyledCard>
+          <GroupSummary group={group} event={event} project={project} />
+        </StyledCard>
+      )}
+      <AiSetupDataConsent groupId={group.id} />
+    </Stack>
+  );
+}
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
@@ -225,14 +250,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               title={
                 <Flex direction="column" gap="md">
                   <div>
-                    {tct(
-                      'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
-                      {
-                        dataDocs: (
-                          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
-                        ),
-                      }
-                    )}
+                    <AiPrivacyNotice />
                   </div>
                   <div>
                     {tct('Seer can be turned off in [settingsDocs:Settings].', {
@@ -240,7 +258,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                         <Link
                           to={{
                             pathname: `/settings/${organization.slug}/`,
-                            hash: '#hideAiFeatures',
+                            hash: 'hideAiFeatures',
                           }}
                         />
                       ),
@@ -296,7 +314,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             <Placeholder height="15rem" />
           </PlaceholderStack>
         ) : showWelcomeScreen ? (
-          <AiSetupDataConsent groupId={group.id} />
+          <WelcomeScreen group={group} project={project} event={event} />
         ) : (
           <Fragment>
             <SeerNotices
@@ -371,17 +389,17 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
-      shouldCloseOnInteractOutside: () => {
-        return false;
-      },
       onClose: () => {
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            seerDrawer: undefined,
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              seerDrawer: undefined,
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       },
     });
   }, [openDrawer, event, group, project, location, navigate, organization]);
@@ -411,6 +429,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`

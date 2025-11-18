@@ -20,7 +20,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Extrapolated from 100 span samples'
+        'Extrapolated from 100 spans'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
@@ -41,7 +41,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups extrapolated from 100 span samples'
+        'Extrapolated from 100 spans for top 5 groups'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
@@ -64,9 +64,7 @@ describe('ConfidenceFooter', () => {
         {wrapper: Wrapper}
       );
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Extrapolated from 100 span samples'
-      );
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
     });
     it('renders for full scan with grouping', () => {
       render(
@@ -80,7 +78,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups extrapolated from 100 span samples'
+        'Span count for top 5 groups: 100'
       );
     });
   });
@@ -89,7 +87,7 @@ describe('ConfidenceFooter', () => {
     it('unextrapolated loading', () => {
       render(<ConfidenceFooter extrapolate={false} />, {wrapper: Wrapper});
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: \u2026');
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
 
     it('unextrapolated loaded', () => {
@@ -97,7 +95,17 @@ describe('ConfidenceFooter', () => {
         wrapper: Wrapper,
       });
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: 100');
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+    });
+
+    it('unextrapolated loaded with grouping', () => {
+      render(<ConfidenceFooter extrapolate={false} sampleCount={100} topEvents={5} />, {
+        wrapper: Wrapper,
+      });
+
+      expect(screen.getByTestId('wrapper')).toHaveTextContent(
+        'Span count for top 5 groups: 100'
+      );
     });
   });
 });

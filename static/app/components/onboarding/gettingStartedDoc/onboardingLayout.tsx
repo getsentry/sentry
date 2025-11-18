@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
@@ -14,6 +15,7 @@ import {
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -84,6 +86,7 @@ export function OnboardingLayout({
       project,
       isLogsSelected: activeProductSelection.includes(ProductSolution.LOGS),
       isFeedbackSelected: false,
+      isMetricsSelected: activeProductSelection.includes(ProductSolution.METRICS),
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -109,7 +112,16 @@ export function OnboardingLayout({
       introduction: doc.introduction?.(docParams),
       steps: [
         ...doc.install(docParams),
-        ...doc.configure(docParams),
+        ...injectCopyDsnButtonIntoFirstConfigureStep({
+          configureSteps: doc.configure(docParams),
+          dsn,
+          onCopyDsn: () => {
+            trackAnalytics('onboarding.dsn-copied', {
+              organization,
+              platform: platformKey,
+            });
+          },
+        }),
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
@@ -144,7 +156,7 @@ export function OnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        <Header>
+        <Stack gap="xl">
           {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
@@ -160,7 +172,7 @@ export function OnboardingLayout({
               onChange={onPlatformOptionsChange}
             />
           ) : null}
-        </Header>
+        </Stack>
         <Divider withBottomMargin />
         <div>
           {steps.map(step => (
@@ -202,12 +214,6 @@ export function OnboardingLayout({
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;

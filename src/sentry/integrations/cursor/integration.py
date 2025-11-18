@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+import uuid
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Literal
 
 from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from pydantic import BaseModel
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -21,18 +23,26 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
-DESCRIPTION = "Connect your Sentry organization with Cursor Background Agents."
+DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
 
 FEATURES = [
     FeatureDescription(
-        "Launch Cursor Background Agents via Seer to fix issues.",
+        "Launch Cursor Cloud Agents via Seer to fix issues.",
         IntegrationFeatures.CODING_AGENT,
     ),
 ]
+
+
+class CursorIntegrationMetadata(BaseModel):
+    api_key: str
+    webhook_secret: str
+    domain_name: Literal["cursor.sh"] = "cursor.sh"
+
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -48,7 +58,7 @@ metadata = IntegrationMetadata(
 class CursorAgentConfigForm(forms.Form):
     api_key = forms.CharField(
         label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call background Cursor Agents with."),
+        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
         widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
         max_length=255,
     )
@@ -93,18 +103,23 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
         if not config:
-            raise IntegrationError("Missing configuration data")
+            raise IntegrationConfigurationError("Missing configuration data")
 
         webhook_secret = generate_token()
 
+        metadata = CursorIntegrationMetadata(
+            domain_name="cursor.sh",
+            api_key=config["api_key"],
+            webhook_secret=webhook_secret,
+        )
+
         return {
-            "external_id": "cursor",
+            # NOTE(jennmueng): We need to create a unique ID for each integration installation. Because of this, new installations will yield a unique external_id and integration.
+            # Why UUIDs? We use UUIDs here for each integration installation because we don't know how many times this USER-LEVEL API key will be used, or if the same org can have multiple cursor agents (in the near future)
+            # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
+            "external_id": uuid.uuid4().hex,
             "name": "Cursor Agent",
-            "metadata": {
-                "api_key": config["api_key"],
-                "domain_name": "cursor.sh",
-                "webhook_secret": webhook_secret,
-            },
+            "metadata": metadata.dict(),
         }
 
     def get_agent_name(self) -> str:
@@ -121,6 +136,34 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
 
 class CursorAgentIntegration(CodingAgentIntegration):
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "api_key",
+                "type": "secret",
+                "label": _("Cursor API Key"),
+                "help": _("Update the API key used by Cursor Cloud Agents."),
+                "required": True,
+                "placeholder": "***********************",
+                "formatMessageValue": False,
+            }
+        ]
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        api_key = data.get("api_key")
+        if not api_key:
+            raise IntegrationConfigurationError("API key is required")
+
+        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+        metadata.api_key = api_key
+        integration_service.update_integration(
+            integration_id=self.model.id, metadata=metadata.dict()
+        )
+        self.model.metadata = metadata.dict()
+
+        # Do not store API key in org config; clear any submitted value
+        super().update_organization_config({})
+
     def get_client(self):
         return CursorAgentClient(
             api_key=self.api_key,
@@ -129,8 +172,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     @property
     def webhook_secret(self) -> str:
-        return self.metadata["webhook_secret"]
+        return CursorIntegrationMetadata.parse_obj(self.model.metadata).webhook_secret
 
     @property
     def api_key(self) -> str:
-        return self.metadata["api_key"]
+        return CursorIntegrationMetadata.parse_obj(self.model.metadata).api_key

@@ -18,8 +18,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 
@@ -75,9 +78,15 @@ metadata = IntegrationMetadata(
 )
 
 
-class MsTeamsIntegration(IntegrationInstallation):
+class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
+
+    def send_notification(
+        self, target: IntegrationNotificationTarget, payload: AdaptiveCard
+    ) -> None:
+        client = self.get_client()
+        client.send_card(conversation_id=target.resource_id, card=payload)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

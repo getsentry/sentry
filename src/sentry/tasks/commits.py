@@ -23,7 +23,6 @@ from sentry.plugins.base import bindings
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
@@ -75,20 +74,10 @@ def handle_invalid_identity(identity, commit_failure=False):
 
 @instrumented_task(
     name="sentry.tasks.commits.fetch_commits",
-    queue="commits",
-    default_retry_delay=60 * 5,
-    soft_time_limit=60 * 15,
-    time_limit=60 * 15 + 5,
-    max_retries=5,
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 15 + 5,
+    retry=Retry(times=5, delay=60 * 5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60 * 15 + 5,
-        retry=Retry(
-            times=5,
-            delay=60 * 5,
-        ),
-    ),
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):

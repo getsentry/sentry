@@ -25,13 +25,14 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
-  columns: string[];
+  columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
   stringTags: TagCollection;
   handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
+  requiredTags?: string[];
 }
 
 export function ColumnEditorModal({
@@ -41,6 +42,7 @@ export function ColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  requiredTags,
   numberTags,
   stringTags,
   hiddenKeys,
@@ -50,10 +52,7 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(
-          column =>
-            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
-        )
+        .filter(column => !(column in stringTags) && !(column in numberTags))
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);
@@ -129,7 +128,7 @@ export function ColumnEditorModal({
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<string[]>(columns);
+  const [tempColumns, setTempColumns] = useState<string[]>(columns.slice());
 
   function handleApply() {
     onColumnsChange(tempColumns.filter(Boolean));
@@ -149,6 +148,7 @@ export function ColumnEditorModal({
                 <ColumnEditorRow
                   key={column.id}
                   canDelete={editableColumns.length > 1}
+                  required={requiredTags?.includes(column.column)}
                   column={column}
                   options={tags}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
@@ -204,11 +204,13 @@ interface ColumnEditorRowProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
+  required?: boolean;
 }
 
 function ColumnEditorRow({
   canDelete,
   column,
+  required,
   options,
   onColumnChange,
   onColumnDelete,
@@ -267,11 +269,12 @@ function ColumnEditorRow({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        triggerLabel={label}
         value={column.column ?? ''}
         onChange={handleColumnChange}
+        disabled={required}
         searchable
         triggerProps={{
+          children: label,
           prefix: t('Column'),
           style: {
             width: '100%',
@@ -281,7 +284,7 @@ function ColumnEditorRow({
       <StyledButton
         aria-label={t('Remove Column')}
         borderless
-        disabled={!canDelete}
+        disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
         onClick={onColumnDelete}

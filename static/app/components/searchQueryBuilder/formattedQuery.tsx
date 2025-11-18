@@ -1,7 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -18,7 +24,7 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type FormattedQueryProps = {
@@ -50,12 +56,18 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
   const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
   );
   const label = useMemo(
-    () => getOperatorInfo(token, hasWildcardOperators).label,
-    [hasWildcardOperators, token]
+    () =>
+      getOperatorInfo({
+        filterToken: token,
+        hasWildcardOperators,
+        fieldDefinition: getFieldDefinition(token.key.text),
+      }).label,
+    [hasWildcardOperators, token, getFieldDefinition]
   );
 
   return (
@@ -65,6 +77,27 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueText token={token} />
       </FilterValue>
     </FilterWrapper>
+  );
+}
+
+function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  const hasConditionalsSelect = useOrganization().features.includes(
+    'search-query-builder-add-boolean-operator-select'
+  );
+
+  if (hasConditionalsSelect) {
+    const label = token.text.toUpperCase();
+    return (
+      <FilterWrapper aria-label={label}>
+        <Text variant="muted">{label}</Text>
+      </FilterWrapper>
+    );
+  }
+
+  return (
+    <Flex align="center">
+      <Text variant="muted">{token.text}</Text>
+    </Flex>
   );
 }
 
@@ -80,12 +113,12 @@ function QueryToken({token}: TokenProps) {
     case Token.L_PAREN:
     case Token.R_PAREN:
       return (
-        <Boolean>
+        <Paren>
           <SearchQueryBuilderParenIcon token={token} />
-        </Boolean>
+        </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <Boolean token={token} />;
     default:
       return null;
   }
@@ -101,7 +134,7 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -137,7 +170,7 @@ export function FormattedQuery({
 export function ProvidedFormattedQuery({
   className,
   query,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
@@ -168,7 +201,7 @@ const QueryWrapper = styled('div')`
   column-gap: ${space(1)};
 `;
 
-const FilterWrapper = styled('div')`
+export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -188,7 +221,7 @@ const FilterValue = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Boolean = styled('div')`
+const Paren = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};

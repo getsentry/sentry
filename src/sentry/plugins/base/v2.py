@@ -5,6 +5,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from threading import local
 from typing import TYPE_CHECKING, Any, Protocol
 
+from django import forms
 from django.http import HttpResponseRedirect
 
 from sentry.plugins import HIDDEN_PLUGINS
@@ -66,7 +67,7 @@ class IPlugin2(local, PluginConfigMixin):
     conf_key: str | None = None
     conf_title: str | _StrPromise | None = None
 
-    project_conf_form: Any = None
+    project_conf_form: type[forms.Form] | None = None
 
     # Global enabled state
     enabled = True
@@ -144,6 +145,18 @@ class IPlugin2(local, PluginConfigMixin):
         from sentry.plugins.helpers import set_option
 
         set_option(self._get_option_key(key), value, project, user)
+
+    def unset_option(self, key, project=None, user=None) -> None:
+        """
+        Removes an option in your plugins keyspace.
+
+        If ``project`` is passed, it will limit the scope to that project's keyspace.
+
+        >>> plugin.unset_option('my_option')
+        """
+        from sentry.plugins.helpers import unset_option
+
+        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""

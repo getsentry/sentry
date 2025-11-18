@@ -1,13 +1,10 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
+from sentry.testutils.cases import APITestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
-from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -72,95 +69,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "missed_window": 0,
             }
             assert data[str(self.detector.id)][0][1] == {
-                "failure": 0,
-                "failure_incident": 0,
-                "success": 0,
-                "missed_window": 0,
-            }
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff(self) -> None:
-        """Test that the endpoint returns data with date cutoff using detector IDs."""
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.detector.id)]) == 90
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution(self) -> None:
-        """Test that the endpoint returns data with rounded resolution using detector IDs."""
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(self.detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.detector.id)]) == 89
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self) -> None:
-        """Test that the endpoint returns data for a simple uptime check."""
-        subscription_id = uuid.uuid4().hex
-        subscription = self.create_uptime_subscription(
-            url="https://santry.io/test", subscription_id=subscription_id
-        )
-        detector = self.create_uptime_detector(uptime_subscription=subscription)
-
-        # Store data for the cutoff test scenario
-        self.store_uptime_data(
-            subscription_id, "success", scheduled_check_time=(MOCK_DATETIME - timedelta(days=5))
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(days=5)
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
-        )
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                uptimeDetectorId=[str(detector.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        # check that we return all the intervals,
-        # but the last one is the failure
-        assert len(data[str(detector.id)]) == 89
-        assert data[str(detector.id)][-1][1] == {
-            "failure": 1,
-            "failure_incident": 0,
-            "success": 0,
-            "missed_window": 0,
-        }
-        # make sure the rest of the intervals are empty
-        for i in range(88):
-            assert data[str(detector.id)][i][1] == {
                 "failure": 0,
                 "failure_incident": 0,
                 "success": 0,
@@ -240,85 +148,10 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
 
 
 @freeze_time(MOCK_DATETIME)
-class OrganizationUptimeCheckIndexEndpointTest(
-    OrganizationUptimeStatsBaseTest, UptimeCheckSnubaTestCase
-):
-    __test__ = True
-
-    def store_uptime_data(
-        self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-    ):
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-        )
-
-
-# TODO(jferg): remove after 90 days
-def test_add_extra_buckets_for_epoch_cutoff() -> None:
-    """Test adding extra buckets when there's an epoch cutoff"""
-    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    end = datetime(2025, 1, 2, tzinfo=timezone.utc)
-    epoch_cutoff = datetime(2025, 1, 1, 12, tzinfo=timezone.utc)
-    rollup = 3600  # 1 hour
-
-    # Generate 12 hours of data points starting at epoch cutoff
-    data_points = []
-    for i in range(12):
-        timestamp = int(epoch_cutoff.timestamp()) + (i * 3600)
-        data_points.append(
-            (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
-        )
-
-    subscription_id = 1234
-    formatted_response = {subscription_id: data_points}
-
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, epoch_cutoff, rollup, start, end
-    )
-
-    # Should have 24 buckets total (24 hours worth)
-    assert len(result[subscription_id]) == 24
-
-    # First bucket should be at start time
-    assert result[subscription_id][0][0] == int(start.timestamp())
-
-    # Last bucket should be the original last bucket
-    assert result[subscription_id][-1] == formatted_response[subscription_id][-1]
-
-    # Added buckets should have zero counts
-    for bucket in result[subscription_id][:12]:
-        assert bucket[1] == {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0}
-
-    # Test when epoch cutoff is before start - should return original
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, datetime(2024, 1, 1, tzinfo=timezone.utc), rollup, start, end
-    )
-    assert result == formatted_response
-
-    # Test with no epoch cutoff - should return original
-    result = add_extra_buckets_for_epoch_cutoff(formatted_response, None, rollup, start, end)
-    assert result == formatted_response
-
-
-@freeze_time(MOCK_DATETIME)
 class OrganizationUptimeStatsEndpointWithEAPTests(
     OrganizationUptimeStatsBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": True,
-        }
 
     def store_uptime_data(
         self,
@@ -379,3 +212,94 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
                 "success": 1,
                 "missed_window": 0,
             }
+
+    def test_missing_ok_checks_around_downtime(self) -> None:
+        """
+        Test that OK checks before and after downtime are included in the timeline.
+
+        Reproduces the bug where OK checks with NO_INCIDENT status were being overwritten
+        by checks with IN_INCIDENT status in the same time buckets.
+
+        Timeline:
+        - 2 OK checks before incident (NO_INCIDENT)
+        - 1 failure (NO_INCIDENT, failure threshold not met)
+        - 1 failure (IN_INCIDENT, failure threshold met, downtime starts)
+        - 2 OK checks during recovery (IN_INCIDENT, recovery threshold not met)
+        - 2 OK checks after recovery (NO_INCIDENT, recovery threshold met)
+        """
+        detector_subscription_id = uuid.uuid4().hex
+        uptime_subscription = self.create_uptime_subscription(
+            url="https://test-downtime.com", subscription_id=detector_subscription_id
+        )
+        detector = self.create_uptime_detector(
+            uptime_subscription=uptime_subscription,
+            downtime_threshold=2,
+            recovery_threshold=2,
+        )
+
+        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+
+        test_scenarios = [
+            # 2 OK checks before incident
+            (base_time, "success", IncidentStatus.NO_INCIDENT),
+            (base_time + timedelta(minutes=1), "success", IncidentStatus.NO_INCIDENT),
+            # First failure (failure threshold = 2, not yet downtime)
+            (base_time + timedelta(minutes=2), "failure", IncidentStatus.NO_INCIDENT),
+            # Second failure (failure threshold met, downtime starts)
+            (base_time + timedelta(minutes=3), "failure", IncidentStatus.IN_INCIDENT),
+            # 2 OK checks during recovery (still IN_INCIDENT)
+            (base_time + timedelta(minutes=4), "success", IncidentStatus.IN_INCIDENT),
+            (base_time + timedelta(minutes=5), "success", IncidentStatus.IN_INCIDENT),
+            # 2 OK checks after recovery
+            (base_time + timedelta(minutes=6), "success", IncidentStatus.NO_INCIDENT),
+            (base_time + timedelta(minutes=7), "success", IncidentStatus.NO_INCIDENT),
+        ]
+
+        uptime_results = [
+            self.create_eap_uptime_result(
+                subscription_id=uuid.UUID(detector_subscription_id).hex,
+                guid=uuid.UUID(detector_subscription_id).hex,
+                request_url="https://test-downtime.com",
+                scheduled_check_time=scheduled_time,
+                check_status=check_status,
+                incident_status=incident_status,
+            )
+            for scheduled_time, check_status, incident_status in test_scenarios
+        ]
+        self.store_uptime_results(uptime_results)
+
+        start_time = base_time
+        end_time = base_time + timedelta(minutes=8)
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(detector.id)],
+                since=start_time.timestamp(),
+                until=end_time.timestamp(),
+                resolution="1m",
+            )
+        data = json.loads(json.dumps(response.data))
+        timeline = data[str(detector.id)]
+
+        assert len(timeline) == 8, f"Expected 8 buckets, got {len(timeline)}"
+
+        # Buckets 0-1: OK checks before incident
+        assert timeline[0][1]["success"] == 1, "First check should be success"
+        assert timeline[1][1]["success"] == 1, "Second check should be success"
+
+        # Bucket 2: First failure (threshold not met)
+        assert timeline[2][1]["failure"] == 1, "Third check should be failure"
+        assert timeline[2][1]["failure_incident"] == 0
+
+        # Bucket 3: Second failure (threshold met, downtime starts)
+        assert timeline[3][1]["failure_incident"] == 1, "Fourth check should be failure_incident"
+
+        # Buckets 4-5: OK checks during recovery (still IN_INCIDENT)
+        assert timeline[4][1]["success"] == 1, "Fifth check should be success"
+        assert timeline[5][1]["success"] == 1, "Sixth check should be success"
+
+        # Buckets 6-7: OK checks after recovery
+        assert timeline[6][1]["success"] == 1, "Seventh check should be success"
+        assert timeline[7][1]["success"] == 1, "Eighth check should be success"

@@ -1,12 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import localStorage from 'sentry/utils/localStorage';
+import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
@@ -18,6 +22,7 @@ const MAX_STARRED_QUERIES_DISPLAYED = 20;
 export function ExploreSecondaryNav() {
   const organization = useOrganization();
   const location = useLocation();
+  const {projects} = useProjects();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
 
@@ -26,8 +31,40 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
-  const ourlogsSeenKey = `sidebar-new-seen:ourlogs`;
-  const showOurlogsNew = !localStorage.getItem(ourlogsSeenKey);
+  const userPlatforms = useMemo(
+    () =>
+      Array.from(
+        new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown'))
+      ).sort(),
+    [projects]
+  );
+
+  const metricsSupportedPlatformNameRef = useRef<string | undefined>(undefined);
+
+  if (!metricsSupportedPlatformNameRef.current) {
+    const metricsSupportedPlatform = projects.find(project => {
+      const platform = project.platform || 'unknown';
+      return Array.from(limitedMetricsSupportPrefixes).find(prefix =>
+        platform.startsWith(prefix)
+      );
+    });
+    metricsSupportedPlatformNameRef.current = metricsSupportedPlatform?.slug;
+  }
+
+  const hasMetricsSupportedPlatform = !!metricsSupportedPlatformNameRef.current;
+
+  useEffect(() => {
+    if (userPlatforms.length === 0) {
+      return;
+    }
+    trackAnalytics('metrics.nav.rendered', {
+      organization,
+      has_feature_flag: canUseMetricsUI(organization),
+      has_metrics_supported_platform: hasMetricsSupportedPlatform,
+      metrics_supported_platform_name: metricsSupportedPlatformNameRef.current,
+      metrics_tab_visible: hasMetricsSupportedPlatform && canUseMetricsUI(organization),
+    });
+  }, [organization, hasMetricsSupportedPlatform, userPlatforms.length]);
 
   return (
     <Fragment>
@@ -51,20 +88,21 @@ export function ExploreSecondaryNav() {
             </Feature>
           </Feature>
           <Feature features="ourlogs-enabled">
-            <SecondaryNav.Item
-              to={`${baseUrl}/logs/`}
-              analyticsItemName="explore_logs"
-              trailingItems={showOurlogsNew ? <FeatureBadge type="new" /> : null}
-              onMouseDown={() => {
-                localStorage.setItem(ourlogsSeenKey, 'true');
-              }}
-              onTouchStart={() => {
-                localStorage.setItem(ourlogsSeenKey, 'true');
-              }}
-            >
+            <SecondaryNav.Item to={`${baseUrl}/logs/`} analyticsItemName="explore_logs">
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
+          {hasMetricsSupportedPlatform && (
+            <Feature features="tracemetrics-enabled">
+              <SecondaryNav.Item
+                to={`${baseUrl}/metrics/`}
+                analyticsItemName="explore_metrics"
+                trailingItems={<FeatureBadge type="beta" />}
+              >
+                {t('Metrics')}
+              </SecondaryNav.Item>
+            </Feature>
+          )}
           <Feature
             features="discover-basic"
             hookName="feature-disabled:discover2-sidebar-item"

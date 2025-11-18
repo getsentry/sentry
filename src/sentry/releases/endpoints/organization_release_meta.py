@@ -57,8 +57,10 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         commit_files_changed = (
             CommitFileChange.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-                    "commit_id", flat=True
+                commit_id__in=list(
+                    ReleaseCommit.objects.filter(release=release).values_list(
+                        "commit_id", flat=True
+                    )
                 )
             )
             .values("filename")

@@ -30,6 +30,7 @@ export interface FormProps
     | 'onFieldChange'
     | 'onSubmitError'
     | 'onSubmitSuccess'
+    | 'mapFormErrors'
   > {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
@@ -122,6 +123,7 @@ function Form({
   footerStyle,
   hideFooter,
   initialData,
+  mapFormErrors,
   model,
   onCancel,
   onFieldChange,
@@ -159,6 +161,7 @@ function Form({
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      mapFormErrors,
     });
 
     return resolvedModel;

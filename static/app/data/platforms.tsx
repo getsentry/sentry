@@ -115,6 +115,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'dotnet',
     link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/',
+    deprecated: true,
   },
   {
     id: 'dotnet-winforms',
@@ -213,6 +214,7 @@ export const platforms: PlatformIntegration[] = [
     id: 'go-martini',
     name: 'Martini',
     language: 'go',
+    deprecated: true,
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/negroni/',
@@ -636,6 +638,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/legacy-sdk/integrations/pylons/',
+    deprecated: true,
   },
   {
     id: 'python-pymongo',
@@ -643,6 +646,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'library',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
+    deprecated: true,
   },
   {
     id: 'python-pyramid',

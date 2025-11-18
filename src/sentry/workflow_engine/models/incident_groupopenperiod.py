@@ -1,9 +1,8 @@
 import logging
 
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Q
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -62,7 +61,11 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             # Extract alert_id from evidence_data using the detector_id
             detector_id = occurrence.evidence_data.get("detector_id")
             if detector_id:
-                alert_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+                try:
+                    alert_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+                except AlertRuleDetector.DoesNotExist:
+                    # detector does not have an analog in the old system, so we do not need to create an IGOP relationship
+                    return None
             else:
                 raise Exception("No detector_id found in evidence_data for metric issue")
 
@@ -146,7 +149,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             raise Exception("No source_id found in evidence_data for metric issue")
 
         calculated_start_date = calculate_event_date_from_update_date(
-            open_period.date_started, snuba_query
+            open_period.date_started, snuba_query.time_window
         )
 
         incident = create_incident(
@@ -205,6 +208,13 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
 
             return incident_group_open_period
 
+        except IntegrityError:
+            incident_group_open_period = cls.objects.get(
+                group_open_period=open_period,
+                incident_id=incident.id,
+            )
+            return incident_group_open_period
+
         except Exception as e:
             logger.exception(
                 "Failed to create/update IncidentGroupOpenPeriod relationship",
@@ -229,11 +239,6 @@ def update_incident_activity_based_on_group_activity(
         logger.warning("No open period found for group", extra={"group_id": group.id})
         return
 
-    if not features.has(
-        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
-    ):
-        return
-
     # get the incident for the open period
     try:
         incident_id = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period).incident_id
@@ -244,8 +249,11 @@ def update_incident_activity_based_on_group_activity(
         # the priority change came before relationship creation. This isn't a problem—we create the
         # relationship with the new priority in create_from_occurrence() anyway.
 
-        # we could also hit this case if there are outstanding open incidents when switching to single
+        # We could also hit this case if there are outstanding open incidents when switching to single
         # processing. Again, create_from_occurrence() will handle any status changes we need.
+
+        # Finally, this can also happen if the incident was not created because a detector was single
+        # written in workflow engine. Just return in this case.
         logger.info(
             "No IncidentGroupOpenPeriod relationship found when updating IncidentActivity table",
             extra={
@@ -279,11 +287,6 @@ def update_incident_based_on_open_period_status_change(
         logger.warning("No open period found for group", extra={"group_id": group.id})
         return
 
-    if not features.has(
-        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
-    ):
-        return
-
     # get the incident for the open period
     try:
         incident_id = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period).incident_id
@@ -294,7 +297,8 @@ def update_incident_based_on_open_period_status_change(
         try:
             alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
         except AlertRuleDetector.DoesNotExist:
-            logger.exception(
+            # Detector was not dual written.
+            logger.info(
                 "No AlertRuleDetector found for detector ID", extra={"detector_id": detector_id}
             )
             return
@@ -307,7 +311,7 @@ def update_incident_based_on_open_period_status_change(
             incident = open_incident
             IncidentGroupOpenPeriod.create_relationship(incident=incident, open_period=open_period)
         else:
-            logger.exception(
+            logger.info(
                 "No IncidentGroupOpenPeriod relationship and no outstanding incident",
                 extra={
                     "open_period_id": open_period.id,
@@ -332,7 +336,7 @@ def update_incident_based_on_open_period_status_change(
             )
             return
         calculated_date_closed = calculate_event_date_from_update_date(
-            open_period.date_ended, snuba_query
+            open_period.date_ended, snuba_query.time_window
         )
         update_incident_status(
             incident,

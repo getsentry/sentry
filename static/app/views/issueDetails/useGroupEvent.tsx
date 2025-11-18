@@ -4,7 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {
   getGroupEventQueryKey,
   useDefaultIssueEvent,
@@ -34,7 +34,7 @@ export function useGroupEvent({
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const environments = useEnvironmentsFromUrl();
-  const eventQuery = useEventQuery({groupId});
+  const eventQuery = useEventQuery();
   const eventId = eventIdProp ?? defaultIssueEvent;
 
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);

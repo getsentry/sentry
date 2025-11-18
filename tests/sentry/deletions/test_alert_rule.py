@@ -45,9 +45,7 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         )
         group = event.group
         assert group
-        group_open_period = GroupOpenPeriod.objects.create(
-            project=self.project, group=group, user_id=self.user.id
-        )
+        group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
         IncidentGroupOpenPeriod.objects.create(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
@@ -74,27 +72,19 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
         ).exists()
-        assert not GroupOpenPeriod.objects.filter(
-            project=self.project, group=group, user_id=self.user.id
-        )
+        assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_alert_rule(
-        self, mock_store_request: MagicMock, mock_delete_request: MagicMock
-    ) -> None:
+    def test_dynamic_alert_rule(self, mock_store_request: MagicMock) -> None:
         organization = self.create_organization()
 
         seer_return_value = {"success": True}
         mock_store_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_delete_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         alert_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -124,5 +114,3 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
-
-        assert mock_delete_request.call_count == 1

@@ -35,7 +35,7 @@ export function useSimilarIssuesDrawer({
               cursor: undefined,
             },
           },
-          {preventScrollReset: true}
+          {replace: true, preventScrollReset: true}
         );
       },
     });

@@ -531,13 +531,13 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         super().run_test(key, expected, **kwargs)
 
     def test_status(self) -> None:
-        self.run_test("transaction.status", expected=[("unknown", 1), ("ok", 1)])
+        self.run_test("transaction.status", expected=[("internal_error", 1), ("ok", 1)])
         self.run_test(
             "transaction.status",
             qs_params={"query": "o"},
-            expected=[("unknown", 1), ("ok", 1)],
+            expected=[("internal_error", 1), ("ok", 1)],
         )
-        self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[("unknown", 1)])
+        self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[])
         self.run_test("transaction.status", qs_params={"query": "does-not-exist"}, expected=[])
 
     def test_op(self) -> None:

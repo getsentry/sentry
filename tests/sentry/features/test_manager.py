@@ -12,7 +12,6 @@ from sentry.features.base import (
     OrganizationFeature,
     ProjectFeature,
     SystemFeature,
-    UserFeature,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -46,6 +45,13 @@ class MockBatchHandler(features.BatchFeatureHandler):
 
     def _check_for_batch(self, feature_name, organization, actor):
         raise NotImplementedError
+
+    def batch_has_for_organizations(self, feature_name, organizations) -> dict[str, bool]:
+        results: dict[str, bool] = {}
+        for org in organizations:
+            entity_key = f"organization:{org.id}"
+            results[entity_key] = feature_name in self.features
+        return results
 
 
 class MockUserBatchHandler(features.BatchFeatureHandler):
@@ -353,6 +359,57 @@ class FeatureManagerTest(TestCase):
         for project in projects:
             assert result[f"project:{project.id}"]["projects:feature"]
 
+    def test_batch_has_for_organizations(self) -> None:
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add_entity_handler(MockBatchHandler())
+
+        organizations = [self.organization, self.create_organization()]
+
+        result = manager.batch_has_for_organizations("organizations:feature", organizations)
+        assert result is not None
+        for org in organizations:
+            assert result[f"organization:{org.id}"]
+
+    def test_batch_has_for_organizations_no_entity_handler(self) -> None:
+        # Deliberately do NOT define batch_has_for_organizations
+        class NoBatchOrgHandler(features.BatchFeatureHandler):
+            features = {"organizations:feature"}
+
+            def has(self, feature, actor, skip_entity: bool | None = False):
+                return feature.name in self.features
+
+            def batch_has(
+                self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any
+            ):
+                feature_results = {
+                    feature_name: True
+                    for feature_name in feature_names
+                    if feature_name in self.features
+                }
+
+                if projects:
+                    return {f"project:{project.id}": feature_results for project in projects}
+
+                if organization:
+                    return {f"organization:{organization.id}": feature_results}
+
+                return {"unscoped": feature_results}
+
+            def _check_for_batch(self, feature_name, organization, actor):
+                raise NotImplementedError
+
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add_handler(NoBatchOrgHandler())
+
+        organizations = [self.organization, self.create_organization()]
+
+        result = manager.batch_has_for_organizations("organizations:feature", organizations)
+        assert result is not None
+        for org in organizations:
+            assert result[f"organization:{org.id}"] is True
+
     def test_has(self) -> None:
         manager = features.FeatureManager()
         manager.add("auth:register")
@@ -363,19 +420,6 @@ class FeatureManagerTest(TestCase):
         assert manager.has("organizations:feature", actor=self.user, organization=self.organization)
         assert manager.has("projects:feature", actor=self.user, project=self.project)
         assert manager.has("auth:register", actor=self.user)
-
-    def test_user_flag(self) -> None:
-        manager = features.FeatureManager()
-        manager.add("users:feature", UserFeature)
-        manager.add_handler(MockUserBatchHandler())
-        steve = self.create_user(name="steve")
-        other_user = self.create_user(name="neo")
-        assert manager.has("users:feature", steve, actor=steve)
-        assert not manager.has("users:feature", other_user, actor=steve)
-        with self.assertRaisesMessage(
-            NotImplementedError, "User flags not allowed with entity_feature=True"
-        ):
-            manager.add("users:feature-2", UserFeature, True)
 
     def test_entity_feature_shim(self) -> None:
         manager = features.FeatureManager()

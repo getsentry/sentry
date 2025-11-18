@@ -1,17 +1,17 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getBranchUrl,
   getPrUrl,
@@ -21,13 +21,13 @@ import {
 
 interface BuildDetailsSidebarContentProps {
   artifactId: string;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectId: string | null;
+  buildDetailsData?: BuildDetailsApiResponse | null;
+  isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {data: buildDetailsData, isPending: isBuildDetailsPending} =
-    props.buildDetailsQuery;
+  const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
@@ -36,7 +36,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   const vcsInfo = buildDetailsData.vcs_info;
 
   const makeLinkableValue = (
-    value: string | number | undefined,
+    value: string | number | null | undefined,
     url: string | null
   ): React.ReactNode => {
     if (value === undefined || value === null) {
@@ -122,13 +122,14 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 
   return (
     <Flex direction="column" gap="2xl">
-      {/* App info */}
-      <BuildDetailsSidebarAppInfo
-        appInfo={buildDetailsData.app_info}
-        sizeInfo={buildDetailsData.size_info}
-        projectId={props.projectId}
-        artifactId={props.artifactId}
-      />
+      {/* App info - only show when artifact is processed */}
+      {buildDetailsData.state === BuildDetailsState.PROCESSED && (
+        <BuildDetailsSidebarAppInfo
+          appInfo={buildDetailsData.app_info}
+          projectId={projectId}
+          artifactId={artifactId}
+        />
+      )}
 
       {/* VCS info */}
       <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
@@ -136,27 +137,15 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   );
 }
 
-function SidebarLoadingSkeleton() {
+function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="2xl" {...props}>
       {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
       <Flex direction="column" gap="xl">
         {/* App icon and name */}
         <Flex align="center" gap="sm">
           <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
           <Placeholder width="120px" height="24px" />
-        </Flex>
-
-        {/* Size info section */}
-        <Flex gap="sm">
-          <Flex direction="column" gap="xs" flex={1}>
-            <Placeholder width="80px" height="18px" />
-            <Placeholder width="60px" height="20px" />
-          </Flex>
-          <Flex direction="column" gap="xs" flex={1}>
-            <Placeholder width="90px" height="18px" />
-            <Placeholder width="70px" height="20px" />
-          </Flex>
         </Flex>
 
         {/* Additional info */}

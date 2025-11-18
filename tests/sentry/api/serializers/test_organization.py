@@ -28,7 +28,7 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
@@ -89,8 +89,8 @@ class OrganizationSerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
-            "new-page-filter",
             "open-membership",
+            "project-creation-games-tab",
             "relay",
             "session-replay-ui",
             "shared-issues",

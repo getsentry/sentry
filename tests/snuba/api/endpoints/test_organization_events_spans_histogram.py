@@ -9,7 +9,6 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-span-histogram-view"]
     URL = "sentry-api-0-organization-events-spans-histogram"
 
     def setUp(self) -> None:
@@ -61,19 +60,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
     def format_span(self, op, group) -> str:
         return f"{op}:{group}"
 
-    def do_request(self, query, with_feature=True):
-        features = self.FEATURES if with_feature else []
-        with self.feature(features):
-            return self.client.get(self.url, query, format="json")
-
-    def test_no_feature(self) -> None:
-        query = {
-            "projects": [-1],
-            "span": self.format_span("django.middleware", "2b9cbb96dbf59baa"),
-            "numBuckets": 50,
-        }
-        response = self.do_request(query, False)
-        assert response.status_code == 404
+    def do_request(self, query):
+        return self.client.get(self.url, query, format="json")
 
     def test_no_projects(self) -> None:
         query = {

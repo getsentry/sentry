@@ -24,7 +24,7 @@ class IssuesByTagProcessor:
     def __init__(
         self,
         project_id: int,
-        group_id: int,
+        group_id: int | str,
         key: str,
         environment_id: int | None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -52,7 +52,7 @@ class IssuesByTagProcessor:
             raise ExportError("Requested project does not exist")
 
     @staticmethod
-    def get_group(group_id: int, project: Project) -> Group:
+    def get_group(group_id: int | str, project: Project) -> Group:
         try:
             group, _ = get_group_with_redirect(
                 group_id, queryset=Group.objects.filter(project=project)

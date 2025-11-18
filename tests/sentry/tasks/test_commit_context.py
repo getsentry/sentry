@@ -3,9 +3,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest.mock import MagicMock, patch
 
-import pytest
 import responses
-from celery.exceptions import Retry
 from django.utils import timezone
 
 from sentry.analytics.events.integration_commit_context_all_frames import (
@@ -813,78 +811,18 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
-        side_effect=ApiError("Unknown API error"),
-    )
-    def test_retry_on_bad_api_error(
-        self, mock_get_commit_context: MagicMock, mock_process_suspect_commits: MagicMock
-    ) -> None:
-        """
-        A failure case where the integration hits an unknown API error.
-        The task should be retried.
-        """
-        with self.tasks():
-            assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            event_frames = get_frame_paths(self.event)
-            with pytest.raises(Retry):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                    sdk_name="sentry.python",
-                )
-
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        assert not mock_process_suspect_commits.called
-
-    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("File not found", code=404),
     )
-    def test_no_retry_on_expected_api_error(
+    def test_no_retry_on_non_retryable_api_error(
         self, mock_get_commit_context, mock_process_suspect_commits
     ):
         """
-        A failure case where the integration hits an a 404 error.
-        This type of failure should immediately bail.
+        A failure case where the integration hits a 404 error.
+        This type of failure should immediately bail with no retries.
         """
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-                sdk_name="sentry.python",
-            )
-
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_not_called()
-
-    @patch("celery.app.task.Task.request")
-    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
-        side_effect=ApiError("Unknown API error"),
-    )
-    def test_no_fall_back_on_max_retries(
-        self, mock_get_commit_context, mock_process_suspect_commits, mock_request
-    ):
-        """
-        A failure case where the integration hits an unknown API error a fifth time.
-        After 5 retries, the task should bail.
-        """
-        mock_request.called_directly = False
-        mock_request.retries = 5
-
-        with self.tasks():
-            assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            event_frames = get_frame_paths(self.event)
-
             process_commit_context(
                 event_id=self.event.event_id,
                 event_platform=self.event.platform,

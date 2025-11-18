@@ -19,7 +19,7 @@ from sentry.spans.grouping.strategy.config import (
     register_configuration,
 )
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils.performance_issues.span_builder import SpanBuilder
+from sentry.testutils.issue_detection.span_builder import SpanBuilder
 
 
 def test_register_duplicate_confiig() -> None:
@@ -588,10 +588,15 @@ def test_default_2022_10_27_strategy(spans: list[Span], expected: Mapping[str, l
 
 
 def test_standalone_spans_compat() -> None:
-    spans = [
+    spans_v1 = [
         SpanBuilder().with_span_id("b" * 16).with_description("b" * 16).build(),
         SpanBuilder().with_span_id("c" * 16).with_description("c" * 16).build(),
         SpanBuilder().with_span_id("d" * 16).with_description("d" * 16).build(),
+    ]
+    spans_v2 = [
+        SpanBuilder().with_span_id("b" * 16).with_description("b" * 16).build_v2(),
+        SpanBuilder().with_span_id("c" * 16).with_description("c" * 16).build_v2(),
+        SpanBuilder().with_span_id("d" * 16).with_description("d" * 16).build_v2(),
     ]
 
     event = {
@@ -601,15 +606,15 @@ def test_standalone_spans_compat() -> None:
                 "span_id": "a" * 16,
             },
         },
-        "spans": spans,
+        "spans": spans_v1,
     }
 
-    standalone_spans = spans + [
+    standalone_spans = spans_v2 + [
         SpanBuilder()
         .with_span_id("a" * 16)
         .segment()
         .with_data({"sentry.transaction": "transaction name"})
-        .build()
+        .build_v2()
     ]
 
     cfg = CONFIGURATIONS[DEFAULT_CONFIG_ID]

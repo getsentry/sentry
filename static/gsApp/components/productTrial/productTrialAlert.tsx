@@ -9,19 +9,26 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
+import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
+import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+
+function shouldUseOnDemandCta(category: DataCategory): boolean {
+  // TODO: other categories that use on demand is still missing here
+  return category === DataCategory.LOG_BYTE;
+}
 
 function getProductName(category: DataCategory) {
   const categoryInfo = getCategoryInfoFromPlural(category);
@@ -55,6 +62,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
 
   const isPaid = subscription.planDetails?.price > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
+  const categoryUsesOnDemand = shouldUseOnDemandCta(trial.category);
 
   let alertText: string | null = null;
   let alertHeader: string | null = null;
@@ -106,45 +114,84 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     );
   } else if (daysLeft > 0 && daysLeft <= 7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
-    alertText = t(
-      'Keep using more %s by upgrading your plan by %s',
-      getProductName(product ?? trial.category),
-      trial.endDate
-    );
-
-    alertButton =
-      isPaid && !hasBillingRole ? (
-        <Button
-          size="sm"
-          disabled={isUpgradeSent}
-          onClick={() => {
-            sendUpgradeRequest({
-              api,
-              organization,
-              handleSuccess: () => setIsUpgradeSent(true),
-            });
-          }}
-        >
-          {t('Request Upgrade')}
-        </Button>
-      ) : (
-        <Button
-          priority="primary"
-          onClick={() => {
-            browserHistory.push(
-              normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
-            );
-          }}
-        >
-          {t('Update Plan')}
-        </Button>
+    if (isPaid && categoryUsesOnDemand) {
+      alertText = t(
+        'Keep using more %s by configuring your %s budget',
+        getProductName(product ?? trial.category),
+        subscription.planDetails.budgetTerm
       );
+
+      const eventTypes: EventType[] = [
+        getCategoryInfoFromPlural(trial.category)!.singular as EventType,
+      ];
+      alertButton = (
+        <AddEventsCTA
+          organization={organization}
+          subscription={subscription}
+          action={
+            hasBillingRole ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
+          }
+          buttonProps={{
+            priority: 'default',
+            size: 'xs',
+            style: {marginBlock: `-${space(0.25)}`},
+          }}
+          eventTypes={eventTypes}
+          referrer={`product-trial-alert-${eventTypes.join('-')}`}
+          source="product-trial-alert"
+        />
+      );
+    } else {
+      alertText = t(
+        'Keep using more %s by upgrading your plan by %s',
+        getProductName(product ?? trial.category),
+        trial.endDate
+      );
+
+      alertButton =
+        isPaid && !hasBillingRole ? (
+          <Button
+            size="sm"
+            disabled={isUpgradeSent}
+            onClick={() => {
+              sendUpgradeRequest({
+                api,
+                organization,
+                handleSuccess: () => setIsUpgradeSent(true),
+              });
+            }}
+          >
+            {t('Request Upgrade')}
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={() => {
+              browserHistory.push(
+                normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
+              );
+            }}
+          >
+            {t('Update Plan')}
+          </Button>
+        );
+    }
   } else if (daysLeft < 0 && daysLeft >= -7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
-    alertText = t(
-      'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
-      getProductName(product ?? trial.category)
-    );
+
+    if (isPaid && isBizPlanFamily(subscription.planDetails)) {
+      // For Business plan users, just say the trial ended without upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended.',
+        getProductName(product ?? trial.category)
+      );
+    } else {
+      // For free and Team plan users, show the upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
+        getProductName(product ?? trial.category)
+      );
+    }
 
     alertButton =
       isPaid && !hasBillingRole ? (
@@ -192,8 +239,8 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         }}
         size="zero"
         borderless
-        title={t('Dismiss this period')}
-        aria-label={t('Dismiss this period')}
+        title={t('Dismiss')}
+        aria-label={t('Dismiss trial notice')}
       />
     </ButtonBar>
   );

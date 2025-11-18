@@ -1,88 +1,61 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {
-  GridColumnHeader,
   GridColumnOrder,
+  GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
-type ObjectKey = string | number;
-
-interface PlatformInsightsTableProps<
-  DataRow extends Record<string, any>,
-  ColumnKey extends ObjectKey = string,
-> extends Omit<
-    React.ComponentProps<typeof GridEditable<DataRow, ColumnKey>>,
+interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
+  extends Omit<
+    React.ComponentProps<typeof GridEditable<DataRow>>,
     'columnOrder' | 'columnSortBy'
   > {
-  cursorParamName: string;
   initialColumnOrder:
-    | Array<GridColumnOrder<ColumnKey>>
-    | (() => Array<GridColumnOrder<ColumnKey>>);
+    | Array<GridColumnOrder<keyof DataRow>>
+    | (() => Array<GridColumnOrder<keyof DataRow>>);
   pageLinks: string | undefined;
   isPlaceholderData?: boolean;
 }
 
 const COL_WIDTH_MINIMUM = 120;
 
-export function PlatformInsightsTable<
-  DataRow extends Record<string, any>,
-  ColumnKey extends ObjectKey = string,
->({
-  cursorParamName,
+export function PlatformInsightsTable<DataRow extends Record<string, any>>({
   pageLinks,
   isPlaceholderData,
   initialColumnOrder,
   ...props
-}: PlatformInsightsTableProps<DataRow, ColumnKey>) {
-  const navigate = useNavigate();
-  const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
-  const {sortField, sortOrder} = useTableSortParams();
+}: PlatformInsightsTableProps<DataRow>) {
+  const {setCursor} = useTableCursor();
 
-  const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumnHeader<ColumnKey>) => {
-      setColumnOrder(prev => {
-        const newColumnOrder = [...prev];
-        newColumnOrder[columnIndex] = {
-          ...newColumnOrder[columnIndex]!,
-          width: nextColumn.width,
-        };
-        return newColumnOrder;
-      });
-    },
-    []
-  );
-
-  const handleCursor = useCallback<CursorHandler>(
-    (cursor, pathname, previousQuery) => {
-      navigate(
-        {
-          pathname,
-          query: {...previousQuery, [cursorParamName]: cursor},
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    },
-    [cursorParamName, navigate]
-  );
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: initialColumnOrder,
+  });
 
   return (
     <Fragment>
       <GridEditableContainer>
-        <GridEditable
+        <GridEditable<
+          DataRow,
+          GridColumnOrder<keyof DataRow>,
+          GridColumnSortBy<keyof DataRow>
+        >
           {...props}
-          grid={{...props.grid, onResizeColumn: handleResizeColumn}}
+          grid={{
+            ...props.grid,
+            onResizeColumn: handleResizeColumn,
+          }}
           columnOrder={columnOrder}
-          columnSortBy={[{key: sortField as ColumnKey, order: sortOrder}]}
+          // Unused in the grid component
+          columnSortBy={[]}
           minimumColWidth={COL_WIDTH_MINIMUM}
           emptyMessage={
             <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
@@ -93,7 +66,7 @@ export function PlatformInsightsTable<
         />
         {isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }

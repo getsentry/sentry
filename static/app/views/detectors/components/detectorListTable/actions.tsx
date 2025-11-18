@@ -186,7 +186,7 @@ export function DetectorsTableActions({
           )}
           {showDisable && (
             <Tooltip
-              title={'You do not have permission to modify the selected monitors.'}
+              title="You do not have permission to modify the selected monitors."
               disabled={canEdit}
             >
               <Button
@@ -214,7 +214,7 @@ export function DetectorsTableActions({
         </ActionsBarWrapper>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" showIcon={false}>
+        <FullWidthAlert type="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] monitors that match this search query.', {
@@ -227,7 +227,7 @@ export function DetectorsTableActions({
                   '%s monitors on this page selected.',
                   selected.size
                 )}
-                <Button priority={'link'} onClick={() => setAllInQuerySelected(true)}>
+                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] monitors that match this search query.', {
                     count: queryCount,
                   })}

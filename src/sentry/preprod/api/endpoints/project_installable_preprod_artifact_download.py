@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import F
 from django.http.response import FileResponse, HttpResponse, HttpResponseBase
 from django.utils import timezone
@@ -9,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 
@@ -22,7 +25,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     authentication_classes = ()  # No authentication required
     permission_classes = ()
 
-    def get(self, request: Request, project, url_path) -> HttpResponseBase:
+    def get(self, request: Request, project: Project, url_path: str) -> HttpResponseBase:
         """
         Download an installable preprod artifact or its plist, if not expired.
         """
@@ -104,9 +107,13 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 download_count=F("download_count") + 1
             )
             fp = file_obj.getfile()
+            filename = preprod_artifact.app_id or "app"
+            if preprod_artifact.build_version:
+                filename += f"@{preprod_artifact.build_version}"
+            if preprod_artifact.build_number:
+                filename += f"+{preprod_artifact.build_number}"
             ext = format_type if format_type else "bin"
-            # TODO(EME-241): Better file name rather than installable.
-            filename = f"installable.{ext}"
+            filename += f".{ext}"
             response = FileResponse(
                 fp,
                 content_type="application/octet-stream",

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 from .base import AuthV2Endpoint
@@ -14,9 +15,11 @@ class FeatureFlagView(AuthV2Endpoint):
     owner = ApiOwner.ENTERPRISE
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {RateLimitCategory.IP: RateLimit(limit=30, window=60)}  # 30 per minute per IP
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {RateLimitCategory.IP: RateLimit(limit=30, window=60)}  # 30 per minute per IP
+        }
+    )
 
     def get(self, request: Request) -> Response:
         """

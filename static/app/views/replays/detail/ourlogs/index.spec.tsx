@@ -69,22 +69,6 @@ describe('OurLogs', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it("shows empty if there's no replay traces", () => {
-    jest.mocked(useReplayTraces).mockReturnValue({
-      replayTraces: [],
-      indexComplete: true,
-      indexError: undefined,
-    } as any);
-
-    render(
-      <Wrappers replay={mockReplay}>
-        <OurLogs />
-      </Wrappers>
-    );
-
-    expect(screen.getByText(/No logs found/)).toBeInTheDocument();
-  });
-
   it("shows logs table if there's replay traces", () => {
     jest.mocked(useReplayTraces).mockReturnValue({
       replayTraces: [

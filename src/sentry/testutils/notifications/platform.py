@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlockType,
     NotificationCategory,
     NotificationData,
     NotificationRenderedAction,
@@ -10,6 +12,8 @@ from sentry.notifications.platform.types import (
     NotificationStrategy,
     NotificationTarget,
     NotificationTemplate,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 
 
@@ -22,15 +26,21 @@ class MockNotification(NotificationData):
 @template_registry.register(MockNotification.source)
 class MockNotificationTemplate(NotificationTemplate[MockNotification]):
     category = NotificationCategory.DEBUG
-
-    @property
-    def example_data(self) -> MockNotification:
-        return MockNotification(message="This is a mock notification")
+    example_data = MockNotification(message="This is a mock notification")
 
     def render(self, data: MockNotification) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Mock Notification",
-            body=data.message,
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT, text=data.message
+                        )
+                    ],
+                )
+            ],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],

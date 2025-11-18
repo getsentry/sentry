@@ -190,7 +190,6 @@ const TEAM_FEATURES = selectFeatures(['extended-data-retention']).filter(Boolean
 const INSIGHTS_FEATURES = selectFeatures(['insights-modules']).filter(Boolean);
 
 const BUSINESS_FEATURES = selectFeatures([
-  'global-views',
   'discover-query',
   'change-alerts',
   'event-volume',

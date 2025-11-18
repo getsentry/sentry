@@ -1,37 +1,36 @@
 ---
-created: '2025-09-11T18:38:49.449922+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "161ce02ecc5d6685a72e8e520ab726b3"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     app*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (function:runApp -app))
+          frame (marked out of app by custom stack trace rule (function:runApp -app))
             filename*
               "app.js"
             function*
               "runApp"
             context_line*
               "return server.serve(port);"
-          frame (marked out of app by stack trace rule (function:handleRequest -app))
+          frame (marked out of app by custom stack trace rule (function:handleRequest -app))
             filename*
               "router.js"
             function*
               "handleRequest"
             context_line*
               "return handler(request);"
-          frame (marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group))
+          frame (marked in-app by custom stack trace rule (function:recordMetrics +app) but ignored by custom stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*
               "recordMetrics"
             context_line*
               "return withMetrics(handler, metricName, tags);"
-          frame* (marked in-app by stack trace rule (function:playFetch +app))
+          frame* (marked in-app by custom stack trace rule (function:playFetch +app))
             filename*
               "dogpark.js"
             function*
@@ -46,11 +45,12 @@ app:
 system:
   hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (function:runApp -group))
+          frame (ignored by custom stack trace rule (function:runApp -group))
             filename*
               "app.js"
             function*
@@ -64,7 +64,7 @@ system:
               "handleRequest"
             context_line*
               "return handler(request);"
-          frame (ignored by stack trace rule (function:recordMetrics -group))
+          frame (ignored by custom stack trace rule (function:recordMetrics -group))
             filename*
               "metrics.js"
             function*

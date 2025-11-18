@@ -12,7 +12,7 @@ import string
 import struct
 
 import click
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
 from arroyo.types import Topic
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -172,7 +172,7 @@ def make_csql(rand_str, is_generic):
 def produce_msgs(messages, is_generic, host, dryrun, quiet):
     conf = {"bootstrap.servers": host}
 
-    producer = KafkaProducer(conf)
+    producer = KafkaProducer(build_kafka_producer_configuration(default_config=conf))
     for i, message in enumerate(messages):
         print(f"{i + 1} / {len(messages)}")
         if not quiet:

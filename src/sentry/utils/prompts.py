@@ -19,7 +19,6 @@ DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "data_consent_priority": {"required_fields": ["organization_id"]},
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "github_missing_members": {"required_fields": ["organization_id"]},
-    "issue_feature_flags_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "issue_feedback_hidden": {"required_fields": ["organization_id", "project_id"]},
     "issue_priority": {"required_fields": ["organization_id"]},
     "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},

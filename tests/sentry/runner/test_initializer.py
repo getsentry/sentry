@@ -190,7 +190,6 @@ def test_apply_legacy_settings(settings) -> None:
     settings.SENTRY_USE_QUEUE = True
     settings.SENTRY_ALLOW_REGISTRATION = True
     settings.SENTRY_ADMIN_EMAIL = "admin-email"
-    settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 10
     settings.SENTRY_REDIS_OPTIONS = {"foo": "bar"}
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
     settings.SENTRY_SMTP_HOSTNAME = "reply-hostname"
@@ -203,11 +202,9 @@ def test_apply_legacy_settings(settings) -> None:
     settings.SENTRY_RELOCATION_OPTIONS = {"relocation-baz": "relocation-qux"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
-    assert settings.CELERY_ALWAYS_EAGER is False
     assert settings.SENTRY_FEATURES["auth:register"] is True
     assert settings.SENTRY_OPTIONS == {
         "system.admin-email": "admin-email",
-        "system.rate-limit": 10,
         "system.secret-key": "secret-key",
         "redis.clusters": {"default": {"foo": "bar"}},
         "mail.from": "mail-from",
@@ -238,8 +235,6 @@ def test_apply_legacy_settings(settings) -> None:
             ),
             ("SENTRY_REDIS_OPTIONS", 'SENTRY_OPTIONS["redis.clusters"]'),
             ("SENTRY_SMTP_HOSTNAME", "SENTRY_OPTIONS['mail.reply-hostname']"),
-            ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "SENTRY_OPTIONS['system.rate-limit']"),
-            ("SENTRY_USE_QUEUE", "CELERY_ALWAYS_EAGER"),
         },
     )
 

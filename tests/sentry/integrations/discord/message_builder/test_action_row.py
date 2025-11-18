@@ -8,6 +8,7 @@ from sentry.integrations.discord.message_builder.base.component.base import Disc
 from sentry.integrations.discord.message_builder.base.component.button import (
     DiscordButton,
     DiscordButtonStyle,
+    DiscordLinkButton,
 )
 from sentry.testutils.cases import TestCase
 
@@ -22,19 +23,23 @@ class TestDiscordActionRow(TestCase):
         }
 
     def test_non_empty(self) -> None:
-        button = DiscordButton(
+        custom_button = DiscordButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
-            label="button label",
-            url="https://sentry.io",
+            label="a custom button",
             disabled=True,
+        )
+        link_button = DiscordLinkButton(
+            label="a link",
+            url="https://sentry.io",
         )
         custom_component = DiscordMessageComponent(
             type=9
         )  # not a real type number, just testing custom component
         action_row = DiscordActionRow(
             [
-                button,
+                link_button,
+                custom_button,
                 custom_component,
             ]
         )
@@ -44,10 +49,16 @@ class TestDiscordActionRow(TestCase):
             "components": [
                 {
                     "type": 2,
+                    "style": 5,
+                    "label": "a link",
+                    "url": "https://sentry.io",
+                    "disabled": False,
+                },
+                {
+                    "type": 2,
                     "style": 1,
                     "custom_id": "test_button",
-                    "label": "button label",
-                    "url": "https://sentry.io",
+                    "label": "a custom button",
                     "disabled": True,
                 },
                 {

@@ -1,10 +1,17 @@
 import logging
+import os
+import threading
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
+import sentry_sdk
+from tokenizers import Tokenizer
+
 from sentry import options
+from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -45,6 +52,43 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 IGNORED_FILENAMES = ["<compiler-generated>"]
+
+# Path to the local tokenizer model file
+TOKENIZER_MODEL_PATH = os.path.join(
+    DATA_ROOT, "models", "jina-embeddings-v2-base-en", "tokenizer.json"
+)
+
+
+class TokenizerWrapper:
+    """
+    Lazy-loaded singleton for the tokenizer to avoid expensive initialization at module load time.
+    """
+
+    def __init__(self) -> None:
+        self._tokenizer: Tokenizer | None = None
+        self._lock = threading.RLock()
+
+    def get_tokenizer(self) -> Tokenizer:
+        """Get the tokenizer instance, initializing it lazily if needed."""
+        if self._tokenizer is None:
+            with self._lock:
+                # Double-check pattern to avoid race conditions
+                if self._tokenizer is None:
+                    # Try to load from local model first, fallback to remote
+                    if os.path.exists(TOKENIZER_MODEL_PATH):
+                        logger.info("Loading tokenizer from local model: %s", TOKENIZER_MODEL_PATH)
+                        self._tokenizer = Tokenizer.from_file(TOKENIZER_MODEL_PATH)
+                    else:
+                        raise ValueError("Tokenizer model not found")
+
+        return self._tokenizer
+
+
+tokenizerWrapper = TokenizerWrapper()
+
+
+def get_tokenizer() -> Tokenizer:
+    return tokenizerWrapper.get_tokenizer()
 
 
 class ReferrerOptions(StrEnum):
@@ -270,20 +314,35 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def record_did_call_seer_metric(event: Event, *, call_made: bool, blocker: str) -> None:
+def record_did_call_seer_metric(
+    event: Event, *, call_made: bool, blocker: str, training_mode: bool = False
+) -> None:
     metrics.incr(
         "grouping.similarity.did_call_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"call_made": call_made, "blocker": blocker, "platform": event.platform},
+        tags={
+            "call_made": call_made,
+            "blocker": blocker,
+            "platform": event.platform,
+            "training_mode": training_mode,
+        },
     )
 
 
-def has_too_many_contributing_frames(
+def stacktrace_exceeds_limits(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
 ) -> bool:
-    platform = event.platform
+    """
+    Check if a stacktrace exceeds length limits for Seer similarity analysis.
+
+    This checks both frame count and token count limits to determine if the stacktrace
+    is too long to send to Seer. Different platforms have different filtering behaviors:
+    - Platforms in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK bypass all checks
+    - Other platforms are checked against MAX_FRAME_COUNT and max_token_count limits
+    """
+    platform: str = event.platform or "unknown"
     shared_tags = {"referrer": referrer.value, "platform": platform}
 
     contributing_variant, contributing_component = get_contributing_variant_and_component(variants)
@@ -310,10 +369,11 @@ def has_too_many_contributing_frames(
     # truncated)
     if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
         metrics.incr(
-            "grouping.similarity.frame_count_filter",
+            "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "bypass"},
         )
+        report_token_count_metric(event, variants, "bypass")
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -322,17 +382,32 @@ def has_too_many_contributing_frames(
 
     if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
         metrics.incr(
-            "grouping.similarity.frame_count_filter",
+            "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block"},
+            tags={**shared_tags, "outcome": "block_frames"},
         )
+        report_token_count_metric(event, variants, "block_frames")
+        return True
+
+    # For platforms that filter by frame count, also check token count
+    token_count = get_token_count(event, variants, platform)
+    max_token_count = options.get("seer.similarity.max_token_count")
+
+    if token_count > max_token_count:
+        metrics.incr(
+            "grouping.similarity.stacktrace_length_filter",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={**shared_tags, "outcome": "block_tokens"},
+        )
+        report_token_count_metric(event, variants, "block_tokens", token_count)
         return True
 
     metrics.incr(
-        "grouping.similarity.frame_count_filter",
+        "grouping.similarity.stacktrace_length_filter",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={**shared_tags, "outcome": "pass"},
     )
+    report_token_count_metric(event, variants, "pass")
     return False
 
 
@@ -446,3 +521,96 @@ def set_default_project_seer_scanner_automation(
         project.update_option(
             "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
         )
+
+
+def report_token_count_metric(
+    event: Event | GroupEvent,
+    variants: dict[str, BaseVariant],
+    outcome: str,
+    token_count: int | None = None,
+) -> None:
+    """
+    Calculate token count and report metrics for stacktrace token analysis.
+
+    This function is gated by the 'seer.similarity.token_count_metrics_enabled' option
+    and will do nothing if disabled.
+
+    Args:
+        event: A Sentry Event object containing stack trace data
+        variants: Optional pre-calculated grouping variants to avoid recalculation
+        outcome: The frame check outcome ("pass", "block", "bypass")
+    """
+    if not options.get("seer.similarity.token_count_metrics_enabled", False):
+        return
+
+    platform = event.platform or "unknown"
+
+    if token_count is None:
+        token_count = get_token_count(event, variants, platform)
+
+    metrics.distribution(
+        "grouping.similarity.token_count",
+        token_count,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "platform": platform,
+            "frame_check_outcome": outcome,
+        },
+    )
+
+
+def get_token_count(
+    event: Event | GroupEvent, variants: dict[str, BaseVariant], platform: str
+) -> int:
+    """
+    Count the number of tokens in the stack trace of an event.
+
+    Stacktrace string should be already cached on the event, and only calculates it if needed.
+
+    Args:
+        event: A Sentry Event object containing stack trace data
+        variants: Pre-calculated grouping variants to avoid recalculation
+        platform: The platform of the event (e.g., "python", "java")
+
+    Returns:
+        The number of tokens in the stack trace text
+    """
+    with metrics.timer(
+        "grouping.similarity.get_token_count",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"platform": platform},
+    ) as timer_tags:
+        try:
+            stacktrace_text = event.data.get("stacktrace_string")
+            timer_tags["has_content"] = False
+            timer_tags["source"] = "cached_stacktrace_string"
+
+            if stacktrace_text is None:
+                timer_tags["source"] = "generated_stacktrace_string"
+                if not variants:
+                    timer_tags["source"] = "no_variants"
+                    return 0
+                stacktrace_text = get_stacktrace_string(
+                    get_grouping_info_from_variants_legacy(variants)
+                )
+
+            if stacktrace_text:
+                timer_tags["has_content"] = True
+                encoding = get_tokenizer().encode(stacktrace_text)
+                return len(encoding.ids)
+
+            timer_tags["source"] = "no_stacktrace_string"
+            return 0
+
+        except Exception as e:
+            timer_tags["error"] = True
+            logger.exception("Error calculating token count")
+            sentry_sdk.capture_exception(
+                e,
+                tags={
+                    "event_id": getattr(event, "event_id", None),
+                    "project_id": getattr(event, "project_id", None),
+                    "platform": platform,
+                },
+            )
+            return 0

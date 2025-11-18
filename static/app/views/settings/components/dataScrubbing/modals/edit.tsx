@@ -4,9 +4,8 @@ import type {
   Rule,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 
-import ModalManager from './modalManager';
+import ModalManager, {type ModalManagerProps} from './modalManager';
 
-type ModalManagerProps = ModalManager['props'];
 type Props = Omit<ModalManagerProps, 'title' | 'initialValues' | 'onGetNewRules'> & {
   attributeResults: AttributeResults;
   rule: Rule;

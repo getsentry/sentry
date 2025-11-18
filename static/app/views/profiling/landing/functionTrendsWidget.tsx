@@ -8,6 +8,7 @@ import partition from 'lodash/partition';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
@@ -39,7 +40,6 @@ import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
-  ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
   StatusContainer,
@@ -145,7 +145,7 @@ export function FunctionTrendsWidget({
         paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
-      <ContentContainer>
+      <Flex flex="1 1 auto" direction="column" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -188,7 +188,7 @@ export function FunctionTrendsWidget({
             })}
           </Accordion>
         )}
-      </ContentContainer>
+      </Flex>
     </WidgetContainer>
   );
 }

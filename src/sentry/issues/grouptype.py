@@ -66,6 +66,8 @@ class GroupCategory(IntEnum):
     FRONTEND = 14
     MOBILE = 15
 
+    AI_DETECTED = 16
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -219,7 +221,7 @@ class GroupType:
     enable_workflow_notifications = True
 
     # Controls whether users are able to manually update the group's priority.
-    enable_user_priority_changes = True
+    enable_user_status_and_priority_changes = True
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
@@ -618,6 +620,19 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
+class LLMDetectedExperimentalGroupType(GroupType):
+    type_id = 3501
+    slug = "llm_detected_experimental"
+    description = "LLM Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -672,7 +687,7 @@ class MetricIssuePOC(GroupType):
 
 
 @dataclass(frozen=True)
-class WebVitalsGroup(GroupType):
+class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     type_id = 10001
     slug = "web_vitals"
     description = "Web Vitals"

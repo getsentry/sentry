@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -19,7 +20,6 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -31,55 +31,55 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Project} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
+  project: Project;
 };
 
-function ProjectGeneralSettings({onChangeSlug}: Props) {
+function isPlatformAllowed({
+  isSelfHosted,
+  platform,
+  organization,
+}: {
+  isSelfHosted: boolean;
+  organization: Organization;
+  platform: PlatformKey;
+}) {
+  if (!consoles.includes(platform)) {
+    return true;
+  }
+
+  return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
+}
+
+export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
   const api = useApi({persistInFlight: true});
 
   const makeProjectSettingsQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${projectId}/`,
+    `/projects/${organization.slug}/${project.slug}/`,
   ];
-
-  const {
-    data: project,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Project>(makeProjectSettingsQueryKey, {
-    staleTime: 0,
-  });
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {
     form[id] = value;
@@ -256,7 +256,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     );
   };
 
-  const endpoint = `/projects/${organization.slug}/${projectId}/`;
+  const endpoint = `/projects/${organization.slug}/${project.slug}/`;
   const access = new Set(organization.access.concat(project.access));
 
   const jsonFormProps = {
@@ -269,7 +269,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     disabled: !hasEveryAccess(['project:write'], {organization, project}),
   };
 
-  const team = project.teams.length ? project.teams?.[0] : undefined;
+  const team = project.teams?.[0];
 
   // XXX: HACK
   //
@@ -290,8 +290,8 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     apiEndpoint: endpoint,
     onSubmitSuccess: resp => {
       setApiQueryData(queryClient, makeProjectSettingsQueryKey, resp);
-      if (projectId !== resp.slug) {
-        changeProjectSlug(projectId, resp.slug);
+      if (project.slug !== resp.slug) {
+        changeProjectSlug(project.slug, resp.slug);
         // Container will redirect after stores get updated with new slug
         onChangeSlug(resp.slug);
       }
@@ -315,14 +315,17 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   const platformField = {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
-      if (!consoles.includes(value)) return true;
-
-      return (
-        organization.features?.includes('project-creation-games-tab') &&
-        organization.enabledConsolePlatforms?.includes(value) &&
-        !isSelfHosted
-      );
+      // Always include the current project's platform to display its icon and label
+      if (project.platform === value) return true;
+      return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
+    isOptionDisabled: (option: SelectOptionWithKey<string>) => {
+      // Mark the current platform as disabled if it's no longer allowed
+      return (
+        option.value === project.platform &&
+        !isPlatformAllowed({isSelfHosted, organization, platform: option.value})
+      );
+    },
   };
 
   return (
@@ -334,7 +337,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Project Details')}
-          fields={[fields.name, projectIdField, platformField]}
+          fields={[fields.slug, projectIdField, platformField]}
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
@@ -396,42 +399,33 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
   );
 }
 
-function ProjectGeneralSettingsContainer() {
+export default function ProjectGeneralSettingsContainer() {
   const routes = useRoutes();
   const navigate = useNavigate();
-  const projects = useLegacyStore(ProjectsStore);
   const organization = useOrganization();
   const location = useLocation();
+  const {project} = useProjectSettingsOutlet();
 
-  // Use a ref to track the most current slug value
-  const changedSlugRef = useRef<string | undefined>(undefined);
+  const handleChangeSlug = useCallback(
+    (newSlug: string) => {
+      navigate(
+        recreateRoute('', {
+          params: {
+            orgId: organization.slug,
+            projectId: newSlug,
+          },
+          routes,
+          location,
+        }),
+        {replace: true}
+      );
+    },
+    [navigate, organization.slug, routes, location]
+  );
 
-  const setChangedSlug = useCallback((newSlug: string) => {
-    changedSlugRef.current = newSlug;
-  }, []);
+  if (!project?.id) {
+    return <LoadingError message={t('Failed to load project.')} />;
+  }
 
-  useEffect(() => {
-    if (changedSlugRef.current) {
-      const project = projects.projects.find(p => p.slug === changedSlugRef.current);
-
-      if (project) {
-        navigate(
-          recreateRoute('', {
-            params: {
-              orgId: organization.slug,
-              projectId: changedSlugRef.current,
-            },
-            routes,
-            location,
-          }),
-          {replace: true}
-        );
-      }
-    }
-  }, [projects, navigate, routes, location, organization.slug]);
-
-  return <ProjectGeneralSettings onChangeSlug={setChangedSlug} />;
+  return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
 }
-
-export {ProjectGeneralSettings};
-export default ProjectGeneralSettingsContainer;

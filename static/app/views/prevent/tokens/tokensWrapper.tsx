@@ -1,6 +1,6 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -18,17 +18,17 @@ export default function TokensPageWrapper() {
     <SentryDocumentTitle title={TOKENS_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex align="center" justify="between" direction="row">
             <Layout.Title>
               {TOKENS_PAGE_TITLE}{' '}
               <QuestionTooltip size="md" title={tooltip} isHoverable />
             </Layout.Title>
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
         <PreventQueryParamsProvider>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Outlet />
           </Layout.Main>
         </PreventQueryParamsProvider>
@@ -36,10 +36,3 @@ export default function TokensPageWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

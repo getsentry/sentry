@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from django.db import router
@@ -20,6 +20,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -75,7 +76,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
+from sentry.uptime.autodetect.ranking import get_organization_bucket_key
+from sentry.uptime.utils import get_cluster
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -189,28 +191,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         assert event_processing_store.get(cache_key) is None
-
-    @patch("sentry.utils.metrics.timing")
-    @patch("sentry.tasks.post_process.logger")
-    def test_time_to_process_metric(
-        self, logger_mock: MagicMock, metric_timing_mock: MagicMock
-    ) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        metric_timing_mock.assert_any_call(
-            "events.time-to-post-process",
-            mock.ANY,
-            instance=mock.ANY,
-            tags={"occurrence_type": mock.ANY},
-        )
-        assert "tasks.post_process.old_time_to_post_process" not in [
-            args[0] for args in logger_mock.warning.call_args_list
-        ]
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -2314,10 +2294,9 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
-        cluster = _get_cluster()
+        cluster = get_cluster()
         assert exists == cluster.sismember(key, str(organization.id))
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_url(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
@@ -2331,7 +2310,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, True)
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_no_url(self) -> None:
         event = self.create_event(
             data={},
@@ -2345,7 +2323,8 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, False)
 
-    def test_uptime_detection_no_feature(self) -> None:
+    @override_options({"uptime.automatic-hostname-detection": False})
+    def test_uptime_detection_no_option(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
             project_id=self.project.id,
@@ -2693,7 +2672,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
 
 class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2717,7 +2696,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(event.group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2739,7 +2718,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=False,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2763,7 +2742,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2788,7 +2767,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2817,7 +2796,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2845,7 +2824,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -2881,7 +2860,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
+    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
@@ -2975,7 +2954,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -3026,7 +3005,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_called_once_with(event2.group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
@@ -3053,6 +3032,70 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         mock_start_seer_automation.assert_not_called()
 
 
+class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
+    """Unit tests for is_issue_eligible_for_seer_automation."""
+
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner", return_value=True)
+    @patch("sentry.features.has", return_value=True)
+    def test_is_issue_eligible_for_seer_automation(
+        self, mock_features_has, mock_get_seer_org_acknowledgement, mock_has_budget
+    ):
+        """Test permission check with various failure conditions."""
+        from sentry.constants import DataCategory
+        from sentry.issues.grouptype import GroupCategory
+        from sentry.seer.autofix.utils import is_issue_eligible_for_seer_automation
+
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+
+        # All conditions pass
+        assert is_issue_eligible_for_seer_automation(group) is True
+
+        # Unsupported categories (using PropertyMock to mock the property)
+        with patch(
+            "sentry.models.group.Group.issue_category", new_callable=PropertyMock
+        ) as mock_category:
+            mock_category.return_value = GroupCategory.REPLAY
+            assert is_issue_eligible_for_seer_automation(group) is False
+
+            mock_category.return_value = GroupCategory.FEEDBACK
+            assert is_issue_eligible_for_seer_automation(group) is False
+
+        # Missing feature flag
+        mock_features_has.return_value = False
+        assert is_issue_eligible_for_seer_automation(group) is False
+
+        # Hide AI features enabled
+        mock_features_has.return_value = True
+        self.organization.update_option("sentry:hide_ai_features", True)
+        assert is_issue_eligible_for_seer_automation(group) is False
+        self.organization.update_option("sentry:hide_ai_features", False)
+
+        # Scanner disabled without always_trigger
+        self.project.update_option("sentry:seer_scanner_automation", False)
+        with patch.object(group.issue_type, "always_trigger_seer_automation", False):
+            assert is_issue_eligible_for_seer_automation(group) is False
+
+        # Scanner disabled but always_trigger enabled
+        with patch.object(group.issue_type, "always_trigger_seer_automation", True):
+            assert is_issue_eligible_for_seer_automation(group) is True
+
+        # Seer not acknowledged
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        mock_get_seer_org_acknowledgement.return_value = False
+        assert is_issue_eligible_for_seer_automation(group) is False
+
+        # No budget
+        mock_get_seer_org_acknowledgement.return_value = True
+        mock_has_budget.return_value = False
+        assert is_issue_eligible_for_seer_automation(group) is False
+        mock_has_budget.assert_called_with(
+            org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+        )
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -3062,6 +3105,7 @@ class PostProcessGroupErrorTest(
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,
+    SeerAutomationHelperFunctionsTestMixin,
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
@@ -3665,3 +3709,290 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(reason="regression is disabled for feedback issues")
     def test_group_last_seen_buffer(self) -> None:
         pass
+
+    @with_feature("organizations:expanded-sentry-apps-webhooks")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_sends_webhook_with_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_delay.assert_called_once_with(
+            action="created", sender="Group", instance_id=event.group.id
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_no_webhook_without_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert not mock_delay.called
+
+
+class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
+    DEFAULT_FORWARDER_CONFIGS = {
+        DataForwarderProviderSlug.SQS: {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789/test-queue",
+            "region": "us-east-1",
+            "access_key": "test-key",
+            "secret_key": "test-secret",
+        },
+        DataForwarderProviderSlug.SPLUNK: {
+            "instance_url": "https://splunk.example.com",
+            "token": "test-token",
+            "index": "main",
+        },
+        DataForwarderProviderSlug.SEGMENT: {
+            "write_key": "test-write-key",
+        },
+    }
+
+    def create_event(self, data, project_id, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+        )
+        return cache_key
+
+    def setup_forwarder(self, provider, is_enabled=True, **config_overrides):
+        config = self.DEFAULT_FORWARDER_CONFIGS[provider].copy()
+        config.update(config_overrides)
+
+        data_forwarder = self.create_data_forwarder(
+            organization=self.project.organization,
+            provider=provider.value,  # Convert enum to string value
+            config=config,
+            is_enabled=is_enabled,
+        )
+
+        data_forwarder_project = self.create_data_forwarder_project(
+            data_forwarder=data_forwarder,
+            project=self.project,
+            is_enabled=True,
+        )
+
+        return data_forwarder, data_forwarder_project
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    def test_process_data_forwarding_no_forwarders(self):
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_sqs_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        _, data_forwarder_project = self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+        call_args = mock_forward.call_args
+        assert call_args[0][1] == data_forwarder_project
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_sqs_with_s3_bucket(self, mock_forward):
+        """Test SQS forwarder with S3 bucket configured for large payloads."""
+        mock_forward.return_value = True
+
+        _, data_forwarder_project = self.setup_forwarder(
+            DataForwarderProviderSlug.SQS, s3_bucket="my-sentry-events-bucket"
+        )
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Verify the forwarder was called
+        assert mock_forward.call_count == 1
+        call_args = mock_forward.call_args
+        assert call_args[0][1] == data_forwarder_project
+
+        # Verify the config includes S3 bucket
+        assert call_args[0][1].get_config()["s3_bucket"] == "my-sentry-events-bucket"
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_splunk_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.segment.forwarder.SegmentForwarder.forward_event")
+    def test_process_data_forwarding_segment_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        self.setup_forwarder(DataForwarderProviderSlug.SEGMENT)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_disabled_forwarder(self, mock_forward):
+        self.setup_forwarder(DataForwarderProviderSlug.SQS, is_enabled=False)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 0
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_multiple_forwarders(
+        self, mock_splunk_forward, mock_sqs_forward
+    ):
+        mock_sqs_forward.return_value = True
+        mock_splunk_forward.return_value = True
+
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_sqs_forward.call_count == 1
+        assert mock_splunk_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_one_forwarder_fails(
+        self, mock_splunk_forward, mock_sqs_forward
+    ):
+        """Test that when one forwarder fails, other forwarders still execute."""
+        mock_sqs_forward.side_effect = Exception("SQS connection failed")
+        mock_splunk_forward.return_value = True
+
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Both forwarders should be called despite SQS failure
+        assert mock_sqs_forward.call_count == 1
+        assert mock_splunk_forward.call_count == 1
+
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_revamp_access_flag_disabled(self, mock_forward):
+        """Test that data forwarding is skipped when the revamp-access feature flag is disabled."""
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # should not be called when feature flag is disabled
+        assert mock_forward.call_count == 0

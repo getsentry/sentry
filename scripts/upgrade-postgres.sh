@@ -1,10 +1,6 @@
 #!/bin/bash
 
 POSTGRES_CONTAINER="sentry-postgres-1"
-USE_OLD_DEVSERVICES=${USE_OLD_DEVSERVICES:-"0"}
-if [ "$USE_OLD_DEVSERVICES" == "1" ]; then
-    POSTGRES_CONTAINER="sentry_postgres"
-fi
 
 OLD_VERSION="9.6"
 NEW_VERSION="14"

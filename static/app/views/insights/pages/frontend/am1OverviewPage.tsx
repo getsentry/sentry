@@ -33,9 +33,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
-  FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
@@ -206,9 +204,8 @@ export function Am1FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>

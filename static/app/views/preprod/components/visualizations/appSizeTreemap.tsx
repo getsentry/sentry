@@ -1,22 +1,114 @@
+import {useContext, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
+import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Heading} from 'sentry/components/core/text';
+import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
+import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
+  alertMessage?: string;
+  onSearchChange?: (query: string) => void;
+  unfilteredRoot?: TreemapElement;
+}
+
+function FullscreenModalContent({
+  unfilteredRoot,
+  initialSearch,
+  alertMessage,
+  onSearchChange,
+}: {
+  initialSearch: string;
+  unfilteredRoot: TreemapElement;
+  alertMessage?: string;
+  onSearchChange?: (query: string) => void;
+}) {
+  const [localSearch, setLocalSearch] = useState(initialSearch);
+  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearch(value);
+    onSearchChange?.(value);
+  };
+
+  return (
+    <Flex direction="column" gap="md" height="100%" width="100%">
+      <InputGroup>
+        <InputGroup.LeadingItems>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder="Search files"
+          value={localSearch}
+          onChange={e => handleSearchChange(e.target.value)}
+        />
+        {localSearch && (
+          <InputGroup.TrailingItems>
+            <Button
+              onClick={() => handleSearchChange('')}
+              aria-label="Clear search"
+              borderless
+              size="zero"
+            >
+              <IconClose size="sm" />
+            </Button>
+          </InputGroup.TrailingItems>
+        )}
+      </InputGroup>
+      <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
+        <AppSizeTreemap
+          root={filteredRoot}
+          searchQuery={localSearch}
+          alertMessage={alertMessage}
+        />
+      </Container>
+    </Flex>
+  );
 }
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
+  const renderingContext = useContext(ChartRenderingContext);
+  const isFullscreen = renderingContext?.isFullscreen ?? false;
+  const contextHeight = renderingContext?.height;
+  const chartRef = useRef<ECharts | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const handleChartReady = (chart: ECharts) => {
+    chartRef.current = chart;
+  };
+
+  const handleContainerMouseDown = () => {
+    setIsZoomed(true);
+  };
+
+  const handleRecenter = () => {
+    if (chartRef.current) {
+      chartRef.current.dispatchAction({
+        type: 'treemapRootToNode',
+        seriesIndex: 0,
+      });
+      setIsZoomed(false);
+    }
+  };
 
   function convertToEChartsData(element: TreemapElement): any {
     const categoryInfo =
@@ -82,7 +174,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   // Empty state
   if (root === null) {
     return (
-      <EmptyContainer>
+      <Flex align="center" justify="center" height="100%">
         <Heading as="h4">
           No files match your search:{'  '}
           <span
@@ -96,7 +188,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             {props.searchQuery}
           </span>
         </Heading>
-      </EmptyContainer>
+      </Flex>
     );
   }
 
@@ -110,8 +202,14 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       animationEasing: 'quarticOut',
       animationDuration: 300,
       height: `calc(100% - 22px)`,
-      width: `100%`,
+      width: '100%',
       top: '22px',
+      // Very mysteriously this controls the initial breadcrumbs:
+      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
+      // If truthy the root is selected else the 'middle' node is selected.
+      // It has to be set to large number to avoid problems caused by
+      // leafDepth's main use - controlling how many layers to render.
+      leafDepth: 100000,
       breadcrumb: {
         show: true,
         left: '0',
@@ -224,21 +322,101 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   };
 
   return (
-    <BaseChart
-      autoHeightResize
-      renderer="canvas"
-      xAxis={null}
-      yAxis={null}
-      series={series}
-      visualMap={visualMap}
-      tooltip={tooltip}
-    />
+    <Flex direction="column" gap="sm" height="100%" width="100%">
+      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
+      <Container
+        height="100%"
+        width="100%"
+        position="relative"
+        onMouseDown={handleContainerMouseDown}
+        style={{flex: 1, minHeight: 0}}
+      >
+        <BaseChart
+          autoHeightResize
+          height={contextHeight}
+          renderer="canvas"
+          xAxis={null}
+          yAxis={null}
+          series={series}
+          visualMap={visualMap}
+          tooltip={tooltip}
+          onChartReady={handleChartReady}
+        />
+        <ButtonContainer
+          direction="row"
+          position="absolute"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <Button
+            size="xs"
+            aria-label={t('Recenter View')}
+            title={t('Recenter')}
+            borderless
+            icon={<IconContract />}
+            onClick={handleRecenter}
+            disabled={!isZoomed}
+          />
+          {!isFullscreen && (
+            <Button
+              size="xs"
+              aria-label={t('Open Full-Screen View')}
+              title={t('Fullscreen')}
+              borderless
+              icon={<IconExpand />}
+              onClick={() => {
+                openInsightChartModal({
+                  title: t('Size Analysis'),
+                  fullscreen: true,
+                  children: unfilteredRoot ? (
+                    <FullscreenModalContent
+                      unfilteredRoot={unfilteredRoot}
+                      initialSearch={searchQuery}
+                      alertMessage={alertMessage}
+                      onSearchChange={onSearchChange}
+                    />
+                  ) : (
+                    <Container height="100%" width="100%">
+                      <AppSizeTreemap
+                        root={root}
+                        searchQuery={searchQuery}
+                        alertMessage={alertMessage}
+                      />
+                    </Container>
+                  ),
+                });
+              }}
+            />
+          )}
+        </ButtonContainer>
+      </Container>
+    </Flex>
   );
 }
 
-const EmptyContainer = styled('div')`
-  display: flex;
+const ButtonContainer = styled(Flex)`
+  top: 0px;
+  right: 0;
+  height: 20px;
   align-items: center;
-  justify-content: center;
-  height: 100%;
+  gap: ${space(0.5)};
+  z-index: 10;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${p => p.theme.white};
+    height: 22px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0 ${space(0.5)};
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: ${p => p.theme.borderRadius};
+    box-shadow: ${p => p.theme.dropShadowMedium};
+
+    &:hover {
+      color: ${p => p.theme.white};
+      background: rgba(0, 0, 0, 0.9);
+    }
+  }
 `;

@@ -2,7 +2,6 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -17,13 +16,13 @@ class TestMSTeamsActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.MSTEAMS,
-            "config": {"targetDisplay": "cathy-sentry", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
             "data": {},
             "integrationId": self.integration.id,
         }
 
     @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
-    def test_validate(self, mock_check_for_channel):
+    def test_validate(self, mock_check_for_channel: mock.MagicMock) -> None:
         mock_check_for_channel.return_value = "C1234567890"
 
         validator = BaseActionValidator(
@@ -36,14 +35,14 @@ class TestMSTeamsActionValidator(TestCase):
         validator.save()
 
     @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
-    def test_validate__invalid_channel_id(self, mock_find_channel_id):
+    def test_validate__invalid_channel_id(self, mock_find_channel_id: mock.MagicMock) -> None:
         mock_find_channel_id.return_value = None
 
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "C1234567890",
                     "targetDisplay": "asdf",
                 },

@@ -1,4 +1,5 @@
 import re
+from typing import cast
 
 from django.urls import reverse
 
@@ -31,7 +32,8 @@ class IDPMigrationTests(TestCase):
         )
         assert re.match(r"auth:one-time-key:\w{32}", link.verification_key)
 
-        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
+
         assert value["user_id"] == self.user.id
         assert value["email"] == self.email
         assert value["member_id"] == om.id
@@ -44,7 +46,8 @@ class IDPMigrationTests(TestCase):
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
 
-        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
+
         assert value["user_id"] == self.user.id
         assert value["email"] == self.email
         assert value["member_id"] is None

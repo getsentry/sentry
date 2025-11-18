@@ -390,14 +390,75 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set([
   'native',
 ]);
 
+// List of platforms that have metrics onboarding checklist content
+export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
+  'node-connect',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-hono',
+  'node-koa',
+  'node-nestjs',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+]);
+
+// List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
+export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
+
+export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'javascript',
+  'node',
+  'python',
+]);
+
 export const profiling: PlatformKey[] = [
   'android',
   'apple',
   'apple-ios',
   'apple-macos',
   'dotnet',
-  'dotnet-winforms',
-  'dotnet-wpf',
   'flutter',
   'javascript',
   'javascript-angular',
@@ -415,6 +476,7 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+
   'node',
   'node-awslambda',
   'node-azurefunctions',
@@ -524,6 +586,7 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-xamarin',
   'unity',
   'java',
+  'kotlin',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
@@ -710,12 +773,19 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-astro',
   'javascript-nextjs',
-  'javascript-remix',
+  'javascript-nuxt',
   'javascript-react-router',
+  'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

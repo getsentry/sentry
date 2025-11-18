@@ -1,5 +1,5 @@
 import type {Crumb} from 'sentry/components/breadcrumbs';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';

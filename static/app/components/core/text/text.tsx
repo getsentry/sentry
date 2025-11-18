@@ -68,10 +68,10 @@ export interface BaseTextProps {
   textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
 
   /**
-   * Determines if the text should be underlined.
-   * @default false
+   * Determines how text should be underlined.
+   * @default undefined
    */
-  underline?: boolean;
+  underline?: boolean | 'dotted';
 
   /**
    * Uppercase the text.
@@ -83,6 +83,12 @@ export interface BaseTextProps {
    * @default primary
    */
   variant?: keyof Theme['tokens']['content'];
+
+  /**
+   * Determines where line breaks appear when wrapping the text.
+   * @default undefined
+   */
+  wordBreak?: 'normal' | 'break-all' | 'keep-all' | 'break-word';
 
   /**
    * Determines text wrapping.
@@ -132,6 +138,7 @@ export const Text = styled(
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
+  word-break: ${p => p.wordBreak ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
   display: ${p =>
     p.as === 'div'

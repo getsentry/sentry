@@ -658,6 +658,18 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             run_scheduled_deletions()
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
+    def test_dual_delete_missing_workflow(self) -> None:
+        """
+        Test that if we are missing the Workflow and AlertRuleWorkflow models that we still delete the detector
+        """
+        self.workflow.delete()
+        self.alert_rule_workflow.delete()
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
     def setUp(self) -> None:
@@ -732,6 +744,25 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         self.detector.refresh_from_db()
 
         assert self.detector.config == updated_fields
+
+    def test_data_source_updated_when_subscription_replaced(self) -> None:
+        original_subscription = QuerySubscription.objects.get(
+            snuba_query=self.metric_alert.snuba_query
+        )
+        assert self.data_source.source_id == str(original_subscription.id)
+
+        new_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=self.metric_alert.snuba_query,
+            type="something",
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+        original_subscription.delete()
+
+        dual_update_migrated_alert_rule(self.metric_alert)
+
+        self.data_source.refresh_from_db()
+        assert self.data_source.source_id == str(new_subscription.id)
 
 
 class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):

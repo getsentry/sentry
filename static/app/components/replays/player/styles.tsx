@@ -2,6 +2,7 @@ import {css, type Theme} from '@emotion/react';
 
 // Base styles, to make the Replayer instance work
 export const baseReplayerCss = css`
+  position: absolute;
   .replayer-wrapper {
     /* Videos have z-index, so we need a z-index here so user interactions is on top of the video */
     z-index: 1000000;

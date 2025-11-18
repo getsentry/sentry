@@ -2,7 +2,6 @@ import type React from 'react';
 
 import type {Client} from 'sentry/api';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
@@ -14,43 +13,6 @@ type WithGeneratorProperties<T extends Record<string, any>, Params> = {
   [key in keyof T]: GeneratorFunction<T[key], Params>;
 };
 
-export type Configuration = {
-  /**
-   * Additional information to be displayed below the code snippet
-   */
-  additionalInfo?: React.ReactNode;
-  /**
-   * The code snippet to display
-   */
-  code?: string | CodeSnippetTab[];
-  /**
-   * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
-   * @deprecated Use `content` instead
-   */
-  configurations?: Configuration[];
-
-  /**
-   * A brief description of the configuration
-   */
-  description?: React.ReactNode;
-  /**
-   * The language of the code to be rendered (python, javascript, etc)
-   */
-  language?: string;
-  /**
-   * A callback to be invoked when the configuration is copied to the clipboard
-   */
-  onCopy?: () => void;
-  /**
-   * A callback to be invoked when the configuration is selected and copied to the clipboard
-   */
-  onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
-};
-
 export enum StepType {
   INSTALL = 'install',
   CONFIGURE = 'configure',
@@ -59,33 +21,13 @@ export enum StepType {
 
 interface BaseStepProps {
   /**
-   * Additional information to be displayed below the configurations
-   * @deprecated Use `content` instead
+   * The content blocks to display
    */
-  additionalInfo?: React.ReactNode;
-  /**
-   * Content that goes directly above the code snippet
-   * @deprecated Use `content` instead
-   */
-  codeHeader?: React.ReactNode;
+  content: ContentBlock[];
   /**
    * Whether the step instructions are collapsible
    */
   collapsible?: boolean;
-  /**
-   * An array of configurations to be displayed
-   * @deprecated Use `content` instead
-   */
-  configurations?: Configuration[];
-  /**
-   * The content blocks to display
-   */
-  content?: ContentBlock[];
-  /**
-   * A brief description of the step
-   * @deprecated Use `content` instead
-   */
-  description?: React.ReactNode | React.ReactNode[];
   /**
    * Fired when the optional toggle is clicked.
    * Useful for when we want to fire analytics events.
@@ -145,6 +87,7 @@ export enum ProductSolution {
   SESSION_REPLAY = 'session-replay',
   PROFILING = 'profiling',
   LOGS = 'logs',
+  METRICS = 'metrics',
 }
 
 export interface DocsParams<
@@ -154,6 +97,7 @@ export interface DocsParams<
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
   isLogsSelected: boolean;
+  isMetricsSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
@@ -225,6 +169,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   logsOnboarding?: OnboardingConfig<PlatformOptions>;
   mcpOnboarding?: OnboardingConfig<PlatformOptions>;
+  metricsOnboarding?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   profilingOnboarding?: OnboardingConfig<PlatformOptions>;

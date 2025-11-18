@@ -4,12 +4,12 @@ from typing import Any
 from django.core.files.base import ContentFile
 from django.db import models
 
-from sentry.celery import SentryTask
 from sentry.db.models.base import control_silo_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.control_fileblob import ControlFileBlob
 from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 from sentry.tasks.files import delete_unreferenced_blobs_control
+from sentry.taskworker.task import Task
 
 
 @control_silo_model
@@ -40,5 +40,5 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[ControlFileBlob]:
         return ControlFileBlob.objects.filter(id__in=blob_ids).all()
 
-    def _delete_unreferenced_blob_task(self) -> SentryTask:
+    def _delete_unreferenced_blob_task(self) -> Task[Any, Any]:
         return delete_unreferenced_blobs_control

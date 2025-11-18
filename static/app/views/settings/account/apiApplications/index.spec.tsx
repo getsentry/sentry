@@ -1,6 +1,5 @@
 import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -16,8 +15,6 @@ import ApiApplications from 'sentry/views/settings/account/apiApplications';
 jest.mock('sentry/utils/demoMode');
 
 describe('ApiApplications', () => {
-  const {routerProps, router} = initializeOrg({router: {params: {}}});
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -28,7 +25,7 @@ describe('ApiApplications', () => {
       body: [],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
@@ -42,7 +39,7 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(requestMock).toHaveBeenCalled();
@@ -58,7 +55,7 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
 
     expect(
       await screen.findByText("You haven't created any applications yet.")
@@ -80,7 +77,7 @@ describe('ApiApplications', () => {
       method: 'POST',
     });
 
-    render(<ApiApplications {...routerProps} />);
+    const {router} = render(<ApiApplications />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await userEvent.click(screen.getByLabelText('Create New Application'));
@@ -91,8 +88,11 @@ describe('ApiApplications', () => {
     );
 
     await waitFor(() => {
-      expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/account/api/applications/234/'
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/settings/account/api/applications/234/',
+          query: {},
+        })
       );
     });
   });
@@ -108,7 +108,7 @@ describe('ApiApplications', () => {
       method: 'DELETE',
     });
 
-    render(<ApiApplications {...routerProps} />);
+    render(<ApiApplications />);
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

@@ -34,7 +34,6 @@ export type Project = {
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
-  hasInsightsLlmMonitoring: boolean;
   hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
@@ -46,6 +45,7 @@ export type Project = {
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
+  hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
   isInternal: boolean;
@@ -111,6 +111,7 @@ export type ProjectKey = {
     cdn: string;
     crons: string;
     csp: string;
+    integration: string;
     minidump: string;
     otlp_logs: string;
     otlp_traces: string;
@@ -322,6 +323,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  deprecated?: boolean;
   iconConfig?: {
     withLanguageIcon: boolean;
   };

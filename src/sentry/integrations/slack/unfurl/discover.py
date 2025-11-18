@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from django.http.request import HttpRequest, QueryDict
+from django.http.request import QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
@@ -21,6 +21,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
@@ -117,15 +118,14 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    request: HttpRequest,
     integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
-    event = MessagingInteractionEvent(
+    with MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
-    )
-    with event.capture():
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"integration_id": integration.id})
         return _unfurl_discover(integration, links, user)
 
 
@@ -299,10 +299,11 @@ def _unfurl_discover(
     first_org_integration = org_integrations[0] if len(org_integrations) > 0 else None
     if first_org_integration is not None and hasattr(first_org_integration, "id"):
         analytics.record(
-            "integrations.slack.chart_unfurl",
-            organization_id=first_org_integration.organization_id,
-            user_id=user.id if user else None,
-            unfurls_count=len(unfurls),
+            SlackIntegrationChartUnfurl(
+                organization_id=first_org_integration.organization_id,
+                user_id=user.id if user else None,
+                unfurls_count=len(unfurls),
+            )
         )
 
     return unfurls

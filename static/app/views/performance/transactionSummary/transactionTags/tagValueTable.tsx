@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
@@ -7,9 +6,9 @@ import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import type {GridColumn} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -63,7 +62,6 @@ export function TagValueTable({
   onCursor,
   tagKey,
 }: Props) {
-  const [widths, setWidths] = useState<number[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -269,15 +267,11 @@ export function TagValueTable({
     dataRow: TableDataRow
   ): React.ReactNode => renderBodyCell(column, dataRow);
 
-  const handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const newWidths: number[] = [...widths];
-    newWidths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    setWidths(newWidths);
-  };
+  const {columns, handleResizeColumn} = useStateBasedColumnResize({
+    columns: TAGS_TABLE_COLUMN_ORDER,
+  });
 
-  const newColumns = [...TAGS_TABLE_COLUMN_ORDER].map(c => {
+  const newColumns = columns.map(c => {
     const newColumn = {...c};
     if (c.key === 'tagValue' && tagKey) {
       newColumn.name = tagKey;

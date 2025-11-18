@@ -13,6 +13,7 @@ import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {makeDiscoverCharts} from './discover';
 import {makeMetricAlertCharts} from './metricAlert';
+import {makeMetricDetectorCharts} from './metricDetector';
 import {makePerformanceCharts} from './performance';
 import type {
   ChartcuterieConfig,
@@ -42,6 +43,7 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
 
 makeDiscoverCharts(lightTheme).forEach(register);
 makeMetricAlertCharts(lightTheme).forEach(register);
+makeMetricDetectorCharts(lightTheme).forEach(register);
 makePerformanceCharts(lightTheme).forEach(register);
 
 export default config;

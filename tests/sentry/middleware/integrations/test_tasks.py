@@ -125,7 +125,6 @@ class AsyncSlackResponseTest(TestCase):
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
             status=404,
-            json={},
         )
         responses.add(
             responses.POST,

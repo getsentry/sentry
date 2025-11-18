@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import field
 from typing import Any
@@ -16,6 +17,7 @@ from sentry_sdk.api import isolation_scope
 from sentry import analytics, audit_log, features
 from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
+from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
@@ -54,6 +56,8 @@ from sentry.utils.sentry_apps.service_hook_manager import (
 )
 
 Schema = Mapping[str, Any]
+
+logger = logging.getLogger(__name__)
 
 
 def _get_schema_types(schema: Schema | None) -> set[str]:
@@ -250,6 +254,18 @@ class SentryAppUpdater:
                             installation.organization_id
                         ],
                     ).save()
+                    logger.info(
+                        "_update_service_hooks_via_outbox.created_outbox_entry",
+                        extra={
+                            "installation_id": installation.id,
+                            "sentry_app_id": self.sentry_app.id,
+                            "events": self.sentry_app.events,
+                            "application_id": self.sentry_app.application_id,
+                            "region_name": installation_org_id_to_region_name[
+                                installation.organization_id
+                            ],
+                        },
+                    )
 
     def _update_service_hooks_via_task(self) -> None:
         if self.sentry_app.is_published:
@@ -335,12 +351,14 @@ class SentryAppUpdater:
                 )
 
     def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+        created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(
-            "sentry_app.updated",
-            user_id=user.id,
-            organization_id=self.sentry_app.owner_id,
-            sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component="alert-rule-action" in (new_schema_elements or set()),
+            SentryAppUpdatedEvent(
+                user_id=user.id,
+                organization_id=self.sentry_app.owner_id,
+                sentry_app=self.sentry_app.slug,
+                created_alert_rule_ui_component=created_alert_rule_ui_component,
+            )
         )
 
 

@@ -36,16 +36,15 @@ class SCMIntegrationInteractionType(StrEnum):
     QUEUE_COMMENT_TASK = "queue_comment_task"
     GET_PR_DIFFS = "get_pr_diffs"  # open PR comments
 
+    GET_PR_COMMENTS = "get_pr_comments"
+    GET_ISSUE_COMMENTS = "get_issue_comments"
+
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
 
     # GitHub only
     DERIVE_CODEMAPPINGS = "derive_codemappings"
     STUDENT_PACK = "student_pack"
-
-    # External Issue Comment Sync
-    SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
-    SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
 
     # Releases
     COMPARE_COMMITS = "compare_commits"

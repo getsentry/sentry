@@ -10,6 +10,8 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
+import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
 type InitializeOrgProps = {
@@ -34,19 +36,21 @@ const renderComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps = {}) => {
-  const {organization, projects, router} = initializeOrg({
+  const {organization, projects} = initializeOrg({
     organization: {
       ...organizationProps,
     },
     projects: [ProjectFixture()],
-    router: {
-      routes: [
-        {path: '/'},
-        {path: '/organizations/:orgId/insights/summary/'},
-        {path: 'replays/'},
-      ],
+  });
+
+  ProjectsStore.init();
+  ProjectsStore.loadInitialData(projects);
+
+  return render(<TransactionSummaryLayout />, {
+    organization,
+    initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/replays/',
+        pathname: '/performance/summary/replays/',
         ...location,
         query: {
           project: '1',
@@ -54,22 +58,20 @@ const renderComponent = ({
           ...location?.query,
         },
       },
+      route: '/performance/summary/',
+      children: [
+        {
+          path: 'replays/',
+          handle: {tab: TransactionSummaryTab.REPLAYS, path: 'replays/'},
+          element: <TransactionReplays />,
+        },
+      ],
     },
-  });
-
-  ProjectsStore.init();
-  ProjectsStore.loadInitialData(projects);
-
-  return render(<TransactionReplays />, {
-    router,
-    organization,
-    deprecatedRouterMocks: true,
   });
 };
 
 describe('TransactionReplays', () => {
   let eventsMockApi: jest.Mock<any, any>;
-  let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -89,13 +91,6 @@ describe('TransactionReplays', () => {
     });
     eventsMockApi = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-    replaysMockApi = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replays/',
       body: {
         data: [],
       },
@@ -137,29 +132,10 @@ describe('TransactionReplays', () => {
     });
   });
 
-  it('should snapshot empty state', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockReplaysUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('should show empty message when no replays are found', async () => {
     renderComponent();
 
-    await waitFor(() => {
-      expect(replaysMockApi).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByText('No replays found')).toBeInTheDocument();
+    await screen.findByText('No replays found');
   });
 
   it('should show loading indicator when loading replays', async () => {
@@ -231,7 +207,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=transactionReplays';
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {

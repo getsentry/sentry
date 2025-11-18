@@ -1,8 +1,10 @@
 import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -69,6 +71,11 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+export type LinkedDashboard = {
+  dashboardId: string;
+  field: string;
+};
+
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -87,10 +94,23 @@ export type WidgetQuery = {
   // widgets.
   fields?: string[];
   isHidden?: boolean | null;
+  linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+};
+
+type WidgetChangedReason = {
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string | string[];
+  }> | null;
+  selected_columns: string[];
 };
 
 export type Widget = {
@@ -98,9 +118,11 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
+  exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
@@ -147,10 +169,24 @@ export type DashboardListItem = {
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
+  GLOBAL_FILTER = 'globalFilter',
+  // temporary filters are filters that are not saved to the dashboard, they occur when you link from one dashboard to another
+  TEMPORARY_FILTERS = 'temporaryFilters',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+  [DashboardFilterKeys.TEMPORARY_FILTERS]?: GlobalFilter[];
+};
+
+export type GlobalFilter = {
+  // Dataset the global filter will be applied to
+  dataset: WidgetType;
+  // The tag being filtered
+  tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
+  value: string;
 };
 
 /**
@@ -169,6 +205,7 @@ export type DashboardDetails = {
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
   start?: string;
   utc?: boolean;
 };
@@ -180,6 +217,7 @@ export enum DashboardState {
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',
+  EMBEDDED = 'embedded',
 }
 
 // where we launch the dashboard widget from
@@ -190,4 +228,5 @@ export enum DashboardWidgetSource {
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
   LOGS = 'logs',
+  INSIGHTS = 'insights',
 }

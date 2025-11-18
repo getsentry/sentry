@@ -1,5 +1,9 @@
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import ANY, MagicMock, patch
 
+from sentry.models.organizationmember import OrganizationMember
+from sentry.seer.explorer.client_utils import collect_user_org_context
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -7,239 +11,160 @@ from sentry.testutils.helpers.features import with_feature
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
         self.login_as(user=self.user)
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
     def test_get_without_run_id_returns_null_session(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 404
         assert response.data == {"session": None}
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
-    def test_get_with_run_id_calls_seer(self, mock_call_seer_state: MagicMock) -> None:
-        mock_response = {
-            "session": {
-                "run_id": 123,
-                "messages": [],
-                "status": "completed",
-                "updated_at": "2024-01-01T00:00:00Z",
-            }
-        }
-        mock_call_seer_state.return_value = mock_response
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
+        from sentry.seer.explorer.client_models import SeerRunState
 
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            response = self.client.get(f"{self.url}123/")
+        # Mock client response
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
-        assert response.data == mock_response
-        mock_call_seer_state.assert_called_once_with(self.organization, "123")
+        assert response.data["session"]["run_id"] == 123
+        assert response.data["session"]["status"] == "completed"
+        mock_client.get_run.assert_called_once_with(run_id=123)
 
     def test_post_without_query_returns_400(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            response = self.client.post(self.url, {}, format="json")
+        data: dict[str, Any] = {}
+        response = self.client.post(self.url, data, format="json")
 
-            assert response.status_code == 400
-            assert response.data == {"query": ["This field is required."]}
+        assert response.status_code == 400
 
     def test_post_with_empty_query_returns_400(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            response = self.client.post(self.url, {"query": "   "}, format="json")
+        data = {"query": ""}
+        response = self.client.post(self.url, data, format="json")
 
-            assert response.status_code == 400
-            assert response.data == {"query": ["This field may not be blank."]}
+        assert response.status_code == 400
 
-    def test_post_with_invalid_json_returns_400(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            response = self.client.post(self.url, "invalid json", content_type="application/json")
-
-            assert response.status_code == 400
-            assert "detail" in response.data
-            assert "JSON parse error" in str(response.data["detail"])
-
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_query_calls_seer(
-        self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
-    ):
-        mock_response = {
-            "run_id": 456,
-            "message": {
-                "id": "msg-1",
-                "type": "response",
-                "content": "Hello! How can I help?",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "loading": False,
-            },
-        }
-        mock_call_seer_chat.return_value = mock_response
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
-        assert response.data == mock_response
-        mock_call_seer_chat.assert_called_once_with(
-            organization=self.organization,
-            run_id=None,
-            query="What is this error about?",
-            insert_index=None,
-            message_timestamp=None,
-            on_page_context=None,
+        assert response.data == {"run_id": 456}
+
+        # Verify client was called correctly
+        mock_client_class.assert_called_once_with(self.organization, ANY)
+        mock_client.start_run.assert_called_once_with(
+            prompt="What is this error about?", on_page_context=None
         )
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_all_parameters(
-        self, mock_call_seer_chat: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
-        mock_response = {"run_id": 789, "message": {}}
-        mock_call_seer_chat.return_value = mock_response
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
 
         data = {
             "query": "Follow up question",
             "insert_index": 2,
-            "message_timestamp": 1704067200.0,
         }
         response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == mock_response
-        mock_call_seer_chat.assert_called_once_with(
-            organization=self.organization,
-            run_id="789",
-            query="Follow up question",
-            insert_index=2,
-            message_timestamp=1704067200.0,
-            on_page_context=None,
+        assert response.data == {"run_id": 789}
+
+        # Verify client was called correctly
+        mock_client_class.assert_called_once_with(self.organization, ANY)
+        mock_client.continue_run.assert_called_once_with(
+            run_id=789, prompt="Follow up question", insert_index=2, on_page_context=None
         )
 
-    def test_post_with_ai_features_disabled_returns_403(self) -> None:
-        # Set the organization option to hide AI features
-        self.organization.update_option("sentry:hide_ai_features", True)
 
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            data = {"query": "Test query"}
-            response = self.client.post(self.url, data, format="json")
-
-            assert response.status_code == 403
-            assert response.data == {"detail": "AI features are disabled for this organization."}
-
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-        return_value=False,
-    )
-    def test_post_without_acknowledgement_returns_403(
-        self, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
-        data = {"query": "Test query"}
-        response = self.client.post(self.url, data, format="json")
-
-        assert response.status_code == 403
-        assert response.data == {"detail": "Seer has not been acknowledged by the organization."}
-        mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization.id)
-
-
-class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
-    """Test feature flag requirements separately without the decorator"""
+class CollectUserOrgContextTest(APITestCase):
+    """Test the collect_user_org_context helper function"""
 
     def setUp(self) -> None:
         super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
-        self.login_as(user=self.user)
+        self.project1 = self.create_project(
+            organization=self.organization, teams=[self.team], slug="project-1"
+        )
+        self.project2 = self.create_project(
+            organization=self.organization, teams=[self.team], slug="project-2"
+        )
+        self.other_team = self.create_team(organization=self.organization, slug="other-team")
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], slug="other-project"
+        )
 
-    def test_post_without_gen_ai_features_flag_returns_400(self) -> None:
-        # Only enable seer-explorer but not gen-ai-features
-        with self.feature({"organizations:seer-explorer": True}):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-                return_value=True,
-            ):
-                data = {"query": "Test query"}
-                response = self.client.post(self.url, data, format="json")
+    def test_collect_context_with_member(self):
+        """Test context collection for a user who is an organization member"""
+        context = collect_user_org_context(self.user, self.organization)
 
-                assert response.status_code == 400
-                assert response.data == {"detail": "Feature flag not enabled"}
+        assert context is not None
+        assert context["org_slug"] == self.organization.slug
+        assert context["user_id"] == self.user.id
+        assert context["user_name"] == self.user.name
+        assert context["user_email"] == self.user.email
 
-    def test_post_without_seer_explorer_flag_returns_400(self) -> None:
-        # Only enable gen-ai-features but not seer-explorer
-        with self.feature({"organizations:gen-ai-features": True}):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-                return_value=True,
-            ):
-                data = {"query": "Test query"}
-                response = self.client.post(self.url, data, format="json")
+        # Should have exactly one team
+        assert len(context["user_teams"]) == 1
+        assert context["user_teams"][0]["slug"] == self.team.slug
 
-                assert response.status_code == 400
-                assert response.data == {"detail": "Feature flag not enabled"}
+        # User projects should include project1 and project2 (both on self.team)
+        user_project_slugs = {p["slug"] for p in context["user_projects"]}
+        assert user_project_slugs == {"project-1", "project-2"}
 
-    def test_post_without_any_feature_flags_returns_400(self) -> None:
-        # No feature flags enabled
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-            return_value=True,
-        ):
-            data = {"query": "Test query"}
-            response = self.client.post(self.url, data, format="json")
+        # All org projects should include all 3 projects
+        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
+        assert all_project_slugs == {"project-1", "project-2", "other-project"}
+        all_project_ids = {p["id"] for p in context["all_org_projects"]}
+        assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
 
-            assert response.status_code == 400
-            assert response.data == {"detail": "Feature flag not enabled"}
+    def test_collect_context_with_multiple_teams(self):
+        """Test context collection for a user in multiple teams"""
+        team2 = self.create_team(organization=self.organization, slug="team-2")
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
+        with unguarded_write(using="default"):
+            member.teams.add(team2)
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_both_feature_flags_succeeds(
-        self, mock_call_seer_chat, mock_get_seer_org_acknowledgement
-    ):
-        # Enable both required feature flags
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
-            mock_response = {"run_id": 1, "message": {}}
-            mock_call_seer_chat.return_value = mock_response
+        context = collect_user_org_context(self.user, self.organization)
 
-            data = {"query": "Test query"}
-            response = self.client.post(self.url, data, format="json")
+        assert context is not None
+        team_slugs = {t["slug"] for t in context["user_teams"]}
+        assert team_slugs == {self.team.slug, "team-2"}
 
-            assert response.status_code == 200
-            assert response.data == mock_response
-            mock_call_seer_chat.assert_called_once_with(
-                organization=self.organization,
-                run_id=None,
-                query="Test query",
-                insert_index=None,
-                message_timestamp=None,
-                on_page_context=None,
-            )
+    def test_collect_context_with_no_teams(self):
+        """Test context collection for a member with no team membership"""
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
+        # Remove user from all teams
+        with unguarded_write(using="default"):
+            member.teams.clear()
+
+        context = collect_user_org_context(self.user, self.organization)
+
+        assert context is not None
+        assert context["user_teams"] == []
+        assert context["user_projects"] == []
+        # All org projects should still be present
+        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
+        assert all_project_slugs == {"project-1", "project-2", "other-project"}

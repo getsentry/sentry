@@ -5,7 +5,6 @@ from typing import ClassVar, Literal, Self, cast, override
 
 from django.db import models
 from django.db.models import Count
-from django.db.models.functions import Now
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -93,12 +92,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
-    # Tracks the current status of this subscription. This is possibly going
-    # to be replaced in the future with open-periods as we replace
-    # ProjectUptimeSubscription with Detectors.
-    uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
-    # (Likely) temporary column to keep track of the current uptime status of this monitor
-    uptime_status_update_date = models.DateTimeField(db_default=Now())
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -111,7 +104,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("url_domain_suffix", "url_domain")),
-            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
 
@@ -194,6 +186,7 @@ class UptimeRegionScheduleMode(enum.StrEnum):
 
 @data_source_type_registry.register(DATA_SOURCE_UPTIME_SUBSCRIPTION)
 class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscription]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -218,6 +211,7 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
@@ -232,6 +226,11 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     def get_current_instance_count(org: Organization) -> int:
         # We don't have a limit at the moment, so no need to count.
         raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "uptime.uptimesubscription"
 
 
 def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:

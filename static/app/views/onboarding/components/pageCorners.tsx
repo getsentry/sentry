@@ -10,6 +10,9 @@ type Props = {
 } & HTMLAttributes<HTMLDivElement>;
 
 function PageCorners({animateVariant, ...rest}: Props) {
+  const baseTransition = testableTransition({type: 'spring', duration: 0.8});
+  // Consistent enter delay for visible variants
+  const delayedTransition = testableTransition({type: 'spring', duration: 0.8, delay: 1});
   return (
     <Container {...rest}>
       <TopRight
@@ -28,11 +31,10 @@ function PageCorners({animateVariant, ...rest}: Props) {
           scale: 'var(--corner-scale)',
         }}
         variants={{
-          none: {x: '40px', opacity: 0},
-          'top-left': {x: '40px', opacity: 0},
-          'top-right': {x: 0, opacity: 1},
+          none: {x: '40px', opacity: 0, transition: baseTransition},
+          'top-left': {x: '40px', opacity: 0, transition: baseTransition},
+          'top-right': {x: 0, opacity: 1, transition: delayedTransition},
         }}
-        transition={transition}
       >
         <path
           d="M36.5 0H874v203l-288.7-10-7-114-180.2-4.8-3.6-35.2-351.1 2.5L36.5 0z"
@@ -59,11 +61,10 @@ function PageCorners({animateVariant, ...rest}: Props) {
           scale: 'var(--corner-scale)',
         }}
         variants={{
-          none: {x: '-40px', opacity: 0},
-          'top-left': {x: '-40px', opacity: 0},
-          'top-right': {x: 0, opacity: 1},
+          none: {x: '-40px', opacity: 0, transition: baseTransition},
+          'top-left': {x: '-40px', opacity: 0, transition: baseTransition},
+          'top-right': {x: 0, opacity: 1, transition: delayedTransition},
         }}
-        transition={transition}
       >
         <path d="M494 141H-1V7l140-7v19h33l5 82 308 4 9 36z" fill="currentColor" />
         <path d="M219 88h-30l-1-19 31 3v16z" fill="currentColor" />
@@ -83,11 +84,10 @@ function PageCorners({animateVariant, ...rest}: Props) {
           scale: 'var(--corner-scale)',
         }}
         variants={{
-          none: {x: '-40px', opacity: 0},
-          'top-right': {x: '-40px', opacity: 0},
-          'top-left': {x: 0, opacity: 1},
+          none: {x: '-40px', opacity: 0, transition: baseTransition},
+          'top-right': {x: '-40px', opacity: 0, transition: baseTransition},
+          'top-left': {x: 0, opacity: 1, transition: delayedTransition},
         }}
-        transition={transition}
       >
         <path
           fillRule="evenodd"
@@ -112,11 +112,10 @@ function PageCorners({animateVariant, ...rest}: Props) {
           scale: 'var(--corner-scale)',
         }}
         variants={{
-          none: {x: '40px', opacity: 0},
-          'top-right': {x: '40px', opacity: 0},
-          'top-left': {x: 0, opacity: 1},
+          none: {x: '40px', opacity: 0, transition: baseTransition},
+          'top-right': {x: '40px', opacity: 0, transition: baseTransition},
+          'top-left': {x: 0, opacity: 1, transition: delayedTransition},
         }}
-        transition={transition}
       >
         <path
           fillRule="evenodd"
@@ -131,11 +130,6 @@ function PageCorners({animateVariant, ...rest}: Props) {
 }
 
 export default PageCorners;
-
-const transition = testableTransition({
-  type: 'spring',
-  duration: 0.8,
-});
 
 const TopLeft = styled(motion.svg)`
   position: absolute;

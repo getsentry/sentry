@@ -1,19 +1,18 @@
 ---
-created: '2025-09-11T18:38:52.741934+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (exception of system takes precedence)
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no contributing frames)
           frame (marked out of app by the client)
             module*
               "django.core.handlers.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "get_response"
@@ -22,7 +21,7 @@ app:
           frame (marked out of app by the client)
             module*
               "django.views.generic.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "view"
@@ -31,7 +30,7 @@ app:
           frame (marked out of app by the client)
             module*
               "django.utils.decorators"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "decorators.py"
             function*
               "_wrapper"
@@ -40,7 +39,7 @@ app:
           frame (marked out of app by the client)
             module*
               "django.views.decorators.csrf"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "csrf.py"
             function*
               "wrapped_view"
@@ -49,16 +48,16 @@ app:
           frame (marked out of app by the client)
             module*
               "django.utils.decorators"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "decorators.py"
             function*
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "release_webhook.py"
             function*
               "dispatch"
@@ -67,25 +66,25 @@ app:
           frame (marked out of app by the client)
             module*
               "django.views.generic.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "dispatch"
             context_line*
               "return handler(request, *args, **kwargs)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "release_webhook.py"
             function*
               "post"
             context_line*
               "hook.handle(request)"
-          frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "handle"
@@ -94,7 +93,7 @@ app:
           frame (marked out of app by the client)
             module*
               "django.utils.datastructures"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "datastructures.py"
             function*
               "__getitem__"
@@ -108,14 +107,15 @@ app:
 system:
   hash: "90888e813b09fa25061af2883c0fb9bd"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
           frame*
             module*
               "django.core.handlers.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "get_response"
@@ -124,7 +124,7 @@ system:
           frame*
             module*
               "django.views.generic.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "view"
@@ -133,70 +133,70 @@ system:
           frame*
             module*
               "django.utils.decorators"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "decorators.py"
             function*
               "_wrapper"
             context_line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.decorators.csrf"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "csrf.py"
             function*
               "wrapped_view"
             context_line*
               "return view_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.decorators"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "decorators.py"
             function*
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "release_webhook.py"
             function*
               "dispatch"
             context_line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.generic.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "dispatch"
             context_line*
               "return handler(request, *args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "release_webhook.py"
             function*
               "post"
             context_line*
               "hook.handle(request)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "handle"
             context_line*
               "email = request.POST['user']"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+          frame (ignored by custom stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.datastructures"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "datastructures.py"
             function*
               "__getitem__"

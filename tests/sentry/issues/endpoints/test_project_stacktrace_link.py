@@ -124,21 +124,7 @@ class BaseProjectStacktraceLink(APITestCase):
 
 
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
-    endpoint = "sentry-api-0-project-stacktrace-link"
-
-    def setUp(self) -> None:
-        BaseProjectStacktraceLink.setUp(self)
-        self.code_mapping1 = self._create_code_mapping(
-            stack_root="usr/src/getsentry/",
-            source_root="",
-        )
-        self.code_mapping2 = self._create_code_mapping(
-            stack_root="sentry/",
-            source_root="src/sentry/",
-            automatically_generated=True,  # Created by the automation
-        )
-
-        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+    filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
 
     def test_no_filepath(self) -> None:
         """The file query search is missing"""
@@ -168,10 +154,11 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 
     def test_file_not_found_error(self) -> None:
         """File matches code mapping but it cannot be found in the source repository."""
+        cm = self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
         )
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["config"] == self.expected_configurations(cm)
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
@@ -182,6 +169,8 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 
     def test_stack_root_mismatch_error(self) -> None:
         """Looking for a stacktrace file path that will not match any code mappings"""
+        # At least one code mapping to produce the stack_root_mismatch error
+        self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": "wrong/file/path"}
         )
@@ -195,10 +184,11 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         with patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
+            cm = self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )
-            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            assert response.data["config"] == self.expected_configurations(cm)
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
@@ -207,6 +197,8 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         # Pretend that the file was not found in the repository
         mock_integration.return_value = None
 
+        # At least one code mapping to produce the stack_root_mismatch error
+        self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,

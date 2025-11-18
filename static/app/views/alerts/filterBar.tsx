@@ -45,9 +45,9 @@ function FilterBar({
         {hasTypeFilter && (
           <CompactSelect
             multiple
-            triggerLabel={selectedAlertTypes.length === 0 ? t('All') : undefined}
             triggerProps={{
               prefix: t('Alert Type'),
+              children: selectedAlertTypes.length === 0 ? t('All') : undefined,
             }}
             menuFooter={
               <ButtonBar>

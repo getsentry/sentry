@@ -88,11 +88,10 @@ class DetectorTest(BaseWorkflowTest):
             assert conditions
 
     def test_get_error_detector_for_project__success(self) -> None:
-        """Test successful retrieval of error detector for project"""
+        """Test successful retrieval of error detector for project, created by default on project creation"""
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
-
         result = Detector.get_error_detector_for_project(self.project.id)
 
         assert result == error_detector
@@ -105,7 +104,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__wrong_type(self) -> None:
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             type=MetricIssue.slug,  # Use a different registered type
             name="Other Detector",
         )
@@ -115,7 +114,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__caching(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # First call - cache miss
@@ -140,7 +139,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__cache_hit(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # Mock cache hit
@@ -156,6 +155,19 @@ class DetectorTest(BaseWorkflowTest):
                 self.project.id, ErrorGroupType.slug
             )
             mock_cache_get.assert_called_once_with(expected_cache_key)
+
+    def test_settings(self) -> None:
+        detector = self.create_detector()
+        assert detector.settings
+
+    def test_settings__no_settings__invaild_settings(self) -> None:
+        # This is an issue type w/o a detector association
+        detector = self.create_detector(
+            type="profile_json_decode_main_thread", name="Invalid Detector"
+        )
+
+        with pytest.raises(ValueError, match="Registered grouptype has no detector settings"):
+            assert detector.settings
 
 
 def test_get_detector_project_type_cache_key() -> None:

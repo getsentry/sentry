@@ -29,9 +29,7 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
         )
         group = event.group
         assert group
-        group_open_period = GroupOpenPeriod.objects.create(
-            project=self.project, group=group, user_id=self.user.id
-        )
+        group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
         IncidentGroupOpenPeriod.objects.create(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
@@ -50,6 +48,4 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             group_open_period=group_open_period,
         ).exists()
         assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
-        assert not GroupOpenPeriod.objects.filter(
-            project=self.project, group=group, user_id=self.user.id
-        )
+        assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)

@@ -2,15 +2,25 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
-import {IconCode, IconDownload, IconJson} from 'sentry/icons';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  isSizeInfoCompleted,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -24,67 +34,97 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const {buildDetails, projectId} = props;
   const organization = useOrganization();
   const theme = useTheme();
-
+  const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
-      label: 'Releases',
+      label: t('Releases'),
     },
     {
       to: `/organizations/${organization.slug}/preprod/${projectId}/${buildDetails.id}/`,
-      label: buildDetails.app_info.version,
+      label: buildDetails.app_info.version ?? t('Build Version'),
     },
     {
-      label: 'Compare',
+      label: t('Compare'),
     },
   ];
 
   return (
-    <Flex direction="column" gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
-      <Breadcrumbs crumbs={breadcrumbs} />
-      <Heading as="h1">Build comparison</Heading>
-      <Flex gap="lg">
-        <Flex gap="sm" align="center">
-          <AppIcon>
-            <AppIconPlaceholder>
-              {buildDetails.app_info.name?.charAt(0) || ''}
-            </AppIconPlaceholder>
-          </AppIcon>
-          <Text>{buildDetails.app_info.name}</Text>
+    <Flex justify="between" align="center" gap="lg">
+      <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
         </Flex>
-        <Flex gap="sm" align="center">
-          <InfoIcon>
-            {buildDetails.app_info.platform ? (
-              <PlatformIcon
-                platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-              />
-            ) : null}
-          </InfoIcon>
-          <Text>
-            {buildDetails.app_info.platform
-              ? getReadablePlatformLabel(buildDetails.app_info.platform)
-              : ''}
-          </Text>
-        </Flex>
-        <Flex gap="sm" align="center">
-          <InfoIcon>
-            <IconJson />
-          </InfoIcon>
-          <Text>{buildDetails.app_info.app_id}</Text>
-        </Flex>
-        {buildDetails.size_info?.download_size_bytes && (
+        <Heading as="h1">Build comparison</Heading>
+        <Flex gap="lg" wrap="wrap" align="center">
           <Flex gap="sm" align="center">
-            <IconDownload size="sm" color="gray300" />
-            <Text>{formatBytesBase10(buildDetails.size_info.download_size_bytes)}</Text>
+            <AppIcon>
+              <AppIconPlaceholder>
+                {buildDetails.app_info.name?.charAt(0) || ''}
+              </AppIconPlaceholder>
+            </AppIcon>
+            <Text>{buildDetails.app_info.name}</Text>
           </Flex>
-        )}
-        {buildDetails.size_info?.install_size_bytes && (
           <Flex gap="sm" align="center">
-            <IconCode size="sm" color="gray300" />
-            <Text>{formatBytesBase10(buildDetails.size_info.install_size_bytes)}</Text>
+            <InfoIcon>
+              {buildDetails.app_info.platform ? (
+                <PlatformIcon
+                  platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
+                />
+              ) : null}
+            </InfoIcon>
+            <Text>
+              {buildDetails.app_info.platform
+                ? getReadablePlatformLabel(buildDetails.app_info.platform)
+                : ''}
+            </Text>
           </Flex>
-        )}
-      </Flex>
+          <Tooltip title={t('Application ID')}>
+            <Flex gap="sm" align="center">
+              <InfoIcon>
+                <IconJson />
+              </InfoIcon>
+              <Text>{buildDetails.app_info.app_id}</Text>
+            </Flex>
+          </Tooltip>
+          {buildDetails.app_info.build_configuration && (
+            <Tooltip title={t('Build configuration')}>
+              <Flex gap="sm" align="center">
+                <IconMobile size="sm" color="gray300" />
+                <Text monospace>{buildDetails.app_info.build_configuration}</Text>
+              </Flex>
+            </Tooltip>
+          )}
+          {isSizeInfoCompleted(buildDetails.size_info) && (
+            <Tooltip title={labels.installSizeDescription}>
+              <Flex gap="sm" align="center">
+                <IconCode size="sm" color="gray300" />
+                <Text underline="dotted">
+                  {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
+                </Text>
+              </Flex>
+            </Tooltip>
+          )}
+          {isSizeInfoCompleted(buildDetails.size_info) && (
+            <Tooltip title={labels.downloadSizeDescription}>
+              <Flex gap="sm" align="center">
+                <IconDownload size="sm" color="gray300" />
+                <Text underline="dotted">
+                  {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
+                </Text>
+              </Flex>
+            </Tooltip>
+          )}
+        </Flex>
+      </Stack>
+      <FeedbackWidgetButton
+        optionOverrides={{
+          tags: {
+            'feedback.source': 'preprod.buildDetails',
+          },
+        }}
+      />
     </Flex>
   );
 }

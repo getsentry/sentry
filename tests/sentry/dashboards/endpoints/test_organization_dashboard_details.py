@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 
 from sentry.discover.models import DatasetSourcesTypes
+from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -17,12 +19,14 @@ from sentry.models.dashboard import (
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
@@ -455,6 +459,224 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url(self.dashboard.id))
         assert response.status_code == 200
         assert response.data["isFavorited"] is True
+
+    def test_explore_url_for_transaction_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == ["(count(span.duration):>50) AND is_transaction:1"]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
+    def test_explore_url_for_table_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="table widget",
+                display_type=DashboardWidgetDisplayTypes.TABLE,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["id", "title"],
+                columns=["id", "title"],
+                aggregates=[],
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == ["is_transaction:1"]
+            assert "sort" not in params
+            assert params["mode"] == ["samples"]
+            # need to sort because fields order is not guaranteed
+            assert params["field"].sort() == ["id", "transaction"].sort()
+            assert "aggregateField" not in params
+
+    def test_explore_url_for_widget_with_discover_split_param(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+                filters={
+                    "release": ["1.0.0", "2.0.0"],
+                },
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="transaction widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.DISCOVER,
+                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["count()", "transaction"],
+                columns=["transaction"],
+                aggregates=["count()"],
+                conditions="count():>50",
+                orderby="-count",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
+            ]
+            assert params["sort"] == ["-count(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["aggregateField"] == [
+                '{"groupBy":"transaction"}',
+                '{"yAxes":["count(span.duration)"],"chartType":1}',
+            ]
+
+    def test_explore_url_for_deformed_widget(self) -> None:
+        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
+            dashboard_deprecation = Dashboard.objects.create(
+                title="Dashboard With Transaction Widget",
+                created_by_id=self.user.id,
+                organization=self.organization,
+            )
+            widget_deprecation = DashboardWidget.objects.create(
+                dashboard=dashboard_deprecation,
+                title="line widget",
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+                interval="1d",
+                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            )
+
+            DashboardWidgetQuery.objects.create(
+                widget=widget_deprecation,
+                fields=["query.dataset"],
+                columns=["query.dataset"],
+                aggregates=["p95(transaction.duration)"],
+                orderby="-p95(transaction.duration)",
+                conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+                order=0,
+            )
+
+            response = self.do_request("get", self.url(dashboard_deprecation.id))
+            assert response.status_code == 200
+            explore_url = response.data["widgets"][0]["exploreUrls"][0]
+            assert "http://testserver/explore/traces/" in explore_url
+
+            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+            assert params["query"] == [
+                "(transaction:/api/0/organizations/{organization_id_or_slug}/events/) AND is_transaction:1"
+            ]
+            assert params["sort"] == ["-p95(span.duration)"]
+            assert params["mode"] == ["aggregate"]
+            assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
+            assert params["aggregateField"] == [
+                '{"groupBy":"query.dataset"}',
+                '{"yAxes":["p95(span.duration)"],"chartType":1}',
+            ]
+
+    def test_changed_reason_response(self) -> None:
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is None
+
+    def test_changed_reason_response_with_data(self) -> None:
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="line widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            changed_reason=[
+                {
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
+                    "equations": [],
+                    "columns": ["total.count"],
+                }
+            ],
+        )
+
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["query.dataset"],
+            columns=["query.dataset"],
+            aggregates=["p95(transaction.duration)"],
+            orderby="-p95(transaction.duration)",
+            conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+            order=0,
+        )
+
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        widget = response.data["widgets"][0]
+        assert widget["changedReason"] is not None
+        assert isinstance(widget["changedReason"], list)
+        assert len(widget["changedReason"]) == 1
+        assert widget["changedReason"][0]["orderby"] == [
+            {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+        ]
+        assert widget["changedReason"][0]["equations"] == []
+        assert widget["changedReason"][0]["columns"] == ["total.count"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -1293,6 +1515,79 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Invalid interval" in response.content
 
+    def test_add_widget_e2e_test_with_translation(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "transaction widget to translate",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "widgetType": "transaction-like",
+                    "limit": 3,
+                    "queries": [
+                        {
+                            "fields": [
+                                "title",
+                                "total.count",
+                                "count()",
+                                "count_web_vitals(measurements.lcp,good)",
+                            ],
+                            "columns": ["title", "total.count"],
+                            "aggregates": ["count()", "count_web_vitals(measurements.lcp,good)"],
+                            "conditions": "title:foo",
+                            "orderby": "-count_web_vitals(measurements.lcp,good)",
+                            "order": 0,
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert DashboardWidget.objects.filter(title="transaction widget to translate").exists()
+        widget = DashboardWidget.objects.filter(title="transaction widget to translate").first()
+        assert widget is not None
+        assert widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.USER.value
+        assert widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
+        assert widget.interval == "5m"
+
+        widget_queries = DashboardWidgetQuery.objects.filter(widget=widget)
+        assert widget_queries.count() == 1
+        widget_query = widget_queries.first()
+        assert widget_query is not None
+        assert widget_query.fields == [
+            "title",
+            "total.count",
+            "count()",
+            "count_web_vitals(measurements.lcp,good)",
+        ]
+        assert widget_query.aggregates == ["count()", "count_web_vitals(measurements.lcp,good)"]
+        assert widget_query.columns == ["title", "total.count"]
+        assert widget_query.conditions == "title:foo"
+        assert widget_query.orderby == "-count_web_vitals(measurements.lcp,good)"
+
+        translated_widget = translate_dashboard_widget(widget)
+        assert translated_widget.widget_type == DashboardWidgetTypes.SPANS
+        assert (
+            translated_widget.dataset_source
+            == DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
+        )
+        assert translated_widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
+        assert translated_widget.interval == "5m"
+
+        translated_widget_queries = DashboardWidgetQuery.objects.filter(widget=translated_widget)
+        assert translated_widget_queries.count() == 1
+        translated_widget_query = translated_widget_queries.first()
+        assert translated_widget_query is not None
+        assert translated_widget_query.fields == ["transaction", "count(span.duration)"]
+        assert translated_widget_query.aggregates == ["count(span.duration)"]
+        assert translated_widget_query.columns == ["transaction"]
+        assert translated_widget_query.conditions == "(transaction:foo) AND is_transaction:1"
+        assert translated_widget_query.orderby == ""
+
     def test_update_widget_title(self) -> None:
         data = {
             "title": "First dashboard",
@@ -1540,6 +1835,59 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Invalid conditions" in response.content
+
+    def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
+        new_dashboard = Dashboard.objects.create(
+            title="New dashboard",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        spans_widget = DashboardWidget.objects.create(
+            dashboard=new_dashboard,
+            title="Spans widget",
+            widget_type=DashboardWidgetTypes.SPANS,
+            dataset_source=DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            changed_reason=[
+                {
+                    "orderby": [
+                        {"orderby": "total.count", "reason": "fields were dropped: total.count"}
+                    ],
+                    "equations": [],
+                    "columns": ["total.count"],
+                }
+            ],
+        )
+
+        data = {
+            "title": "New dashboard",
+            "widgets": [
+                {
+                    "id": str(spans_widget.id),
+                    "title": "updated spans widget",
+                    "widgetType": "spans",
+                    "datasetSource": "user",
+                    "displayType": "line",
+                    "changedReason": spans_widget.changed_reason,
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count(span.duration)"],
+                            "columns": [],
+                            "aggregates": ["count(span.duration)"],
+                            "conditions": "",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        response = self.do_request("put", self.url(new_dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["changedReason"] is None
+        spans_widget.refresh_from_db()
+        assert spans_widget.changed_reason is None
+        assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
         data = {
@@ -2078,7 +2426,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2095,7 +2443,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2115,7 +2463,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2295,7 +2643,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2331,7 +2679,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2362,7 +2710,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2389,7 +2737,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2435,7 +2783,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2732,6 +3080,335 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
             assert response.status_code == 200
+
+    def test_create_widget_with_field_links(self) -> None:
+        # Create a second dashboard to link to
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Field Links",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": linked_dashboard.id,
+            }
+        ]
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        queries = widget.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+
+        # Verify field links were created
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
+        assert len(field_links) == 1
+
+        field_link = field_links[0]
+        assert field_link.field == "project"
+        assert field_link.dashboard_id == linked_dashboard.id
+        assert field_link.dashboard_widget_query_id == queries[0].id
+
+    def test_update_widget_with_field_links(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "project", "environment"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                                {"field": "environment", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        queries = widget.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0]).order_by(
+            "field"
+        )
+        assert len(field_links) == 2
+
+        # Verify the field links were updated correctly
+        assert field_links[0].field == "environment"
+        assert field_links[0].dashboard_id == linked_dashboard.id
+        assert field_links[0].dashboard_widget_query_id == queries[0].id
+        assert field_links[1].field == "project"
+        assert field_links[1].dashboard_id == linked_dashboard.id
+        assert field_links[1].dashboard_widget_query_id == queries[0].id
+
+    def test_deletes_widget_with_field_links(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "project", "environment"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        queries = widget.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
+        assert len(field_links) == 0
+
+    def test_does_not_update_non_table_dashboard_links(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=self.dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "project", "environment"],
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Field links are only supported for table widgets" in response.content
+
+    def test_does_not_update_if_linked_dashboard_does_not_appear_in_fields(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "user.email"],
+                            "columns": ["user.email"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not appear in the fields of the query" in response.content
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

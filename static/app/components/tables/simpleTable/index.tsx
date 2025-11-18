@@ -1,5 +1,6 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
+import type {ComponentProps, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -57,7 +58,7 @@ function HeaderCell({
     >
       {divider && <HeaderDivider />}
       {canSort && <InteractionStateLayer />}
-      <HeadingText>{children}</HeadingText>
+      <Flex align="center">{children}</Flex>
       {isSorted && (
         <SortIndicator
           aria-hidden
@@ -80,30 +81,22 @@ function Row({children, variant = 'default', ...props}: RowProps) {
 
 function RowCell({
   children,
-  className,
-  justify,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
-  className?: string;
-  justify?: CSSProperties['justifyContent'];
 }) {
   return (
-    <StyledRowCell
-      {...props}
-      className={className}
-      role="cell"
-      align="center"
-      justify={justify}
-    >
+    <Flex role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
-    </StyledRowCell>
+    </Flex>
   );
 }
 
 const StyledPanel = styled(Panel)`
   display: grid;
   margin: 0;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const StyledPanelHeader = styled('div')`
@@ -119,11 +112,6 @@ const StyledPanelHeader = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-`;
-
-const StyledRowCell = styled(Flex)`
-  overflow: hidden;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const StyledRow = styled('div', {
@@ -142,15 +130,10 @@ const StyledRow = styled('div', {
   ${p =>
     p.variant === 'faded' &&
     css`
-      ${StyledRowCell}, {
+      [role='cell'] {
         opacity: 0.8;
       }
     `}
-`;
-
-const HeadingText = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const HeaderDivider = styled('div')`
@@ -193,6 +176,21 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
     `}
 `;
 
+const rowLinkStyle = (p: {theme: Theme}) => css`
+  /** Adjust margin/padding to account for StyledRowCell padding */
+  margin: -${p.theme.space.lg} -${p.theme.space.xl};
+  padding: ${p.theme.space.lg} ${p.theme.space.xl};
+
+  /** Ensure cursor is set in case this is applied to a div */
+  cursor: pointer;
+
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+`;
+
 const SortIndicator = styled(IconArrow, {
   shouldForwardProp: prop => prop !== 'isSorted',
 })<{isSorted?: boolean}>`
@@ -220,4 +218,5 @@ SimpleTable.Header = Header;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
+SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = StyledEmptyMessage;

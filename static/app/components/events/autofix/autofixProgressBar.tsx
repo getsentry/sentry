@@ -56,7 +56,7 @@ const ProgressBarTrack = styled('div')`
 
 const ProgressBarFill = styled('div')`
   height: 100%;
-  background-color: ${p => p.theme.pink400};
+  background-color: ${p => p.theme.active};
   opacity: 0.7;
   transition: width 1s ease-in-out;
 `;

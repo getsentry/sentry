@@ -1,6 +1,4 @@
-from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.models.team import Team
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
@@ -10,11 +8,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import link_team
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.types.actor import Actor, ActorType
 
 
@@ -645,42 +640,6 @@ class NotificationControllerTest(TestCase):
             }
         }
 
-    @with_feature("organizations:team-workflow-notifications")
-    def test_get_team_workflow_participants(self) -> None:
-        rpc_user = Actor.from_object(self.team)
-        with assume_test_silo_mode(SiloMode.REGION):
-            link_team(self.team, self.integration, "#team-channel", "team_channel_id")
-        controller = NotificationController(
-            recipients=[self.team],
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            type=NotificationSettingEnum.WORKFLOW,
-        )
-        assert controller.get_participants() == {
-            rpc_user: {
-                ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-            }
-        }
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_get_team_issue_alert_participants(self) -> None:
-        rpc_user = Actor.from_object(self.team)
-        with assume_test_silo_mode(SiloMode.REGION):
-            link_team(self.team, self.integration, "#team-channel", "team_channel_id")
-        controller = NotificationController(
-            recipients=[self.team],
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            type=NotificationSettingEnum.ISSUE_ALERTS,
-        )
-        assert controller.get_participants() == {
-            rpc_user: {
-                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
-                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-            }
-        }
-
     def test_get_notification_value_for_recipient_and_type(self) -> None:
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,
@@ -845,62 +804,3 @@ class NotificationControllerTest(TestCase):
             type=NotificationSettingEnum.REPORTS,
         )
         assert controller.get_users_for_weekly_reports() == []
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_fallback_if_invalid_team(self) -> None:
-        # team with invalid provider
-        team1 = self.create_team()
-        user1 = self.create_user()
-        self.create_member(user=user1, organization=self.organization, role="member", teams=[team1])
-        with assume_test_silo_mode(SiloMode.REGION):
-            ExternalActor.objects.create(
-                team_id=team1.id,
-                integration_id=self.integration.id,
-                organization_id=self.organization.id,
-                provider=0,
-                external_name="invalid-integration",
-            )
-
-        # team with no providers
-        team2 = self.create_team()
-        user2 = self.create_user()
-        self.create_member(user=user2, organization=self.organization, role="member", teams=[team2])
-
-        controller = NotificationController(
-            recipients=[team1, team2],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 2
-        for recipient in controller.recipients:
-            assert isinstance(recipient, Actor) and recipient.actor_type == ActorType.USER
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_keeps_team_as_recipient_if_valid(self) -> None:
-        team = self.create_team()
-        user1 = self.create_user()
-        user2 = self.create_user()
-        self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
-        self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-        with assume_test_silo_mode(SiloMode.REGION):
-            link_team(team, self.integration, "#team-channel", "team_channel_id")
-
-        controller = NotificationController(
-            recipients=[team],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 1
-        assert isinstance(controller.recipients[0], Team)
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_user_recipients_remain(self) -> None:
-        user1 = self.create_user()
-        user2 = self.create_user()
-
-        controller = NotificationController(
-            recipients=[user1, user2],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 2

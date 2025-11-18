@@ -16,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -28,7 +27,6 @@ import {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -40,6 +38,8 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
+  useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -48,6 +48,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -57,10 +58,11 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
+  rawLogCounts: RawCounts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function LogsGraph({timeseriesResult}: LogsGraphProps) {
+export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -91,6 +93,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
           <Graph
             key={index}
             visualize={visualize}
+            rawLogCounts={rawLogCounts}
             timeseriesResult={timeseriesResult}
             onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
             onChartVisibilityChange={visible =>
@@ -112,10 +115,12 @@ interface GraphProps extends LogsGraphProps {
 function Graph({
   onChartTypeChange,
   onChartVisibilityChange,
+  rawLogCounts,
   timeseriesResult,
   visualize,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
+  const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
@@ -200,6 +205,8 @@ function Graph({
           <ConfidenceFooter
             chartInfo={chartInfo}
             isLoading={timeseriesResult.isLoading}
+            rawLogCounts={rawLogCounts}
+            hasUserQuery={!!userQuery}
           />
         )
       }
@@ -221,13 +228,12 @@ function ContextMenu({
   visualize: Visualize;
 }) {
   const location = useLocation();
-  const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
   const mode = useQueryParamsMode();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
@@ -323,7 +329,6 @@ function ContextMenu({
           organization,
           location,
           eventView,
-          router,
           yAxis: visualize.yAxis,
           widgetType: WidgetType.LOGS,
           source: DashboardWidgetSource.LOGS,
@@ -357,7 +362,6 @@ function ContextMenu({
     organization,
     pageFilters,
     projects,
-    router,
     search,
     setVisible,
     visible,

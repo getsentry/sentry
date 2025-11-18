@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -204,9 +204,9 @@ function SetupInstructions({
         <li>{t('That’s it!')}</li>
       </ol>
       {url !== '[Filtered]' && (
-        <CodeSnippet filename="JavaScript" language="javascript">
+        <CodeBlock filename="JavaScript" language="javascript">
           {code}
-        </CodeSnippet>
+        </CodeBlock>
       )}
     </StyledInstructions>
   );

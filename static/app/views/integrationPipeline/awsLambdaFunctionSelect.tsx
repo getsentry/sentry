@@ -4,6 +4,7 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -123,7 +124,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     const FormHeader = (
       <StyledPanelHeader>
         {t('Lambda Functions')}
-        <SwitchHolder>
+        <Flex>
           <Observer>
             {() => (
               <Tooltip
@@ -139,7 +140,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
               </Tooltip>
             )}
           </Observer>
-        </SwitchHolder>
+        </Flex>
       </StyledPanelHeader>
     );
 
@@ -222,10 +223,6 @@ const LoadingWrapper = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-`;
-
-const SwitchHolder = styled('div')`
-  display: flex;
 `;
 
 const StyledSwitch = styled(Switch)`

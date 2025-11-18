@@ -1,3 +1,5 @@
+import {Text} from '@sentry/scraps/text';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
@@ -74,47 +76,47 @@ export function DropdownAddTeam({
 
   const canCreateTeam = hasEveryAccess(['org:write'], {organization, project});
 
-  const createTeam = (
-    <Button
-      title={
-        canCreateTeam ? undefined : t('You must be a Org Owner/Manager to create teams')
-      }
-      borderless
-      priority="link"
-      size="zero"
-      disabled={!canCreateTeam}
-      onClick={(e: React.MouseEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        openCreateTeamModal({
-          organization,
-          project,
-          onClose: onCreateTeam,
-        });
-      }}
-    >
-      {t('Create Team')}
-    </Button>
-  );
-
   return (
     <CompactSelect
       size="xs"
+      value=""
       menuWidth={300}
       options={dropdownItems}
-      value=""
       disabled={false}
       onClose={() => onSearch('')}
       onChange={selection => onSelect(selection.value)}
-      menuTitle={t('Teams')}
-      triggerLabel={t('Add Team')}
+      menuTitle={<Text size="sm">{t('Teams')}</Text>}
+      triggerProps={{children: t('Add Team')}}
       searchPlaceholder={t('Search Teams')}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
       searchable
       onSearch={onSearch}
-      menuHeaderTrailingItems={createTeam}
+      menuHeaderTrailingItems={({closeOverlay}) => {
+        return (
+          <Button
+            title={
+              canCreateTeam
+                ? undefined
+                : t('You must be a Org Owner/Manager to create teams')
+            }
+            borderless
+            priority="link"
+            size="xs"
+            disabled={!canCreateTeam}
+            onClick={() => {
+              openCreateTeamModal({
+                organization,
+                project,
+                onClose: onCreateTeam,
+              });
+              closeOverlay();
+            }}
+          >
+            {t('Create Team')}
+          </Button>
+        );
+      }}
     />
   );
 }

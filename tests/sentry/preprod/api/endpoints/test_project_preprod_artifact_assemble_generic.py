@@ -226,7 +226,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
             },
             authenticated=False,
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_artifact_id_passed_to_task(self) -> None:
         """Test that arbitrary artifact_id values are accepted and passed to the task."""

@@ -422,6 +422,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
         simple_sentry_field("platform"),
+        simple_sentry_field("previous_trace"),
         simple_sentry_field("raw_domain"),
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
@@ -436,7 +437,10 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("transaction.op"),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
+        simple_sentry_field("user.geo.city"),
         simple_sentry_field("user.geo.country_code"),
+        simple_sentry_field("user.geo.region"),
+        simple_sentry_field("user.geo.subdivision"),
         simple_sentry_field("user.geo.subregion"),
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
@@ -549,6 +553,7 @@ def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContex
         from_column_name="sentry.device.class",
         to_column_name="device.class",
         value_map=value_map,
+        default_value="Unknown",
     )
 
 

@@ -78,6 +78,7 @@ export default function ReplayPreferenceDropdown({
                   <DurationDisplay>{durationDisplay}</DurationDisplay>
                 </Flex>
               ),
+              textValue: baseLabel,
               value: option,
             };
           }

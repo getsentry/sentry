@@ -133,18 +133,20 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
       value={activeThread.id}
       options={items}
       menuWidth={450}
-      triggerProps={{size: 'xs'}}
-      triggerLabel={
-        <ThreadName>
-          {t('Thread #%s: ', activeThread.id)}
-          <ActiveThreadName>
-            {getThreadLabel(
-              filterThreadInfo(event, activeThread, exception),
-              activeThread.name
-            )}
-          </ActiveThreadName>
-        </ThreadName>
-      }
+      triggerProps={{
+        size: 'xs',
+        children: (
+          <ThreadName>
+            {t('Thread #%s: ', activeThread.id)}
+            <ActiveThreadName>
+              {getThreadLabel(
+                filterThreadInfo(event, activeThread, exception),
+                activeThread.name
+              )}
+            </ActiveThreadName>
+          </ThreadName>
+        ),
+      }}
       menuBody={
         <StyledGrid hasThreadStates={hasThreadStates}>
           <ThreadSelectorGridCell />

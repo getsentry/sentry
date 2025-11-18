@@ -22,6 +22,8 @@ class ChartType(Enum):
     SLACK_METRIC_ALERT_SESSIONS = "slack:metricAlert.sessions"
     SLACK_PERFORMANCE_ENDPOINT_REGRESSION = "slack:performance.endpointRegression"
     SLACK_PERFORMANCE_FUNCTION_REGRESSION = "slack:performance.functionRegression"
+    SLACK_METRIC_DETECTOR_EVENTS = "slack:metricDetector.events"
+    SLACK_METRIC_DETECTOR_SESSIONS = "slack:metricDetector.sessions"
 
 
 class ChartSize(TypedDict):

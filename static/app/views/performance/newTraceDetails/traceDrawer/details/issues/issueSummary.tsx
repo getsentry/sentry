@@ -55,7 +55,7 @@ interface IssueTitleProps {
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
   const commonEleProps = {
-    'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
+    'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
   };
 
   if (isTombstone(props.data)) {

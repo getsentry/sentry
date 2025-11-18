@@ -35,7 +35,7 @@ describe('BigNumberWidgetVisualization', () => {
     it('Formats dates', () => {
       render(
         <BigNumberWidgetVisualization
-          value={'2024-10-17T16:08:07+00:00'}
+          value="2024-10-17T16:08:07+00:00"
           field="max(timestamp)"
           type="date"
           unit={null}
@@ -48,7 +48,7 @@ describe('BigNumberWidgetVisualization', () => {
     it('Renders strings', () => {
       render(
         <BigNumberWidgetVisualization
-          value={'/api/0/fetch'}
+          value="/api/0/fetch"
           field="any(transaction)"
           type="string"
           unit={null}

@@ -1,23 +1,26 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
-import {Button} from 'sentry/components/core/button';
-import {Container} from 'sentry/components/core/layout/container';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout/container';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Text} from '@sentry/scraps/text/text';
+
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
+import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
+  platform?: Platform;
 }
 
-export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
+export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
 
@@ -33,8 +36,9 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
-  // Only show top 3 insights, show the rest in the sidebar
-  const topInsights = processedInsights.slice(0, 3);
+  const hasInsights = processedInsights.length > 0;
+  // Only show top 5 insights, show the rest in the sidebar
+  const topInsights = processedInsights.slice(0, 5);
 
   return (
     <Container background="primary" radius="md" padding="lg" border="muted">
@@ -48,9 +52,11 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>
-        <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
-          {t('View all insights')}
-        </Button>
+        {hasInsights && (
+          <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
+            {t('View insight details')}
+          </Button>
+        )}
       </Flex>
       <Flex
         direction="column"
@@ -63,14 +69,14 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
       >
         {topInsights.map(insight => (
           <Flex
-            key={insight.name}
+            key={insight.key}
             align="center"
             justify="between"
             radius="md"
             height="22px"
             padding="xs sm"
           >
-            <Text variant="accent" size="sm" bold>
+            <Text size="sm" bold>
               {insight.name}
             </Text>
             <Flex align="center" gap="sm">
@@ -84,17 +90,31 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
                 align="right"
                 style={{width: '64px'}}
               >
-                (-{formatPercentage(insight.percentage / 100, 1)})
+                ({formatUpside(insight.percentage / 100)})
               </Text>
             </Flex>
           </Flex>
         ))}
+        {!hasInsights && (
+          <Flex
+            padding="lg"
+            radius="md"
+            background="primary"
+            align="center"
+            justify="center"
+          >
+            <Text size="sm" bold>
+              {t('Your app looks good! No insights were found.')}
+            </Text>
+          </Flex>
+        )}
       </Flex>
 
       <AppSizeInsightsSidebar
         processedInsights={processedInsights}
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
+        platform={platform}
       />
     </Container>
   );

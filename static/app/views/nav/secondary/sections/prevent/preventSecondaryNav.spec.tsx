@@ -17,6 +17,15 @@ describe('PreventSecondaryNav', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/starred/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
       body: [],
     });
@@ -103,17 +112,17 @@ describe('PreventSecondaryNav', () => {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/prevent/prevent-ai/new/',
+            pathname: '/organizations/org-slug/prevent/ai-code-review/new/',
           },
         },
       }
     );
 
-    const preventAILink = screen.getByRole('link', {name: 'Prevent AI'});
+    const preventAILink = screen.getByRole('link', {name: 'AI Code Review'});
     expect(preventAILink).toBeInTheDocument();
     expect(preventAILink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/prevent/prevent-ai/new/'
+      '/organizations/org-slug/prevent/ai-code-review/new/'
     );
   });
 });

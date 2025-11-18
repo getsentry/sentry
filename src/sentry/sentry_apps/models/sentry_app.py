@@ -200,8 +200,12 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         ).hexdigest()
 
     def show_auth_info(self, access):
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
-        return set(self.scope_list).issubset(encoded_scopes)
+        # Exclude token-only scopes from the check since users don't have them in their roles
+        integration_scopes = set(self.scope_list) - SENTRY_TOKEN_ONLY_SCOPES
+        return integration_scopes.issubset(encoded_scopes)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
@@ -211,6 +215,19 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
                 region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
+
+    def outboxes_for_delete(self) -> list[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_DELETE,
+                region_name=region_name,
+                payload={"slug": self.slug},
             )
             for region_name in find_all_region_names()
         ]
@@ -225,8 +242,11 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for outbox in self.outboxes_for_update():
                 outbox.save()
 
-        SentryAppAvatar.objects.filter(sentry_app=self).delete()
-        return super().delete(*args, **kwargs)
+            for outbox in self.outboxes_for_delete():
+                outbox.save()
+
+            SentryAppAvatar.objects.filter(sentry_app=self).delete()
+            return super().delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []

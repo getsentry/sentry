@@ -1,6 +1,7 @@
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconSearch} from 'sentry/icons';
@@ -42,13 +43,19 @@ export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
-const COLUMNS_ORDER: Column[] = [
-  {key: 'testName', name: t('Test Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'averageDurationMs', name: t('Avg. Duration'), width: COL_WIDTH_UNDEFINED},
-  {key: 'flakeRate', name: t('Flake Rate'), width: COL_WIDTH_UNDEFINED},
-  {key: 'totalFailCount', name: t('Runs Failed'), width: COL_WIDTH_UNDEFINED},
-  {key: 'lastRun', name: t('Last Run'), width: COL_WIDTH_UNDEFINED},
-];
+function getColumnsOrder(isMainOrDefaultBranch: boolean): Column[] {
+  return [
+    {key: 'testName', name: t('Test Name'), width: COL_WIDTH_UNDEFINED},
+    {key: 'averageDurationMs', name: t('Avg. Duration'), width: COL_WIDTH_UNDEFINED},
+    {
+      key: 'flakeRate',
+      name: isMainOrDefaultBranch ? t('Flake Rate') : t('Failure Rate'),
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {key: 'totalFailCount', name: t('Runs Failed'), width: COL_WIDTH_UNDEFINED},
+    {key: 'lastRun', name: t('Last Run'), width: COL_WIDTH_UNDEFINED},
+  ];
+}
 
 export const RIGHT_ALIGNED_FIELDS = new Set([
   'averageDurationMs',
@@ -57,14 +64,12 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
 ]);
 
 export type SortableTAOptions =
-  | 'testName'
   | 'averageDurationMs'
   | 'flakeRate'
   | 'totalFailCount'
   | 'lastRun';
 
 export const SORTABLE_FIELDS: SortableTAOptions[] = [
-  'testName',
   'averageDurationMs',
   'flakeRate',
   'totalFailCount',
@@ -79,6 +84,7 @@ interface Props {
   response: {
     data: {
       testResults: Row[];
+      defaultBranch?: string;
     };
     isLoading: boolean;
   };
@@ -88,8 +94,13 @@ interface Props {
 export default function TestAnalyticsTable({response, sort}: Props) {
   const {data, isLoading} = response;
   const [searchParams] = useSearchParams();
+  const {branch: selectedBranch} = usePreventContext();
   const wrapToggleValue = searchParams.get('wrap') === 'true';
   const testResults = data.testResults;
+  const defaultBranch = response.data?.defaultBranch;
+  const isMainOrDefaultBranch =
+    selectedBranch === null || selectedBranch === defaultBranch;
+  const columnsOrder = getColumnsOrder(isMainOrDefaultBranch);
 
   const selectorEmptyMessage = (
     <MessageContainer>
@@ -109,7 +120,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
       isLoading={isLoading}
       data={testResults ?? []}
       emptyMessage={selectorEmptyMessage}
-      columnOrder={COLUMNS_ORDER}
+      columnOrder={columnsOrder}
       // TODO: This isn't used as per the docs but is still required. Test if
       // it affects sorting when backend is ready.
       columnSortBy={[
@@ -123,6 +134,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
           renderTableHeader({
             column,
             sort,
+            isMainOrDefaultBranch,
           }),
         renderBodyCell: (column, row) => renderTableBody({column, row, wrapToggleValue}),
       }}

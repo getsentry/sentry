@@ -10,7 +10,7 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import store_transaction
+from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection

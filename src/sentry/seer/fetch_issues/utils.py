@@ -21,14 +21,20 @@ MAX_NUM_ISSUES_DEFAULT = 10
 MAX_NUM_DAYS_AGO_DEFAULT = 90
 
 
-def handle_fetch_issues_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
+class SeerResponseError(TypedDict):
+    error: str
+
+
+def handle_fetch_issues_exceptions[R](
+    func: Callable[..., R],
+) -> Callable[..., R | SeerResponseError]:
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> R | SeerResponseError:
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.warning("Exception in fetch_issues function", exc_info=True)
-            return {"error": str(e)}
+            return SeerResponseError(error=str(e))
 
     return wrapper
 
@@ -50,10 +56,6 @@ class RepoProjects(RepoInfo):
 class SeerResponse(TypedDict):
     issues: list[int]
     issues_full: list[dict[str, Any]]
-
-
-class SeerResponseError(TypedDict):
-    error: str
 
 
 def get_repo_and_projects(
@@ -89,13 +91,16 @@ def get_repo_and_projects(
             repository_id=repo.id,
         )
     )
+    projects = [config.project for config in repo_configs]
+    if not projects:
+        raise ValueError("No Sentry projects found for repo")
     return RepoProjects(
         organization_id=organization_id,
         provider=provider,
         external_id=external_id,
         repo=repo,
         repo_configs=repo_configs,
-        projects=[config.project for config in repo_configs],
+        projects=projects,
     )
 
 
@@ -133,15 +138,25 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     }
 
 
-def get_latest_issue_event(group_id: int, organization_id: int) -> dict[str, Any]:
+def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
+    try:
+        return Group.objects.by_qualified_short_id(organization_id, short_id)
+    except Group.DoesNotExist:
+        return None
+
+
+def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[str, Any]:
     """
     Get an issue's latest event as a dict, matching the Seer IssueDetails model.
     """
-    group = Group.objects.filter(id=group_id).first()
+    if isinstance(group_id, str) and not group_id.isdigit():
+        group = _group_by_short_id(group_id, organization_id)
+    else:
+        group = Group.objects.filter(id=int(group_id)).first()
+
     if not group:
         logger.warning(
-            "Group not found",
-            extra={"group_id": group_id},
+            "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )
         return {}
 

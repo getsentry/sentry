@@ -1,12 +1,11 @@
 ---
-created: '2025-04-25T21:22:12.168925+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "418120a66f7031923031f5c52aca0724"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     app*
       exception*
         stacktrace*
@@ -60,7 +59,8 @@ app:
 system:
   hash: "bbcdb2e1d8df09ffe0fffd30fb361d4b"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
@@ -70,7 +70,7 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
           frame*
@@ -79,7 +79,7 @@ system:
           frame*
             function*
               "std::panicking::try::do_call"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*

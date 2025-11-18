@@ -38,7 +38,7 @@ describe('rerender', () => {
 describe('disableRouterMocks', () => {
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
-      initialRouterConfig: {location: '/foo/'},
+      initialRouterConfig: {location: {pathname: '/foo/'}},
     });
 
     expect(router.location.pathname).toBe('/foo/');
@@ -127,7 +127,7 @@ describe('disableRouterMocks', () => {
     render(<TestComp />, {
       initialRouterConfig: {
         route: '/projects/:projectId/',
-        location: '/projects/123/',
+        location: {pathname: '/projects/123/'},
       },
     });
 

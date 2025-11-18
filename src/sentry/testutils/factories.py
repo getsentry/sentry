@@ -32,6 +32,7 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -55,6 +56,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -69,6 +71,7 @@ from sentry.integrations.models.integration_feature import (
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -125,7 +128,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -156,7 +158,6 @@ from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
@@ -188,6 +189,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
 
@@ -539,8 +541,14 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_project(
-        organization=None, teams=None, fire_project_created=False, **kwargs
+        organization=None,
+        teams=None,
+        fire_project_created=False,
+        create_default_detectors=False,
+        **kwargs,
     ) -> Project:
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -548,15 +556,21 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic(router.db_for_write(Project)):
-            project = Project.objects.create(organization=organization, **kwargs)
-            if teams:
-                for team in teams:
-                    project.add_team(team)
-            if fire_project_created:
-                project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                )
+        with (
+            disable_default_detector_creation()
+            if not create_default_detectors
+            else contextlib.nullcontext()
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                project = Project.objects.create(organization=organization, **kwargs)
+                if teams:
+                    for team in teams:
+                        project.add_team(team)
+                if fire_project_created:
+                    project_created.send(
+                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    )
+
         return project
 
     @staticmethod
@@ -1153,7 +1167,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
-        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
         from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
@@ -1171,7 +1185,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period:
+        if create_open_period and should_create_open_periods(group.type):
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,
@@ -1193,6 +1207,22 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder(organization, provider, config, **kwargs):
+        return DataForwarder.objects.create(
+            organization=organization, provider=provider, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder_project(data_forwarder, project, **kwargs):
+        from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+        return DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder, project=project, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1697,9 +1727,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod
@@ -1947,13 +1977,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1965,7 +1991,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
@@ -2091,8 +2116,6 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
-        uptime_status: UptimeStatus,
-        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2115,8 +2138,6 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
         )
 
     @staticmethod
@@ -2264,6 +2285,14 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = default_detector_config_data.get(kwargs["type"], {})
+        if kwargs.get("type") in (ErrorGroupType.slug, IssueStreamGroupType.slug):
+            detector, _ = Detector.objects.get_or_create(
+                type=kwargs["type"],
+                project=kwargs["project"],
+                defaults={"config": {}, "name": name},
+            )
+            detector.update(config=config, name=name, **kwargs)
+            return detector
 
         return Detector.objects.create(
             name=name,

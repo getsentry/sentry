@@ -6,8 +6,9 @@ from typing import Any
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstream, nodestore
+from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
+from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
@@ -17,7 +18,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -34,20 +34,14 @@ class RetryTask(Exception):
 
 @instrumented_task(
     name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore_and_eventstore",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=deletion_tasks,
-        processing_deadline_duration=60 * 20,
-        retry=Retry(
-            on=(RetryTask,),
-            times=MAX_RETRIES,
-            delay=60 * 5,
-        ),
+    namespace=deletion_tasks,
+    processing_deadline_duration=60 * 20,
+    retry=Retry(
+        on=(RetryTask,),
+        times=MAX_RETRIES,
+        delay=60 * 5,
     ),
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -211,6 +205,51 @@ def delete_events_from_eventstore(
     else:
         eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
         eventstream.backend.end_delete_groups(eventstream_state)
+
+    delete_events_from_eap(organization_id, project_id, group_ids, dataset)
+
+
+def delete_events_from_eap(
+    organization_id: int,
+    project_id: int,
+    group_ids: Sequence[int],
+    dataset: Dataset,
+) -> None:
+    eap_deletion_allowlist = options.get("eventstream.eap.deletion_enabled.organization_allowlist")
+    if organization_id not in eap_deletion_allowlist:
+        return
+
+    try:
+        response = delete_groups_from_eap_rpc(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_ids=group_ids,
+            referrer="deletions.group.eap",
+        )
+        logger.info(
+            "eap.delete_groups.completed",
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_count": len(group_ids),
+                "matching_items_count": response.matching_items_count,
+            },
+        )
+    except Exception as e:
+        logger.exception(
+            "eap.delete_groups.failed",
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_ids": group_ids[:10],
+                "error": str(e),
+            },
+        )
+        metrics.incr(
+            "deletions.eap.failed",
+            tags={"dataset": dataset.value},
+            sample_rate=1.0,
+        )
 
 
 def delete_events_from_eventstore_issue_platform(

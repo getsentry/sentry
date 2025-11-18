@@ -102,7 +102,7 @@ describe('Linkify()', () => {
 
   it('handles html/special characters in text input', () => {
     const url = 'https://www.example.com';
-    const textWithHtml = `Check out this link: <a href="${url}">${url}</a> & don\'t forget to visit us!`;
+    const textWithHtml = `Check out this link: <a href="${url}">${url}</a> & don't forget to visit us!`;
     const {container} = render(renderLinksInText({exceptionText: textWithHtml}));
 
     const linkElements = screen.getAllByText(url);

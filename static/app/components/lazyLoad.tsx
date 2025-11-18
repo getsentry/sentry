@@ -1,8 +1,7 @@
-import type {ErrorInfo} from 'react';
-import {Component, Suspense} from 'react';
-import styled from '@emotion/styled';
+import {Component, Suspense, useEffect, useState, type ErrorInfo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Container, Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -23,6 +22,26 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   loadingFallback?: React.ReactNode | undefined;
 };
 
+function DeferredLoader({
+  children,
+  fallback = null,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoaded(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return loaded ? children : fallback;
+}
+
 /**
  * LazyLoad is used to dynamically load codesplit components via a `import`
  * call. This is primarily used in our routing tree.
@@ -42,9 +61,11 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <LoadingContainer>
-              <LoadingIndicator />
-            </LoadingContainer>
+            <Flex flex="1" align="center" column="1 / -1">
+              <DeferredLoader fallback={<LoadingIndicator style={{display: 'none'}} />}>
+                <LoadingIndicator />
+              </DeferredLoader>
+            </Flex>
           )
         }
       >
@@ -78,6 +99,9 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     if (process.env.NODE_ENV === 'development') {
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
+
+        // Reset lazyload state itself on mount / hot replacement
+        this.handleRetry();
       }
     }
   }
@@ -122,26 +146,16 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   render() {
     if (this.state.hasError) {
       return (
-        <LoadingErrorContainer>
+        <Container flex="1">
           <LoadingError
             onRetry={this.handleRetry}
             message={t('There was an error loading a component.')}
           />
-        </LoadingErrorContainer>
+        </Container>
       );
     }
     return this.props.children;
   }
 }
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
-
-const LoadingErrorContainer = styled('div')`
-  flex: 1;
-`;
 
 export default LazyLoad;

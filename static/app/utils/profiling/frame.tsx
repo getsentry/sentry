@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 const ROOT_KEY = 'sentry root';
-const BROWSER_EXTENSION_REGEXP = /^(\@moz-extension\:\/\/|chrome-extension\:\/\/)/;
+const BROWSER_EXTENSION_REGEXP = /^(@moz-extension:\/\/|chrome-extension:\/\/)/;
 export class Frame {
   readonly key: string | number;
   readonly name: string;

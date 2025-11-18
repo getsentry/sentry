@@ -65,7 +65,7 @@ def convert_rpc_attribute_to_json(
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
-                external_name, _ = translate_internal_to_public_alias(
+                external_name, _, _ = translate_internal_to_public_alias(
                     internal_name, column_type, trace_item_type
                 )
 
@@ -148,7 +148,7 @@ def serialize_meta(
                     item_type = "number"
                 else:
                     item_type = "string"
-                external_name, _ = translate_internal_to_public_alias(
+                external_name, _, _ = translate_internal_to_public_alias(
                     field_key, item_type, trace_item_type
                 )
                 if external_name:

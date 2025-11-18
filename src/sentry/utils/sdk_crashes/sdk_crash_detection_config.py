@@ -53,6 +53,7 @@ class SdkName(Enum):
     Java = "java"
     Native = "native"
     Dart = "dart"
+    Dotnet = "dotnet"
 
 
 @dataclass
@@ -138,6 +139,12 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySDK crash**",
+                ),
+                # [SentrySDKInternal crash] is a testing function causing a crash.
+                # Therefore, we don't want to mark it a as a SDK crash.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentrySDKInternal crash**",
                 ),
                 # SentryCrashExceptionApplicationHelper._crashOnException calls abort() intentionally, which would cause false positives.
                 FunctionAndModulePattern(
@@ -429,6 +436,77 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
         )
         configs.append(dart_config)
+
+    dotnet_options = _get_options(sdk_name=SdkName.Dotnet, has_organization_allowlist=True)
+
+    if dotnet_options:
+        # Unity SDK contains .NET SDK, so the versions must match. 0.24.0 Unity release was
+        # based on 3.22.0 .NET release. From that point on SDK names and frames should be consistent.
+        dotnet_min_sdk_version = "3.22.0"
+        unity_min_sdk_version = "0.24.0"
+
+        dotnet_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Dotnet,
+            project_id=dotnet_options["project_id"],
+            sample_rate=dotnet_options["sample_rate"],
+            organization_allowlist=dotnet_options["organization_allowlist"],
+            sdk_names={
+                "sentry.dotnet": dotnet_min_sdk_version,
+                "sentry.dotnet.android": dotnet_min_sdk_version,
+                "sentry.dotnet.aspnet": dotnet_min_sdk_version,
+                "sentry.dotnet.aspnetcore": dotnet_min_sdk_version,
+                "sentry.dotnet.aspnetcore.grpc": dotnet_min_sdk_version,
+                "sentry.dotnet.cocoa": dotnet_min_sdk_version,
+                "sentry.dotnet.ef": dotnet_min_sdk_version,
+                "sentry.dotnet.extensions.logging": dotnet_min_sdk_version,
+                "sentry.dotnet.google-cloud-function": dotnet_min_sdk_version,
+                "sentry.dotnet.log4net": dotnet_min_sdk_version,
+                "sentry.dotnet.maui": dotnet_min_sdk_version,
+                "sentry.dotnet.nlog": dotnet_min_sdk_version,
+                "sentry.dotnet.serilog": dotnet_min_sdk_version,
+                "sentry.dotnet.xamarin": dotnet_min_sdk_version,
+                "sentry.dotnet.xamarin-forms": dotnet_min_sdk_version,
+                "sentry.dotnet.unity": unity_min_sdk_version,
+                "sentry.unity": unity_min_sdk_version,
+                "sentry.unity.lite": unity_min_sdk_version,
+            },
+            # Report fatal errors, since there are no crashes in Unity
+            report_fatal_errors=True,
+            ignore_mechanism_type=set(),
+            allow_mechanism_type=set(),
+            system_library_path_patterns={
+                # .NET System libraries
+                r"System.**",
+                r"Microsoft.**",
+                r"mscorlib**",
+                r"netstandard**",
+                # Unity engine libraries
+                r"UnityEngine.**",
+                r"UnityEditor.**",
+                # Common .NET Core/Framework paths
+                r"**.NETCoreApp**",
+                r"**.NETFramework**",
+                r"**.NETStandard**",
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns=set(),
+                path_patterns={
+                    # Main Sentry .NET SDK modules
+                    r"Sentry.**",
+                    # Unity-specific Sentry paths (for cases where abs_path is available)
+                    r"**/sentry-unity/**",
+                    r"**/sentry-dotnet/**",
+                },
+                path_replacer=KeepFieldPathReplacer(fields={"module", "package", "filename"}),
+            ),
+            sdk_crash_ignore_matchers={
+                FunctionAndModulePattern(
+                    module_pattern="Sentry.Samples.**",
+                    function_pattern="*",
+                ),
+            },
+        )
+        configs.append(dotnet_config)
 
     return configs
 

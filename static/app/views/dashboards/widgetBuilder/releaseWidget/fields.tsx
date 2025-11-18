@@ -31,10 +31,19 @@ enum SessionMetric {
   USER_CRASHED = 'session.crashed_user',
   SESSION_ERRORED = 'session.errored',
   USER_ERRORED = 'session.errored_user',
+  SESSION_UNHANDLED = 'session.unhandled',
+  USER_UNHANDLED = 'session.unhandled_user',
+  SESSION_UNHEALTHY = 'session.unhealthy',
+  SESSION_ABNORMAL_RATE = 'session.abnormal_rate',
+  USER_ABNORMAL_RATE = 'session.abnormal_user_rate',
+  SESSION_ERRORED_RATE = 'session.errored_rate',
+  USER_ERRORED_RATE = 'session.errored_user_rate',
+  SESSION_UNHANDLED_RATE = 'session.unhandled_rate',
+  USER_UNHANDLED_RATE = 'session.unhandled_user_rate',
 }
 
 export const DERIVED_STATUS_METRICS_PATTERN =
-  /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+  /count_(abnormal|errored|crashed|unhandled|healthy)\((user|session)\)/;
 
 export enum DerivedStatusFields {
   HEALTHY_SESSIONS = 'count_healthy(session)',
@@ -45,6 +54,8 @@ export enum DerivedStatusFields {
   CRASHED_USERS = 'count_crashed(user)',
   ERRORED_SESSIONS = 'count_errored(session)',
   ERRORED_USERS = 'count_errored(user)',
+  UNHANDLED_SESSIONS = 'count_unhandled(session)',
+  UNHANDLED_USERS = 'count_unhandled(user)',
 }
 
 export const FIELD_TO_METRICS_EXPRESSION = {
@@ -58,12 +69,21 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'count_crashed(user)': SessionMetric.USER_CRASHED,
   'count_errored(session)': SessionMetric.SESSION_ERRORED,
   'count_errored(user)': SessionMetric.USER_ERRORED,
+  'count_unhandled(session)': SessionMetric.SESSION_UNHANDLED,
+  'count_unhandled(user)': SessionMetric.USER_UNHANDLED,
   'count_unique(user)': `count_unique(${SessionMetric.USER})`,
   'sum(session)': SessionMetric.SESSION_COUNT,
   'crash_free_rate(session)': SessionMetric.SESSION_CRASH_FREE_RATE,
   'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
   'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
   'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
+  'unhealthy_rate(session)': SessionMetric.SESSION_UNHEALTHY,
+  'abnormal_rate(session)': SessionMetric.SESSION_ABNORMAL_RATE,
+  'abnormal_rate(user)': SessionMetric.USER_ABNORMAL_RATE,
+  'errored_rate(session)': SessionMetric.SESSION_ERRORED_RATE,
+  'errored_rate(user)': SessionMetric.USER_ERRORED_RATE,
+  'unhandled_rate(session)': SessionMetric.SESSION_UNHANDLED_RATE,
+  'unhandled_rate(user)': SessionMetric.USER_UNHANDLED_RATE,
 };
 
 export const METRICS_EXPRESSION_TO_FIELD = invert(FIELD_TO_METRICS_EXPRESSION);
@@ -88,9 +108,14 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_healthy',
       'count_abnormal',
       'count_crashed',
+      'count_unhandled',
       'count_errored',
       'anr_rate',
       'foreground_anr_rate',
+      'unhealthy_rate',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'integer',
   },
@@ -103,7 +128,11 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_healthy',
       'count_abnormal',
       'count_crashed',
+      'count_unhandled',
       'count_errored',
+      'abnormal_rate',
+      'errored_rate',
+      'unhandled_rate',
     ],
     type: 'string',
   },
@@ -191,6 +220,17 @@ export const SESSIONS_OPERATIONS: Readonly<
       },
     ],
   },
+  count_unhandled: {
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
   crash_rate: {
     outputType: 'percentage',
     parameters: [
@@ -203,6 +243,50 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   crash_free_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  unhealthy_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer'], // Hack to prevent the user (string) column from being selected, since it's not supported
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  abnormal_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  errored_rate: {
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  unhandled_rate: {
     outputType: 'percentage',
     parameters: [
       {

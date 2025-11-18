@@ -23,6 +23,7 @@ from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiRetryError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
 )
 from sentry.users.models.identity import Identity
@@ -155,7 +156,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except ApiUnauthorized as e:
                 lifecycle.record_halt(e)
                 return None
-            except ApiForbiddenError as e:
+            except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(e)
                 # Need to re-raise since 403 errors will be returned to user via get_link
                 raise
@@ -215,21 +216,22 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 # Preserve path separators and query params etc.
                 return urlunparse(parsed._replace(path=encoded_path))
 
-            if version:
-                scope.set_tag("stacktrace_link.tried_version", True)
-                source_url = self.check_file(repo, filepath, version)
-                if source_url:
-                    scope.set_tag("stacktrace_link.used_version", True)
-                    return encode_url(source_url)
-
-            scope.set_tag("stacktrace_link.used_version", False)
             try:
+                if version:
+                    scope.set_tag("stacktrace_link.tried_version", True)
+                    source_url = self.check_file(repo, filepath, version)
+                    if source_url:
+                        scope.set_tag("stacktrace_link.used_version", True)
+                        return encode_url(source_url)
+
+                scope.set_tag("stacktrace_link.used_version", False)
                 source_url = self.check_file(repo, filepath, default)
-            except ApiForbiddenError as e:
+            except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 # Similar to the `check_file` implementation, we need to re-raise
                 # for 403 errors as these need to be propagated to the user.
                 lifecycle.record_halt(e)
                 raise
+
             return encode_url(source_url) if source_url else None
 
     def get_codeowner_file(

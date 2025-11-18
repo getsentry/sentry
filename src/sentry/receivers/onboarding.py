@@ -11,6 +11,7 @@ from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, Fir
 from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
+    FirstEventSentEventWithMinifiedStackTraceForProject,
     FirstEventSentForProjectEvent,
 )
 from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
@@ -19,8 +20,13 @@ from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSent
 from sentry.analytics.events.first_log_sent import FirstLogSentEvent
 from sentry.analytics.events.first_new_feedback_sent import FirstNewFeedbackSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
+from sentry.analytics.events.first_release_tag_sent import FirstReleaseTagSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
-from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
+from sentry.analytics.events.first_sourcemaps_sent import (
+    FirstSourcemapsSentEvent,
+    FirstSourcemapsSentEventForProject,
+)
+from sentry.analytics.events.first_trace_metric_sent import FirstTraceMetricSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_created import ProjectCreatedEvent
@@ -52,6 +58,7 @@ from sentry.signals import (
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
+    first_trace_metric_received,
     first_transaction_received,
     integration_added,
     member_invited,
@@ -347,6 +354,20 @@ def record_first_log(project, **kwargs):
     )
 
 
+@first_trace_metric_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_trace_metric"
+)
+def record_first_trace_metric(project, **kwargs):
+    analytics.record(
+        FirstTraceMetricSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+    )
+
+
 # TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
@@ -388,10 +409,11 @@ def record_release_received(project, release, **kwargs):
             return
 
         analytics.record(
-            "first_release_tag.sent",
-            user_id=owner_id,
-            project_id=project.id,
-            organization_id=project.organization_id,
+            FirstReleaseTagSentEvent(
+                user_id=owner_id,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
         )
 
 
@@ -412,13 +434,14 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
     if project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ:
         analytics.record(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
+            FirstEventSentEventWithMinifiedStackTraceForProject(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+            )
         )
 
 
@@ -479,13 +502,14 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
 
         if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
             analytics.record(
-                "first_sourcemaps_for_project.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
+                FirstSourcemapsSentEventForProject(
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
             )
 
 

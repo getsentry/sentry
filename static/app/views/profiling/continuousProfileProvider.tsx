@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
@@ -15,13 +16,7 @@ function isValidDate(date: string): boolean {
   return !isNaN(Date.parse(date));
 }
 
-interface FlamegraphViewProps {
-  children: React.ReactNode;
-}
-
-export default function ProfileAndTransactionProvider(
-  props: FlamegraphViewProps
-): React.ReactElement {
+export default function ProfileAndTransactionProvider(): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
   const location = useLocation();
@@ -72,7 +67,7 @@ export default function ProfileAndTransactionProvider(
             profileTransaction.type === 'resolved' ? profileTransaction.data : null
           }
         />
-        {props.children}
+        <Outlet />
       </ProfileTransactionContext>
     </ContinuousProfileProvider>
   );

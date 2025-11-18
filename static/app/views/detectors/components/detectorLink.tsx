@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
@@ -29,13 +29,14 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {getDetectorSystemCreatedNotice} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
+  openInNewTab?: boolean;
 };
 
 function formatConditionType(condition: MetricCondition) {
@@ -168,7 +169,11 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
-            <DetailItem>{getDuration(dataSource.queryObj.intervalSeconds)}</DetailItem>
+            <DetailItem>
+              {tct('Every [duration]', {
+                duration: getDuration(dataSource.queryObj.intervalSeconds),
+              })}
+            </DetailItem>
           </Fragment>
         );
       })}
@@ -189,10 +194,10 @@ function Details({detector}: {detector: Detector}) {
       return <MetricDetectorDetails detector={detector} />;
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
-    // TODO: Implement details for Cron detectors
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
     case 'error':
+    case 'issue_stream':
       return null;
     default:
       unreachable(detectorType);
@@ -200,17 +205,28 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className}: DetectorLinkProps) {
+export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
+
+  const detectorName =
+    detector.type === 'issue_stream'
+      ? t('All Issues in %s', project?.name || 'project')
+      : detector.name;
+
+  const detectorLink =
+    detector.type === 'issue_stream'
+      ? null
+      : makeMonitorDetailsPathname(org.slug, detector.id);
 
   return (
     <TitleCell
       className={className}
-      name={detector.name}
-      link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      name={detectorName}
+      link={detectorLink}
+      systemCreated={getDetectorSystemCreatedNotice(detector)}
       disabled={!detector.enabled}
+      openInNewTab={openInNewTab}
       details={
         <Fragment>
           {project && (

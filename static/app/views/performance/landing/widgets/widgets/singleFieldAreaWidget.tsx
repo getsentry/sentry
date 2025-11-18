@@ -8,8 +8,6 @@ import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import type {Transform} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,33 +58,28 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
     () => ({
       fields: props.fields[0]!,
       component: provided => (
-        <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
-          {({queryBatching}) => (
-            <EventsRequest
-              {...pick(provided, eventsRequestQueryProps)}
-              includeAllArgs={false}
-              limit={1}
-              queryBatching={queryBatching}
-              includePrevious
-              includeTransformedData
-              partial
-              currentSeriesNames={[field!]}
-              previousSeriesNames={[getPreviousSeriesName(field!)]}
-              query={provided.eventView.getQueryWithAdditionalConditions()}
-              interval={getInterval(
-                {
-                  start: provided.start,
-                  end: provided.end,
-                  period: provided.period,
-                },
-                'medium'
-              )}
-              hideError
-              onError={setPageError}
-              queryExtras={queryExtras}
-            />
+        <EventsRequest
+          {...pick(provided, eventsRequestQueryProps)}
+          includeAllArgs={false}
+          limit={1}
+          includePrevious
+          includeTransformedData
+          partial
+          currentSeriesNames={[field!]}
+          previousSeriesNames={[getPreviousSeriesName(field!)]}
+          query={provided.eventView.getQueryWithAdditionalConditions()}
+          interval={getInterval(
+            {
+              start: provided.start,
+              end: provided.end,
+              period: provided.period,
+            },
+            'medium'
           )}
-        </QueryBatchNode>
+          hideError
+          onError={setPageError}
+          queryExtras={queryExtras}
+        />
       ),
       transform: transformEventsRequestToArea,
     }),
@@ -104,18 +97,13 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
         eventView.fields = props.fields.map(fieldName => ({field: fieldName}));
 
         return (
-          <QueryBatchNode batchProperty="field">
-            {({queryBatching}) => (
-              <DiscoverQuery
-                {...provided}
-                limit={QUERY_LIMIT_PARAM}
-                queryBatching={queryBatching}
-                eventView={eventView}
-                location={location}
-                queryExtras={queryExtras}
-              />
-            )}
-          </QueryBatchNode>
+          <DiscoverQuery
+            {...provided}
+            limit={QUERY_LIMIT_PARAM}
+            eventView={eventView}
+            location={location}
+            queryExtras={queryExtras}
+          />
         );
       },
       transform: transformDiscoverToSingleValue,
@@ -198,13 +186,3 @@ const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSize.xl};
 `;
-
-const unmergeIntoIndividualResults: Transform = (response, queryDefinition) => {
-  const propertyName = Array.isArray(
-    queryDefinition.requestQueryObject.query[queryDefinition.batchProperty]
-  )
-    ? queryDefinition.requestQueryObject.query[queryDefinition.batchProperty][0]
-    : queryDefinition.requestQueryObject.query[queryDefinition.batchProperty];
-
-  return response[propertyName];
-};

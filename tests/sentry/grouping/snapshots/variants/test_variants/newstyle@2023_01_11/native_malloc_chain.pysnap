@@ -1,13 +1,12 @@
 ---
-created: '2025-04-25T21:22:12.050592+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (exception of system takes precedence)
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
@@ -36,7 +35,8 @@ app:
 system:
   hash: "3ff01ce959249abecc6bc8a8f1432b0b"
   contributing component: exception
-  component:
+  hint: None
+  root_component:
     system*
       exception*
         stacktrace*
@@ -46,16 +46,16 @@ system:
           frame*
             function*
               "malloc_zone_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate_from_block"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "nanov2_allocate_from_block.cold.1"
         type (ignored because exception is synthetic)

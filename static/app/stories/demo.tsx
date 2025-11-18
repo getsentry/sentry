@@ -1,13 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...props} data-test-id="storybook-demo" />
 ))`
-  margin-top: 8px;
-  margin-bottom: -16px;
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: -${p => p.theme.space.xl};
   width: 100%;
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -15,8 +13,8 @@ export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: ${space(1)};
-  padding: 64px 16px;
+  gap: ${p => p.theme.space.md};
+  padding: 64px ${p => p.theme.space.xl};
   min-height: 160px;
   max-height: 512px;
   overflow: auto;

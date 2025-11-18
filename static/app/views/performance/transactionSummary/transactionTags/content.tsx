@@ -22,9 +22,11 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
@@ -41,15 +43,17 @@ type Props = {
 
 type TagOption = string;
 
-function TagsPageContent(props: Props) {
-  const {eventView, location, organization, projects} = props;
+function TagsPageContent() {
+  const props = useTransactionSummaryContext();
+  const {eventView, organization, projects} = props;
+  const location = useLocation();
 
   const [aggregateColumn, setAggregateColumn] = useState(
     getTransactionField(SpanOperationBreakdownFilter.NONE, projects, eventView)
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -63,6 +67,7 @@ function TagsPageContent(props: Props) {
           return (
             <InnerContent
               {...props}
+              location={location}
               isLoading={isLoading}
               tableData={tableData}
               aggregateColumn={aggregateColumn}

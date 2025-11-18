@@ -1,0 +1,46 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame (marked out of app by the client)
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame (marked out of app by the client)
+            function*
+              "<lambda>::operator()"
+--------------------------------------------------------------------------
+system:
+  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+        stacktrace*
+          frame (ignored because only 1 frame is considered by custom stack trace rule (family:native max-frames=1))
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame (ignored by built-in stack trace rule (category:indirection -group))
+            function*
+              "<lambda>::operator()"

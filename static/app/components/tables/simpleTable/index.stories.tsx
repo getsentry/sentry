@@ -138,12 +138,16 @@ export default Storybook.story('SimpleTable', story => {
   });
 
   story('Clickable rows', () => {
+    const RowLink = styled(Link)`
+      ${SimpleTable.rowLinkStyle}
+    `;
+
     return (
       <Fragment>
         <p>
-          If you want to make a row clickable then you can wrap it in a{' '}
-          <Storybook.JSXNode name="Link" /> or a raw <Storybook.JSXNode name="button" />,
-          but be sure to set <code>display: contents; pointer: cursor;</code> in the css
+          If you want to make a row clickable then you can wrap one of your cells in a
+          <Storybook.JSXNode name="Link" />, but be sure to set{' '}
+          <code>SimpleTable.rowLinkStyle</code> into the css.
         </p>
         <SimpleTableWithColumns>
           <SimpleTable.Header>
@@ -154,41 +158,22 @@ export default Storybook.story('SimpleTable', story => {
             ))}
           </SimpleTable.Header>
           <SimpleTable.Row>
-            <Link
-              to="#"
-              onClick={e => {
-                // eslint-disable-next-line no-console
-                console.log('clicked a link');
-                e.preventDefault();
-              }}
-              style={{display: 'contents', cursor: 'pointer'}}
-            >
-              <InteractionStateLayer />
-              <SimpleTable.RowCell>
+            <InteractionStateLayer />
+            <SimpleTable.RowCell>
+              <RowLink
+                to="#"
+                onClick={e => {
+                  // eslint-disable-next-line no-console
+                  console.log('clicked a link');
+                  e.preventDefault();
+                }}
+              >
                 Clickable <Storybook.JSXNode name="Link" />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-            </Link>
-          </SimpleTable.Row>
-          <SimpleTable.Row>
-            <button
-              onClick={e => {
-                // eslint-disable-next-line no-console
-                console.log('clicked a button');
-                e.preventDefault();
-              }}
-              style={{display: 'contents', cursor: 'pointer'}}
-            >
-              <InteractionStateLayer />
-              <SimpleTable.RowCell>
-                Clickable <Storybook.JSXNode name="button" />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-              <SimpleTable.RowCell>123</SimpleTable.RowCell>
-            </button>
+              </RowLink>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>123</SimpleTable.RowCell>
+            <SimpleTable.RowCell>123</SimpleTable.RowCell>
+            <SimpleTable.RowCell>123</SimpleTable.RowCell>
           </SimpleTable.Row>
         </SimpleTableWithColumns>
       </Fragment>

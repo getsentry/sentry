@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 
-from django.db import router
+from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -10,14 +10,15 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.environment import Environment
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
-from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
+from sentry.uptime.autodetect.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_uptime_subscription,
@@ -38,6 +39,7 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
+from sentry.uptime.utils import build_fingerprint, build_last_update_key, get_cluster
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -55,8 +57,42 @@ MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
 
 
+def resolve_uptime_issue(detector: Detector) -> None:
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
+
+
 class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
+
+
+def check_uptime_subscription_limit(organization_id: int) -> None:
+    """
+    Check if adding a new manual uptime monitor would exceed the organization's limit.
+    Raises MaxManualUptimeSubscriptionsReached if the limit would be exceeded.
+    """
+    manual_subscription_count = Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
+        enabled=True,
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        project__organization_id=organization_id,
+        config__mode=UptimeMonitorMode.MANUAL,
+    ).count()
+
+    if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        raise MaxManualUptimeSubscriptionsReached
 
 
 class UptimeMonitorNoSeatAvailable(Exception):
@@ -65,14 +101,9 @@ class UptimeMonitorNoSeatAvailable(Exception):
     uptime monitor.
     """
 
-    result: SeatAssignmentResult | None
-    """
-    The assignment result. In rare cases may be None when there is a race
-    condition and seat assignment is not accepted after passing the assignment
-    check.
-    """
+    result: SeatAssignmentResult
 
-    def __init__(self, result: SeatAssignmentResult | None) -> None:
+    def __init__(self, result: SeatAssignmentResult) -> None:
         super().__init__()
         self.result = result
 
@@ -85,7 +116,6 @@ def create_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     trace_sampling: bool = False,
-    uptime_status: UptimeStatus = UptimeStatus.OK,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -109,7 +139,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        uptime_status=uptime_status,
     )
 
     # Associate active regions with this subscription
@@ -120,8 +149,11 @@ def create_uptime_subscription(
             mode=region_config.mode,
         )
 
-    create_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+    def commit_tasks():
+        create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
     return subscription
 
 
@@ -162,8 +194,12 @@ def update_uptime_subscription(
 
     # Associate active regions with this subscription
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
-    update_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+
+    def commit_tasks():
+        update_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
 
 def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
@@ -172,7 +208,10 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     deletion to the external system and remove the row once successful.
     """
     uptime_subscription.update(status=UptimeSubscription.Status.DELETING.value)
-    delete_remote_uptime_subscription.delay(uptime_subscription.id)
+    transaction.on_commit(
+        lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+        using=router.db_for_write(UptimeSubscription),
+    )
 
 
 def create_uptime_detector(
@@ -197,13 +236,6 @@ def create_uptime_detector(
     Creates an UptimeSubscription and associated Detector
     """
     if mode == UptimeMonitorMode.MANUAL:
-        manual_subscription_count = Detector.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
-            project__organization=project.organization,
-            config__mode=UptimeMonitorMode.MANUAL,
-        ).count()
-
         # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
         # onboarding monitors
         if project.organization.get_option("sentry:uptime_autodetection", False):
@@ -213,11 +245,8 @@ def create_uptime_detector(
             ):
                 delete_uptime_detector(detector)
 
-        if (
-            not override_manual_org_limit
-            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
-        ):
-            raise MaxManualUptimeSubscriptionsReached
+        if not override_manual_org_limit:
+            check_uptime_subscription_limit(project.organization_id)
 
     with atomic_transaction(
         using=(
@@ -237,7 +266,6 @@ def create_uptime_detector(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=UptimeStatus.OK,
         )
         owner_user_id = None
         owner_team_id = None
@@ -329,6 +357,7 @@ def update_uptime_detector(
     """
     Updates a uptime detector and its associated uptime subscription.
     """
+
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
@@ -336,7 +365,6 @@ def update_uptime_detector(
         )
     ):
         uptime_subscription = get_uptime_subscription(detector)
-
         update_uptime_subscription(
             uptime_subscription,
             url=url,
@@ -373,15 +401,11 @@ def update_uptime_detector(
                 "mode": mode,
                 "environment": env.name if env else None,
                 "recovery_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD),
+                    detector.config["recovery_threshold"],
                     recovery_threshold,
                 ),
                 "downtime_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD),
+                    detector.config["downtime_threshold"],
                     downtime_threshold,
                 ),
             },
@@ -419,13 +443,18 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         if not detector.enabled:
             return
 
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             # Resolve the issue so that we don't see it in the ui anymore
             resolve_uptime_issue(detector)
 
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_subscription.update(uptime_status=UptimeStatus.OK)
+            # We set the status back to ok here so that if we re-enable we'll
+            # start from a good state
+            detector_state.update(state=DetectorPriorityLevel.OK, is_triggered=False)
+
+        cluster = get_cluster()
+        last_update_key = build_last_update_key(detector)
+        cluster.delete(last_update_key)
 
         detector.update(enabled=False)
 
@@ -447,6 +476,18 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
+def ensure_uptime_seat(detector: Detector) -> None:
+    """
+    Ensures that a billing seat is assigned for the uptime detector.
+
+    Raises UptimeMonitorNoSeatAvailable if no seats are available.
+    """
+    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
+    if outcome != Outcome.ACCEPTED:
+        result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+        raise UptimeMonitorNoSeatAvailable(result)
+
+
 def enable_uptime_detector(
     detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
 ):
@@ -458,24 +499,18 @@ def enable_uptime_detector(
     are no available seats the monitor will be disabled and a
     `UptimeMonitorNoSeatAvailable` will be raised.
 
-    By default if the monitor is already marked as ACTIVE this function is a
+    By default if the detector is already marked as enabled this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     if not ensure_assignment and detector.enabled:
         return
 
     if not skip_quotas:
-        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
-        if not seat_assignment.assignable:
-            disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(seat_assignment)
-
-        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
-        if outcome != Outcome.ACCEPTED:
-            # Race condition, we were unable to assign the seat even though the
-            # earlier assignment check indicated assignability
-            disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(None)
+        try:
+            ensure_uptime_seat(detector)
+        except UptimeMonitorNoSeatAvailable:
+            disable_uptime_detector(detector, skip_quotas=True)
+            raise
 
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
@@ -483,35 +518,31 @@ def enable_uptime_detector(
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
         uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
-        create_remote_uptime_subscription.delay(uptime_subscription.id)
+
+        transaction.on_commit(
+            lambda: create_remote_uptime_subscription.delay(uptime_subscription.id),
+            using=router.db_for_write(UptimeSubscription),
+        )
+
+
+def remove_uptime_seat(detector: Detector):
+    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
 
 
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
-    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+
+    remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
-    remove_uptime_subscription_if_unused(uptime_subscription)
-
-
-def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
-    """
-    Determines if an uptime subscription is no longer used by any detectors and removes it if so
-    """
-    # If the uptime subscription is no longer used, we also remove it.
-    has_active_detectors = Detector.objects.filter(
-        data_sources__source_id=str(uptime_subscription.id),
-        status=ObjectStatus.ACTIVE,
-    ).exists()
-    if not has_active_detectors:
-        delete_uptime_subscription(uptime_subscription)
+    delete_uptime_subscription(uptime_subscription)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
             status=ObjectStatus.ACTIVE,
-            type=UptimeDomainCheckFailure.slug,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project=project,
             config__mode__in=(
                 UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
@@ -539,7 +570,7 @@ def get_auto_monitored_detectors_for_project(
         ]
     return list(
         Detector.objects.filter(
-            type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, project=project, config__mode__in=modes
         )
     )
 

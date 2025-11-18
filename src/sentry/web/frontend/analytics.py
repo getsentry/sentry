@@ -1,9 +1,8 @@
 from sentry import analytics
-from sentry.analytics import Event, eventclass
 
 
-@eventclass("js_sdk_loader.rendered")
-class JsSdkLoaderRendered(Event):
+@analytics.eventclass("js_sdk_loader.rendered")
+class JsSdkLoaderRendered(analytics.Event):
     organization_id: int
     project_id: int
     is_lazy: bool

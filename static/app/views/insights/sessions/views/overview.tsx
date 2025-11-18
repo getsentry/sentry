@@ -11,9 +11,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
   useDomainViewFilters,
@@ -24,6 +22,8 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function SessionsOverview() {
@@ -36,9 +36,8 @@ function SessionsOverview() {
 
   return (
     <Fragment>
-      <ViewSpecificHeader view={view} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
@@ -61,17 +60,6 @@ function SessionsOverview() {
       </Layout.Body>
     </Fragment>
   );
-}
-
-function ViewSpecificHeader({view}: {view: DomainView | ''}) {
-  switch (view) {
-    case FRONTEND_LANDING_SUB_PATH:
-      return <FrontendHeader module={ModuleName.SESSIONS} />;
-    case MOBILE_LANDING_SUB_PATH:
-      return <MobileHeader module={ModuleName.SESSIONS} />;
-    default:
-      return null;
-  }
 }
 
 function ViewSpecificCharts({
@@ -142,6 +130,11 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
+  const hasDashboardsPlatformizedSessionHealth =
+    useHasDashboardsPlatformizedSessionHealth();
+  if (hasDashboardsPlatformizedSessionHealth) {
+    return <PlatformizedSessionsOverview />;
+  }
   return (
     <ModulePageProviders moduleName="sessions">
       <SessionsOverview />

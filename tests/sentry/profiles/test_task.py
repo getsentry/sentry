@@ -847,14 +847,14 @@ def test_set_frames_platform_android() -> None:
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
 @pytest.mark.parametrize(
     "profile",
     ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_emit_profile_duration_outcome(
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
@@ -864,7 +864,7 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     project,
     request,
 ):
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
 
@@ -893,14 +893,14 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
 @pytest.mark.parametrize(
     "profile",
     ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_not_emit_profile_duration_outcome(
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
@@ -911,7 +911,7 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
     project,
     request,
 ):
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
     should_emit_profile_duration_outcome.return_value = False
@@ -941,7 +941,7 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
         assert _track_outcome.call_count == 0
 
 
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.models.projectsdk.get_sdk_index")
 @pytest.mark.parametrize(
@@ -955,14 +955,14 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
 def test_track_latest_sdk(
     get_sdk_index,
     _symbolicate_profile,
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     profile,
     event_type,
     organization,
     project,
     request,
 ):
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _symbolicate_profile.return_value = True
     get_sdk_index.return_value = {
         "sentry.python": {},
@@ -986,7 +986,7 @@ def test_track_latest_sdk(
     )
 
 
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.models.projectsdk.get_sdk_index")
 @pytest.mark.parametrize(
@@ -1001,14 +1001,14 @@ def test_track_latest_sdk(
 def test_unknown_sdk(
     get_sdk_index,
     _symbolicate_profile,
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     platform,
     sdk_name,
     organization,
     project,
     request,
 ):
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _symbolicate_profile.return_value = True
     get_sdk_index.return_value = {
         sdk_name: {},
@@ -1034,19 +1034,19 @@ def test_unknown_sdk(
     )
 
 
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.models.projectsdk.get_sdk_index")
 @django_db_all
 def test_track_latest_sdk_with_payload(
     get_sdk_index: Any,
     _symbolicate_profile: Any,
-    _push_profile_to_vroom: Any,
+    _process_vroomrs_profile: Any,
     organization: Organization,
     project: Project,
     request: Any,
 ) -> None:
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _symbolicate_profile.return_value = True
     get_sdk_index.return_value = {
         "sentry.python": {},
@@ -1078,8 +1078,9 @@ def test_track_latest_sdk_with_payload(
     )
 
 
+@patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
 @pytest.mark.parametrize(
     ["profile", "category", "sdk_version", "dropped"],
@@ -1091,8 +1092,9 @@ def test_track_latest_sdk_with_payload(
     ],
 )
 def test_deprecated_sdks(
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     _track_outcome,
+    _symbolicate_profile: mock.MagicMock,
     profile,
     category,
     sdk_version,
@@ -1108,6 +1110,7 @@ def test_deprecated_sdks(
         "name": "sentry.python",
         "version": sdk_version,
     }
+    _symbolicate_profile.return_value = True
 
     with Feature(
         [
@@ -1124,7 +1127,7 @@ def test_deprecated_sdks(
             process_profile_task(profile=profile)
 
     if dropped:
-        _push_profile_to_vroom.assert_not_called()
+        _process_vroomrs_profile.assert_not_called()
         _track_outcome.assert_called_with(
             profile=profile,
             project=project,
@@ -1133,11 +1136,12 @@ def test_deprecated_sdks(
             reason="deprecated sdk",
         )
     else:
-        _push_profile_to_vroom.assert_called()
+        _process_vroomrs_profile.assert_called()
 
 
+@patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
 @pytest.mark.parametrize(
     ["profile", "category", "sdk_version", "dropped"],
@@ -1149,8 +1153,9 @@ def test_deprecated_sdks(
     ],
 )
 def test_rejected_sdks(
-    _push_profile_to_vroom,
+    _process_vroomrs_profile,
     _track_outcome,
+    _symbolicate_profile: mock.MagicMock,
     profile,
     category,
     sdk_version,
@@ -1166,6 +1171,7 @@ def test_rejected_sdks(
         "name": "sentry.cocoa",
         "version": sdk_version,
     }
+    _symbolicate_profile.return_value = True
 
     with Feature(
         [
@@ -1185,7 +1191,7 @@ def test_rejected_sdks(
             process_profile_task(profile=profile)
 
     if dropped:
-        _push_profile_to_vroom.assert_not_called()
+        _process_vroomrs_profile.assert_not_called()
         _track_outcome.assert_called_with(
             profile=profile,
             project=project,
@@ -1194,19 +1200,19 @@ def test_rejected_sdks(
             reason="rejected sdk",
         )
     else:
-        _push_profile_to_vroom.assert_called()
+        _process_vroomrs_profile.assert_called()
 
 
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
-@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._process_vroomrs_profile")
 @django_db_all
 @pytest.mark.parametrize(
     "profile",
     ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_flip_project_flag(
-    _push_profile_to_vroom: mock.MagicMock,
+    _process_vroomrs_profile: mock.MagicMock,
     _deobfuscate_profile: mock.MagicMock,
     _symbolicate_profile: mock.MagicMock,
     profile,
@@ -1218,7 +1224,7 @@ def test_process_profile_task_should_flip_project_flag(
         "sentry.receivers.onboarding.record_first_profile",
     ) as mock_record_first_profile:
         first_profile_received.connect(mock_record_first_profile, weak=False)
-    _push_profile_to_vroom.return_value = True
+    _process_vroomrs_profile.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
 

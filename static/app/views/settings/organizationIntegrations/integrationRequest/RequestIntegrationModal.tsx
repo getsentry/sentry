@@ -30,7 +30,8 @@ export default function RequestIntegrationModal(props: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const {Header, Body, Footer, name, slug, type, closeModal, onSuccess} = props;
+  const {Header, Body, Footer, CloseButton, name, slug, type, closeModal, onSuccess} =
+    props;
   const endpoint = `/organizations/${organization.slug}/integration-requests/`;
 
   const sendRequestMutation = useMutation({
@@ -70,6 +71,7 @@ export default function RequestIntegrationModal(props: Props) {
     <Fragment>
       <Header>
         <h4>{t('Request %s Installation', name)}</h4>
+        <CloseButton />
       </Header>
       <Body>
         <TextBlock>

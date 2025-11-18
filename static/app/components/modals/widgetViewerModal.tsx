@@ -70,7 +70,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -85,12 +84,14 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetTableRowExploreUrlFunction,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -216,8 +217,6 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-  // let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -399,7 +398,10 @@ function WidgetViewerModal(props: Props) {
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
+    const dashboardFiltersString = dashboardFiltersToString(
+      dashboardFilters,
+      widget.widgetType
+    );
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
@@ -467,6 +469,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -475,6 +479,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   }
 
@@ -494,6 +499,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -502,6 +509,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   };
 
@@ -573,8 +581,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <ReleaseWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -612,9 +618,6 @@ function WidgetViewerModal(props: Props) {
             dashboardFilters={dashboardFilters}
           >
             {({tableResults, loading, pageLinks}) => {
-              // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-              // small hack that improves the concurrency render of the warning triangle
-              // widgetContentLoadingStatus = loading;
               return renderTable({tableResults, loading, pageLinks});
             }}
           </WidgetQueries>
@@ -808,7 +811,6 @@ function WidgetViewerModal(props: Props) {
                   <WidgetHeader>
                     <WidgetTitleRow>
                       <h3>{widget.title}</h3>
-                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip
@@ -929,23 +931,12 @@ function OpenButton({
       break;
   }
 
-  const buttonDisabled =
-    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
-
   return (
-    <Tooltip
-      title={
-        disabledTooltip ??
-        t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        )
-      }
-      disabled={defined(disabled) ? !disabled : !buttonDisabled}
-    >
+    <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
         priority="primary"
-        disabled={disabled || buttonDisabled}
+        disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
@@ -989,13 +980,16 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 }
 
 interface ViewerTableV2Props {
+  dashboardFilters: DashboardFilters | undefined;
   eventView: EventView;
   fields: string[];
   loading: boolean;
   location: Location;
+  modalSelection: PageFilters;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
+  selectedQueryIndex: number;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
@@ -1020,6 +1014,9 @@ function ViewerTableV2({
   eventView,
   theme,
   projects,
+  dashboardFilters,
+  modalSelection,
+  selectedQueryIndex,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1050,7 +1047,7 @@ function ViewerTableV2({
   const datasetConfig = getDatasetConfig(widget.widgetType);
   const aliases = decodeColumnAliases(
     tableColumns,
-    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
       ? datasetConfig?.getFieldHeaderMap?.()
       : {}
@@ -1162,6 +1159,18 @@ function ViewerTableV2({
           } satisfies RenderFunctionBaggage;
         }}
         allowedCellActions={cellActions}
+        onTriggerCellAction={(action, _value, dataRow) => {
+          if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+            const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+              modalSelection,
+              widget,
+              organization,
+              dashboardFilters,
+              selectedQueryIndex
+            );
+            navigate(getExploreUrl(dataRow));
+          }
+        }}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

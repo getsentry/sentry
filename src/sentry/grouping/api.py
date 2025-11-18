@@ -9,13 +9,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.component import (
-    AppGroupingComponent,
-    BaseGroupingComponent,
-    ContributingComponent,
-    DefaultGroupingComponent,
-    SystemGroupingComponent,
-)
+from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     EnhancementsConfig,
@@ -33,7 +27,6 @@ from sentry.grouping.utils import (
 )
 from sentry.grouping.variants import (
     BaseVariant,
-    BuiltInFingerprintVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -45,6 +38,7 @@ from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS
 from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -289,16 +283,9 @@ def apply_server_side_fingerprinting(
 
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
+        # TODO: We don't need to return attributes as part of the fingerprint match anymore
         matched_rule, new_fingerprint, attributes = fingerprint_match
-
-        # A custom title attribute is stored in the event to override the
-        # default title.
-        if "title" in attributes:
-            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
-
-        # Persist the rule that matched with the fingerprint in the event
-        # dictionary for later debugging.
         fingerprint_info["matched_rule"] = matched_rule.to_json()
 
     if fingerprint_info:
@@ -310,7 +297,7 @@ def _get_variants_from_strategies(
 ) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
+    all_strategies_components_by_variant: dict[str, list[ContributingComponent]] = {}
     winning_strategy_components_by_variant = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
@@ -342,9 +329,9 @@ def _get_variants_from_strategies(
                             if component.contributes
                         )
                     )
-                    precedence_hint = "{} take{} precedence".format(
+                    precedence_hint = "ignored because {} take{} precedence".format(
                         (
-                            f"{strategy.name} of {variant_descriptor}"
+                            f"{variant_descriptor} {strategy.name}"
                             if variant_name != "default"
                             else strategy.name
                         ),
@@ -358,12 +345,7 @@ def _get_variants_from_strategies(
     variants = {}
 
     for variant_name, components in all_strategies_components_by_variant.items():
-        component_class_by_variant = {
-            "app": AppGroupingComponent,
-            "default": DefaultGroupingComponent,
-            "system": SystemGroupingComponent,
-        }
-        root_component = component_class_by_variant[variant_name](values=components)
+        root_component = RootGroupingComponent(variant_name=variant_name, values=components)
 
         # The root component will pull its `contributes` value from the components it wraps - if
         # none of them contributes, it will also be marked as non-contributing. But those components
@@ -380,7 +362,7 @@ def _get_variants_from_strategies(
         )
 
         variants[variant_name] = ComponentVariant(
-            component=root_component,
+            root_component=root_component,
             contributing_component=contributing_component,
             strategy_config=context.config,
         )
@@ -417,6 +399,9 @@ def get_grouping_variants_for_event(
         else resolve_fingerprint_values(raw_fingerprint, event.data)
     )
 
+    # Check if the fingerprint includes a custom title, and if so, set the event's title accordingly.
+    _apply_custom_title_if_needed(fingerprint_info, event)
+
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
     context = GroupingContext(config or _load_default_grouping_config(), event)
@@ -433,23 +418,21 @@ def get_grouping_variants_for_event(
     # If it's hybrid, we'll replace the existing variants with "salted" versions which include
     # the fingerprint.
     if fingerprint_type == "custom":
-        matched_rule = fingerprint_info.get("matched_rule", {})
+        matched_rule = fingerprint_info.get("matched_rule")
+        is_built_in_fingerprint = bool(matched_rule and matched_rule.get("is_builtin"))
 
-        if matched_rule and matched_rule.get("is_builtin") is True:
-            additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "built-in"
-        else:
-            additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "custom server" if matched_rule else "custom client"
+        fingerprint_source = (
+            "custom client"
+            if not matched_rule
+            else "built-in" if is_built_in_fingerprint else "custom server"
+        )
+        hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
 
-        hint = f"{fingerprint_source} fingerprint takes precedence"
+        fingerprint_variant = CustomFingerprintVariant(resolved_fingerprint, fingerprint_info)
+        additional_variants[fingerprint_variant.key] = fingerprint_variant
 
         for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint=hint)
+            variant.root_component.update(contributes=False, hint=hint)
 
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():
@@ -470,6 +453,18 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def _apply_custom_title_if_needed(fingerprint_info: FingerprintInfo, event: Event) -> None:
+    """
+    If the given event has a custom fingerprint which includes a title template, apply the custom
+    title to the event.
+    """
+    custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+    if custom_title_template:
+        resolved_title = expand_title_template(custom_title_template, event.data)
+        event.data["title"] = resolved_title
 
 
 def get_contributing_variant_and_component(

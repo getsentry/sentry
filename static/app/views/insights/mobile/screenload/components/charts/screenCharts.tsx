@@ -9,15 +9,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {type EventsMetaType} from 'sentry/utils/discover/eventView';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 // TODO(release-drawer): Only used in mobile/screenload/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNSpanMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
@@ -48,6 +48,7 @@ const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 
 export function ScreenCharts({additionalFilters}: Props) {
   const theme = useTheme();
+  const colorPalette = theme.chart.getColorPalette(4);
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
   const {
@@ -78,27 +79,29 @@ export function ScreenCharts({additionalFilters}: Props) {
     secondaryRelease,
   ]);
 
-  const search = new MutableSearch(queryString);
+  const query = new MutableSearch(queryString);
   const groupBy = SpanFields.RELEASE;
   const referrer = Referrer.SCREENLOAD_LANDING_DURATION_CHART;
 
   const {
-    data: releaseSeriesArray,
+    data,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNSpanMultiSeries(
+  } = useFetchSpanTimeSeries(
     {
-      fields: [groupBy],
-      topN: 2,
+      groupBy: [groupBy],
+      topEvents: 2,
       yAxis: [
         'avg(measurements.time_to_initial_display)',
         'avg(measurements.time_to_full_display)',
         'count()',
       ],
-      search,
+      query,
     },
     referrer
   );
+
+  const timeSeries = data?.timeSeries ?? [];
 
   useEffect(() => {
     if (defined(primaryRelease) || isReleasesLoading) {
@@ -116,7 +119,7 @@ export function ScreenCharts({additionalFilters}: Props) {
     | 'avg(measurements.time_to_initial_display)'
     | 'avg(measurements.time_to_full_display)'
     | 'count()',
-    DiscoverSeries[]
+    TimeSeries[]
   > = {
     'avg(measurements.time_to_initial_display)': [],
     'avg(measurements.time_to_full_display)': [],
@@ -124,50 +127,46 @@ export function ScreenCharts({additionalFilters}: Props) {
   };
 
   let chartAliases = {};
-  const meta: EventsMetaType = {
-    fields: {},
-    units: {},
-  };
 
-  if (defined(releaseSeriesArray)) {
-    releaseSeriesArray.forEach(release => {
-      const releaseName = release.name;
-      const isPrimary = releaseName === primaryRelease;
-      const colors = theme.chart.getColorPalette(3);
-      const color = isPrimary ? colors[0] : colors[1];
-      const version = formatVersion(releaseName, true);
+  timeSeries.forEach(release => {
+    const releaseName =
+      typeof release.groupBy?.[0]?.value === 'string' ? release.groupBy?.[0]?.value : '';
+    if (!releaseName) {
+      return;
+    }
 
-      const seriesNames = [
-        'avg(measurements.time_to_initial_display)',
-        'avg(measurements.time_to_full_display)',
-        'count()',
-      ] as const;
+    const isPrimary = releaseName === primaryRelease;
+    const version = formatVersion(releaseName, true);
 
-      seriesNames.forEach(seriesName => {
-        const releaseSeries = release.data[seriesName];
-        const newSeriesName = `${seriesName} ${version}`;
-        chartAliases = {
-          ...chartAliases,
-          [newSeriesName]: version,
-        };
+    const validYAxisValues = [
+      'avg(measurements.time_to_initial_display)',
+      'avg(measurements.time_to_full_display)',
+      'count()',
+    ];
 
-        if (releaseSeries.meta?.fields[seriesName]) {
-          meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
-        }
+    if (!validYAxisValues.includes(release.yAxis)) {
+      return;
+    }
 
-        if (releaseSeries.meta?.units[seriesName]) {
-          meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
-        }
+    const yAxis = release.yAxis as
+      | 'avg(measurements.time_to_initial_display)'
+      | 'avg(measurements.time_to_full_display)'
+      | 'count()';
 
-        seriesMap[seriesName].push({
-          data: releaseSeries.data,
-          meta,
-          color,
-          seriesName: newSeriesName,
-        });
-      });
-    });
-  }
+    const plottableName = formatTimeSeriesName(release);
+
+    // This ensures the primary release is always the first in the series, which will give it the first color.
+    if (isPrimary) {
+      seriesMap[yAxis] = [release, ...seriesMap[yAxis]];
+    } else {
+      seriesMap[yAxis] = [...seriesMap[yAxis], release];
+    }
+
+    chartAliases = {
+      ...chartAliases,
+      [plottableName]: version,
+    };
+  });
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
@@ -187,40 +186,43 @@ export function ScreenCharts({additionalFilters}: Props) {
     return (
       <Fragment>
         <ChartContainer>
-          <ScreensBarChart search={search} type="ttid" chartHeight={150} />
+          <ScreensBarChart search={query} type="ttid" chartHeight={150} />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={t('Average TTID')}
-            series={seriesMap['avg(measurements.time_to_initial_display)']}
+            timeSeries={seriesMap['avg(measurements.time_to_initial_display)']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={CHART_TITLES[YAxis.COUNT]}
-            series={seriesMap['count()']}
+            timeSeries={seriesMap['count()']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
-          <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
+          <ScreensBarChart search={query} type="ttfd" chartHeight={150} />
           <InsightsLineChartWidget
-            queryInfo={{search, groupBy: [groupBy], referrer}}
+            queryInfo={{search: query, groupBy: [groupBy], referrer}}
             title={t('Average TTFD')}
-            series={seriesMap['avg(measurements.time_to_full_display)']}
+            timeSeries={seriesMap['avg(measurements.time_to_full_display)']}
             isLoading={isSeriesLoading}
             error={seriesError}
+            colorPalette={colorPalette}
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
         </ChartContainer>
       </Fragment>

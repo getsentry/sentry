@@ -11,7 +11,6 @@ from sentry.seer.similarity.grouping_records import (
 from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
 
@@ -20,15 +19,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.delete_seer_grouping_records_by_hash",
-    queue="delete_seer_grouping_records_by_hash",
-    max_retries=0,  # XXX: Why do we not retry?
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * (15 + 5),
     silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * (15 + 5),
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=60 * (15 + 5),
-    ),
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
@@ -94,15 +87,9 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
 
 @instrumented_task(
     name="sentry.tasks.call_seer_delete_project_grouping_records",
-    queue="delete_seer_grouping_records_by_hash",
-    max_retries=0,
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * (15 + 5),
     silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * (15 + 5),
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=60 * (15 + 5),
-    ),
 )
 def call_seer_delete_project_grouping_records(
     project_id: int,

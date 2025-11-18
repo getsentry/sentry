@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   useCallback,
   useEffect,
@@ -12,13 +11,15 @@ import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 import Color from 'color';
 
+import {Text} from '@sentry/scraps/text';
+
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid, type FlexProps} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -63,6 +64,12 @@ enum EventGraphSeries {
 interface EventGraphProps {
   event: Event | undefined;
   group: Group;
+  /**
+   * Configures showing releases on the chart as bubbles or lines. This is used
+   * when showing the chart inside of the flyout drawer. Bubbles are shown when
+   * this prop is anything besides "line".
+   */
+  showReleasesAs: 'line' | 'bubble';
   className?: string;
   /**
    * Disables navigation via router when the chart is zoomed. This is so the
@@ -73,12 +80,6 @@ interface EventGraphProps {
   disableZoomNavigation?: boolean;
   eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
-  /**
-   * Configures showing releases on the chart as bubbles or lines. This is used
-   * when showing the chart inside of the flyout drawer. Bubbles are shown when
-   * this prop is anything besides "line".
-   */
-  showReleasesAs?: 'line' | 'bubble';
   /**
    * Enable/disables showing the event and user summary
    */
@@ -301,9 +302,10 @@ export function EventGraph({
     onReleaseClick: handleReleaseLineClick,
   });
 
+  // always show flag lines regardless of release line/bubble display
   const flagSeries = useFlagSeries({
     event,
-    flags: shouldShowBubbles ? [] : flags,
+    flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -475,49 +477,43 @@ export function EventGraph({
 
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
-      <GraphWrapper {...styleProps}>
+      <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
             <GraphButton
-              isActive={visibleSeries === EventGraphSeries.EVENT}
               disabled
+              isActive={visibleSeries === EventGraphSeries.EVENT}
               label={t('Events')}
             />
             <GraphButton
-              isActive={visibleSeries === EventGraphSeries.USER}
               disabled
+              isActive={visibleSeries === EventGraphSeries.USER}
               label={t('Users')}
             />
           </SummaryContainer>
         ) : (
           <div />
         )}
-        <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
-        </LoadingChartContainer>
-      </GraphWrapper>
+        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
+          <Placeholder height="90px" testId="event-graph-loading" />
+        </Flex>
+      </Grid>
     );
   }
 
   return (
-    <GraphWrapper {...styleProps}>
+    <Grid columns="auto 1fr" {...styleProps}>
       {showSummary ? (
         <SummaryContainer>
           <GraphButton
-            onClick={() =>
-              visibleSeries === EventGraphSeries.USER &&
-              setVisibleSeries(EventGraphSeries.EVENT)
-            }
+            onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
             isActive={visibleSeries === EventGraphSeries.EVENT}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
-            onClick={() =>
-              visibleSeries === EventGraphSeries.EVENT &&
-              setVisibleSeries(EventGraphSeries.USER)
-            }
+            onClick={() => setVisibleSeries(EventGraphSeries.USER)}
             isActive={visibleSeries === EventGraphSeries.USER}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
@@ -591,7 +587,7 @@ export function EventGraph({
             : chartZoomProps)}
         />
       </ChartContainer>
-    </GraphWrapper>
+    </Grid>
   );
 }
 
@@ -605,32 +601,39 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
+  const theme = useTheme();
+  const textVariant = theme.isChonk ? undefined : props.disabled ? 'accent' : 'muted';
+
   return (
     <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex direction="column">
-        <Label isActive={isActive}>{label}</Label>
-        <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
+      <Flex direction="column" gap="xs">
+        <Text size="sm" variant={textVariant}>
+          {label}
+        </Text>
+        <Text size="lg" variant={textVariant}>
+          {count ? formatAbbreviatedNumber(count) : '-'}
+        </Text>
       </Flex>
     </CalloutButton>
   );
 }
 
-const GraphWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-`;
-
-const SummaryContainer = styled('div')`
-  display: flex;
-  gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
-  flex-direction: column;
-  margin: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-`;
+function SummaryContainer(props: FlexProps) {
+  const theme = useTheme();
+  return (
+    <Flex
+      padding="lg xs lg lg"
+      direction="column"
+      gap={theme.isChonk ? 'sm' : 'xs'}
+      radius="md"
+      {...props}
+    />
+  );
+}
 
 const CalloutButton = withChonk(
   styled(Button)<{isActive: boolean}>`
@@ -654,20 +657,6 @@ const CalloutButton = withChonk(
   `
 );
 
-const Label = styled('div')<{isActive: boolean}>`
-  line-height: 1;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
-`;
-
-const Count = styled('div')<{isActive: boolean}>`
-  line-height: 1;
-  margin-top: ${p => p.theme.space.xs};
-  font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
-`;
-
 const ChartContainer = styled('div')`
   position: relative;
   padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
@@ -678,13 +667,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const LoadingChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const GraphAlert = styled(Alert)`
+export const GraphAlert = styled(Alert)`
   padding-left: ${p => p.theme.space['2xl']};
   margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;

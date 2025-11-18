@@ -5,7 +5,6 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -87,9 +86,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)
 
-        if field == "project" and features.has(
-            "organizations:jira-paginated-projects", organization, actor=request.user
-        ):
+        if field == "project":
             try:
                 response = jira_client.get_projects_paginated(params={"query": query})
             except (ApiUnauthorized, ApiError):

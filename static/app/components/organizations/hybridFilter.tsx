@@ -53,6 +53,11 @@ export interface HybridFilterProps<Value extends SelectKey>
    */
   disableCommit?: boolean;
   /**
+   * Additional staged changes from external state that should trigger
+   * the Apply/Cancel buttons.
+   */
+  hasExternalChanges?: boolean;
+  /**
    * Message to show in the menu footer
    */
   menuFooterMessage?: ((hasStagedChanges: any) => React.ReactNode) | React.ReactNode;
@@ -68,6 +73,7 @@ export interface HybridFilterProps<Value extends SelectKey>
    */
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
+  storageNamespace?: string;
 }
 
 /**
@@ -95,6 +101,7 @@ export function HybridFilter<Value extends SelectKey>({
   checkboxWrapper,
   checkboxPosition,
   disableCommit,
+  hasExternalChanges = false,
   ...selectProps
 }: HybridFilterProps<Value>) {
   /**
@@ -106,6 +113,7 @@ export function HybridFilter<Value extends SelectKey>({
   const [stagedValue, setStagedValue] = useState<Value[]>([]);
 
   // Update `stagedValue` whenever the external `value` changes
+  // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
   useEffect(() => setStagedValue(value), [value]);
 
   useEffect(() => {
@@ -113,11 +121,13 @@ export function HybridFilter<Value extends SelectKey>({
   }, [onStagedValueChange, stagedValue]);
 
   /**
-   * Whether there are staged, uncommitted changes. Used to determine whether we should
-   * show the "Cancel"/"Apply" buttons.
+   * Whether there are staged, uncommitted changes, or external changes. Used to determine
+   * whether we should show the "Cancel"/"Apply" buttons.
    */
   const hasStagedChanges =
-    stagedValue.length !== value.length || !stagedValue.every(val => value.includes(val));
+    stagedValue.length !== value.length ||
+    !stagedValue.every(val => value.includes(val)) ||
+    hasExternalChanges;
 
   const commit = useCallback(
     (val: Value[]) => {

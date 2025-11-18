@@ -72,7 +72,7 @@ function EditPreviewHighlightSection({
       const newRows = data.map(item => (
         <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
           <EditButton
-            aria-label={`Remove from highlights`}
+            aria-label="Remove from highlights"
             icon={<IconSubtract />}
             size="xs"
             onClick={() => onRemoveContextKey(alias, item.key)}
@@ -100,7 +100,7 @@ function EditPreviewHighlightSection({
   const highlightTagRows = highlightTagItems.map(content => (
     <Fragment key={`edit-highlight-tag-${content.originalTag.key}`}>
       <EditButton
-        aria-label={`Remove from highlights`}
+        aria-label="Remove from highlights"
         icon={<IconSubtract />}
         size="xs"
         onClick={() => onRemoveTag(content.originalTag.key)}

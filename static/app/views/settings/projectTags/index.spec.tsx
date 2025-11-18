@@ -12,7 +12,7 @@ import {
 import ProjectTags from 'sentry/views/settings/projectTags';
 
 describe('ProjectTags', () => {
-  const {organization: org, project, routerProps} = initializeOrg();
+  const {organization: org, project} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -33,7 +33,16 @@ describe('ProjectTags', () => {
   });
 
   it('renders', () => {
-    render(<ProjectTags {...routerProps} />);
+    render(<ProjectTags />, {
+      organization: org,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
   });
 
   it('renders empty', async () => {
@@ -49,13 +58,29 @@ describe('ProjectTags', () => {
       body: [],
     });
 
-    render(<ProjectTags {...routerProps} />);
+    render(<ProjectTags />, {
+      organization: org,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
     expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('disables delete button for users without access', async () => {
-    render(<ProjectTags {...routerProps} />, {
+    render(<ProjectTags />, {
       organization: OrganizationFixture({access: []}),
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
     });
 
     (await screen.findAllByRole('button', {name: 'Remove tag'})).forEach(button =>
@@ -64,7 +89,16 @@ describe('ProjectTags', () => {
   });
 
   it('deletes tag', async () => {
-    render(<ProjectTags {...routerProps} />);
+    render(<ProjectTags />, {
+      organization: org,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/projects/${project.slug}/tags/`,
+        },
+        route: '/settings/projects/:projectId/tags/',
+      },
+    });
 
     // First tag exists
     const tagCount = (await screen.findAllByTestId('tag-row')).length;

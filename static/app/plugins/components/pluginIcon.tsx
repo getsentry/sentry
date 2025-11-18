@@ -4,6 +4,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
+import cursor from 'sentry-logos/logo-cursor.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
@@ -22,6 +23,7 @@ import redmine from 'sentry-logos/logo-redmine.svg';
 import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
+import splunk from 'sentry-logos/logo-splunk.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -40,6 +42,7 @@ const PLUGIN_ICONS = {
   webhooks: sentry,
   'amazon-sqs': aws,
   aws_lambda: aws,
+  cursor,
   asana,
   bitbucket,
   bitbucket_pipelines: bitbucket,
@@ -60,6 +63,7 @@ const PLUGIN_ICONS = {
   redmine,
   segment,
   slack,
+  splunk,
   trello,
   twilio,
   visualstudio,

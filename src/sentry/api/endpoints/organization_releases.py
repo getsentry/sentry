@@ -46,6 +46,7 @@ from sentry.models.release import (
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
@@ -268,18 +269,20 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=40, window=1),
-            RateLimitCategory.USER: RateLimit(limit=40, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=40, window=1),
+                RateLimitCategory.USER: RateLimit(limit=40, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+            },
+        }
+    )
 
     SESSION_SORTS = frozenset(
         [

@@ -3,9 +3,10 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from jsonschema import ValidationError, validate
@@ -27,6 +28,11 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class ActionSnapshot(TypedDict):
+    id: int
+    type: Action.Type
 
 
 class ActionManager(BaseManager["Action"]):
@@ -99,6 +105,23 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     status = BoundedPositiveIntegerField(
         db_default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
+
+    class Meta:
+        indexes = [
+            models.Index(
+                "type",
+                models.expressions.RawSQL("config->>'sentry_app_identifier'", []),
+                models.expressions.RawSQL("config->>'target_identifier'", []),
+                condition=Q(type="sentry_app"),
+                name="action_sentry_app_lookup",
+            ),
+        ]
+
+    def get_snapshot(self) -> ActionSnapshot:
+        return {
+            "id": self.id,
+            "type": Action.Type(self.type),
+        }
 
     def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)

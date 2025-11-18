@@ -1,7 +1,10 @@
-import {isValidElement, useEffect, useState} from 'react';
+import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,6 +24,8 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -156,6 +161,10 @@ export function GroupSummary({
     organization.slug,
   ]);
 
+  useRouteAnalyticsParams({
+    has_summary: Boolean(data && !isPending && !isError),
+  });
+
   if (preview) {
     return <GroupSummaryPreview data={data} isPending={isPending} isError={isError} />;
   }
@@ -206,7 +215,9 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
+                  <AiPrivacyTooltip showUnderline isHoverable>
+                    <CardTitleText>{card.title}</CardTitleText>
+                  </AiPrivacyTooltip>
                 </CardTitle>
                 <CardContentContainer>
                   <CardLineDecorationWrapper>
@@ -258,7 +269,7 @@ function GroupSummaryCollapsed({
     setIsExpanded(!isExpanded);
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setIsExpanded(!defaultCollapsed);
   }, [defaultCollapsed]);
 
@@ -286,17 +297,29 @@ function GroupSummaryCollapsed({
             </CollapsedHeaderContent>
           </CollapsedHeader>
 
-          <ExpandableContent isExpanded={isExpanded}>
-            <GroupSummaryFull
-              group={group}
-              project={project}
-              data={data}
-              isPending={isPending}
-              isError={isError}
-              preview={false}
-              setForceEvent={setForceEvent}
-              event={event}
-            />
+          <ExpandableContent
+            initial={false}
+            animate={{height: isExpanded ? 'auto' : 0}}
+            transition={testableTransition({
+              type: 'spring',
+              damping: 50,
+              stiffness: 600,
+              bounce: 0,
+              visualDuration: 0.4,
+            })}
+          >
+            <Flex paddingTop="lg">
+              <GroupSummaryFull
+                group={group}
+                project={project}
+                data={data}
+                isPending={isPending}
+                isError={isError}
+                preview={false}
+                setForceEvent={setForceEvent}
+                event={event}
+              />
+            </Flex>
           </ExpandableContent>
         </CollapsedContent>
       )}
@@ -527,14 +550,6 @@ const ChevronIcon = styled('div')`
   flex-shrink: 0;
 `;
 
-const ExpandableContent = styled('div')<{isExpanded: boolean}>`
-  max-height: ${p => (p.isExpanded ? '1000px' : '0')};
+const ExpandableContent = styled(motion.div)`
   overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
-
-  ${p =>
-    p.isExpanded &&
-    `
-    padding-top: ${p.theme.space.lg};
-  `}
 `;

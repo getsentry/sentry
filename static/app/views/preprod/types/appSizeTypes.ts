@@ -2,10 +2,13 @@
  * API response types
  */
 
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
-  insights?: AppleInsightResults;
+  insights?: InsightResults;
+  missing_dsym_binaries?: string[];
 }
 
 // Keep in sync with https://github.com/getsentry/sentry/blob/a85090d7b81832982b43a35c30db9970a0258e99/src/sentry/preprod/models.py#L382
@@ -16,7 +19,7 @@ export enum SizeAnalysisComparisonState {
   FAILED = 3,
 }
 
-interface SizeAnalysisComparison {
+export interface SizeAnalysisComparison {
   base_size_metric_id: number;
   comparison_id: number | null;
   error_code: string | null;
@@ -28,9 +31,18 @@ interface SizeAnalysisComparison {
 }
 
 export interface SizeComparisonApiResponse {
-  base_artifact_id: number;
+  base_build_details: BuildDetailsApiResponse;
   comparisons: SizeAnalysisComparison[];
-  head_artifact_id: number;
+  head_build_details: BuildDetailsApiResponse;
+}
+
+export function isSizeAnalysisComparisonInProgress(
+  sizeComparison: SizeAnalysisComparison | undefined
+): boolean {
+  return (
+    sizeComparison?.state === SizeAnalysisComparisonState.PENDING ||
+    sizeComparison?.state === SizeAnalysisComparisonState.PROCESSING
+  );
 }
 
 /**
@@ -59,10 +71,12 @@ export enum TreemapType {
   FILES = 'files',
   EXECUTABLES = 'executables',
   RESOURCES = 'resources',
+  LOCALIZATIONS = 'localizations',
   ASSETS = 'assets',
   MANIFESTS = 'manifests',
   SIGNATURES = 'signatures',
   FONTS = 'fonts',
+  AUDIO = 'audio',
 
   // iOS-specific categories
   FRAMEWORKS = 'frameworks',
@@ -144,14 +158,14 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
 export interface OptimizableImageFile {
-  best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
+  colorspace: string | null;
   conversion_savings: number;
   current_size: number;
   file_path: string;
   heic_size: number | null;
+  idiom: string | null;
   minified_size: number | null;
   minify_savings: number;
-  potential_savings: number;
 }
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {
@@ -175,7 +189,10 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-export interface AppleInsightResults {
+interface MultipleNativeLibraryArchsInsightResult extends FilesInsightResult {}
+
+export interface InsightResults {
+  alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
   hermes_debug_info?: HermesDebugInfoInsightResult;
@@ -187,6 +204,7 @@ export interface AppleInsightResults {
   localized_strings_minify?: LocalizedStringCommentsInsightResult;
   loose_images?: LooseImagesInsightResult;
   main_binary_exported_symbols?: MainBinaryExportMetadataResult;
+  multiple_native_library_archs?: MultipleNativeLibraryArchsInsightResult;
   small_files?: SmallFilesInsightResult;
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;

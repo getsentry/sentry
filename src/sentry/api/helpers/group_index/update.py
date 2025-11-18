@@ -25,7 +25,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
@@ -206,12 +206,9 @@ def update_groups(
     status = result.get("status")
     res_type = None
     if "priority" in result:
-        if any(
-            not get_group_type_by_type_id(group.type).enable_user_priority_changes
-            for group in groups
-        ):
+        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
             return Response(
-                {"detail": "Cannot manually set priority of a metric issue."},
+                {"detail": "Cannot manually set priority of one or more issues."},
                 status=HTTPStatus.BAD_REQUEST,
             )
 
@@ -222,6 +219,12 @@ def update_groups(
             project_lookup=project_lookup,
         )
     if status in ("resolved", "resolvedInNextRelease"):
+        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
+            return Response(
+                {"detail": "Cannot manually resolve one or more issues."},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
         try:
             result, res_type = handle_resolve_in_release(
                 status,
@@ -537,6 +540,10 @@ def process_group_resolution(
                     # in release
                     resolution_params.update(
                         {
+                            "release": Release.objects.filter(
+                                organization_id=release.organization_id,
+                                version=current_release_version,
+                            ).get(),
                             "type": GroupResolution.Type.in_release,
                             "status": GroupResolution.Status.resolved,
                         }

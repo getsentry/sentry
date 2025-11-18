@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CodeBlock} from 'sentry/components/core/code';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -11,14 +11,14 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 export default Storybook.story('FoldSection', story => {
   story('Usage', () => (
     <Fragment>
-      <CodeSnippet language="jsx">
+      <CodeBlock language="jsx">
         {`import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 <FoldSection title="My Section" sectionKey={SectionKey.MY_SECTION}>
   <MySectionComponent />
 </FoldSection>`}
-      </CodeSnippet>
+      </CodeBlock>
       <p>
         The <code>SectionKey</code> required in props is used to create a local storage
         state key to remember the user's previous state for the fold section.
@@ -32,11 +32,11 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         <FoldSection title="Default Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <Lorem />
         </FoldSection>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<FoldSection title="Default Section" sectionKey={SectionKey.MY_SECTION}>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -74,11 +74,11 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         >
           <Lorem />
         </FoldSection>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<FoldSection title="Prevent Collapse Section" sectionKey={SectionKey.MY_SECTION} preventCollapse>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -93,11 +93,11 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         >
           <Lorem />
         </FoldSection>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<FoldSection title="Disable Persistence Section" sectionKey={SectionKey.MY_SECTION} disableCollapsePersistence>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -130,11 +130,11 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         >
           <Lorem />
         </FoldSection>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<FoldSection title={<CustomTitle />} actions={<ButtonBar />} sectionKey={SectionKey.MY_SECTION}>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -154,11 +154,11 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         >
           <Lorem />
         </FoldSection>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<FoldSection title="Initially Collapsed Section" sectionKey={SectionKey.MY_SECTION} initialCollapse>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });

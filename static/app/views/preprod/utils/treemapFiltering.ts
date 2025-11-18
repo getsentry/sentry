@@ -1,4 +1,4 @@
-import type {TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
+import type {TreemapElement, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
 type SearchCtx = {
   hasPath: boolean;
@@ -15,18 +15,22 @@ type SearchCtx = {
 export function filterTreemapElement(
   element: TreemapElement,
   searchQuery: string,
-  parentPath = ''
+  parentPath = '',
+  selectedCategories?: Set<TreemapType>
 ): TreemapElement | null {
   const ctx = makeSearchCtx(searchQuery);
-  if (!ctx.term) return element;
+  const hasSearchFilter = !!ctx.term;
+  const hasCategoryFilter = selectedCategories && selectedCategories.size > 0;
+
+  if (!hasSearchFilter && !hasCategoryFilter) return element;
 
   // Root is a special case, only keep if children match.
   if (parentPath === '') {
-    const filteredChildren = filterChildren(element.children, ctx, 0);
+    const filteredChildren = filterChildren(element.children, ctx, 0, selectedCategories);
     return filteredChildren.length ? {...element, children: filteredChildren} : null;
   }
 
-  const filtered = filterNode(element, ctx, 0);
+  const filtered = filterNode(element, ctx, 0, selectedCategories);
   return filtered;
 }
 
@@ -73,20 +77,39 @@ function currentNodeMatches(
   return needed ? nodeNameLC.includes(needed) : false; // must advance to count as a match
 }
 
+function categoryMatches(
+  element: TreemapElement,
+  selectedCategories?: Set<TreemapType>
+): boolean {
+  if (!selectedCategories || selectedCategories.size === 0) return true;
+  return selectedCategories.has(element.type);
+}
+
 function filterNode(
   element: TreemapElement,
   ctx: SearchCtx,
-  pathIdx: number
+  pathIdx: number,
+  selectedCategories?: Set<TreemapType>
 ): TreemapElement | null {
   const nameLC = element.name.toLowerCase();
   const currentMatches = currentNodeMatches(nameLC, ctx, pathIdx);
   const nextIdx = ctx.hasPath ? advancePathIdx(nameLC, ctx.parts, pathIdx) : pathIdx;
   const currentDirectlyMatches = directNameMatch(nameLC, ctx);
+  const categoryOk = categoryMatches(element, selectedCategories);
+
+  if (!categoryOk && !element.children?.length) {
+    return null;
+  }
+
+  if (!ctx.term) {
+    const kids = filterChildren(element.children, ctx, pathIdx, selectedCategories);
+    return !categoryOk && kids.length === 0 ? null : {...element, children: kids};
+  }
 
   // Exact search: keep node but only with matching descendants.
   if (currentMatches && ctx.isExact) {
-    const kids = filterChildren(element.children, ctx, nextIdx);
-    return {...element, children: kids};
+    const kids = filterChildren(element.children, ctx, nextIdx, selectedCategories);
+    return !categoryOk && kids.length === 0 ? null : {...element, children: kids};
   }
 
   if (currentMatches && currentDirectlyMatches) {
@@ -97,36 +120,37 @@ function filterNode(
       nameLC.endsWith('.bundle') ||
       nameLC.endsWith('.plugin');
 
-    if (isAppContainer) {
-      const kids = filterChildren(element.children, ctx, nextIdx);
-      return {...element, children: kids};
+    if (categoryOk && !isAppContainer && !selectedCategories?.size) {
+      // Regular folders: include all children as-is (avoid cloning if not needed).
+      // Return a new object to preserve immutability of the node, but reuse children ref.
+      return {...element, children: element.children};
     }
 
-    // Regular folders: include all children as-is (avoid cloning if not needed).
-    // Return a new object to preserve immutability of the node, but reuse children ref.
-    return {...element, children: element.children};
+    const kids = filterChildren(element.children, ctx, nextIdx, selectedCategories);
+    return !categoryOk && kids.length === 0 ? null : {...element, children: kids};
   }
 
   if (currentMatches) {
     // Intermediate path matches: filter children recursively.
-    const kids = filterChildren(element.children, ctx, nextIdx);
-    return {...element, children: kids};
+    const kids = filterChildren(element.children, ctx, nextIdx, selectedCategories);
+    return !categoryOk && kids.length === 0 ? null : {...element, children: kids};
   }
 
   // Current node doesn’t match: try children.
-  const kids = filterChildren(element.children, ctx, nextIdx);
+  const kids = filterChildren(element.children, ctx, nextIdx, selectedCategories);
   return kids.length ? {...element, children: kids} : null;
 }
 
 function filterChildren(
   children: TreemapElement[] | undefined,
   ctx: SearchCtx,
-  pathIdx: number
+  pathIdx: number,
+  selectedCategories?: Set<TreemapType>
 ): TreemapElement[] {
   if (!children || children.length === 0) return [];
   const out: TreemapElement[] = [];
   for (const child of children) {
-    const filtered = filterNode(child, ctx, pathIdx);
+    const filtered = filterNode(child, ctx, pathIdx, selectedCategories);
     if (filtered) out.push(filtered);
   }
   return out;

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
@@ -25,9 +25,9 @@ export function SelectorLink({
     <TooltipContainer>
       {t('Search for replays with clicks on the element')}
       <SelectorScroll>
-        <CodeSnippet hideCopyButton language="javascript">
+        <CodeBlock hideCopyButton language="javascript">
           {value}
-        </CodeSnippet>
+        </CodeBlock>
       </SelectorScroll>
     </TooltipContainer>
   );

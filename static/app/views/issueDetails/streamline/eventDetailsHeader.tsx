@@ -26,10 +26,8 @@ import {
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
-import {
-  EventSearch,
-  useEventQuery,
-} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
@@ -55,7 +53,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const location = useLocation();
   const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({groupId: group.id});
+  const searchQuery = useEventQuery();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -63,6 +61,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
+  const shouldShowSinceFirstSeenOption = issueTypeConfig.defaultTimePeriod.sinceFirstSeen;
   const period = hasSetStatsPeriod
     ? getPeriod({
         start: location.query.start as string,
@@ -97,6 +96,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   }
 
   const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+  const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -115,11 +115,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            <Flex>
+            <Flex direction={{xs: 'column', md: 'row'}} gap="sm">
               <Grid
                 width="100%"
                 gap="sm"
-                columns="auto minmax(100px, 1fr) auto"
+                columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
                 <FilterBar>
@@ -134,7 +134,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       return {
                         ...props.arbitraryOptions,
                         // Always display arbitrary issue open period
-                        ...(defaultStatsPeriod?.statsPeriod
+                        ...(defaultStatsPeriod?.statsPeriod &&
+                        shouldShowSinceFirstSeenOption
                           ? {
                               [defaultStatsPeriod.statsPeriod]: t(
                                 '%s (since first seen)',
@@ -161,34 +162,37 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerLabel={
-                      period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                        ? t('Since First Seen')
-                        : undefined
-                    }
                     triggerProps={{
+                      children:
+                        period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention &&
+                        shouldShowSinceFirstSeenOption
+                          ? t('Since First Seen')
+                          : undefined,
                       style: {
                         padding: `${theme.space.md} ${theme.space.lg}`,
                       },
                     }}
                   />
                 </FilterBar>
-                <EventSearch
-                  group={group}
-                  handleSearch={query => {
-                    navigate(
-                      {...location, query: {...location.query, query}},
-                      {replace: true}
-                    );
-                  }}
-                  environments={environments}
-                  query={searchQuery}
-                  queryBuilderProps={{
-                    disallowFreeText: true,
-                    placeholder: searchText,
-                    label: searchText,
-                  }}
-                />
+                {searchBarEnabled && (
+                  <EventSearch
+                    group={group}
+                    handleSearch={query => {
+                      navigate(
+                        {...location, query: {...location.query, query}},
+                        {replace: true}
+                      );
+                    }}
+                    environments={environments}
+                    query={searchQuery}
+                    queryBuilderProps={{
+                      disallowFreeText: true,
+                      placeholder: searchText,
+                      label: searchText,
+                    }}
+                  />
+                )}
               </Grid>
               <ToggleSidebar />
             </Flex>
@@ -197,7 +201,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
             {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph event={event} group={group} style={{flex: 1}} />
+              <EventGraph
+                event={event}
+                group={group}
+                showReleasesAs="bubble"
+                style={{flex: 1}}
+              />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} />
@@ -271,7 +280,12 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.sm};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    gap: ${p => p.theme.space.lg};
+  }
+
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};

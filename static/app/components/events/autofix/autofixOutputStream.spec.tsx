@@ -34,7 +34,7 @@ describe('AutofixOutputStream', () => {
     await waitFor(() => {
       expect(screen.getByText('Hello World')).toBeInTheDocument();
     });
-    expect(screen.getByPlaceholderText('Interrupt me...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Add context...')).toBeInTheDocument();
   });
 
   it('renders active log when provided', async () => {
@@ -93,7 +93,7 @@ describe('AutofixOutputStream', () => {
     render(<AutofixOutputStream stream="Initial content" groupId="123" runId="456" />);
 
     const user = userEvent.setup();
-    const input = screen.getByPlaceholderText('Interrupt me...');
+    const input = screen.getByPlaceholderText('Add context...');
 
     await user.type(input, 'Test message');
     await user.click(screen.getByRole('button', {name: 'Submit Comment'}));
@@ -113,7 +113,7 @@ describe('AutofixOutputStream', () => {
     render(<AutofixOutputStream stream="Initial content" groupId="123" runId="456" />);
 
     const user = userEvent.setup();
-    const input = screen.getByPlaceholderText('Interrupt me...');
+    const input = screen.getByPlaceholderText('Add context...');
 
     await user.type(input, 'Test message');
     await user.click(screen.getByRole('button', {name: 'Submit Comment'}));

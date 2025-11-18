@@ -15,7 +15,7 @@ class DummyForm(forms.Form):
 
 
 class DummyPlugin(Plugin2):
-    project_conf_form = DummyForm()
+    project_conf_form = DummyForm
 
 
 class ConfigTest(TestCase):

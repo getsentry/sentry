@@ -84,7 +84,7 @@ function ProjectDetails() {
   const overview = (
     <DetailsContainer>
       <DetailList>
-        <DetailLabel title={'Customer'}>
+        <DetailLabel title="Customer">
           {organization.name}
           {' ('}
           <Link to={`/_admin/customers/${organization.slug}/`}>{'Admin'}</Link>
@@ -92,13 +92,13 @@ function ProjectDetails() {
           <Link to={orgUrl}>{'Sentry'}</Link>
           {')'}
         </DetailLabel>
-        <DetailLabel title={'Short name'}>
+        <DetailLabel title="Short name">
           <ExternalLink href={projectUrl}>{data.slug}</ExternalLink>
         </DetailLabel>
-        <DetailLabel title={'Internal ID'}>{data.id}</DetailLabel>
-        <DetailLabel title={'Status'}>{(data as any).status}</DetailLabel>
-        <DetailLabel title={'Created'}>{moment(data.dateCreated).fromNow()}</DetailLabel>
-        <DetailLabel title={'Logs'}>
+        <DetailLabel title="Internal ID">{data.id}</DetailLabel>
+        <DetailLabel title="Status">{(data as any).status}</DetailLabel>
+        <DetailLabel title="Created">{moment(data.dateCreated).fromNow()}</DetailLabel>
+        <DetailLabel title="Logs">
           <ExternalLink
             href={getLogQuery('project', {
               organizationId: orgId,
@@ -128,7 +128,7 @@ function ProjectDetails() {
         </DetailLabel>
       </DetailList>
       <DetailList>
-        <DetailLabel title={'Features'}>
+        <DetailLabel title="Features">
           <List>
             {data.features.map(item => (
               <ListItem key={item}>{item}</ListItem>
@@ -146,7 +146,7 @@ function ProjectDetails() {
   return (
     <div>
       <DetailsPage
-        rootName={'Projects'}
+        rootName="Projects"
         name={`${data.slug} (${organization.name})`}
         sections={[
           {

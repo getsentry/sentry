@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -20,8 +21,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,6 +47,7 @@ export default function FeedbackListPage() {
   const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+  const openFeedbackForm = useFeedbackForm();
 
   // show feedback item preview when feedback is selected on med screens and smaller
   useEffect(() => {
@@ -87,12 +91,12 @@ export default function FeedbackListPage() {
 
   const largeScreenView = (
     <Fragment>
-      <SummaryListContainer style={{gridArea: 'list'}}>
+      <Stack style={{gridArea: 'list'}} gap="md">
         <FeedbackSummaryCategories />
         <Container>
           <FeedbackList onItemSelect={() => {}} />
         </Container>
-      </SummaryListContainer>
+      </Stack>
 
       <Container style={{gridArea: 'details'}}>
         <AnalyticsArea name="details">
@@ -111,7 +115,7 @@ export default function FeedbackListPage() {
           </AnalyticsArea>
         </Container>
       ) : (
-        <SummaryListContainer style={{gridArea: 'content'}}>
+        <Stack style={{gridArea: 'content'}} gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />
@@ -121,7 +125,7 @@ export default function FeedbackListPage() {
               </JumpToSelectedButton>
             )}
           </Container>
-        </SummaryListContainer>
+        </Stack>
       )}
     </Fragment>
   );
@@ -145,6 +149,26 @@ export default function FeedbackListPage() {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              {openFeedbackForm ? (
+                <Button
+                  size="sm"
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openFeedbackForm({
+                      messagePlaceholder: t(
+                        'How can we improve the User Feedback experience?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'feedback-list',
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+            </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
@@ -186,12 +210,6 @@ const Background = styled('div')`
   flex-direction: column;
   align-items: stretch;
   gap: ${space(2)};
-`;
-
-const SummaryListContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const LayoutGrid = styled('div')<{hideTop?: boolean}>`

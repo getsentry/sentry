@@ -77,7 +77,6 @@ type Props = {
   location: Location;
   organization: Organization;
   totalValue: number | null;
-  withoutZerofill: boolean;
   project?: Project;
 };
 
@@ -87,7 +86,6 @@ function TransactionSummaryCharts({
   organization,
   location,
   currentFilter,
-  withoutZerofill,
   project,
 }: Props) {
   const navigate = useNavigate();
@@ -177,15 +175,7 @@ function TransactionSummaryCharts({
     organization
   );
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
-  const displayOptions = generateDisplayOptions(currentFilter).filter(
-    option =>
-      (hasTransactionSummaryCleanupFlag && option.value !== DisplayModes.USER_MISERY) ||
-      !hasTransactionSummaryCleanupFlag
-  );
+  const displayOptions = generateDisplayOptions(currentFilter);
 
   return (
     <Panel>
@@ -215,7 +205,6 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
-            withoutZerofill={withoutZerofill}
             queryExtras={queryExtras}
           />
         )}
@@ -246,7 +235,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
             projects={project ? [project] : []}
             withBreakpoint={organization.features.includes('performance-new-trends')}
           />
@@ -261,7 +249,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
             queryExtras={queryExtras}
           />
         )}
@@ -275,7 +262,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
           />
         )}
       </ChartContainer>

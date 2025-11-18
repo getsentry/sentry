@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
+import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';

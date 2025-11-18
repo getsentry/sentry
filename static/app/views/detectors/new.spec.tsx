@@ -23,14 +23,20 @@ describe('DetectorNew', () => {
   it('sets query parameters for project, environment, and detectorType', async () => {
     const {router} = render(<DetectorNew />);
 
+    // Next button should be disabled if no detectorType is selected
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+
     // Set detectorType
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
+        pathname: `/organizations/org-slug/monitors/new/settings/`,
         query: {
           detectorType: 'uptime_domain_failure',
           project: '1',
@@ -43,7 +49,7 @@ describe('DetectorNew', () => {
     const {router} = render(<DetectorNew />, {
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/monitors/new/',
+          pathname: '/organizations/org-slug/monitors/new/',
           query: {project: '2'},
         },
       },
@@ -51,11 +57,13 @@ describe('DetectorNew', () => {
 
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
+
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
+        pathname: `/organizations/org-slug/monitors/new/settings/`,
         query: {
           detectorType: 'uptime_domain_failure',
           project: '2',

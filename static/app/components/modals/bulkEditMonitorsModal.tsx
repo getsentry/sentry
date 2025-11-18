@@ -193,9 +193,17 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                     />
                     <Text>{monitor.slug}</Text>
                   </MonitorSlug>
-                  <Text>{monitor.status === 'active' ? t('Active') : t('Disabled')}</Text>
-                  <Text>{monitor.isMuted ? t('Yes') : t('No')}</Text>
-                  <Text>{scheduleAsText(monitor.config)}</Text>
+                  <div>
+                    <Text>
+                      {monitor.status === 'active' ? t('Active') : t('Disabled')}
+                    </Text>
+                  </div>
+                  <div>
+                    <Text>{monitor.isMuted ? t('Yes') : t('No')}</Text>
+                  </div>
+                  <div>
+                    <Text>{scheduleAsText(monitor.config)}</Text>
+                  </div>
                 </Fragment>
               ))}
         </StyledPanelTable>

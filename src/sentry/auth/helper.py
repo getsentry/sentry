@@ -37,7 +37,7 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
-from sentry.demo_mode.utils import is_demo_org, is_demo_user
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -451,6 +451,9 @@ class AuthIdentityHandler:
     @property
     def _logged_in_user(self) -> User | None:
         """The user, if they have authenticated on this session."""
+        if is_demo_mode_enabled() and is_demo_user(self.request.user):
+            return None
+
         return self.request.user if self.request.user.is_authenticated else None
 
     @property
@@ -969,6 +972,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 "flow": self.state.flow,
                 "provider": self.provider.key,
                 "error_message": message,
+                "organization_id": self.organization.id if self.organization else None,
             },
         )
 

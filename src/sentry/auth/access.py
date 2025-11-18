@@ -1009,7 +1009,7 @@ def from_request(
             is_staff=is_staff,
         )
 
-    if getattr(request.user, "is_sentry_app", False):
+    if request.user.is_authenticated and request.user.is_sentry_app:
         return _from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
@@ -1051,9 +1051,7 @@ def from_request(
 
 
 # only used internally
-def _from_sentry_app(
-    user: User | AnonymousUser, organization: Organization | None = None
-) -> Access:
+def _from_sentry_app(user: User, organization: Organization | None = None) -> Access:
     if not organization:
         return NoAccess()
 

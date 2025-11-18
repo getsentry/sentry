@@ -1,27 +1,13 @@
 import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
-const {organization} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
-  projects: [
-    {id: '1', slug: 'project-1', isMember: true},
-    {id: '2', slug: 'project-2', isMember: true},
-    {id: '3', slug: 'project-3', isMember: false},
-  ],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/issues/',
-      query: {},
-    },
-    params: {},
-  },
-});
+const organization = OrganizationFixture({features: ['open-membership']});
 
 describe('TimeRangeSelector', () => {
   const onChange = jest.fn();

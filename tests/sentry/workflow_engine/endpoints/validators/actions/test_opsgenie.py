@@ -1,6 +1,5 @@
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -35,12 +34,12 @@ class TestOpsgenieActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.OPSGENIE,
-            "config": {"targetIdentifier": "123-id", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetIdentifier": "123-id", "targetType": "specific"},
             "data": {},
             "integrationId": self.integration.id,
         }
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},
@@ -50,12 +49,12 @@ class TestOpsgenieActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__invalid_team(self):
+    def test_validate__invalid_team(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "54321",
                 },
             },

@@ -339,7 +339,7 @@ function FlamegraphSearch({
       }
 
       rafHandler.current = yieldingRafFrameSearch(
-        query,
+        query.trim(), // search without leading/trailing whitespaces for better UX
         allSpanChartNodes,
         allFlamegraphFrames,
         results => {

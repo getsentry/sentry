@@ -3,17 +3,24 @@ import styled from '@emotion/styled';
 import {Radio} from 'sentry/components/core/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {Subscription} from 'getsentry/types';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {shouldSeeSpendVisibility} from 'getsentry/views/subscriptionPage/utils';
 
 interface DisplayModeToggleProps {
   displayMode: 'cost' | 'usage';
+  organization: Organization;
   subscription: Subscription;
 }
 
-export function DisplayModeToggle({subscription, displayMode}: DisplayModeToggleProps) {
+export function DisplayModeToggle({
+  subscription,
+  displayMode,
+  organization,
+}: DisplayModeToggleProps) {
   const router = useRouter();
   if (!shouldSeeSpendVisibility(subscription)) {
     return null;
@@ -26,6 +33,12 @@ export function DisplayModeToggle({subscription, displayMode}: DisplayModeToggle
         ...router.location.query,
         displayMode: mode,
       },
+    });
+
+    trackGetsentryAnalytics('subscription_page.display_mode.changed', {
+      display_mode: mode,
+      subscription,
+      organization,
     });
   }
 
@@ -58,7 +71,6 @@ const SpendToggleWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(2)};
 `;
 
 const RadioLabel = styled('label')`

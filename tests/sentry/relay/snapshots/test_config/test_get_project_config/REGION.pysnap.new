@@ -1,5 +1,5 @@
 ---
-created: '2025-02-12T13:05:28.325360+00:00'
+created: '2025-09-30T21:02:50.335965+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -20,6 +20,7 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
+  downsampledEventRetention: 0
   filterSettings:
     csp:
       disallowedSources:
@@ -27,6 +28,7 @@ config:
       - ms-browser-extension
       - chrome://*
       - chrome-extension://*
+      - chrome-extension
       - chromeinvokeimmediate://*
       - chromenull://*
       - data:text/html,chromewebdata
@@ -78,6 +80,63 @@ config:
       - hoholikik.club
       - smartlink.cool
       - promfflinkdev.com
+    generic:
+      filters:
+      - condition:
+          inner:
+            inner:
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - ChunkLoadError
+              - name: value
+                op: glob
+                value:
+                - Loading chunk *
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - '*Uncaught *'
+              - name: value
+                op: glob
+                value:
+                - 'ChunkLoadError: Loading chunk *'
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - Error
+              - name: value
+                op: glob
+                value:
+                - 'Uncaught (in promise): ChunkLoadError*'
+              op: and
+            op: or
+          name: event.exception.values
+          op: any
+        id: chunk-load-error
+        isEnabled: true
+      - condition:
+          inner:
+            inner:
+            - name: value
+              op: glob
+              value:
+              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+            - name: value
+              op: glob
+              value:
+              - '*https://react.dev/errors/{418,419,422,423,425}*'
+            op: or
+          name: event.exception.values
+          op: any
+        id: react-hydration-errors
+        isEnabled: true
+      version: 1
     ignoreTransactions:
       isEnabled: true
       patterns:
@@ -96,31 +155,8 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
+    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA
     id: newstyle:2023-01-11
-  metrics:
-    cardinalityLimits:
-    - id: transactions
-      limit: 10000
-      namespace: transactions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: sessions
-      limit: 10000
-      namespace: sessions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: spans
-      limit: 10000
-      namespace: spans
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
   performanceScore:
     profiles:
     - condition:
@@ -511,6 +547,7 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
+  retentions: {}
   sessionMetrics:
     version: 1
   trustedRelays: []

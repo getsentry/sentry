@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
+from sentry import options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
@@ -22,7 +23,6 @@ from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
-    should_handle_grouphash_metadata,
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
@@ -55,20 +55,15 @@ def _calculate_event_grouping(
     with metrics.timer("save_event._calculate_event_grouping", tags=metric_tags):
         loaded_grouping_config = load_grouping_config(grouping_config)
 
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-                event.normalize_stacktraces_for_grouping(loaded_grouping_config)
-
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to `get_hashes_and_variants` will then
-            # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_side_fingerprinting(
                 event.data.data, get_fingerprinting_config_for_project(project)
             )
+
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
             hashes, variants = event.get_hashes_and_variants(loaded_grouping_config)
@@ -233,7 +228,7 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        if should_handle_grouphash_metadata(project, created):
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
@@ -248,23 +243,8 @@ def get_or_create_grouphashes(
                 logger.warning(
                     "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
                 )
-
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
-        else:
-            # Now that the sample rate for grouphash metadata creation is 100%, we should never land
-            # here, and yet we still do. Log some data for debugging purposes.
-            logger.warning(
-                "grouphash_metadata.hash_without_metadata",
-                extra={
-                    "event_id": event.event_id,
-                    "project_id": project.id,
-                    "hash": hash_value,
-                    "is_new": created,
-                    "has_group": bool(grouphash.group_id),
-                },
-            )
-            metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)
 

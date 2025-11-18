@@ -17,7 +17,7 @@ module.exports = results => {
 
   fs.writeFileSync(
     path.resolve(__dirname, 'jest-balance.json'),
-    JSON.stringify(testValues)
+    JSON.stringify(testValues, null, '\t')
   );
 
   return results;

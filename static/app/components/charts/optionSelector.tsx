@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge';
 import type {
   MultipleSelectProps,
   SelectOption,

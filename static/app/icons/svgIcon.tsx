@@ -17,14 +17,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize;
 }
 
-interface IconProps extends SVGIconProps {
-  /**
-   * Determines if the icon coloring is done using stroke or fill
-   */
-  kind?: 'stroke' | 'path';
-}
-
-export function SvgIcon(props: IconProps) {
+export function SvgIcon(props: SVGIconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -34,36 +27,8 @@ export function SvgIcon(props: IconProps) {
   } = useIconDefaults(props);
 
   const theme = useTheme();
-
-  // Chonk changes the color of the icon to gray300 to differ. We will remap
-  // the color to subText for the time being and remove this when the old theme
-  // aliases are removed.
-
-  let normalizedColor = providedColor;
-  if (theme.isChonk && providedColor === 'gray300') {
-    normalizedColor = 'subText';
-  }
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const color = theme[normalizedColor] ?? normalizedColor;
+  const color = useResolvedIconColor(providedColor);
   const size = legacySize ?? theme.iconSizes[providedSize];
-
-  // Stroke based icons are only available in Chonk
-  if (props.kind === 'stroke' && theme.isChonk) {
-    return (
-      <svg
-        role="img"
-        viewBox={'1 1 14 14'}
-        height={size}
-        width={size}
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1px"
-        {...rest}
-      />
-    );
-  }
 
   return (
     <svg
@@ -76,4 +41,27 @@ export function SvgIcon(props: IconProps) {
       width={size}
     />
   );
+}
+
+export function useResolvedIconColor(
+  color: ColorOrAlias | 'currentColor' | undefined
+): string {
+  const theme = useTheme();
+  const {color: providedColor = 'currentColor'} = useIconDefaults({color});
+  if (providedColor === 'currentColor') {
+    return 'currentColor';
+  }
+
+  // Chonk changes the color of the icon to gray300 to differ. We will remap
+  // the color to subText for the time being and remove this when the old theme
+  // aliases are removed.
+  let normalizedColor = providedColor;
+  if (theme.isChonk && providedColor === 'gray300') {
+    normalizedColor = 'subText';
+  }
+  const resolvedColor = theme[normalizedColor];
+  if (typeof resolvedColor === 'string') {
+    return resolvedColor;
+  }
+  return normalizedColor;
 }

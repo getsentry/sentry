@@ -5,23 +5,35 @@ import {
   type Detector,
 } from 'sentry/types/workflowEngine/detectors';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {
-  useApiQueries,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;
   ids?: string[];
+  /**
+   * By default, issue stream detectors are excluded from the query,
+   * because they are opaque to the user in the UI and only used to
+   * make connections to alerts.
+   */
+  includeIssueStreamDetectors?: boolean;
   limit?: number;
   projects?: number[];
   query?: string;
   sortBy?: string;
 }
+
+const createDetectorQuery = (
+  query: string | undefined,
+  options: {includeIssueStreamDetectors: boolean}
+) => {
+  if (options.includeIssueStreamDetectors) {
+    return query;
+  }
+
+  return `!type:issue_stream ${query ?? ''}`.trim();
+};
 
 export const makeDetectorListQueryKey = ({
   orgSlug,
@@ -31,21 +43,40 @@ export const makeDetectorListQueryKey = ({
   limit,
   cursor,
   ids,
+  includeIssueStreamDetectors = false,
 }: {
   orgSlug: string;
   cursor?: string;
   ids?: string[];
+  includeIssueStreamDetectors?: boolean;
   limit?: number;
   projects?: number[];
   query?: string;
   sortBy?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/detectors/`,
-  {query: {query, sortBy, project: projects, per_page: limit, cursor, id: ids}},
+  {
+    query: {
+      query: createDetectorQuery(query, {includeIssueStreamDetectors}),
+      sortBy,
+      project: projects,
+      per_page: limit,
+      cursor,
+      id: ids,
+    },
+  },
 ];
 
 export function useDetectorsQuery<T extends Detector = Detector>(
-  {ids, query, sortBy, projects, limit, cursor}: UseDetectorsQueryKeyOptions = {},
+  {
+    ids,
+    query,
+    sortBy,
+    projects,
+    limit,
+    cursor,
+    includeIssueStreamDetectors,
+  }: UseDetectorsQueryKeyOptions = {},
   queryOptions: Partial<UseApiQueryOptions<T[]>> = {}
 ) {
   const org = useOrganization();
@@ -59,6 +90,7 @@ export function useDetectorsQuery<T extends Detector = Detector>(
       limit,
       cursor,
       ids,
+      includeIssueStreamDetectors,
     }),
     {
       staleTime: 0,
@@ -134,22 +166,4 @@ export function useDetectorQuery<T extends Detector = Detector>(
     retry: false,
     ...queryOptions,
   });
-}
-
-export function useDetectorQueriesByIds<T extends Detector = Detector>(
-  detectorId: string[],
-  queryOptions: Partial<UseApiQueryOptions<T>> = {}
-) {
-  const org = useOrganization();
-
-  return useApiQueries<T>(
-    detectorId.map(id =>
-      makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId: id})
-    ),
-    {
-      staleTime: 0,
-      retry: false,
-      ...queryOptions,
-    }
-  );
 }

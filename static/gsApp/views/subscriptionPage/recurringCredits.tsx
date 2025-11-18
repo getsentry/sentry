@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import Panel from 'sentry/components/panels/panel';
+import {Container} from '@sentry/scraps/layout';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -86,7 +87,12 @@ function RecurringCredits({displayType, planDetails}: Props) {
   };
 
   return (
-    <Panel data-test-id="recurring-credits-panel">
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      data-test-id="recurring-credits-panel"
+    >
       <StyledPanelBody withPadding>
         <div>
           <h4>{t('Recurring Credits')}</h4>
@@ -132,7 +138,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
           </AlertStripedTable>
         </div>
       </StyledPanelBody>
-    </Panel>
+    </Container>
   );
 }
 

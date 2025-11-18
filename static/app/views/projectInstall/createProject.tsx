@@ -1,28 +1,27 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
-import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {Category, Platform} from 'sentry/components/platformPicker';
-import PlatformPicker from 'sentry/components/platformPicker';
-import TeamSelector from 'sentry/components/teamSelector';
+import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
+import {TeamSelector} from 'sentry/components/teamSelector';
+import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
@@ -35,7 +34,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -45,6 +43,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
+  type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
@@ -53,12 +52,13 @@ import type {
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
   projectName: string;
   alertRule?: Partial<AlertRuleOptions>;
-  platform?: Partial<OnboardingSelectedSDK>;
+  platform?: OnboardingSelectedSDK;
   team?: string;
 };
 
@@ -69,12 +69,6 @@ type CreatedProject = Pick<Project, 'name' | 'id'> & {
   team?: string;
 };
 
-function isNotPartialPlatform(
-  platform: Partial<OnboardingSelectedSDK> | undefined
-): platform is OnboardingSelectedSDK {
-  return !!platform?.key;
-}
-
 function getMissingValues({
   team,
   projectName,
@@ -83,14 +77,16 @@ function getMissingValues({
   shouldCreateRule,
   shouldCreateCustomRule,
   isOrgMemberWithNoAccess,
+  platform,
 }: {
   isOrgMemberWithNoAccess: boolean;
   notificationProps: {
     actions?: string[];
-    channel?: string;
+    channel?: IntegrationChannel;
   };
   projectName: string;
   team: string | undefined;
+  platform?: OnboardingSelectedSDK;
 } & Partial<
   Pick<RequestDataFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
 >) {
@@ -106,6 +102,7 @@ function getMissingValues({
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
       !notificationProps.channel,
+    isMissingPlatform: !platform,
   };
 }
 
@@ -113,6 +110,7 @@ function getSubmitTooltipText({
   isMissingProjectName,
   isMissingAlertThreshold,
   isMissingMessagingIntegrationChannel,
+  isMissingPlatform,
   formErrorCount,
 }: ReturnType<typeof getMissingValues> & {
   formErrorCount: number;
@@ -121,7 +119,7 @@ function getSubmitTooltipText({
     return t('Please fill out all the required fields');
   }
   if (isMissingProjectName) {
-    return t('Please provide a project name');
+    return t('Please provide a project slug');
   }
   if (isMissingAlertThreshold) {
     return t('Please provide an alert threshold');
@@ -129,24 +127,21 @@ function getSubmitTooltipText({
   if (isMissingMessagingIntegrationChannel) {
     return t('Please provide an integration channel for alert notifications');
   }
+  if (isMissingPlatform) {
+    return t('Please select a platform');
+  }
 
   return t('Please select a team');
 }
 
-const keyToErrorText: Record<string, string> = {
-  actions: t('Notify via integration'),
-  conditions: t('Alert conditions'),
-  name: t('Alert name'),
-  detail: t('Project details'),
-};
-
 export function CreateProject() {
-  const api = useApi();
+  const globalModal = useGlobalModal();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
+
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -155,7 +150,6 @@ export function CreateProject() {
     'created-project-context',
     null
   );
-
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
@@ -169,6 +163,12 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction(
     createNotificationActionParam
   );
+
+  const validateChannel = useValidateChannel({
+    channel: notificationProps.channel,
+    integrationId: notificationProps.integration?.id,
+    enabled: false,
+  });
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -190,6 +190,7 @@ export function CreateProject() {
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState<FormData>(initialData);
+  const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -207,19 +208,29 @@ export function CreateProject() {
     shouldCreateCustomRule: alertRuleConfig.shouldCreateCustomRule,
     shouldCreateRule: alertRuleConfig.shouldCreateRule,
     conditions: alertRuleConfig.conditions,
+    platform: formData.platform,
   });
 
+  const isNotifyingViaIntegration =
+    alertRuleConfig.shouldCreateRule &&
+    notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const formErrorCount = [
+    missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
+    isNotifyingViaIntegration && validateChannel.error,
   ].filter(value => value).length;
 
-  const submitTooltipText = getSubmitTooltipText({
-    ...missingValues,
-    formErrorCount,
-  });
+  const submitTooltipText =
+    isNotifyingViaIntegration && validateChannel.error
+      ? validateChannel.error
+      : getSubmitTooltipText({
+          ...missingValues,
+          formErrorCount,
+        });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -254,13 +265,6 @@ export function CreateProject() {
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
 
-      if (!selectedPlatform) {
-        addErrorMessage(t('Please select a platform in Step 1'));
-        return;
-      }
-
-      let projectToRollback: Project | undefined;
-
       try {
         const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
@@ -270,7 +274,6 @@ export function CreateProject() {
             alertRuleConfig,
             createNotificationAction,
           });
-        projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -282,6 +285,7 @@ export function CreateProject() {
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          notification_rule_created: !!notificationRule,
         });
 
         addSuccessMessage(
@@ -336,34 +340,12 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
-
-        if (projectToRollback) {
-          Sentry.logger.error('Rolling back project', {
-            projectToRollback,
-          });
-          try {
-            // Rolling back the project also deletes its associated alert rules
-            // due to the cascading delete constraint.
-            await removeProject({
-              api,
-              orgSlug: organization.slug,
-              projectSlug: projectToRollback.slug,
-              origin: 'getting_started',
-            });
-          } catch (err) {
-            Sentry.withScope(scope => {
-              scope.setExtra('error', err);
-              Sentry.captureMessage('Failed to rollback project');
-            });
-          }
-        }
       }
     },
     [
       organization,
       setCreatedProject,
       navigate,
-      api,
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
@@ -372,21 +354,20 @@ export function CreateProject() {
   );
 
   const handleProjectCreation = useCallback(
-    async (data: FormData) => {
-      const selectedPlatform = data.platform;
-
-      if (!isNotPartialPlatform(selectedPlatform)) {
-        addErrorMessage(t('Please select a platform in Step 1'));
+    async ({platform, ...data}: FormData) => {
+      // At this point, platform should be defined
+      // otherwise the submit button would be disabled.
+      if (!platform) {
         return;
       }
 
       if (
-        selectedPlatform.type !== 'language' ||
+        platform.type !== 'language' ||
         !Object.values(SupportedLanguages).includes(
-          selectedPlatform.language as SupportedLanguages
+          platform.language as SupportedLanguages
         )
       ) {
-        configurePlatform({...data, platform: selectedPlatform});
+        configurePlatform({...data, platform});
         return;
       }
 
@@ -399,11 +380,11 @@ export function CreateProject() {
           <FrameworkSuggestionModal
             {...deps}
             organization={organization}
-            selectedPlatform={selectedPlatform}
+            selectedPlatform={platform}
             onConfigure={selectedFramework => {
-              configurePlatform({...data, platform: selectedPlatform, selectedFramework});
+              configurePlatform({...data, platform, selectedFramework});
             }}
-            onSkip={() => configurePlatform({...data, platform: selectedPlatform})}
+            onSkip={() => configurePlatform({...data, platform})}
           />
         ),
         {
@@ -412,7 +393,7 @@ export function CreateProject() {
             trackAnalytics(
               'project_creation.select_framework_modal_close_button_clicked',
               {
-                platform: selectedPlatform.key,
+                platform: platform.key,
                 organization,
               }
             );
@@ -431,10 +412,7 @@ export function CreateProject() {
   const handlePlatformChange = useCallback(
     (value: Platform | null) => {
       if (!value) {
-        updateFormData('platform', {
-          // By unselecting a platform, we don't want to jump to another category
-          category: formData.platform?.category,
-        });
+        updateFormData('platform', undefined);
         return;
       }
 
@@ -444,10 +422,6 @@ export function CreateProject() {
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
-        // By selecting a console platform, we don't want to jump to another category when its closed
-        updateFormData('platform', {
-          category: formData.platform?.category,
-        });
         openConsoleModal({
           organization,
           selectedPlatform: {
@@ -474,16 +448,19 @@ export function CreateProject() {
 
       updateFormData('projectName', newName);
     },
-    [
-      updateFormData,
-      formData.projectName,
-      formData.platform?.key,
-      formData.platform?.category,
-      organization,
-    ]
+    [updateFormData, formData.projectName, formData.platform?.key, organization]
   );
 
-  const category: Category = formData.platform?.category ?? 'popular';
+  const platform = formData.platform?.key;
+  const defaultCategory = platform
+    ? categoryList.find(({platforms}) => platforms.has(platform))?.id
+    : 'popular';
+
+  // Workaround to force PlatformPicker to re-render when users go back in the flow and fields should be pre-filled.
+  // Without this, the selected platform might not be visible depending on the active tab.
+  if (autoFill && platform && pickerKeyRef.current === 'create-project') {
+    pickerKeyRef.current = 'auto-fill';
+  }
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
@@ -502,9 +479,9 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
-            key={category}
-            platform={formData.platform?.key}
-            defaultCategory={formData.platform?.category}
+            key={pickerKeyRef.current}
+            platform={platform}
+            defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             showOther
@@ -531,7 +508,7 @@ export function CreateProject() {
           </StyledListItem>
           <FormFieldGroup>
             <div>
-              <FormLabel>{t('Project name')}</FormLabel>
+              <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
@@ -540,7 +517,7 @@ export function CreateProject() {
                 <ProjectNameInput
                   type="text"
                   name="name"
-                  placeholder={t('project-name')}
+                  placeholder={t('project-slug')}
                   autoComplete="off"
                   value={formData.projectName}
                   onChange={e => updateFormData('projectName', slugify(e.target.value))}
@@ -555,7 +532,6 @@ export function CreateProject() {
                     allowCreate
                     name="team"
                     aria-label={t('Select a Team')}
-                    menuPlacement="auto"
                     clearable={false}
                     placeholder={t('Select a Team')}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
@@ -572,16 +548,25 @@ export function CreateProject() {
               <Tooltip
                 title={
                   canUserCreateProject
-                    ? submitTooltipText
+                    ? isNotifyingViaIntegration && validateChannel.isFetching
+                      ? t('Validating integration channel\u2026')
+                      : submitTooltipText
                     : t('You do not have permission to create projects')
                 }
-                disabled={formErrorCount === 0 && canUserCreateProject}
+                disabled={
+                  formErrorCount === 0 &&
+                  canUserCreateProject &&
+                  !(isNotifyingViaIntegration && validateChannel.isFetching)
+                }
               >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
-                  busy={createProjectAndRules.isPending}
+                  busy={
+                    createProjectAndRules.isPending ||
+                    (isNotifyingViaIntegration && validateChannel.isFetching)
+                  }
                   onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
@@ -589,17 +574,8 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
-            <Alert.Container>
-              <Alert type="error" showIcon={false}>
-                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
-                  <div key={key}>
-                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(createProjectAndRules.error.responseJSON as any)[key]}
-                  </div>
-                ))}
-              </Alert>
-            </Alert.Container>
+          {!globalModal.visible && (
+            <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
         </List>
       </div>

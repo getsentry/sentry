@@ -7,8 +7,8 @@ import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfac
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Event} from 'sentry/types/event';
+import {getIssueTypeFromOccurrenceType, IssueType, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -60,7 +60,9 @@ interface EventTraceViewInnerProps {
 }
 
 function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
-  const timestamp = getEventTimestampInSeconds(event);
+  const timestamp = isWebVitalsEvent(event)
+    ? undefined
+    : getEventTimestampInSeconds(event);
 
   const trace = useTrace({
     timestamp,
@@ -128,6 +130,10 @@ function OneOtherIssueEvent({event}: {event: Event}) {
 const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
+
+const isWebVitalsEvent = (event: Event) => {
+  return getIssueTypeFromOccurrenceType(event.occurrence?.type) === IssueType.WEB_VITALS; // Web Vitals group type id
+};
 
 interface EventTraceViewProps {
   event: Event;

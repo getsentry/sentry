@@ -75,8 +75,8 @@ describe('UserContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'user'}
+        type="default"
+        alias="user"
         value={{...MOCK_USER_CONTEXT, name: ''}}
       />
     );

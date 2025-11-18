@@ -2,10 +2,10 @@ import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -83,10 +83,17 @@ export function IssuesSecondaryNav() {
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const user = useUser();
+  const organization = useOrganization();
   const {layout} = useNavContext();
-  const hasWorkflowEngine = useWorkflowEngineFeatureGate();
-
   const isSticky = layout === NavLayout.SIDEBAR;
+
+  const shouldRedirectToWorkflowEngineUI =
+    !user.isStaff && organization.features.includes('workflow-engine-ui');
+
+  const alertsLink = shouldRedirectToWorkflowEngineUI
+    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    : `${baseUrl}/alerts/rules/`;
 
   return (
     <StickyBottomSection
@@ -95,32 +102,13 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       collapsible={false}
       isSticky={isSticky}
     >
-      {hasWorkflowEngine ? (
-        <Fragment>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/monitors/`}
-            activeTo={`${baseUrl}/monitors`}
-          >
-            {t('Monitors')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/automations/`}
-            activeTo={`${baseUrl}/automations`}
-          >
-            {t('Automations')}
-          </SecondaryNav.Item>
-        </Fragment>
-      ) : (
-        <SecondaryNav.Item
-          to={`${baseUrl}/alerts/rules/`}
-          activeTo={`${baseUrl}/alerts/`}
-          analyticsItemName="issues_alerts"
-        >
-          {t('Alerts')}
-        </SecondaryNav.Item>
-      )}
+      <SecondaryNav.Item
+        to={alertsLink}
+        {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
+        analyticsItemName="issues_alerts"
+      >
+        {t('Alerts')}
+      </SecondaryNav.Item>
     </StickyBottomSection>
   );
 }

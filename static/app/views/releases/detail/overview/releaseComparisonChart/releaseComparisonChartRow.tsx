@@ -2,7 +2,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import NotAvailable from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -38,6 +40,7 @@ function ReleaseComparisonChartRow({
   onExpanderToggle,
   expanded,
   withExpanders,
+  tooltip,
 }: Props) {
   return (
     <ChartTableRow
@@ -48,15 +51,22 @@ function ReleaseComparisonChartRow({
       expanded={expanded}
     >
       <DescriptionCell>
-        <TitleWrapper>
-          <Radio
-            id={type}
-            disabled={false}
-            checked={type === activeChart}
-            onChange={() => onChartChange(type)}
-          />
-          {releaseComparisonChartLabels[type]}&nbsp;{drilldown}
-        </TitleWrapper>
+        <Tooltip disabled={!tooltip} title={tooltip} showUnderline>
+          <TitleWrapper>
+            <Radio
+              id={type}
+              disabled={false}
+              checked={type === activeChart}
+              onChange={() => onChartChange(type)}
+            />
+            {releaseComparisonChartLabels[type]}
+          </TitleWrapper>
+        </Tooltip>
+        {drilldown ? (
+          <Flex gap="md" paddingLeft="2xl">
+            {drilldown}
+          </Flex>
+        ) : null}
       </DescriptionCell>
       <NumericCell>
         {showPlaceholders ? (

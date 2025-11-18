@@ -83,7 +83,7 @@ describe('GlobalDrawer', () => {
           },
         }}
       />,
-      {initialRouterConfig: {location: '/my-modal-view/'}}
+      {initialRouterConfig: {location: {pathname: '/my-modal-view/'}}}
     );
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));

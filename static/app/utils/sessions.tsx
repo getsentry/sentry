@@ -213,6 +213,19 @@ export function initSessionsChart(theme: Theme) {
         width: 0.4,
       },
     },
+    [SessionStatus.UNHANDLED]: {
+      seriesName: sessionTerm.unhandled,
+      data: [],
+      color: colors[13],
+      areaStyle: {
+        color: colors[13],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],

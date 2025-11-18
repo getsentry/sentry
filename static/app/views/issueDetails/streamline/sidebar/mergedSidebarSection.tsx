@@ -19,6 +19,8 @@ export function MergedIssuesSidebarSection() {
           pathname: `${baseUrl}${TabPaths[Tab.MERGED]}`,
           query: location.query,
         }}
+        replace
+        preventScrollReset
       >
         {t('View')}
       </ViewButton>

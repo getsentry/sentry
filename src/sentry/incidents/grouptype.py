@@ -154,7 +154,7 @@ def get_alert_type_from_aggregate_dataset(
     # Special handling for EventsAnalyticsPlatform dataset
     if dataset == Dataset.EventsAnalyticsPlatform:
         if organization and features.has(
-            "organizations:performance-transaction-deprecation-alerts", organization
+            "organizations:discover-saved-queries-deprecation", organization
         ):
             return matching_alert_type if matching_alert_type else "eap_metrics"
 
@@ -333,7 +333,7 @@ class MetricIssue(GroupType):
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    enable_user_priority_changes = False
+    enable_user_status_and_priority_changes = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
@@ -354,3 +354,15 @@ class MetricIssue(GroupType):
             },
         },
     )
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def build_visible_feature_name(cls) -> str:
+        return "organizations:workflow-engine-ui"

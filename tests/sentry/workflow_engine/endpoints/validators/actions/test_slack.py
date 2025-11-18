@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from rest_framework.serializers import ErrorDetail
 
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
@@ -24,13 +23,13 @@ class TestSlackActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.SLACK,
-            "config": {"targetDisplay": "cathy-sentry", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
             "data": {"tags": "asdf"},
             "integrationId": self.integration.id,
         }
 
     @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
-    def test_validate(self, mock_get_channel_id):
+    def test_validate(self, mock_get_channel_id: mock.MagicMock) -> None:
         mock_get_channel_id.return_value = SlackChannelIdData(
             prefix="#", channel_id="C1234567890", timed_out=False
         )
@@ -45,14 +44,16 @@ class TestSlackActionValidator(TestCase):
         validator.save()
 
     @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
-    def test_validate__invalid_channel_id(self, mock_validate_slack_entity_id):
+    def test_validate__invalid_channel_id(
+        self, mock_validate_slack_entity_id: mock.MagicMock
+    ) -> None:
         mock_validate_slack_entity_id.side_effect = ValidationError("Invalid channel id")
 
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "C1234567890",
                     "targetDisplay": "asdf",
                 },
@@ -67,13 +68,13 @@ class TestSlackActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
-    def test_validate__invalid_channel_name(self, mock_get_channel_id):
+    def test_validate__invalid_channel_name(self, mock_get_channel_id: mock.MagicMock) -> None:
         mock_get_channel_id.side_effect = DuplicateDisplayNameError()
 
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"targetType": ActionTarget.SPECIFIC.value, "targetDisplay": "asdf"},
+                "config": {"targetType": "specific", "targetDisplay": "asdf"},
             },
             context={"organization": self.organization},
         )

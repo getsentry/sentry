@@ -1,6 +1,5 @@
 import logging
 
-from celery import Task
 from django.db.models import Subquery
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -20,8 +19,8 @@ from sentry.relocation.services.relocation_export.service import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
+from sentry.taskworker.task import Task
 from sentry.types.region import get_local_region
 
 logger = logging.getLogger("sentry.relocation")
@@ -29,9 +28,8 @@ logger = logging.getLogger("sentry.relocation")
 
 @instrumented_task(
     name="sentry.relocation.transfer.find_relocation_transfer_control",
-    queue="relocation.control",
+    namespace=relocation_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=relocation_control_tasks),
 )
 def find_relocation_transfer_control() -> None:
     _find_relocation_transfer(ControlRelocationTransfer, process_relocation_transfer_control)
@@ -39,9 +37,8 @@ def find_relocation_transfer_control() -> None:
 
 @instrumented_task(
     name="sentry.relocation.transfer.find_relocation_transfer_region",
-    queue="relocation",
+    namespace=relocation_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=relocation_tasks),
 )
 def find_relocation_transfer_region() -> None:
     _find_relocation_transfer(RegionRelocationTransfer, process_relocation_transfer_region)
@@ -90,9 +87,8 @@ def _find_relocation_transfer(
 
 @instrumented_task(
     name="sentry.relocation.transfer.process_relocation_transfer_control",
-    queue="relocation.control",
+    namespace=relocation_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=relocation_control_tasks),
 )
 def process_relocation_transfer_control(transfer_id: int) -> None:
     log_context = {"id": transfer_id, "silo": "control"}
@@ -181,9 +177,8 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
 
 @instrumented_task(
     name="sentry.relocation.transfer.process_relocation_transfer_region",
-    queue="relocation",
+    namespace=relocation_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=relocation_tasks),
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:
     log_context = {"id": transfer_id, "silo": "region", "region": get_local_region().name}

@@ -7,8 +7,8 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
@@ -214,7 +214,8 @@ function NPlusOneAPICallsSpanEvidence({
   const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const queryParameters =
+    evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL);
   const pathParameters = evidenceData.pathParameters ?? [];
   const commonPathPrefix =
     occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
@@ -346,6 +347,60 @@ function DBQueryInjectionVulnerabilityEvidence({
   );
 }
 
+function AIDetectedSpanEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const transactionName = evidenceData.transaction ?? event.title;
+
+  const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+    organization,
+    projectID: event.projectID,
+    transaction: transactionName,
+    query: {},
+  });
+
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
+
+  const eventDetailsLocation = generateLinkToEventInTraceView({
+    traceSlug,
+    eventId: event.eventID,
+    timestamp: event.endTimestamp ?? '',
+    location,
+    organization,
+  });
+
+  const actionButton = projectSlug ? (
+    <LinkButton size="xs" to={eventDetailsLocation}>
+      {t('View Full Trace')}
+    </LinkButton>
+  ) : undefined;
+
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>
+      <Tooltip title={t('View Transaction Summary')} skipWrapper>
+        <Link to={transactionSummaryLocation}>{transactionName}</Link>
+      </Tooltip>
+    </pre>,
+    actionButton
+  );
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        transactionRow,
+        makeRow(t('Explanation'), evidenceData.explanation),
+        makeRow(t('Impact'), evidenceData.impact),
+        makeRow(t('Evidence'), evidenceData.evidence),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -367,6 +422,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -400,7 +456,6 @@ export function SpanEvidenceKeyValueList({
       />
     );
   }
-
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -619,7 +674,7 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   pre {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;

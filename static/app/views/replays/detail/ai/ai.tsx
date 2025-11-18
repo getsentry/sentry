@@ -5,13 +5,12 @@ import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -24,6 +23,8 @@ import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+
+const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
 export default function Ai() {
   const organization = useOrganization();
@@ -38,6 +39,11 @@ export default function Ai() {
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
+  const replayTooLongMessage = t(
+    'While in beta phase, we only summarize a small portion of the replay.'
+  );
 
   const {
     summaryData,
@@ -74,7 +80,8 @@ export default function Ai() {
   }
 
   // check for org seer setup first before attempting to fetch summary
-  if (isOrgSeerSetupPending) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -88,7 +95,8 @@ export default function Ai() {
 
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
@@ -132,7 +140,7 @@ export default function Ai() {
         <ErrorState
           organization={organization}
           startSummaryRequest={startSummaryRequest}
-          extraMessage={t('processing timed out.')}
+          extraMessage={t('timed out.')}
         />
       </AnalyticsArea>
     );
@@ -191,9 +199,7 @@ export default function Ai() {
           <SummaryLeftTitle>
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
             </Flex>
-            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
@@ -222,12 +228,8 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > 100 && (
-            <Subtext>
-              {t(
-                `Note: this replay is too long, so we're currently only summarizing part of it.`
-              )}
-            </Subtext>
+          {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
+            <Subtext>{replayTooLongMessage}</Subtext>
           )}
         </OverflowBody>
       </StyledTabItemContainer>
@@ -288,7 +290,7 @@ function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-      size={'xs'}
+      size="xs"
       onClick={() =>
         openForm({
           messagePlaceholder:

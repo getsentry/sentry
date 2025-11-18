@@ -13,6 +13,7 @@ from sentry.grouping.component import (
     ErrorTypeGroupingComponent,
     ErrorValueGroupingComponent,
     ExceptionGroupingComponent,
+    ExceptionGroupingComponentChildren,
     FilenameGroupingComponent,
     FrameGroupingComponent,
     FunctionGroupingComponent,
@@ -24,8 +25,8 @@ from sentry.grouping.component import (
     ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
+    ComponentsByVariant,
     GroupingContext,
-    ReturnedVariants,
     call_with_variants,
     strategy,
 )
@@ -151,9 +152,11 @@ def get_filename_component(
     if has_url_origin(abs_path, files_count_as_urls=False):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
-        filename_component.update(contributes=False, hint="anonymous filename discarded")
+        filename_component.update(contributes=False, hint="ignored because filename is anonymous")
     elif filename == "[native code]":
-        filename_component.update(contributes=False, hint="native code indicated by filename")
+        filename_component.update(
+            contributes=False, hint="ignored because filename suggests native code"
+        )
     elif platform == "java":
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
@@ -299,7 +302,7 @@ def get_function_component(
 )
 def frame(
     interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     frame = interface
     platform = frame.platform or event.platform
     variant_name = context["variant_name"]
@@ -314,7 +317,7 @@ def frame(
     # take precedence over the filename if it contributes
     module_component = get_module_component(frame.abs_path, frame.module, platform, context)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(contributes=False, hint="module takes precedence")
+        filename_component.update(contributes=False, hint="ignored because module takes precedence")
 
     if frame.context_line and platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
@@ -393,14 +396,15 @@ def get_contextline_component(
     context_line_component = ContextLineGroupingComponent(values=[line])
 
     if len(frame.context_line) > 120:
-        context_line_component.update(hint="discarded because line too long", contributes=False)
+        context_line_component.update(hint="ignored because line is too long", contributes=False)
     elif (
         get_behavior_family_for_platform(platform) == "javascript"
         and not function
         and has_url_origin(frame.abs_path, files_count_as_urls=True)
     ):
         context_line_component.update(
-            hint="discarded because from URL origin and no function", contributes=False
+            hint="ignored because file path is a URL and function name is missing",
+            contributes=False,
         )
 
     return context_line_component
@@ -409,10 +413,10 @@ def get_contextline_component(
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
-    return call_with_variants(
+    stacktrace_components_by_variant = call_with_variants(
         _single_stacktrace_variant,
         ["!app", "system"],
         interface,
@@ -421,10 +425,62 @@ def stacktrace(
         kwargs=kwargs,
     )
 
+    # Tally the number of each type of frame in the stacktrace. This will help with getting the hint
+    # now, and later on, this will allow us to both collect metrics and use the information in
+    # decisions about whether to send the event to Seer. Only the system variant can see system
+    # frames as contributing, so we use it to get the counts.
+    app_stacktrace_component = stacktrace_components_by_variant.get("!app")
+    system_stacktrace_component = stacktrace_components_by_variant.get("system")
+    frame_counts: Counter[str] = Counter()
+    total_in_app_frames = 0
+    total_contributing_frames = 0
+
+    if app_stacktrace_component and system_stacktrace_component:  # Mypy appeasement; always true
+        # Do the tallying
+        for frame_component in system_stacktrace_component.values:
+            if frame_component.in_app:
+                frame_type = "in_app"
+                total_in_app_frames += 1
+            else:
+                frame_type = "system"
+
+            if frame_component.contributes:
+                contribution_descriptor = "contributing"
+                total_contributing_frames += 1
+            else:
+                contribution_descriptor = "non_contributing"
+
+            key = f"{frame_type}_{contribution_descriptor}_frames"
+            frame_counts[key] += 1
+
+        app_stacktrace_component.frame_counts = frame_counts
+        system_stacktrace_component.frame_counts = frame_counts
+
+        # Find all the cases where we might ignore the stacktrace, and set appropriate hints
+        no_frames_hint = "ignored because it contains no frames"
+        no_in_app_frames_hint = "ignored because it contains no in-app frames"
+        no_contributing_frames_hint = "ignored because it contains no contributing frames"
+
+        if not system_stacktrace_component.values:  # No frames at all
+            system_stacktrace_component.update(contributes=False, hint=no_frames_hint)
+            app_stacktrace_component.update(contributes=False, hint=no_frames_hint)
+        else:
+            if total_contributing_frames == 0:
+                system_stacktrace_component.update(
+                    contributes=False, hint=no_contributing_frames_hint
+                )
+
+            if total_in_app_frames == 0:
+                app_stacktrace_component.update(contributes=False, hint=no_in_app_frames_hint)
+            elif frame_counts["in_app_contributing_frames"] == 0:
+                app_stacktrace_component.update(contributes=False, hint=no_contributing_frames_hint)
+
+    return stacktrace_components_by_variant
+
 
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     variant_name = context["variant_name"]
     assert variant_name is not None
 
@@ -433,18 +489,14 @@ def _single_stacktrace_variant(
     frame_components = []
     prev_frame = None
     raw_frames = []
-    found_in_app_frame = False
 
     for frame in frames:
         frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
         if _is_recursive_frame(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
 
-        if variant_name == "app":
-            if frame.in_app:
-                found_in_app_frame = True
-            else:
-                frame_component.update(contributes=False)
+        if variant_name == "app" and not frame.in_app:
+            frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         raw_frames.append(frame.get_raw_data())
@@ -458,11 +510,12 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and frames[0].is_url()
     ):
-        frame_components[0].update(
-            contributes=False, hint="ignored single non-URL JavaScript frame"
-        )
+        should_ignore_frame = has_url_origin(frames[0].abs_path, files_count_as_urls=True)
+        if should_ignore_frame:
+            frame_components[0].update(
+                contributes=False, hint="ignored single non-URL JavaScript frame"
+            )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
@@ -478,33 +531,13 @@ def _single_stacktrace_variant(
     if context.get("reverse_stacktraces"):
         stacktrace_component.reverse_when_serializing = True
 
-    # TODO: Ideally this hint would get set by the rust enhancer. Right now the only stacktrace
-    # component hint it sets is one about ignoring stacktraces with contributing frames because the
-    # number of contributing frames isn't big enough. In that case it also sets `contributes` to
-    # false, as it does when there are no contributing frames. In this latter case it doesn't set a
-    # hint, though, so we do it here.
-    if not stacktrace_component.hint and not stacktrace_component.contributes:
-        if len(frames) == 0:
-            frames_description = "frames"
-        elif variant_name == "system":
-            frames_description = "contributing frames"
-        elif variant_name == "app":
-            # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
-            # be because all of the frames got marked as non-contributing in the enhancer
-            if found_in_app_frame:
-                frames_description = "contributing frames"
-            else:
-                frames_description = "in-app frames"
-
-        stacktrace_component.hint = f"ignored because it contains no {frames_description}"
-
     return {variant_name: stacktrace_component}
 
 
 @stacktrace.variant_processor
 def stacktrace_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 
@@ -514,7 +547,7 @@ def stacktrace_variant_processor(
 )
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     exception = interface
 
     type_component = ErrorTypeGroupingComponent(
@@ -555,16 +588,6 @@ def single_exception(
     exception_components_by_variant = {}
 
     for variant_name, stacktrace_component in stacktrace_components_by_variant.items():
-        values: list[
-            ErrorTypeGroupingComponent
-            | ErrorValueGroupingComponent
-            | NSErrorGroupingComponent
-            | StacktraceGroupingComponent
-        ] = [stacktrace_component, type_component]
-
-        if ns_error_component is not None:
-            values.append(ns_error_component)
-
         value_component = ErrorValueGroupingComponent()
 
         raw = exception.value
@@ -590,7 +613,20 @@ def single_exception(
                 hint="ignored because ns-error info takes precedence",
             )
 
-        values.append(value_component)
+        values: list[ExceptionGroupingComponentChildren] = []
+
+        if ns_error_component is not None:
+            values = [type_component, value_component, ns_error_component, stacktrace_component]
+        else:
+            values = [type_component, value_component, stacktrace_component]
+
+        # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, the code here
+        # (and the option controlling it) can be deleted
+        if context.get("use_legacy_exception_subcomponent_order"):
+            if ns_error_component is not None:
+                values = [stacktrace_component, type_component, ns_error_component, value_component]
+            else:
+                values = [stacktrace_component, type_component, value_component]
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
@@ -602,7 +638,7 @@ def single_exception(
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
@@ -808,28 +844,28 @@ def filter_exceptions_for_exception_groups(
 
 @chained_exception.variant_processor
 def chained_exception_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _filtered_threads(crashed_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _filtered_threads(current_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(current_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
-    thread_variants = _filtered_threads(interface.values, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(interface.values, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     return {
         "app": ThreadsGroupingComponent(
@@ -844,15 +880,19 @@ def threads(
     }
 
 
-def _filtered_threads(
+def _get_thread_components(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
-) -> ReturnedVariants | None:
+) -> ComponentsByVariant | None:
     if len(threads) != 1:
         return None
 
     stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
-        return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
+        return {
+            "app": ThreadsGroupingComponent(
+                contributes=False, hint="ignored because thread has no stacktrace"
+            )
+        }
 
     thread_components_by_variant = {}
 
@@ -868,8 +908,8 @@ def _filtered_threads(
 
 @threads.variant_processor
 def threads_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-) -> ReturnedVariants:
+    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
     return remove_non_stacktrace_variants(variants)
 
 

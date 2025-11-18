@@ -19,7 +19,7 @@ type TableRow = Flatten<
   Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
 >;
 
-type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
+type TableResponse = [{confidence: any; meta: EventsMetaType; data?: TableRow[]}];
 
 // The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
 export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
@@ -42,7 +42,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       (oldResponse: TableResponse): TableResponse => {
-        const oldTableData = oldResponse[0]?.data || [];
+        const oldTableData = oldResponse?.[0]?.data || [];
         const newData = oldTableData.map((row): TableRow => {
           if (row.transaction === segmentName) {
             return {

@@ -5,7 +5,7 @@ import SimilarSpectrum from 'sentry/components/similarSpectrum';
 describe('SimilarSpectrum', () => {
   it('renders', () => {
     render(
-      <SimilarSpectrum highSpectrumLabel={'Similar'} lowSpectrumLabel={'Not Similar'} />
+      <SimilarSpectrum highSpectrumLabel="Similar" lowSpectrumLabel="Not Similar" />
     );
   });
 });

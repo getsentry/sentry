@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 import orjson
 import pytest
 import responses
-from django.core import mail
 from django.forms import ValidationError
 from django.utils import timezone
 from slack_sdk.web.slack_response import SlackResponse
@@ -97,6 +96,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
+from sentry.utils import json
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -663,6 +663,12 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         assert mock_seer_request.call_count == 1
+        call_args_str = mock_seer_request.call_args_list[0].kwargs["body"].decode("utf-8")
+        assert json.loads(call_args_str)["alert"] == {
+            "id": alert_rule.id,
+            "source_id": alert_rule.snuba_query.subscriptions.get().id,
+            "source_type": 1,
+        }
         assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
@@ -2002,6 +2008,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule_id = alert_rule.id
         incident = self.create_incident()
         incident.update(alert_rule=alert_rule)
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
         mock_seer_request.return_value = HTTPResponse("Bad request", status=500)
 
         with self.tasks():
@@ -2014,11 +2021,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Error when hitting Seer delete rule data endpoint",
-            extra={"response_data": "Bad request", "rule_id": alert_rule_id},
+            extra={"response_data": "Bad request", "source_id": query_sub.id},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
@@ -2039,13 +2046,13 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
 
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
         with self.tasks():
             delete_alert_rule(alert_rule)
 
-        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
-        seer_return_value: StoreDataResponse = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         with self.tasks():
             run_scheduled_deletions()
@@ -2060,19 +2067,18 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
-    @patch("sentry.incidents.models.alert_rule.logger")
+    @patch("sentry.incidents.logic.logger")
     def test_delete_anomaly_detection_rule_timeout(
         self, mock_model_logger, mock_seer_logger, mock_seer_request
     ):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
-
-        with self.tasks():
-            delete_alert_rule(alert_rule)
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
 
         mock_seer_request.side_effect = TimeoutError
 
         with self.tasks():
+            delete_alert_rule(alert_rule)
             run_scheduled_deletions()
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
@@ -2080,11 +2086,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.warning.assert_called_with(
             "Timeout error when hitting Seer delete rule data endpoint",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
@@ -2093,19 +2099,17 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
-    @patch("sentry.incidents.models.alert_rule.logger")
+    @patch("sentry.incidents.logic.logger")
     def test_delete_anomaly_detection_rule_error(
         self, mock_model_logger, mock_seer_logger, mock_seer_request
     ):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
-
-        with self.tasks():
-            delete_alert_rule(alert_rule)
-
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
         mock_seer_request.return_value = HTTPResponse("Bad request", status=500)
 
         with self.tasks():
+            delete_alert_rule(alert_rule)
             run_scheduled_deletions()
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
@@ -2113,11 +2117,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Error when hitting Seer delete rule data endpoint",
-            extra={"response_data": "Bad request", "rule_id": alert_rule_id},
+            extra={"response_data": "Bad request", "source_id": query_sub.id},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
@@ -2126,19 +2130,17 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
-    @patch("sentry.incidents.models.alert_rule.logger")
+    @patch("sentry.incidents.logic.logger")
     def test_delete_anomaly_detection_rule_attribute_error(
         self, mock_model_logger, mock_seer_logger, mock_seer_request
     ):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
-
-        with self.tasks():
-            delete_alert_rule(alert_rule)
-
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type:ignore[arg-type]
 
         with self.tasks():
+            delete_alert_rule(alert_rule)
             run_scheduled_deletions()
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
@@ -2146,11 +2148,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.exception.assert_called_with(
             "Failed to parse Seer delete rule data response",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
@@ -2159,20 +2161,18 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
-    @patch("sentry.incidents.models.alert_rule.logger")
+    @patch("sentry.incidents.logic.logger")
     def test_delete_anomaly_detection_rule_failure(
         self, mock_model_logger, mock_seer_logger, mock_seer_request
     ):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
-
-        with self.tasks():
-            delete_alert_rule(alert_rule)
-
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
         seer_return_value: StoreDataResponse = {"success": False}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         with self.tasks():
+            delete_alert_rule(alert_rule)
             run_scheduled_deletions()
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
@@ -2180,11 +2180,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Request to delete alert rule from Seer was unsuccessful",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id, "message": None},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
@@ -2193,7 +2193,6 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
     def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_enable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
@@ -2208,7 +2207,6 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_disable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
@@ -2261,7 +2259,6 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         for qs in query_subscriptions:
             assert qs.status == query_subscription_status
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_enable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
@@ -2273,14 +2270,12 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_disable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
             self.snuba_query = create_snuba_query(
@@ -3490,94 +3485,6 @@ class MetricTranslationTest(TestCase):
         # Make sure it doesn't do anything wonky running twice:
         translated_2 = translate_aggregate_field(translated, reverse=True)
         assert translated_2 == "count_unique(user)"
-
-
-class TriggerActionTest(TestCase):
-    @cached_property
-    def user(self):
-        return self.create_user("test@test.com")
-
-    @cached_property
-    def team(self):
-        team = self.create_team()
-        self.create_team_membership(team, user=self.user)
-        return team
-
-    @cached_property
-    def project(self):
-        return self.create_project(teams=[self.team], name="foo")
-
-    @cached_property
-    def other_project(self):
-        return self.create_project(teams=[self.team], name="other")
-
-    @cached_property
-    def rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-        )
-        # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, "hi", 100)
-        create_alert_rule_trigger_action(
-            trigger=trigger,
-            type=AlertRuleTriggerAction.Type.EMAIL,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
-        )
-        # Duplicate action that should be deduped
-        create_alert_rule_trigger_action(
-            trigger=trigger,
-            type=AlertRuleTriggerAction.Type.EMAIL,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
-        )
-        return rule
-
-    @cached_property
-    def trigger(self):
-        return self.rule.alertruletrigger_set.get()
-
-    def test_rule_updated(self) -> None:
-        incident = self.create_incident(alert_rule=self.rule)
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=self.trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
-
-        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
-            update_alert_rule(self.rule, name="some rule updated")
-
-        out = mail.outbox[0]
-        assert out.to == [self.user.email]
-        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
-
-    def test_manual_resolve(self) -> None:
-        incident = self.create_incident(alert_rule=self.rule)
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=self.trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
-
-        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
-            update_incident_status(
-                incident=incident,
-                status=IncidentStatus.CLOSED,
-                status_method=IncidentStatusMethod.MANUAL,
-            )
-
-        assert len(mail.outbox) == 1
-        out = mail.outbox[0]
-        assert out.to == [self.user.email]
-        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
 
 class TestDeduplicateTriggerActions(TestCase):

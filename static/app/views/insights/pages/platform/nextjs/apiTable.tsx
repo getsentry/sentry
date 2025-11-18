@@ -6,8 +6,11 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -19,6 +22,7 @@ import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/Numb
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -27,7 +31,7 @@ const getP95Threshold = (avg: number) => {
   };
 };
 
-const defaultColumnOrder: Array<GridColumnOrder<string>> = [
+const defaultColumnOrder: Array<GridColumnOrder<SpanProperty>> = [
   {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 112},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
@@ -46,6 +50,7 @@ const rightAlignColumns = new Set([
 
 export function ApiTable() {
   const {query} = useTransactionNameQuery();
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query: `transaction.op:http.server is_transaction:True ${query ?? ''}`.trim(),
     fields: [
@@ -57,28 +62,30 @@ export function ApiTable() {
       'count()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'tableCursor',
+    sort: tableSort,
     referrer: Referrer.API_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-        cursorParamName="tableCursor"
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
+
+  type TableData = (typeof tableDataRequest.data)[number];
 
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'transaction':
           return (
@@ -118,7 +125,7 @@ export function ApiTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -126,13 +133,12 @@ export function ApiTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

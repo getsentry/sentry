@@ -261,6 +261,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -302,6 +303,7 @@ describe('HTTPLandingPage', () => {
           referrer: 'api.insights.http.landing-duration-chart',
           statsPeriod: '10d',
           yAxis: ['avg(span.self_time)'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -328,6 +330,7 @@ describe('HTTPLandingPage', () => {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          caseInsensitive: 0,
         },
       })
     );
@@ -366,11 +369,6 @@ describe('HTTPLandingPage', () => {
     render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
-    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
-    expect(tab).toBeInTheDocument();
-    expect(tab).toHaveAttribute('aria-selected', 'true');
 
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 

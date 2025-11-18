@@ -203,6 +203,33 @@ describe('utils/tokenizeSearch', () => {
           ],
         },
       },
+      {
+        name: 'should handle contains filter',
+        string: 'message:\uf00dContains\uf00d"test value"',
+        object: {
+          tokens: [
+            {type: TokenType.CONTAINS_FILTER, key: 'message', value: 'test value'},
+          ],
+        },
+      },
+      {
+        name: 'should handle starts with filter',
+        string: 'message:\uf00dStartsWith\uf00d"test value"',
+        object: {
+          tokens: [
+            {type: TokenType.STARTS_WITH_FILTER, key: 'message', value: 'test value'},
+          ],
+        },
+      },
+      {
+        name: 'should handle ends with filter',
+        string: 'message:\uf00dEndsWith\uf00d"test value"',
+        object: {
+          tokens: [
+            {type: TokenType.ENDS_WITH_FILTER, key: 'message', value: 'test value'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -380,6 +407,18 @@ describe('utils/tokenizeSearch', () => {
       results = new MutableSearch(['a:a', '(b:b1', 'OR', 'b:b2', 'OR', 'b:b3)', 'c:c']);
       results.removeFilter('b');
       expect(results.formatString()).toBe('a:a c:c');
+
+      results = new MutableSearch(['a:a', 'message:\uf00dContains\uf00d"test value"']);
+      results.removeFilter('message');
+      expect(results.formatString()).toBe('a:a');
+
+      results = new MutableSearch(['a:a', 'message:\uf00dStartsWith\uf00d"test value"']);
+      results.removeFilter('message');
+      expect(results.formatString()).toBe('a:a');
+
+      results = new MutableSearch(['a:a', 'message:\uf00dEndsWith\uf00d"test value"']);
+      results.removeFilter('message');
+      expect(results.formatString()).toBe('a:a');
     });
 
     it('can return the tag keys', () => {
@@ -398,6 +437,23 @@ describe('utils/tokenizeSearch', () => {
       expect(results.getFilterValues('tag')).toEqual(['value', 'value2']);
 
       expect(results.getFilterValues('nonexistent')).toEqual([]);
+    });
+
+    it('handles adding wildcard filters', () => {
+      const results = new MutableSearch(['a:a']);
+
+      results.addContainsFilterValue('b', 'b');
+      expect(results.formatString()).toBe('a:a b:\uf00dContains\uf00db');
+
+      results.addStartsWithFilterValue('c', 'c');
+      expect(results.formatString()).toBe(
+        'a:a b:\uf00dContains\uf00db c:\uf00dStartsWith\uf00dc'
+      );
+
+      results.addEndsWithFilterValue('d', 'd');
+      expect(results.formatString()).toBe(
+        'a:a b:\uf00dContains\uf00db c:\uf00dStartsWith\uf00dc d:\uf00dEndsWith\uf00dd'
+      );
     });
   });
 
@@ -579,6 +635,21 @@ describe('utils/tokenizeSearch', () => {
         name: 'should leave escaped brackets as is',
         object: new MutableSearch(['message:"[test, "[Filtered]"]"']),
         string: 'message:"[test, "[Filtered]"]"',
+      },
+      {
+        name: 'handles contains filter',
+        object: new MutableSearch(['message:\uf00dContains\uf00d"test value"']),
+        string: 'message:\uf00dContains\uf00d"test value"',
+      },
+      {
+        name: 'handles starts with filter',
+        object: new MutableSearch(['message:\uf00dStartsWith\uf00d"test value"']),
+        string: 'message:\uf00dStartsWith\uf00d"test value"',
+      },
+      {
+        name: 'handles ends with filter',
+        object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
+        string: 'message:\uf00dEndsWith\uf00d"test value"',
       },
     ];
 

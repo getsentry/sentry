@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
@@ -13,9 +13,9 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
-    <CodeSnippet language="js">
+    <CodeBlock language="js">
       import KeyValueData from 'sentry/components/keyValueData';
-    </CodeSnippet>
+    </CodeBlock>
   ));
   story('<KeyValueData.Content />', () => {
     const theme = useTheme();
@@ -137,13 +137,13 @@ export default Storybook.story('KeyValueData', story => {
           <code>children</code>.
         </p>
         <p>
-          <CodeSnippet language="jsx">
+          <CodeBlock language="jsx">
             {`<KeyValueData.Container>
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
 </KeyValueData.Container>`}
-          </CodeSnippet>
+          </CodeBlock>
         </p>
         <p>
           It should be noted that the number of items per card, or content size is not

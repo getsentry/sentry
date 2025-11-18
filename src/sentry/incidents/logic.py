@@ -66,7 +66,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
-from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
+from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data_legacy
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -643,10 +643,6 @@ def create_alert_rule(
             **_owner_kwargs_from_actor(owner),
         )
 
-        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0], snuba_query)
-
         if user:
             create_audit_entry_from_user(
                 user,
@@ -663,6 +659,10 @@ def create_alert_rule(
 
         # NOTE: This constructs the query in snuba
         subscribe_projects_to_alert_rule(alert_rule, projects)
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -752,6 +752,30 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
                 kwargs={"alert_rule_id": alert_rule_snapshot.id},
             ),
             using=router.db_for_write(Incident),
+        )
+
+
+def delete_anomaly_detection_rule(snuba_query: SnubaQuery, alert_rule: AlertRule) -> None:
+    """
+    Delete accompanying data in Seer for anomaly detection rules
+    """
+    try:
+        source_id = QuerySubscription.objects.get(snuba_query_id=snuba_query.id).id
+        success = delete_rule_in_seer(
+            organization=alert_rule.organization,
+            source_id=source_id,
+        )
+        if not success:
+            logger.error(
+                "Call to delete rule data in Seer failed",
+                extra={
+                    "source_id": source_id,
+                },
+            )
+    except QuerySubscription.DoesNotExist:
+        logger.exception(
+            "Snuba query missing query subscription",
+            extra={"snuba_query_id": snuba_query.id},
         )
 
 
@@ -917,20 +941,12 @@ def update_alert_rule(
                 raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
+            update_rule_data_legacy(
+                alert_rule, project, snuba_query, updated_fields, updated_query_fields
+            )
         else:
-            # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
+                delete_anomaly_detection_rule(snuba_query, alert_rule)
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
@@ -1086,20 +1102,11 @@ def delete_alert_rule(
             )
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
 
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            delete_anomaly_detection_rule(alert_rule.snuba_query, alert_rule)
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            # if this was a dynamic rule, delete the data in Seer
-            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                success = delete_rule_in_seer(
-                    alert_rule=alert_rule,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
-                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
@@ -1835,6 +1842,7 @@ EAP_FUNCTIONS = [
     "epm",
     "failure_rate",
     "eps",
+    "apdex",
 ]
 
 
@@ -2028,10 +2036,14 @@ def schedule_update_project_config(
     """
     enabled_features = on_demand_metrics_feature_flags(_unpack_organization(alert_rule))
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+    prefilling_for_deprecation = (
+        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+    )
     if (
         not projects
         or "organizations:on-demand-metrics-extraction" not in enabled_features
         and not prefilling
+        and not prefilling_for_deprecation
     ):
         return
 
@@ -2042,6 +2054,7 @@ def schedule_update_project_config(
         alert_snuba_query.query,
         None,
         prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
     if should_use_on_demand:
         for project in projects:

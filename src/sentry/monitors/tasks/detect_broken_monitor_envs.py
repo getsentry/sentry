@@ -26,7 +26,6 @@ from sentry.monitors.models import (
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import crons_tasks
 from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
@@ -160,11 +159,8 @@ def build_open_incidents_queryset():
 
 @instrumented_task(
     name="sentry.monitors.tasks.detect_broken_monitor_envs",
-    max_retries=0,
-    time_limit=15 * 60,
-    soft_time_limit=10 * 60,
-    record_timing=True,
-    taskworker_config=TaskworkerConfig(namespace=crons_tasks, processing_deadline_duration=15 * 60),
+    namespace=crons_tasks,
+    processing_deadline_duration=15 * 60,
 )
 def detect_broken_monitor_envs():
     open_incidents_qs = build_open_incidents_queryset()
@@ -178,11 +174,8 @@ def detect_broken_monitor_envs():
 
 @instrumented_task(
     name="sentry.monitors.tasks.detect_broken_monitor_envs_for_org",
-    max_retries=0,
-    time_limit=15 * 60,
-    soft_time_limit=10 * 60,
-    record_timing=True,
-    taskworker_config=TaskworkerConfig(namespace=crons_tasks, processing_deadline_duration=15 * 60),
+    namespace=crons_tasks,
+    processing_deadline_duration=15 * 60,
 )
 def detect_broken_monitor_envs_for_org(org_id: int):
     current_time = django_timezone.now()
@@ -250,6 +243,8 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             with transaction.atomic(router.db_for_write(MonitorEnvBrokenDetection)):
                 open_incident.monitor_environment.update(is_muted=True)
                 detection.update(env_muted_timestamp=django_timezone.now())
+                # Dual-write: Sync is_muted back to monitor if all environments are muted
+                open_incident.monitor.ensure_is_muted()
 
             for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:

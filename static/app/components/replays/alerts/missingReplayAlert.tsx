@@ -26,11 +26,7 @@ export default function MissingReplayAlert({orgSlug}: Props) {
       "An ad-blocker was turned on for the user's session. [link:Read our docs] for a workaround.",
       {
         link: (
-          <ExternalLink
-            href={
-              'https://docs.sentry.io/platforms/javascript/troubleshooting/#dealing-with-ad-blockers'
-            }
-          />
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/troubleshooting/#dealing-with-ad-blockers" />
         ),
       }
     ),

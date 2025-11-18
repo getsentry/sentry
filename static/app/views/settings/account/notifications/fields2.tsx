@@ -227,11 +227,7 @@ export const SPEND_FIELDS = [
       'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
       {
         learnMore: (
-          <ExternalLink
-            href={
-              'https://docs.sentry.io/product/alerts/notifications/#spend-notifications'
-            }
-          />
+          <ExternalLink href="https://docs.sentry.io/product/alerts/notifications/#spend-notifications" />
         ),
       }
     ),

@@ -53,7 +53,7 @@ export function uninstallSentryApp(
     install.app.slug.charAt(0).toUpperCase() + install.app.slug.slice(1);
   promise.then(
     () => {
-      addSuccessMessage(t('%s successfully uninstalled.', capitalizedAppSlug));
+      addSuccessMessage(t('%s successfully queued for deletion.', capitalizedAppSlug));
     },
     () => clearIndicators()
   );

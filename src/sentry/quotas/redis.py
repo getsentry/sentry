@@ -73,38 +73,6 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
-            span.set_tag("project.id", project.id)
-            pquota = self.get_project_quota(project)
-            if pquota[0] is not None:
-                results.append(
-                    QuotaConfig(
-                        id="p",
-                        scope=QuotaScope.PROJECT,
-                        scope_id=project.id,
-                        categories=DataCategory.error_categories(),
-                        limit=pquota[0],
-                        window=pquota[1],
-                        reason_code="project_quota",
-                    )
-                )
-
-        with sentry_sdk.start_span(op="redis.get_quotas.get_organization_quota") as span:
-            span.set_tag("project.organization.id", project.organization.id)
-            oquota = self.get_organization_quota(project.organization)
-            if oquota[0] is not None:
-                results.append(
-                    QuotaConfig(
-                        id="o",
-                        scope=QuotaScope.ORGANIZATION,
-                        scope_id=project.organization.id,
-                        categories=DataCategory.error_categories(),
-                        limit=oquota[0],
-                        window=oquota[1],
-                        reason_code="org_quota",
-                    )
-                )
-
         with sentry_sdk.start_span(op="redis.get_quotas.get_monitor_quota") as span:
             span.set_tag("project.id", project.id)
             mrlquota = self.get_monitor_quota(project)

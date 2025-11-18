@@ -37,14 +37,20 @@ export function UptimeChecksTable({
     isPending,
     getResponseHeader,
     refetch,
-  } = useUptimeChecks({
-    orgSlug: organization.slug,
-    projectSlug,
-    detectorId,
-    cursor: decodeScalar(location.query.cursor),
-    ...timeRange,
-    limit: 10,
-  });
+  } = useUptimeChecks(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      detectorId,
+      cursor: decodeScalar(location.query.cursor),
+      ...timeRange,
+      limit: 10,
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 60_000,
+    }
+  );
 
   if (isError) {
     return <LoadingError message={t('Failed to load uptime checks')} onRetry={refetch} />;

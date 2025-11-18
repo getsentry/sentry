@@ -6,6 +6,7 @@ import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
@@ -27,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
@@ -90,6 +91,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = formatVersion(value.name);
     } else if (tag.key === 'device') {
       name = <DeviceName value={value.name} />;
+    } else if (value.name === '') {
+      name = <Text variant="muted">{t('(empty)')}</Text>;
     }
 
     return {
@@ -140,6 +143,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   return (
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
+        replace
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
@@ -189,7 +193,7 @@ function DistributionsDrawerButton({
         replace
         disabled={tags.length === 0}
       >
-        {includeFeatureFlags
+        {includeFeatureFlags && !isScreenSmall
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })
@@ -202,6 +206,7 @@ function DistributionsDrawerButton({
 
   return (
     <DistributionsDrawerLink
+      replace
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
@@ -224,7 +229,7 @@ export default function IssueTagsPreview({
   groupId: string;
   project: Project;
 }) {
-  const searchQuery = useEventQuery({groupId});
+  const searchQuery = useEventQuery();
   const organization = useOrganization();
   const theme = useTheme();
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
@@ -277,9 +282,9 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project.platform, highlightTagKeys]);
 
-  const includeFeatureFlags =
-    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-distribution-flyout');
+  const includeFeatureFlags = featureFlagDrawerPlatforms.includes(
+    project.platform ?? 'other'
+  );
 
   if (
     searchQuery ||

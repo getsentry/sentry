@@ -9,15 +9,25 @@ export function crontabAsText(crontabInput: string | null): string | null {
   if (!crontabInput) {
     return null;
   }
-  let parsedSchedule: string;
+
+  // The backend does not support "no specific value" markers or the "weekday"
+  // markers (from the Java quarts job scheduler). Do not parse these to avoid confusion
+  if (['?', 'W'].some(marker => crontabInput.includes(marker))) {
+    return null;
+  }
+
+  // The backend does not support expressions with more than 5 fields. Do not
+  // parse these to avoid confusion
+  if (crontabInput.split(/\s+/).filter(Boolean).length > 5) {
+    return null;
+  }
+
   try {
-    parsedSchedule = cronstrue.toString(crontabInput, {
+    return cronstrue.toString(crontabInput, {
       verbose: false,
       use24HourTimeFormat: shouldUse24Hours(),
     });
   } catch (_e) {
     return null;
   }
-
-  return parsedSchedule;
 }

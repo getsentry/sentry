@@ -43,6 +43,7 @@ export const API_ACCESS_SCOPES = [
   'org:read',
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -68,6 +69,7 @@ export const ALLOWED_SCOPES = [
   'org:superuser', // not an assignable API access scope
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -119,7 +121,7 @@ type PermissionChoice = {
   scopes: Scope[];
 };
 
-type PermissionObj = {
+export type PermissionObj = {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
@@ -163,6 +165,14 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
     choices: {
       'no-access': {label: 'No Access', scopes: []},
       admin: {label: 'Admin', scopes: ['project:releases']},
+    },
+  },
+  {
+    resource: 'Distribution',
+    help: 'Pre-release app distribution for trusted testers.',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['project:distribution']},
     },
   },
   {
@@ -237,7 +247,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
 const DEFAULT_STATS_INFO = {
   showExternalStats: false,
   showInternalStats: true,
-  yAxisMinInterval: 100,
+  yAxisMinInterval: 10,
 };
 const GIGABYTE = 10 ** 9;
 const KILOBYTE = 10 ** 3;
@@ -375,8 +385,8 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.MONITOR,
     plural: DataCategory.MONITOR,
     singular: 'monitor',
-    displayName: 'monitor check-in',
-    titleName: t('Monitor Check-Ins'),
+    displayName: 'cron check-in',
+    titleName: t('Cron Check-Ins'),
     productName: t('Cron Monitoring'),
     uid: 10,
     isBilledCategory: false,
@@ -583,15 +593,24 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
+  [DataCategoryExact.TRACE_METRIC]: {
+    name: DataCategoryExact.TRACE_METRIC,
+    plural: DataCategory.TRACE_METRICS,
+    singular: 'metric',
+    displayName: 'metric',
+    titleName: t('Metrics'),
+    productName: t('Metrics'),
+    uid: 33,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
-
-// Special Search characters
-export const NEGATION_OPERATOR = '!';
-export const SEARCH_WILDCARD = '*';
 
 // SmartSearchBar settings
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
-export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
 

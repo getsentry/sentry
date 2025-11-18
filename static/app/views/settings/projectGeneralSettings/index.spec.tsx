@@ -79,7 +79,7 @@ describe('projectGeneralSettings', () => {
 
   it('renders form fields', async () => {
     render(
-      <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />,
+      <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
 
       {
         organization,
@@ -87,8 +87,8 @@ describe('projectGeneralSettings', () => {
       }
     );
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
-      'Project Name'
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
+      'project-slug'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
 
@@ -110,7 +110,7 @@ describe('projectGeneralSettings', () => {
       scrapeJavaScript: false,
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
       initialRouterConfig,
     });
@@ -129,15 +129,18 @@ describe('projectGeneralSettings', () => {
       method: 'DELETE',
     });
 
-    const {router} = render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
+    const {router} = render(
+      <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
         },
-        route: '/:projectId/',
-      },
-    });
+      }
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remove Project'}));
 
@@ -156,7 +159,7 @@ describe('projectGeneralSettings', () => {
       method: 'POST',
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization,
       initialRouterConfig,
     });
@@ -191,7 +194,7 @@ describe('projectGeneralSettings', () => {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization,
       initialRouterConfig,
     });
@@ -220,7 +223,7 @@ describe('projectGeneralSettings', () => {
       access: ['org:read'],
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
       initialRouterConfig,
     });
@@ -241,7 +244,7 @@ describe('projectGeneralSettings', () => {
   it('disables the form for users without write permissions', async () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: readOnlyOrg,
       initialRouterConfig,
     });
@@ -266,7 +269,7 @@ describe('projectGeneralSettings', () => {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
       {
         organization,
@@ -296,7 +299,7 @@ describe('projectGeneralSettings', () => {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
       {
         organization,
@@ -305,7 +308,7 @@ describe('projectGeneralSettings', () => {
     );
 
     await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Name'}),
+      await screen.findByRole('textbox', {name: 'Slug'}),
       'New Project'
     );
 
@@ -339,7 +342,7 @@ describe('projectGeneralSettings', () => {
     function renderProjectGeneralSettings() {
       render(
         <ProjectContextProvider projectSlug={project.slug}>
-          <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
+          <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
         </ProjectContextProvider>,
         {
           organization,
@@ -429,9 +432,8 @@ describe('projectGeneralSettings', () => {
       jest.spyOn(console, 'error').mockImplementation();
     });
 
-    it('shows all platform options when organization has gaming feature and all console platforms enabled', async () => {
+    it('shows all platform options when all console platforms enabled', async () => {
       const orgWithGamingAccess = OrganizationFixture({
-        features: ['project-creation-games-tab'],
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
       });
 
@@ -451,10 +453,16 @@ describe('projectGeneralSettings', () => {
         route: '/settings/:orgId/projects/:projectId/',
       };
 
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithGamingAccess,
-        initialRouterConfig: routerConfig,
-      });
+      render(
+        <ProjectGeneralSettings
+          project={projectWithPlatform}
+          onChangeSlug={mockOnChangeSlug}
+        />,
+        {
+          organization: orgWithGamingAccess,
+          initialRouterConfig: routerConfig,
+        }
+      );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
       await userEvent.click(platformSelect);
@@ -468,46 +476,8 @@ describe('projectGeneralSettings', () => {
       expect(screen.getByText('Nintendo Switch')).toBeInTheDocument();
     });
 
-    it('hides console platforms when organization lacks gaming feature', async () => {
+    it('shows only enabled console platforms', async () => {
       const orgWithoutGamingFeature = OrganizationFixture({
-        features: [], // No gaming feature
-        enabledConsolePlatforms: ['nintendo-switch'],
-      });
-      const baseProject = ProjectFixture();
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,
-        method: 'GET',
-        body: baseProject,
-      });
-
-      const routerConfig = {
-        location: {
-          pathname: `/settings/${orgWithoutGamingFeature.slug}/projects/${baseProject.slug}/`,
-        },
-        route: '/settings/:orgId/projects/:projectId/',
-      };
-
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithoutGamingFeature,
-        initialRouterConfig: routerConfig,
-      });
-
-      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
-      await userEvent.click(platformSelect);
-
-      // Should not show console platforms
-      expect(screen.queryByText('Nintendo Switch')).not.toBeInTheDocument();
-      expect(screen.queryByText('PlayStation')).not.toBeInTheDocument();
-      expect(screen.queryByText('Xbox')).not.toBeInTheDocument();
-
-      // Should still show non-console platforms
-      expect(screen.getByText('React')).toBeInTheDocument();
-    });
-
-    it('hides only the available console platforms when organization has limited access', async () => {
-      const orgWithoutGamingFeature = OrganizationFixture({
-        features: ['project-creation-games-tab'],
         enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
       });
       const baseProject = ProjectFixture();
@@ -525,10 +495,13 @@ describe('projectGeneralSettings', () => {
         route: '/settings/:orgId/projects/:projectId/',
       };
 
-      render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
-        organization: orgWithoutGamingFeature,
-        initialRouterConfig: routerConfig,
-      });
+      render(
+        <ProjectGeneralSettings project={baseProject} onChangeSlug={mockOnChangeSlug} />,
+        {
+          organization: orgWithoutGamingFeature,
+          initialRouterConfig: routerConfig,
+        }
+      );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
       await userEvent.click(platformSelect);

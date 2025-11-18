@@ -36,13 +36,20 @@ export function TestSearchBar({testCount}: TestSearchBarProps) {
         setSearchParams(prev => {
           const currentParams = Object.fromEntries(prev.entries());
 
+          // Remove cursor and navigation params when searching to start from first page
+          const {
+            cursor: _cursor,
+            navigation: _navigation,
+            ...paramsWithoutPagination
+          } = currentParams;
+
           if (newValue) {
-            currentParams.term = newValue;
+            paramsWithoutPagination.term = newValue;
           } else {
-            delete currentParams.term;
+            delete paramsWithoutPagination.term;
           }
 
-          return currentParams;
+          return paramsWithoutPagination;
         });
       }, 500),
     [setSearchParams]

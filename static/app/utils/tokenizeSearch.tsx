@@ -1,3 +1,4 @@
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 const ALLOWED_WILDCARD_FIELDS = [
@@ -14,7 +15,17 @@ export enum TokenType {
   OPERATOR = 0,
   FILTER = 1,
   FREE_TEXT = 2,
+  CONTAINS_FILTER = 3,
+  STARTS_WITH_FILTER = 4,
+  ENDS_WITH_FILTER = 5,
 }
+
+const FILTER_TOKENS = [
+  TokenType.FILTER,
+  TokenType.CONTAINS_FILTER,
+  TokenType.STARTS_WITH_FILTER,
+  TokenType.ENDS_WITH_FILTER,
+];
 
 type Token = {
   type: TokenType;
@@ -37,6 +48,38 @@ function isParen(token: Token, character: '(' | ')') {
     ['(', ')'].includes(token.value) &&
     token.value === character
   );
+}
+
+function isProperlyBracketed(value: string): boolean {
+  return /^\[.*\]$/.test(value);
+}
+
+function isProperlyQuoted(value: string): boolean {
+  return /^".*"$/.test(value);
+}
+
+function requiresQuotes(value: string): boolean {
+  return /[\s()\\"]/g.test(value);
+}
+
+function generateFilterValue(token: Token, operator: string): string {
+  if (token.value === '' || token.value === null) {
+    return `${token.key}${operator}""`;
+  }
+
+  if (
+    // Don't quote if it's already a properly formatted bracket expression
+    isProperlyBracketed(token.value) ||
+    // Don't quote if it's already properly quoted
+    isProperlyQuoted(token.value)
+  ) {
+    return `${token.key}${operator}${token.value}`;
+  }
+
+  if (requiresQuotes(token.value)) {
+    return `${token.key}${operator}"${escapeDoubleQuotes(token.value)}"`;
+  }
+  return `${token.key}${operator}${token.value}`;
 }
 
 // TODO(epurkhiser): This is legacy from before the existence of
@@ -120,9 +163,28 @@ export class MutableSearch {
 
         // We may have entered a filter condition
         if (char === ':') {
-          const nextChar = token[i + 1] || '';
-          if ([':', ' '].includes(nextChar)) {
+          const indexOffset = i + 1;
+          const nextChar = token[indexOffset] || '';
+
+          if (nextChar === ':' || nextChar === ' ') {
             tokenState = TokenType.FREE_TEXT;
+          } else if (
+            token.slice(indexOffset, indexOffset + WildcardOperators.CONTAINS.length) ===
+            WildcardOperators.CONTAINS
+          ) {
+            tokenState = TokenType.CONTAINS_FILTER;
+          } else if (
+            token.slice(
+              indexOffset,
+              indexOffset + WildcardOperators.STARTS_WITH.length
+            ) === WildcardOperators.STARTS_WITH
+          ) {
+            tokenState = TokenType.STARTS_WITH_FILTER;
+          } else if (
+            token.slice(indexOffset, indexOffset + WildcardOperators.ENDS_WITH.length) ===
+            WildcardOperators.ENDS_WITH
+          ) {
+            tokenState = TokenType.ENDS_WITH_FILTER;
           } else {
             tokenState = TokenType.FILTER;
           }
@@ -143,6 +205,15 @@ export class MutableSearch {
         this.addFreeText(token);
       } else if (tokenState === TokenType.FILTER) {
         this.addStringFilter(token, false);
+      } else if (tokenState === TokenType.CONTAINS_FILTER) {
+        token = token.replace(WildcardOperators.CONTAINS, '');
+        this.addStringContainsFilter(token, false);
+      } else if (tokenState === TokenType.STARTS_WITH_FILTER) {
+        token = token.replace(WildcardOperators.STARTS_WITH, '');
+        this.addStringStartsWithFilter(token, false);
+      } else if (tokenState === TokenType.ENDS_WITH_FILTER) {
+        token = token.replace(WildcardOperators.ENDS_WITH, '');
+        this.addStringEndsWithFilter(token, false);
       }
 
       if (trailingParen !== '') {
@@ -156,26 +227,25 @@ export class MutableSearch {
     for (const token of this.tokens) {
       switch (token.type) {
         case TokenType.FILTER:
-          if (token.value === '' || token.value === null) {
-            formattedTokens.push(`${token.key}:""`);
-          } else if (
-            // Don't quote if it's already a properly formatted bracket expression
-            /^\[.*\]$/.test(token.value) ||
-            // Don't quote if it's already properly quoted
-            /^".*"$/.test(token.value)
-          ) {
-            formattedTokens.push(`${token.key}:${token.value}`);
-          } else if (
-            // Quote if contains spaces, parens, or quotes
-            /[\s\(\)\\"]/g.test(token.value)
-          ) {
-            formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
-          } else {
-            formattedTokens.push(`${token.key}:${token.value}`);
-          }
+          formattedTokens.push(generateFilterValue(token, ':'));
+          break;
+        case TokenType.CONTAINS_FILTER:
+          formattedTokens.push(
+            generateFilterValue(token, `:${WildcardOperators.CONTAINS}`)
+          );
+          break;
+        case TokenType.STARTS_WITH_FILTER:
+          formattedTokens.push(
+            generateFilterValue(token, `:${WildcardOperators.STARTS_WITH}`)
+          );
+          break;
+        case TokenType.ENDS_WITH_FILTER:
+          formattedTokens.push(
+            generateFilterValue(token, `:${WildcardOperators.ENDS_WITH}`)
+          );
           break;
         case TokenType.FREE_TEXT:
-          if (/[\s\(\)\\"]/g.test(token.value)) {
+          if (requiresQuotes(token.value)) {
             formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(token.value);
@@ -209,9 +279,48 @@ export class MutableSearch {
     return this;
   }
 
+  addStringContainsFilter(filter: string, shouldEscape = true) {
+    const [key, value] = parseFilter(filter);
+    this.addContainsFilterValues(key!, [value!], shouldEscape);
+    return this;
+  }
+
+  addStringStartsWithFilter(filter: string, shouldEscape = true) {
+    const [key, value] = parseFilter(filter);
+    this.addStartsWithFilterValues(key!, [value!], shouldEscape);
+    return this;
+  }
+
+  addStringEndsWithFilter(filter: string, shouldEscape = true) {
+    const [key, value] = parseFilter(filter);
+    this.addEndsWithFilterValues(key!, [value!], shouldEscape);
+    return this;
+  }
+
   addFilterValues(key: string, values: string[], shouldEscape = true) {
     for (const value of values) {
       this.addFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addContainsFilterValues(key: string, values: string[], shouldEscape = true) {
+    for (const value of values) {
+      this.addContainsFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addStartsWithFilterValues(key: string, values: string[], shouldEscape = true) {
+    for (const value of values) {
+      this.addStartsWithFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addEndsWithFilterValues(key: string, values: string[], shouldEscape = true) {
+    for (const value of values) {
+      this.addEndsWithFilterValue(key, value, shouldEscape);
     }
     return this;
   }
@@ -250,6 +359,24 @@ export class MutableSearch {
     return this;
   }
 
+  addContainsFilterValue(key: string, value: string, shouldEscape = true) {
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
+    const token: Token = {type: TokenType.CONTAINS_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  addStartsWithFilterValue(key: string, value: string, shouldEscape = true) {
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
+    const token: Token = {type: TokenType.STARTS_WITH_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  addEndsWithFilterValue(key: string, value: string, shouldEscape = true) {
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
+    const token: Token = {type: TokenType.ENDS_WITH_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
   get filters() {
     type Filters = Record<string, string[]>;
 
@@ -259,7 +386,7 @@ export class MutableSearch {
     });
 
     return this.tokens
-      .filter(t => t.type === TokenType.FILTER)
+      .filter(t => FILTER_TOKENS.includes(t.type))
       .reduce<Filters>(reducer, {});
   }
 
@@ -543,7 +670,7 @@ function removeSurroundingQuotes(text: string) {
  * Strips enclosing quotes and parens from a query, if present.
  */
 function formatQuery(query: string) {
-  return query.replace(/^["\(]+|["\)]+$/g, '');
+  return query.replace(/^["(]+|[")]+$/g, '');
 }
 
 /**
@@ -555,5 +682,5 @@ export function escapeFilterValue(value: string) {
   // Need to dig deeper to see where exactly it's wrong.
   //
   // astericks (*) is used for wildcard searches
-  return typeof value === 'string' ? value.replace(/([\*])/g, '\\$1') : value;
+  return typeof value === 'string' ? value.replace(/([*])/g, '\\$1') : value;
 }

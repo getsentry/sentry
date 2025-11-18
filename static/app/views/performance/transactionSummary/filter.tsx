@@ -70,12 +70,11 @@ function Filter(props: Props) {
         triggerProps={{
           icon: <IconFilter />,
           'aria-label': t('Filter by operation'),
+          children:
+            currentFilter === SpanOperationBreakdownFilter.NONE
+              ? t('Filter')
+              : currentFilter,
         }}
-        triggerLabel={
-          currentFilter === SpanOperationBreakdownFilter.NONE
-            ? t('Filter')
-            : currentFilter
-        }
       />
     </GuideAnchor>
   );

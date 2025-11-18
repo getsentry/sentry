@@ -9,7 +9,6 @@ from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from sentry_sdk import capture_exception
@@ -22,7 +21,6 @@ from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
-from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
@@ -42,7 +40,6 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
-    ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -59,9 +56,7 @@ from sentry.constants import (
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
@@ -117,20 +112,10 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
+
+
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
-    (
-        "projectRateLimit",
-        "sentry:project-rate-limit",
-        int,
-        PROJECT_RATE_LIMIT_DEFAULT,
-    ),
-    (
-        "accountRateLimit",
-        "sentry:account-rate-limit",
-        int,
-        ACCOUNT_RATE_LIMIT_DEFAULT,
-    ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
     ("sensitiveFields", "sentry:sensitive_fields", list, None),
     ("safeFields", "sentry:safe_fields", list, None),
@@ -194,12 +179,6 @@ ORG_OPTIONS = (
     (
         "githubPRBot",
         "sentry:github_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "githubOpenPRBot",
-        "sentry:github_open_pr_bot",
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
@@ -296,12 +275,6 @@ DEFERRED = object()
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
-    accountRateLimit = EmptyIntegerField(
-        min_value=0, max_value=1000000, required=False, allow_null=True
-    )
-    projectRateLimit = EmptyIntegerField(
-        min_value=50, max_value=100, required=False, allow_null=True
-    )
     avatar = AvatarField(required=False, allow_null=True)
     avatarType = serializers.ChoiceField(
         choices=(("upload", "upload"), ("letter_avatar", "letter_avatar")),
@@ -331,7 +304,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
@@ -364,13 +336,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
-
-    @cached_property
-    def _has_legacy_rate_limits(self):
-        org = self.context["organization"]
-        return OrganizationOption.objects.filter(
-            organization=org, key__in=LEGACY_RATE_LIMIT_OPTIONS
-        ).exists()
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
@@ -451,20 +416,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if value is not None:
             value = list(set(value))
 
-        return value
-
-    def validate_accountRateLimit(self, value):
-        if not self._has_legacy_rate_limits:
-            raise serializers.ValidationError(
-                "The accountRateLimit option cannot be configured for this organization"
-            )
-        return value
-
-    def validate_projectRateLimit(self, value):
-        if not self._has_legacy_rate_limits:
-            raise serializers.ValidationError(
-                "The accountRateLimit option cannot be configured for this organization"
-            )
         return value
 
     def validate_targetSampleRate(self, value):
@@ -933,10 +884,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
         required=False,
     )
-    githubOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
-        required=False,
-    )
     githubNudgeInvite = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
         required=False,
@@ -970,12 +917,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
     # private attributes
     # legacy features
-    accountRateLimit = serializers.IntegerField(
-        min_value=ACCOUNT_RATE_LIMIT_DEFAULT, required=False
-    )
-    projectRateLimit = serializers.IntegerField(
-        min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
-    )
     apdexThreshold = serializers.IntegerField(required=False)
 
 
@@ -1200,10 +1141,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.TRANSACTIONS
-        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-            "organizations:dynamic-sampling-spans", organization
-        ):
-            measure = SamplingMeasure.SPANS
+        if options.get("dynamic-sampling.check_span_feature_flag"):
+            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+            if org_id in span_org_ids:
+                measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(

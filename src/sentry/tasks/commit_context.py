@@ -6,7 +6,6 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
@@ -32,9 +31,8 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -43,28 +41,17 @@ DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest
 DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
-
+TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.tasks.process_commit_context",
-    queue="group_owners.process_commit_context",
-    autoretry_for=(ApiError,),
-    max_retries=5,
-    retry_backoff=True,
-    retry_backoff_max=60 * 60 * 3,  # 3 hours
-    retry_jitter=False,
+    namespace=issues_tasks,
+    processing_deadline_duration=TASK_DURATION_S,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=90,
-        retry=Retry(
-            times=5,
-            on=(ApiError,),
-        ),
-    ),
 )
 def process_commit_context(
     event_id: str,
@@ -85,7 +72,9 @@ def process_commit_context(
     Will check if the suspect commit author can be auto-assigned.
     """
     lock = locks.get(
-        f"process-commit-context:{group_id}", duration=10, name="process_commit_context"
+        f"process-commit-context:{group_id}",
+        duration=TASK_DURATION_S,
+        name="process_commit_context",
     )
     try:
         with lock.acquire():
@@ -142,7 +131,7 @@ def process_commit_context(
                 )
             except ApiError:
                 metrics.incr("tasks.process_commit_context_all_frames.retry")
-                retry_task()
+                raise
 
             if not blame or not installation:
                 metrics.incr("tasks.process_commit_context_all_frames.no_blame_found")
@@ -164,7 +153,7 @@ def process_commit_context(
                     "user_id": user_dct.get("id"),
                     "project_id": project.id,
                     "organization_id": project.organization_id,
-                    "context__contains": f'"commitId":{commit.id}',
+                    "context__asjsonb__commitId": commit.id,
                 },
                 defaults={
                     "date_added": django_timezone.now(),
@@ -212,5 +201,5 @@ def process_commit_context(
                 sentry_sdk.capture_exception(e)
     except UnableToAcquireLock:
         pass
-    except (MaxRetriesExceededError, NoRetriesRemainingError):
+    except NoRetriesRemainingError:
         metrics.incr("tasks.process_commit_context.max_retries_exceeded")

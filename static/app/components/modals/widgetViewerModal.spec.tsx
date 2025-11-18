@@ -144,14 +144,11 @@ describe('Modals -> WidgetViewerModal', () => {
     });
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1, 2],
-        environments: ['prod', 'dev'],
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1, 2],
+      environments: ['prod', 'dev'],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    });
   });
 
   afterEach(() => {
@@ -237,17 +234,6 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
-      });
-
-      it('renders Open button disabled for discover widget if dataset selector flag enabled', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
       });
 
       it('renders updated table columns and orderby', async () => {
@@ -1432,6 +1418,12 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
+      initialData = initializeOrg({
+        organization: {
+          features: ['discover-cell-actions-v2'],
+        },
+        projects: [ProjectFixture()],
+      });
     });
 
     it('renders the Open in Explore button', async () => {
@@ -1483,6 +1475,51 @@ describe('Modals -> WidgetViewerModal', () => {
             // The orderby should appear in the field array
             field: ['span.description', 'p90(span.duration)', 'count(span.duration)'],
           }),
+        })
+      );
+    });
+
+    it('links to the spans page when "View span samples" is clicked in the context menu', async () => {
+      const mockSpanWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        title: 'Span Transactions Widget',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: '',
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      });
+
+      await renderModal({
+        initialData,
+        widget: mockSpanWidget,
+        tableData: [
+          {
+            title: 'Span Transactions Widget',
+            data: [{transaction: 'test-transaction', count: 10, id: 'test-id'}],
+          },
+        ],
+      });
+
+      const transactionCell = await screen.findByText('test-transaction');
+      expect(transactionCell).toBeInTheDocument();
+
+      await userEvent.click(transactionCell);
+
+      const menuOption = await screen.findByText('View span samples');
+      expect(menuOption).toBeInTheDocument();
+
+      await userEvent.click(menuOption);
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: expect.stringContaining('/organizations/org-slug/explore/traces/'),
         })
       );
     });

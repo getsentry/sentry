@@ -8,13 +8,14 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {OnDemandBudgetMode, type EventBucket, type ProductTrial} from 'getsentry/types';
+import {InvoiceItemType, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getBestActionToIncreaseEventLimits,
+  getCreditApplied,
   getOnDemandCategories,
   getProductTrial,
   getSlot,
@@ -1005,18 +1006,13 @@ describe('getOnDemandCategories', () => {
 });
 
 describe('getOnDemandCategories - AM2 logBytes support', () => {
-  it('includes logBytes in AM2 business plan on-demand categories', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
-    expect(plan.onDemandCategories).toContain('logBytes');
-  });
-
-  it('includes logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
+  it('does not include logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
     const plan = PlanDetailsLookupFixture('am2_business')!;
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
     });
-    expect(categories).toContain('logBytes');
+    expect(categories).not.toContain('logBytes');
   });
 
   it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', () => {
@@ -1026,40 +1022,6 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
       budgetMode: OnDemandBudgetMode.SHARED,
     });
     expect(categories).toContain('logBytes');
-  });
-
-  it('has planCategories entry for logBytes in AM2 business plan', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
-    const logBytes: EventBucket[] | undefined = plan.planCategories.logBytes;
-    expect(logBytes).toBeDefined();
-    expect(logBytes).toHaveLength(1);
-    if (logBytes) {
-      expect(logBytes[0]).toEqual({
-        events: 5,
-        unitPrice: 0.5,
-        price: 0,
-      });
-    }
-  });
-
-  it('has category display names for logBytes', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
-    expect(plan.categoryDisplayNames?.logBytes).toBeDefined();
-    expect(plan.categoryDisplayNames?.logBytes).toEqual({
-      singular: 'log',
-      plural: 'logs',
-    });
-  });
-
-  it('ensures all AM2 plans with logBytes in onDemandCategories also have it in planCategories', () => {
-    const am2Plans = ['am2_business', 'am2_f', 'am2_team'];
-
-    am2Plans.forEach(planId => {
-      const plan = PlanDetailsLookupFixture(planId);
-      if (plan?.onDemandCategories.includes('logBytes' as DataCategory)) {
-        expect(plan.planCategories.logBytes).toBeDefined();
-      }
-    });
   });
 });
 
@@ -1117,5 +1079,52 @@ describe('getBestActionToIncreaseEventLimits', () => {
       plan: 'am3_business',
     });
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
+  });
+});
+
+describe('getCreditApplied', () => {
+  it('returns correct credit applied', () => {
+    expect(getCreditApplied({creditApplied: 100, invoiceItems: []})).toBe(100);
+    const commonCreditProps = {
+      amount: 50,
+      data: {},
+      description: '',
+      period_end: '',
+      period_start: '',
+    };
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+          },
+        ],
+      })
+    ).toBe(100);
+    expect(
+      getCreditApplied({
+        creditApplied: 100,
+        invoiceItems: [
+          {
+            type: InvoiceItemType.BALANCE_CHANGE,
+            ...commonCreditProps,
+            amount: -50,
+          },
+        ],
+      })
+    ).toBe(0);
   });
 });

@@ -21,17 +21,20 @@ export function MetricDetectorPreviewChart() {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
 
   // Threshold-related form fields
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const highThreshold = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  const mediumThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.mediumThreshold
   );
-  const initialPriorityLevel = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  const resolutionStrategy = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
+  );
+  const resolutionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
   );
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
@@ -46,18 +49,26 @@ export function MetricDetectorPreviewChart() {
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
-    // Wait for a condition value to be defined
-    if (detectionType === 'static' && !conditionValue) {
+    // Wait for a high threshold value to be defined
+    if (detectionType === 'static' && !highThreshold) {
       return [];
     }
 
     return createConditions({
       conditionType,
-      conditionValue,
-      initialPriorityLevel,
       highThreshold,
+      mediumThreshold,
+      resolutionStrategy,
+      resolutionValue,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
+  }, [
+    conditionType,
+    highThreshold,
+    mediumThreshold,
+    resolutionStrategy,
+    resolutionValue,
+    detectionType,
+  ]);
 
   const datasetConfig = getDatasetConfig(dataset);
   const {query, eventTypes} = datasetConfig.separateEventTypesFromQuery(rawQuery);

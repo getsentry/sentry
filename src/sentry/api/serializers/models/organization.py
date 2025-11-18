@@ -29,7 +29,6 @@ from sentry.api.utils import generate_region_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
-    ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
@@ -48,7 +47,6 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
@@ -101,12 +99,6 @@ logger = logging.getLogger(__name__)
 # the OrganizationOption.
 OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
 ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "sentry:project-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
-    "sentry:account-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
     ],
@@ -522,7 +514,6 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
     experiments: Any
-    quota: Any
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -549,7 +540,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
     gitlabOpenPRBot: bool
@@ -589,7 +579,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         base = super().serialize(
             obj, attrs, user, access=access, include_feature_flags=include_feature_flags
         )
-        max_rate = quotas.backend.get_maximum_quota(obj)
 
         is_dynamically_sampled = False
         sample_rate = None
@@ -619,24 +608,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             # TODO(epurkhiser): This can be removed once we confirm the
             # frontend does not use it
             "experiments": {},
-            "quota": {
-                "maxRate": max_rate[0],
-                "maxRateInterval": max_rate[1],
-                "accountLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:account-rate-limit",
-                        default=ACCOUNT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-                "projectLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:project-rate-limit",
-                        default=PROJECT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-            },
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
@@ -690,9 +661,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
             "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubOpenPRBot": bool(
-                obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),

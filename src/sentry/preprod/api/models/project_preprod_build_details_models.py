@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 from enum import StrEnum
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
@@ -15,6 +18,14 @@ class Platform(StrEnum):
     MACOS = "macos"
 
 
+class AppleAppInfo(BaseModel):
+    missing_dsym_binaries: list[str] = []
+
+
+class AndroidAppInfo(BaseModel):
+    has_proguard_mapping: bool = True
+
+
 class BuildDetailsAppInfo(BaseModel):
     app_id: str | None
     name: str | None
@@ -26,6 +37,8 @@ class BuildDetailsAppInfo(BaseModel):
     platform: Platform | None = None
     is_installable: bool
     build_configuration: str | None = None
+    apple_app_info: AppleAppInfo | None = None
+    android_app_info: AndroidAppInfo | None = None
 
 
 class BuildDetailsVcsInfo(BaseModel):
@@ -39,18 +52,55 @@ class BuildDetailsVcsInfo(BaseModel):
     pr_number: int | None = None
 
 
-class BuildDetailsSizeInfo(BaseModel):
+class SizeInfoSizeMetric(BaseModel):
+    metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
     install_size_bytes: int
     download_size_bytes: int
+
+
+class SizeInfoPending(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+    )
+
+
+class SizeInfoProcessing(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+    )
+
+
+class SizeInfoCompleted(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+    )
+    # Deprecated, use size_metrics instead
+    install_size_bytes: int
+    # Deprecated, use size_metrics instead
+    download_size_bytes: int
+    size_metrics: list[SizeInfoSizeMetric]
+
+
+class SizeInfoFailed(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+    )
+    error_code: int
+    error_message: str
+
+
+SizeInfo = Annotated[
+    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed,
+    Field(discriminator="state"),
+]
 
 
 class BuildDetailsApiResponse(BaseModel):
     id: str
     state: PreprodArtifact.ArtifactState
-    size_analysis_state: PreprodArtifactSizeMetrics.SizeAnalysisState | None = None
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
-    size_info: BuildDetailsSizeInfo | None = None
+    size_info: SizeInfo | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -65,24 +115,86 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
             raise ValueError(f"Unknown artifact type: {artifact_type}")
 
 
+def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeInfo:
+    if len(size_metrics) == 0:
+        return None
+
+    main_metric = next(
+        (
+            metric
+            for metric in size_metrics
+            if metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ),
+        # Fallback to the first metric if no main artifact is found
+        size_metrics[0],
+    )
+
+    match main_metric.state:
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
+            return SizeInfoPending()
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
+            return SizeInfoProcessing()
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+            max_install_size = main_metric.max_install_size
+            max_download_size = main_metric.max_download_size
+            if max_install_size is None or max_download_size is None:
+                raise ValueError(
+                    "COMPLETED state requires both max_install_size and max_download_size"
+                )
+
+            return SizeInfoCompleted(
+                install_size_bytes=max_install_size,
+                download_size_bytes=max_download_size,
+                size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in size_metrics
+                ],
+            )
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
+            if error_code is None or error_message is None:
+                raise ValueError("FAILED state requires both error_code and error_message")
+            return SizeInfoFailed(error_code=error_code, error_message=error_message)
+        case _:
+            raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
+
+
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
-    size_info = None
-    size_metrics = None
-    try:
-        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-        ).first()
 
-        if size_metrics and size_metrics.max_install_size and size_metrics.max_download_size:
-            size_info = BuildDetailsSizeInfo(
-                install_size_bytes=size_metrics.max_install_size,
-                download_size_bytes=size_metrics.max_download_size,
+    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+        preprod_artifact=artifact,
+    )
+
+    size_info = to_size_info(list(size_metrics_qs))
+
+    platform = None
+    # artifact_type can be null before preprocessing has completed
+    if artifact.artifact_type is not None:
+        platform = platform_from_artifact_type(artifact.artifact_type)
+
+    apple_app_info = None
+    if platform == Platform.IOS or platform == Platform.MACOS:
+        apple_app_info = AppleAppInfo(
+            missing_dsym_binaries=(
+                artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
             )
-    except Exception:
-        logger.debug("Failed to get size metrics for artifact %s", artifact.id)
+        )
+
+    android_app_info = None
+    if platform == Platform.ANDROID:
+        android_app_info = AndroidAppInfo(
+            has_proguard_mapping=(
+                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
+            )
+        )
 
     app_info = BuildDetailsAppInfo(
         app_id=artifact.app_id,
@@ -93,12 +205,16 @@ def transform_preprod_artifact_to_build_details(
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,
         platform=(
-            platform_from_artifact_type(artifact.artifact_type) if artifact.artifact_type else None
+            platform_from_artifact_type(artifact.artifact_type)
+            if artifact.artifact_type is not None
+            else None
         ),
         is_installable=is_installable_artifact(artifact),
         build_configuration=(
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
+        apple_app_info=apple_app_info,
+        android_app_info=android_app_info,
     )
 
     vcs_info = BuildDetailsVcsInfo(
@@ -119,7 +235,6 @@ def transform_preprod_artifact_to_build_details(
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
-        size_analysis_state=size_metrics.state if size_metrics else None,
         app_info=app_info,
         vcs_info=vcs_info,
         size_info=size_info,

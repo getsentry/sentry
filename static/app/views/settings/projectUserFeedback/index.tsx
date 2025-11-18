@@ -5,29 +5,25 @@ import * as Sentry from '@sentry/react';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type RouteParams = {
-  projectId: string;
-};
-type Props = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-  project: Project;
-};
+export default function ProjectUserFeedback() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const hasAiEnabled = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
 
-function ProjectUserFeedback({organization, project, params: {projectId}}: Props) {
   const handleClick = () => {
     Sentry.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
@@ -83,12 +79,17 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
       <Form
         saveOnBlur
         apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={project.options}
       >
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
-            <JsonForm disabled={!hasAccess} forms={formGroups} features={features} />
+            <JsonForm
+              disabled={!hasAccess}
+              forms={formGroups}
+              features={features}
+              additionalFieldProps={{hasAiEnabled}}
+            />
           )}
         </Access>
       </Form>
@@ -101,5 +102,3 @@ const ButtonList = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
 `;
-
-export default withOrganization(ProjectUserFeedback);

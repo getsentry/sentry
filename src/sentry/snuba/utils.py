@@ -17,8 +17,9 @@ from sentry.snuba import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.spans_rpc import Spans
-from sentry.snuba.uptime_checks import UptimeChecks
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
 
 logger = logging.getLogger(__name__)
@@ -33,22 +34,24 @@ DATASET_OPTIONS = {
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
     "logs": OurLogs,
-    "uptimeChecks": UptimeChecks,
     "uptime_results": UptimeResults,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
+    "profile_functions": ProfileFunctions,
     "spans": Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
+    "tracemetrics": TraceMetrics,
     "transactions": transactions,
 }
 DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
+    ProfileFunctions,
     Spans,
+    TraceMetrics,
     OurLogs,
     UptimeResults,
-    UptimeChecks,
 }
 DATASET_LABELS = {
     value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS

@@ -1,17 +1,29 @@
 import logging
+from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.constants import DOUBLE, INT, STRING
+from sentry.search.eap.constants import DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import (
+    AdditionalQueries,
+    EAPResponse,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
+from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -41,6 +53,8 @@ class Spans(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
+        page_token: PageToken | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -52,7 +66,9 @@ class Spans(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
+                page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                additional_queries=additional_queries,
             ),
             params.debug,
         )
@@ -87,10 +103,7 @@ class Spans(rpc_dataset_common.RPCBase):
         rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
         for resolved_field in aggregates + groupbys:
@@ -236,3 +249,61 @@ class Spans(rpc_dataset_common.RPCBase):
                             )
                 spans.append(span)
         return spans
+
+    @classmethod
+    @sentry_sdk.trace
+    def run_stats_query(
+        cls,
+        *,
+        params: SnubaParams,
+        stats_types: set[str],
+        query_string: str,
+        referrer: str,
+        config: SearchResolverConfig,
+        search_resolver: SearchResolver | None = None,
+    ) -> list[dict[str, Any]]:
+        search_resolver = search_resolver or cls.get_resolver(params, config)
+        stats_filter, _, _ = search_resolver.resolve_query(query_string)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=params.sampling_mode,
+        )
+        stats_request = TraceItemStatsRequest(
+            filter=stats_filter,
+            meta=meta,
+            stats_types=[],
+        )
+
+        if not set(stats_types).intersection(SUPPORTED_STATS_TYPES):
+            return []
+
+        if "attributeDistributions" in stats_types:
+            stats_request.stats_types.append(
+                StatsType(
+                    attribute_distributions=AttributeDistributionsRequest(
+                        max_buckets=75,
+                    )
+                )
+            )
+
+        response = snuba_rpc.trace_item_stats_rpc(stats_request)
+        stats = []
+
+        for result in response.results:
+            if "attributeDistributions" in stats_types and result.HasField(
+                "attribute_distributions"
+            ):
+                attributes = defaultdict(list)
+                for attribute in result.attribute_distributions.attributes:
+                    if not can_expose_attribute(
+                        attribute.attribute_name, SupportedTraceItemType.SPANS
+                    ):
+                        continue
+
+                    for bucket in attribute.buckets:
+                        attributes[attribute.attribute_name].append(
+                            {"label": bucket.label, "value": bucket.value}
+                        )
+                stats.append({"attribute_distributions": {"data": attributes}})
+
+        return stats

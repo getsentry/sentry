@@ -20,8 +20,7 @@ function BreadcrumbFilters({
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Type')}}
-        triggerLabel={type.length === 0 ? t('Any') : null}
+        triggerProps={{prefix: t('Type'), children: type.length === 0 ? t('Any') : null}}
         multiple
         options={breadcrumbTypes}
         size="sm"

@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -16,6 +17,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -24,7 +26,6 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -55,6 +56,7 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  query?: Query;
 }
 
 export interface ReplayTableColumn {
@@ -173,6 +175,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -216,6 +219,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -266,6 +270,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -310,10 +315,15 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay}) => {
+  Component: ({replay, query}) => {
     const organization = useOrganization();
     return (
-      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+      <DetailsLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+      >
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -501,9 +511,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay}) => {
+  Component: ({replay, query}) => {
     const routes = useRoutes();
-    const location = useLocation();
+    const referrer = getRouteStringFromRoutes(routes);
+
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -516,20 +527,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       'For TypeScript: replay.started_at is implied because replay.is_archived is false'
     );
 
-    const referrer = getRouteStringFromRoutes(routes);
-    const eventView = EventView.fromLocation(location);
-    const replayDetailsPathname = makeReplaysPathname({
-      path: `/${replay.id}/`,
-      organization,
-    });
-
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query: {
-        referrer,
-        ...eventView.generateQueryStringObject(),
-      },
-    });
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,
@@ -540,7 +537,13 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
+      <CellLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query,
+        }}
+        onClick={trackNavigationEvent}
+      >
         <ReplayBadge replay={replay} />
       </CellLink>
     );
@@ -595,38 +598,19 @@ const TabularNumber = styled('div')`
 `;
 
 const CellLink = styled(Link)`
-  margin: -${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
-  flex-grow: 1;
+  ${SimpleTable.rowLinkStyle}
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-  }
+  flex-grow: 1;
 `;
 
 const PlayPauseButtonContainer = styled(Flex)`
+  ${SimpleTable.rowLinkStyle}
+
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
-  display: flex;
   flex-direction: column;
   justify-content: center;
 
-  margin: 0 -${space(2)} 0 -${space(1)};
-
-  cursor: pointer;
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
+  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`

@@ -53,7 +53,6 @@ export default function MonitorCreateForm() {
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
 
@@ -99,6 +98,7 @@ export default function MonitorCreateForm() {
       }}
       onSubmitSuccess={onCreateMonitor}
       submitLabel={t('Create')}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <FieldContainer>
         <ProjectOwnerNameInputs>
@@ -117,7 +117,6 @@ export default function MonitorCreateForm() {
             placeholder={t('Assign Ownership')}
             stacked
             inline={false}
-            menuPlacement="auto"
           />
           <TextField
             name="name"
@@ -223,10 +222,10 @@ export default function MonitorCreateForm() {
 
             const schedule = {
               scheduleType,
-              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
+              timezone: typeof timezone === 'string' ? timezone : undefined,
             };
 
             return <MockTimelineVisualization schedule={schedule} />;

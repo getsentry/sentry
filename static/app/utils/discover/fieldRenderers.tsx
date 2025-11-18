@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
+import * as qs from 'query-string';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -20,6 +21,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -46,6 +48,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
+import {FieldKind} from 'sentry/utils/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
@@ -55,10 +58,16 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
+import {
+  DashboardFilterKeys,
+  type DashboardFilters,
+  type GlobalFilter,
+  type Widget,
+} from 'sentry/views/dashboards/types';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -66,6 +75,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -285,7 +295,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
+          {typeof data[field] === 'number'
+            ? formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})
+            : emptyValue}
         </NumberContainer>
       );
     },
@@ -1326,6 +1338,17 @@ const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis}
 `;
 
+export function getFieldRenderer(
+  field: string,
+  meta: MetaType,
+  isAlias = true,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+): FieldFormatterRenderFunctionPartial {
+  const baseRenderer = getFieldRendererBase(field, meta, isAlias);
+  return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
+}
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -1334,7 +1357,7 @@ const StyledTooltip = styled(Tooltip)`
  * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
-export function getFieldRenderer(
+function getFieldRendererBase(
   field: string,
   meta: MetaType,
   isAlias = true
@@ -1363,4 +1386,66 @@ export function getFieldRenderer(
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+// TODO: Need to handle cases where a field already has a link in it's renderer
+function wrapFieldRendererInDashboardLink(
+  renderer: FieldFormatterRenderFunctionPartial,
+  field: string,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+): FieldFormatterRenderFunctionPartial {
+  return function (data, baggage) {
+    const {organization} = baggage;
+    const value = data[field];
+    const dashboardUrl = getDashboardUrl(
+      field,
+      value,
+      organization,
+      widget,
+      dashboardFilters
+    );
+    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+      return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
+    }
+    return renderer(data, baggage);
+  };
+}
+
+function getDashboardUrl(
+  field: string,
+  value: any,
+  organization: Organization,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+) {
+  if (widget?.widgetType && dashboardFilters) {
+    // Table widget only has one query
+    const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
+      linkedDashboard => linkedDashboard.field === field
+    );
+    if (dashboardLink) {
+      const newTemporaryFilters: GlobalFilter[] =
+        dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+
+      // Format the value as a proper filter condition string
+      const mutableSearch = new MutableSearch('');
+      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+
+      newTemporaryFilters.push({
+        dataset: widget.widgetType,
+        tag: {key: field, name: field, kind: FieldKind.TAG},
+        value: formattedValue,
+      });
+      const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
+        {
+          [DashboardFilterKeys.TEMPORARY_FILTERS]: newTemporaryFilters.map(filter =>
+            JSON.stringify(filter)
+          ),
+        }
+      )}`;
+      return url;
+    }
+  }
+  return undefined;
 }

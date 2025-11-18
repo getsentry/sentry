@@ -25,7 +25,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_workflow_serializer i
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     DetectorWorkflowValidator,
-    can_edit_detector,
+    can_edit_detector_workflow_connections,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
@@ -135,9 +135,9 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # check that the user has permission to edit all detectors before deleting
+        # check that the user has permission to edit all detectors connections before deleting
         for detector_workflow in queryset:
-            if not can_edit_detector(detector_workflow.detector, request):
+            if not can_edit_detector_workflow_connections(detector_workflow.detector, request):
                 raise PermissionDenied
 
         for detector_workflow in queryset:

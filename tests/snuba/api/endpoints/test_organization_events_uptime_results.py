@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -11,12 +11,6 @@ class OrganizationEventsUptimeResultsEndpointTest(
     OrganizationEventsEndpointTestBase, UptimeResultEAPTestCase
 ):
     dataset = "uptime_results"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-        }
 
     def build_expected_result(self, **kwargs):
         return {"project.name": None, **kwargs}

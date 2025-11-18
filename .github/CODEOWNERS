@@ -11,7 +11,7 @@
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/consumers/                                   @getsentry/ops @getsentry/owners-snuba
 /src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/data-browsing
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
@@ -71,6 +71,7 @@
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
+/src/flagpole/                                           @getsentry/owners-sentry-dev @getsentry/dev-infra
 Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
@@ -150,6 +151,11 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/uptime                                     @getsentry/crons
 ## End Uptime
 
+## Issue Detection Lower Priority
+# Located here so they do not take precedence over rules below.
+/src/sentry/middleware/reporting_endpoint.py             @getsentry/issue-detection-backend
+/src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
+## Issue Detection Lower Priority
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
@@ -191,78 +197,78 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 
 ## Visibility
-/src/sentry/api/endpoints/organization_tags.py                              @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_vitals.py                     @getsentry/visibility
-/src/sentry/api/endpoints/organization_tagkey_values.py                     @getsentry/visibility
-/src/sentry/api/endpoints/organization_event_details.py                     @getsentry/visibility
-/src/sentry/api/endpoints/organization_events.py                            @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_facets.py                     @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_meta.py                       @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_timeseries.py                 @getsentry/visibility
-/src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/visibility
+/src/sentry/api/endpoints/organization_tags.py                              @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_vitals.py                     @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_tagkey_values.py                     @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_event_details.py                     @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events.py                            @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_facets.py                     @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_meta.py                       @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_events_timeseries.py                 @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
 
-/tests/snuba/api/endpoints/*                                                @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/visibility
-/tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
-/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
+/tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/data-browsing
+/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/data-browsing
 
-/src/sentry/api/serializers/snuba.py                                        @getsentry/visibility
+/src/sentry/api/serializers/snuba.py                                        @getsentry/data-browsing
 
-/src/sentry/snuba/discover.py                                               @getsentry/visibility
-/src/sentry/snuba/metrics_performance.py                                    @getsentry/visibility
-/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/visibility
+/src/sentry/snuba/discover.py                                               @getsentry/data-browsing
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/data-browsing
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/data-browsing
 
-/tests/snuba/search/test_backend.py                                         @getsentry/visibility
+/tests/snuba/search/test_backend.py                                         @getsentry/data-browsing
 
-/src/sentry/search/events/                                                  @getsentry/visibility
-/src/sentry/search/eap/                                                     @getsentry/visibility
+/src/sentry/search/events/                                                  @getsentry/data-browsing
+/src/sentry/search/eap/                                                     @getsentry/data-browsing
 
-/src/sentry/performance_issues/                                             @getsentry/issue-detection-backend
-/tests/sentry/performance_issues/                                           @getsentry/issue-detection-backend
+/src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
+/tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
 
-/static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
+/static/app/components/events/eventStatisticalDetector/                     @getsentry/data-browsing @getsentry/profiling
 
-/src/sentry/statistical_detectors                                           @getsentry/visibility @getsentry/profiling
-/tests/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
+/src/sentry/statistical_detectors                                           @getsentry/data-browsing @getsentry/profiling
+/tests/sentry/statistical_detectors                                         @getsentry/data-browsing @getsentry/profiling
 
-/src/sentry/tasks/statistical_detectors.py                                  @getsentry/visibility @getsentry/profiling
-/tests/sentry/tasks/test_statistical_detectors.py                           @getsentry/visibility @getsentry/profiling
+/src/sentry/tasks/statistical_detectors.py                                  @getsentry/data-browsing @getsentry/profiling
+/tests/sentry/tasks/test_statistical_detectors.py                           @getsentry/data-browsing @getsentry/profiling
 
-/src/sentry/api/bases/organization_events.py                                @getsentry/visibility
+/src/sentry/api/bases/organization_events.py                                @getsentry/data-browsing
 
 /src/sentry/dashboards/                                                     @getsentry/dashboards
 /tests/sentry/dashboards/                                                   @getsentry/dashboards
 
 /src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
-/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/visibility
+/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/data-browsing
 /src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 
 /src/sentry/discover/                                                @getsentry/explore
 
-/src/sentry/api/event_search.py                                      @getsentry/visibility
-/tests/sentry/api/test_event_search.py                               @getsentry/visibility
+/src/sentry/api/event_search.py                                      @getsentry/data-browsing
+/tests/sentry/api/test_event_search.py                               @getsentry/data-browsing
 
-/src/sentry/data_export/                                             @getsentry/visibility
-/tests/sentry/data_export/                                           @getsentry/visibility
+/src/sentry/data_export/                                             @getsentry/data-browsing
+/tests/sentry/data_export/                                           @getsentry/data-browsing
 
 
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/visibility
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/visibility
+/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
 
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
@@ -271,22 +277,22 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/traces/                                                 @getsentry/explore
 /static/app/components/quickTrace/                                        @getsentry/explore
 
-/static/app/views/performance/                                            @getsentry/performance
-/static/app/components/performance/                                       @getsentry/performance
-/static/app/utils/performance/                                            @getsentry/performance
-/static/app/components/events/interfaces/spans/                           @getsentry/performance
-/static/app/components/events/viewHierarchy/*                             @getsentry/performance
+/static/app/views/performance/                                            @getsentry/data-browsing
+/static/app/components/performance/                                       @getsentry/data-browsing
+/static/app/utils/performance/                                            @getsentry/data-browsing
+/static/app/components/events/interfaces/spans/                           @getsentry/data-browsing
+/static/app/components/events/viewHierarchy/*                             @getsentry/data-browsing
 
-/static/app/components/charts/                                            @getsentry/visibility
+/static/app/components/charts/                                            @getsentry/data-browsing
 
-/static/app/views/insights/                                               @getsentry/insights
+/static/app/views/insights/                                               @getsentry/dashboards
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
 /static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
-/static/app/utils/timeSeries/                                             @getsentry/visibility
+/static/app/utils/timeSeries/                                             @getsentry/data-browsing
 ## Endof Visibility
 
 
@@ -321,6 +327,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
 /static/app/views/replays/                                               @getsentry/replay-frontend
+/tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
+/tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
 /tests/sentry/replays/                                                   @getsentry/replay-backend
 /src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
@@ -346,8 +354,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of DevToolbar
 
 ## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge-ux
-/static/app/views/codecov/       @getsentry/codecov-merge-ux
+/static/app/components/codecov/  @getsentry/codecov-merge
+/static/app/views/codecov/       @getsentry/codecov-merge
 ## End of Codecov Merge UX
 
 /src/sentry/codecov/ @getsentry/codecov
@@ -375,10 +383,16 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
-
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
+
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
+/src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
+/src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
+/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/issue-detection-backend
+
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
 /src/sentry/notifications/models/                                    @getsentry/ecosystem
@@ -472,9 +486,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
-/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
-/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
-/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-javascript-sdks
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-javascript-sdks
 ## End of SDK
 
 
@@ -496,6 +510,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
+/static/app/components/onboarding/                                               @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
@@ -509,11 +524,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 ## End of Telemetry Experience
 
 ## ML & AI
-*autofix*.py                                                @getsentry/machine-learning-ai
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
+/static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
-*seerExplorer*.tsx                                          @getsentry/machine-learning-ai
-*seerExplorer*.ts                                           @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
@@ -534,7 +547,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
-/src/sentry/middleware/reporting_endpoint.py                @getsentry/issue-detection-backend
 /src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
@@ -565,9 +577,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
 /src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
-/src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
+/src/sentry/tasks/llm_issue_detection.py                    @getsentry/issue-detection-backend
 /static/app/components/events/contexts/                     @getsentry/issue-workflow
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
@@ -608,6 +620,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
@@ -653,8 +666,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/tempest/                                     @getsentry/gdx
 
 # Span buffer + process-segments are co-owned by streaming platform and vis for now.
-/src/sentry/spans/                                @getsentry/visibility @getsentry/streaming-platform
-/tests/sentry/spans/                              @getsentry/visibility @getsentry/streaming-platform
+/src/sentry/spans/                                @getsentry/data-browsing @getsentry/streaming-platform
+/tests/sentry/spans/                              @getsentry/data-browsing @getsentry/streaming-platform
 
 # Streaming platform
 /src/sentry/utils/arroyo.py                              @getsentry/streaming-platform
@@ -681,3 +694,17 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
+
+# Prevent
+/src/sentry/prevent/                                      @getsentry/prevent
+/src/sentry/overwatch/                                    @getsentry/prevent
+/src/sentry/overwatch_webhooks/                           @getsentry/prevent
+/static/app/components/prevent/                           @getsentry/prevent
+/static/app/views/prevent/                                @getsentry/prevent
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
+# End of Prevent
+
+# Conduit
+/src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
+/tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
+# End of Conduit

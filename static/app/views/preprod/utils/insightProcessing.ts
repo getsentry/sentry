@@ -1,16 +1,24 @@
+import {t} from 'sentry/locale';
 import type {
-  AppleInsightResults,
   FileSavingsResult,
   FileSavingsResultGroup,
   FilesInsightResult,
   GroupsInsightResult,
+  InsightResults,
   OptimizableImageFile,
   StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
 
 type FileTypeData =
-  | {fileType: 'optimizable_image'; originalFile: OptimizableImageFile}
+  | {
+      conversionPercentage: number;
+      fileType: 'optimizable_image';
+      isDuplicateVariant: boolean;
+      minifyPercentage: number;
+      originalFile: OptimizableImageFile;
+    }
   | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
+  | {fileType: 'duplicate_files'; originalGroup: FileSavingsResultGroup}
   | {fileType: 'regular'; originalFile: FileSavingsResult};
 
 export interface ProcessedInsightFile {
@@ -23,6 +31,7 @@ export interface ProcessedInsightFile {
 export interface ProcessedInsight {
   description: string;
   files: ProcessedInsightFile[];
+  key: string;
   name: string;
   percentage: number;
   totalSavings: number;
@@ -37,89 +46,131 @@ interface InsightConfig {
 const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
-    name: 'Optimize images',
-    description:
-      'We determine how much size could be saved if images were compressed. In some cases you can convert to WebP for better compression.',
+    name: t('Image Optimization'),
+    description: t(
+      'We determine how much size could be reduced if images were better optimized. In some cases you can convert to HEIC for better compression.'
+    ),
   },
   {
     key: 'duplicate_files',
-    name: 'Remove duplicate files',
-    description:
-      'Multiple copies of the same file were found, expand each to see the duplicates. Move files to shared locations to save space.',
+    name: t('Duplicate Files'),
+    description: t(
+      'Multiple copies of the same file were found. Move these files to shared locations to reduce size.'
+    ),
   },
   {
     key: 'strip_binary',
-    name: 'Strip Binary Symbols',
-    description:
-      'Debug symbols and symbol tables can be removed from binaries to reduce size.',
+    name: t('Strip Binary Symbols'),
+    description: t(
+      'Debug symbols and symbol tables can be removed from production binaries to reduce size.'
+    ),
   },
   {
     key: 'loose_images',
-    name: 'Move images to asset catalogs',
-    description: 'Loose image files can be moved to asset catalogs to reduce size.',
+    name: t('Loose Images'),
+    description: t('Loose image files can be moved to asset catalogs to reduce size.'),
   },
   {
     key: 'main_binary_exported_symbols',
-    name: 'Remove Symbol Metadata',
-    description: 'Symbol metadata can be removed to reduce binary size.',
+    name: t('Main Binary Export Metadata'),
+    description: t(
+      'Symbol metadata can be removed from entrypoint binaries to reduce size.'
+    ),
   },
   {
     key: 'large_images',
-    name: 'Compress large images',
-    description: 'Large image files can be compressed to reduce size.',
+    name: t('Large Images'),
+    description: t('Large image files can be removed or compressed to reduce size.'),
   },
   {
     key: 'large_videos',
-    name: 'Compress large videos',
-    description: 'Large video files can be compressed to reduce size.',
+    name: t('Large Videos'),
+    description: t('Large video files can be removed or compressed to reduce size.'),
   },
   {
     key: 'large_audio',
-    name: 'Compress large audio files',
-    description: 'Large audio files can be compressed to reduce size.',
+    name: t('Large Audio'),
+    description: t(
+      'Size Analysis flags audio files over 5 MB. These files can often be compressed further, converted to a more efficient format, or excluded from the app bundle and instead downloaded dynamically as the user requires them.'
+    ),
   },
   {
     key: 'unnecessary_files',
-    name: 'Remove unnecessary files',
-    description: 'Files that are not needed can be removed to save space.',
-  },
-  {
-    key: 'localized_strings',
-    name: 'Optimize localized strings',
-    description: 'Localized string files can be optimized to reduce size.',
+    name: t('Unnecessary Files'),
+    description: t('Files that are not needed can be removed to reduce size.'),
   },
   {
     key: 'localized_strings_minify',
-    name: 'Minify localized strings',
-    description: 'Localized string comments can be minified to reduce size.',
+    name: t('Minify Localized Strings'),
+    description: t('Localized string files can be minified to reduce size.'),
   },
   {
     key: 'small_files',
-    name: 'Optimize small files',
-    description: 'Small files can be optimized or bundled to reduce overhead.',
+    name: t('Small Files'),
+    description: t('Small files can be moved to asset catalogs to reduce size.'),
   },
   {
     key: 'hermes_debug_info',
-    name: 'Remove Hermes debug info',
-    description: 'Hermes debug information can be removed to reduce size.',
+    name: t('Hermes Debug Info'),
+    description: t('Hermes debug information can be removed to reduce size.'),
   },
   {
     key: 'audio_compression',
-    name: 'Compress audio files',
-    description: 'Audio files can be compressed to reduce size.',
+    name: t('Audio Compression'),
+    description: t('Audio files can be compressed to reduce size.'),
   },
   {
     key: 'video_compression',
-    name: 'Compress video files',
-    description: 'Video files can be compressed to reduce size.',
+    name: t('Video Compression'),
+    description: t('Video files can be compressed to reduce size.'),
+  },
+  {
+    key: 'alternate_icons_optimization',
+    name: t('Alternate Icon Optimization'),
+    description: t(
+      "Alternate icons don't need full size quality because they are only shown downscaled in the homescreen."
+    ),
+  },
+  {
+    key: 'multiple_native_library_archs',
+    name: t('Multiple native library architectures'),
+    description: t(
+      'Only one native library architecture is needed. Non-arm64 architectures can be removed.'
+    ),
   },
 ];
+
+function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void {
+  const imageInsightTypes = ['image_optimization', 'alternate_icons_optimization'];
+  for (const insight of processedInsights) {
+    if (!imageInsightTypes.includes(insight.key)) {
+      continue;
+    }
+
+    const filePathOccurrences = new Map<string, number>();
+    for (const file of insight.files) {
+      const currentCount = filePathOccurrences.get(file.path) || 0;
+      filePathOccurrences.set(file.path, currentCount + 1);
+    }
+
+    for (const file of insight.files) {
+      if (file.data.fileType !== 'optimizable_image') {
+        continue;
+      }
+
+      const occurrences = filePathOccurrences.get(file.path) || 0;
+      if (occurrences > 1) {
+        file.data.isDuplicateVariant = true;
+      }
+    }
+  }
+}
 
 /**
  * Process all insights into a standardized format for display
  */
 export function processInsights(
-  insights: AppleInsightResults,
+  insights: InsightResults,
   totalSize: number
 ): ProcessedInsight[] {
   const processedInsights: ProcessedInsight[] = [];
@@ -133,6 +184,7 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -148,7 +200,46 @@ export function processInsights(
             percentage: (maxSavings / totalSize) * 100,
             data: {
               fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
               originalFile: file,
+              isDuplicateVariant: false,
+            },
+          };
+        }),
+      });
+    }
+  }
+
+  if (insights.alternate_icons_optimization?.total_savings) {
+    const insight = insights.alternate_icons_optimization;
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'alternate_icons_optimization');
+    if (config) {
+      const optimizableFiles = Array.isArray(insight.optimizable_files)
+        ? insight.optimizable_files
+        : [];
+
+      processedInsights.push({
+        key: config.key,
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: optimizableFiles.map((file: OptimizableImageFile) => {
+          const maxSavings = Math.max(
+            file.minify_savings || 0,
+            file.conversion_savings || 0
+          );
+          return {
+            path: file.file_path,
+            savings: maxSavings,
+            percentage: (maxSavings / totalSize) * 100,
+            data: {
+              fileType: 'optimizable_image' as const,
+              minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
+              conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
+              originalFile: file,
+              isDuplicateVariant: false,
             },
           };
         }),
@@ -163,22 +254,20 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }
@@ -190,6 +279,7 @@ export function processInsights(
       const files = Array.isArray(insight.files) ? insight.files : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -214,22 +304,20 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }
@@ -240,12 +328,12 @@ export function processInsights(
     'large_videos',
     'large_audio',
     'unnecessary_files',
-    'localized_strings',
     'localized_strings_minify',
     'small_files',
     'hermes_debug_info',
     'audio_compression',
     'video_compression',
+    'multiple_native_library_archs',
   ] as const;
 
   regularInsightKeys.forEach(key => {
@@ -255,6 +343,7 @@ export function processInsights(
       if (config) {
         const files = Array.isArray(insight.files) ? insight.files : [];
         processedInsights.push({
+          key: config.key,
           name: config.name,
           description: config.description,
           totalSavings: insight.total_savings,
@@ -273,6 +362,7 @@ export function processInsights(
     }
   });
 
+  markDuplicateImageVariants(processedInsights);
   processedInsights.sort((a, b) => b.totalSavings - a.totalSavings);
 
   return processedInsights;

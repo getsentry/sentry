@@ -12,9 +12,11 @@ from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from django.db.models.sql.constants import ROW_COUNT
 from django.db.models.sql.subqueries import DeleteQuery
+from django.db.utils import OperationalError
 
 from sentry.db.models.base import Model
 from sentry.services import eventstore
+from sentry.utils.retries import ConditionalRetryPolicy
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event
@@ -26,22 +28,22 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-class CeleryBulkQueryState(TypedDict):
+class TaskBulkQueryState(TypedDict):
     timestamp: str
     event_id: str
 
 
-def celery_run_batch_query(
+def task_run_batch_query(
     filter: eventstore.Filter,
     batch_size: int,
     referrer: str,
-    state: CeleryBulkQueryState | None = None,
+    state: TaskBulkQueryState | None = None,
     fetch_events: bool = True,
     tenant_ids: dict[str, int | str] | None = None,
-) -> tuple[CeleryBulkQueryState | None, list[Event]]:
+) -> tuple[TaskBulkQueryState | None, list[Event]]:
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
-    is used for celery tasks in issue merge/unmerge/reprocessing.
+    is used for tasks in issue merge/unmerge/reprocessing.
     """
 
     # We process events sorted in descending order by -timestamp, -event_id. We need
@@ -60,7 +62,7 @@ def celery_run_batch_query(
     #
     # state contains data about the last event ID and timestamp. Changing
     # the keys in here needs to be done carefully as the state object is
-    # semi-persisted in celery queues.
+    # persisted in task messages.
     if state is not None:
         filter.conditions = filter.conditions or []
         filter.conditions.append(["timestamp", "<=", state["timestamp"]])
@@ -109,6 +111,8 @@ class RangeQuerySetWrapper[V]:
         callbacks: Sequence[Callable[[list[V]], None]] = (),
         result_value_getter: Callable[[V], int] | None = None,
         override_unique_safety_check: bool = False,
+        query_timeout_retries: int | None = None,
+        retry_delay_seconds: float = 0.5,
     ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (
@@ -132,6 +136,8 @@ class RangeQuerySetWrapper[V]:
         self.order_by = order_by
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
+        self.query_timeout_retries = query_timeout_retries
+        self.retry_delay_seconds = retry_delay_seconds
 
         order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
         if not override_unique_safety_check and (
@@ -176,7 +182,16 @@ class RangeQuerySetWrapper[V]:
             else:
                 results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
-            results = list(results_qs[0 : self.step])
+            if self.query_timeout_retries is not None:
+                retries = self.query_timeout_retries
+                retry_policy = ConditionalRetryPolicy(
+                    test_function=lambda attempt, exc: attempt <= retries
+                    and isinstance(exc, OperationalError),
+                    delay_function=lambda i: self.retry_delay_seconds,
+                )
+                results = retry_policy(lambda: list(results_qs[0 : self.step]))
+            else:
+                results = list(results_qs[0 : self.step])
 
             for cb in self.callbacks:
                 cb(results)

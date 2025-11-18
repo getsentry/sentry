@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
@@ -29,7 +30,8 @@ import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export default function AutomationBuilder() {
-  const {state, actions} = useAutomationBuilderContext();
+  const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
+  const {mutationErrors} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
   const api = useApi();
 
@@ -47,10 +49,9 @@ export default function AutomationBuilder() {
       <Flex direction="column" gap="md">
         <Step>
           <StepLead>
-            {/* TODO: Only make this a selector of "all" is originally selected */}
             {tct('[when:When] [selector] of the following occur', {
               when: <ConditionBadge />,
-              selector: (
+              selector: showTriggerLogicTypeSelector ? (
                 <EmbeddedWrapper>
                   <EmbeddedSelectField
                     styles={{
@@ -74,12 +75,15 @@ export default function AutomationBuilder() {
                     size="xs"
                   />
                 </EmbeddedWrapper>
+              ) : (
+                t('any')
               ),
             })}
           </StepLead>
         </Step>
         <DataConditionNodeList
           handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          label={t('Add trigger')}
           placeholder={t('Select a trigger...')}
           conditions={state.triggers.conditions}
           groupId={state.triggers.id}
@@ -89,6 +93,11 @@ export default function AutomationBuilder() {
             actions.updateWhenCondition(id, comparison)
           }
         />
+        {(mutationErrors as any)?.actionFilters?.all && (
+          <StyledAlert type="error">
+            {(mutationErrors as any).actionFilters.all}
+          </StyledAlert>
+        )}
         {state.actionFilters.map(actionFilter => (
           <ActionFilterBlock
             key={`actionFilters.${actionFilter.id}`}
@@ -185,6 +194,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
           )}
           <DataConditionNodeList
             handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
+            label={t('Add filter')}
             placeholder={t('Any event')}
             groupId={actionFilter.id}
             conditions={actionFilter?.conditions || []}
@@ -268,4 +278,8 @@ const DeleteButton = styled(Button)`
   position: absolute;
   top: ${p => p.theme.space.sm};
   right: ${p => p.theme.space.sm};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-top: ${p => p.theme.space.md};
 `;

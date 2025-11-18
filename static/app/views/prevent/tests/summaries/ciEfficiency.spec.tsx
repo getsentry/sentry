@@ -19,7 +19,7 @@ describe('CIEfficiency', () => {
   it('renders the slowest tests duration with a filter link', () => {
     render(<CIEfficiency {...testCIEfficiencyData} isLoading={false} />);
 
-    const formattedSlowestTests = screen.getByRole('link', {name: '10s'});
+    const formattedSlowestTests = screen.getByRole('link', {name: /Slowest Tests.*10s/});
     expect(formattedSlowestTests).toBeInTheDocument();
     expect(formattedSlowestTests).toHaveAttribute(
       'href',

@@ -3,19 +3,17 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
+  useQueryParamsSearch,
   useSetQueryParamsFields,
+  useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
-  const setLogsSearch = useSetLogsSearch();
-  const search = useLogsSearch();
+  const setLogsSearch = useSetQueryParamsSearch();
+  const search = useQueryParamsSearch();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
 
@@ -60,7 +58,7 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
     const items: MenuItemProps[] = [
       {
         key: 'search-for-value',
-        label: t('Search for this value'),
+        label: t('Add to filter'),
         onAction: () => addSearchFilter(content),
       },
       {

@@ -3,6 +3,7 @@ import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-endin
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,7 +53,14 @@ function PartnerPlanEndingBanner({
     : 'Business';
 
   return (
-    <PartnerPlanEndingBannerWrapper data-test-id="partner-plan-ending-banner">
+    <Flex
+      data-test-id="partner-plan-ending-banner"
+      background="primary"
+      border="primary"
+      radius="md"
+      justify="between"
+      align="center"
+    >
       <div>
         <PartnerPlanEndingText>
           <PartnerPlanEndingBannerTitle>
@@ -80,19 +88,9 @@ function PartnerPlanEndingBanner({
         </PartnerPlanEndingText>
       </div>
       <IllustrationContainer src={PartnerPlanEndingBackground} />
-    </PartnerPlanEndingBannerWrapper>
+    </Flex>
   );
 }
-
-const PartnerPlanEndingBannerWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  margin-bottom: ${space(2)};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const PartnerPlanEndingText = styled('div')`
   padding: ${space(2)};

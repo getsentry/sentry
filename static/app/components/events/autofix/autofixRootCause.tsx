@@ -6,10 +6,13 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
+  AutofixStatus,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   type CommentThread,
@@ -20,15 +23,10 @@ import {
   useLaunchCodingAgent,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import {
-  IconArrow,
-  IconChat,
-  IconChevron,
-  IconClose,
-  IconCopy,
-  IconFocus,
-} from 'sentry/icons';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,6 +35,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -84,6 +83,7 @@ type AutofixRootCauseProps = {
   groupId: string;
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
@@ -229,16 +229,13 @@ function CopyRootCauseButton({
   event?: Event;
 }) {
   const text = formatRootCauseWithEvent(cause, customRootCause, event);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy analysis as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
       icon={<IconCopy />}
@@ -253,6 +250,7 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
@@ -262,7 +260,6 @@ function AutofixRootCauseDisplay({
   const organization = useOrganization();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const [isProvidingSolution, setIsProvidingSolution] = useState(false);
   const [solutionText, setSolutionText] = useState('');
   const {mutate: selectRootCause, isPending: isSelectingRootCause} = useSelectRootCause({
     groupId,
@@ -276,6 +273,10 @@ function AutofixRootCauseDisplay({
     runId
   );
 
+  const [preferredAction, setPreferredAction] = useLocalStorageState<
+    'seer_solution' | 'cursor_background_agent'
+  >('autofix:rootCauseActionPreference', 'seer_solution');
+
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
       // Simulate a click on the description to trigger the text selection
@@ -288,14 +289,35 @@ function AutofixRootCauseDisplay({
     }
   };
 
-  const handleSelectRootCause = () => {
-    if (cause?.id !== undefined && cause.id !== null) {
+  const submitFindSolution = () => {
+    if (cause?.id === undefined || cause.id === null) {
+      addErrorMessage(t('No root cause available.'));
+      return;
+    }
+
+    // Save user preference
+    setPreferredAction('seer_solution');
+
+    const instruction = solutionText.trim();
+
+    if (instruction) {
+      selectRootCause({
+        cause_id: cause.id,
+        instruction,
+      });
+    } else {
       selectRootCause({
         cause_id: cause.id,
       });
-    } else {
-      addErrorMessage(t('No root cause available.'));
     }
+
+    setSolutionText('');
+
+    trackAnalytics('autofix.root_cause.find_solution', {
+      organization,
+      group_id: groupId,
+      instruction_provided: instruction.length > 0,
+    });
   };
 
   // Find Cursor integration specifically
@@ -307,6 +329,12 @@ function AutofixRootCauseDisplay({
     if (!cursorIntegration) {
       return;
     }
+
+    // Save user preference
+    setPreferredAction('cursor_background_agent');
+
+    // Show immediate loading toast
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
 
     launchCodingAgent({
       integrationId: cursorIntegration.id,
@@ -320,41 +348,13 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  const handleMySolution = () => {
-    setIsProvidingSolution(true);
-    setSolutionText('');
-  };
-
-  const handleCancelSolution = () => {
-    setIsProvidingSolution(false);
-    setSolutionText('');
-  };
-
-  // Shared UI state for "Find Solution" controls
+  // Shared UI state for solution action controls
   const isRootCauseAlreadySelected = Boolean(
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
-  const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
+  const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
     isRootCauseAlreadySelected ? 'default' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
-
-  const handleSubmitSolution = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!solutionText.trim()) {
-      return;
-    }
-
-    if (cause?.id !== undefined && cause.id !== null) {
-      selectRootCause({
-        cause_id: cause.id,
-        instruction: solutionText.trim(),
-      });
-      setIsProvidingSolution(false);
-      setSolutionText('');
-    } else {
-      addErrorMessage(t('No root cause available.'));
-    }
-  };
 
   if (!cause) {
     return (
@@ -381,10 +381,19 @@ function AutofixRootCauseDisplay({
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
           <BottomButtonContainer>
-            <CopyRootCauseButton
-              customRootCause={rootCauseSelection.custom_root_cause}
-              event={event}
-            />
+            <ButtonBar>
+              <CopyRootCauseButton
+                customRootCause={rootCauseSelection.custom_root_cause}
+                event={event}
+              />
+            </ButtonBar>
+            {status === AutofixStatus.COMPLETED && (
+              <AutofixStepFeedback
+                stepType="root_cause"
+                groupId={groupId}
+                runId={runId}
+              />
+            )}
           </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
@@ -443,101 +452,127 @@ function AutofixRootCauseDisplay({
       </Content>
       <BottomDivider />
       <BottomButtonContainer>
-        {isProvidingSolution ? (
-          <SolutionInputContainer>
-            <form onSubmit={handleSubmitSolution}>
-              <SolutionFormRow>
-                <SolutionInput
-                  autosize
-                  value={solutionText}
-                  maxLength={4096}
-                  onChange={e => setSolutionText(e.target.value)}
-                  placeholder={t('Provide a solution for Seer to follow...')}
-                  autoFocus
-                  maxRows={5}
-                  size="sm"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmitSolution(e);
-                    } else if (e.key === 'Escape') {
-                      handleCancelSolution();
-                    }
-                  }}
-                />
-                <ButtonBar merged gap="0">
-                  <Button type="button" size="sm" onClick={handleCancelSolution}>
-                    <IconClose size="sm" />
-                  </Button>
+        <SolutionInput
+          autosize
+          value={solutionText}
+          maxLength={4096}
+          onChange={e => setSolutionText(e.target.value)}
+          placeholder={t('Add context for the solution...')}
+          maxRows={3}
+          size="sm"
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submitFindSolution();
+            }
+          }}
+        />
+        <ButtonBar>
+          <CopyRootCauseButton cause={cause} event={event} />
+          {cursorIntegration ? (
+            <ButtonBar merged gap="0">
+              {preferredAction === 'cursor_background_agent' ? (
+                <Fragment>
                   <Button
-                    type="submit"
-                    priority="primary"
                     size="sm"
-                    busy={isSelectingRootCause}
-                    disabled={!solutionText.trim()}
+                    priority={primaryButtonPriority}
+                    busy={isLaunchingAgent}
+                    disabled={isLoadingAgents}
+                    onClick={handleLaunchCodingAgent}
+                    title={t('Send to Cursor Cloud Agent')}
+                    icon={<PluginIcon pluginId="cursor" size={16} />}
                   >
-                    <IconArrow direction="right" />
+                    {t('Send to Cursor Cloud Agent')}
                   </Button>
-                </ButtonBar>
-              </SolutionFormRow>
-            </form>
-          </SolutionInputContainer>
-        ) : (
-          <ButtonBar>
-            <CopyRootCauseButton cause={cause} event={event} />
+                  <DropdownMenu
+                    items={[
+                      {
+                        key: 'seer-solution',
+                        label: t('Find Solution with Seer'),
+                        onAction: submitFindSolution,
+                        disabled: isSelectingRootCause,
+                      },
+                    ]}
+                    trigger={(triggerProps, isOpen) => (
+                      <DropdownTrigger
+                        {...triggerProps}
+                        size="sm"
+                        priority={primaryButtonPriority}
+                        busy={isSelectingRootCause}
+                        disabled={isLoadingAgents}
+                        aria-label={t('More solution options')}
+                        icon={
+                          isSelectingRootCause ? (
+                            <LoadingIndicator size={12} />
+                          ) : (
+                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                          )
+                        }
+                      />
+                    )}
+                  />
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Button
+                    size="sm"
+                    priority={primaryButtonPriority}
+                    busy={isSelectingRootCause}
+                    disabled={isLoadingAgents}
+                    onClick={submitFindSolution}
+                    title={findSolutionTitle}
+                  >
+                    {t('Find Solution with Seer')}
+                  </Button>
+                  <DropdownMenu
+                    items={[
+                      {
+                        key: 'cursor-agent',
+                        label: (
+                          <Flex gap="md" align="center">
+                            <PluginIcon pluginId="cursor" size={20} />
+                            <div>{t('Send to Cursor Cloud Agent')}</div>
+                          </Flex>
+                        ),
+                        onAction: handleLaunchCodingAgent,
+                        disabled: isLoadingAgents || isLaunchingAgent,
+                      },
+                    ]}
+                    trigger={(triggerProps, isOpen) => (
+                      <DropdownTrigger
+                        {...triggerProps}
+                        size="sm"
+                        priority={primaryButtonPriority}
+                        busy={isLaunchingAgent}
+                        disabled={isLoadingAgents}
+                        aria-label={t('More solution options')}
+                        icon={
+                          isLaunchingAgent ? (
+                            <LoadingIndicator size={12} />
+                          ) : (
+                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                          )
+                        }
+                      />
+                    )}
+                  />
+                </Fragment>
+              )}
+            </ButtonBar>
+          ) : (
             <Button
               size="sm"
-              onClick={handleMySolution}
-              title={t('Specify your own solution for Seer to follow')}
+              priority={primaryButtonPriority}
+              busy={isSelectingRootCause}
+              onClick={submitFindSolution}
+              title={findSolutionTitle}
             >
-              {t('Give Solution')}
+              {t('Find Solution')}
             </Button>
-            {cursorIntegration ? (
-              <ButtonBar merged gap="0">
-                <Button
-                  size="sm"
-                  priority={findSolutionPriority}
-                  busy={isSelectingRootCause}
-                  disabled={isLoadingAgents}
-                  onClick={handleSelectRootCause}
-                  title={findSolutionTitle}
-                >
-                  {t('Find Solution')}
-                </Button>
-                <DropdownMenu
-                  items={[
-                    {
-                      key: 'cursor-agent',
-                      label: t('Send to Cursor Background Agent'),
-                      onAction: handleLaunchCodingAgent,
-                      disabled: isLoadingAgents || isLaunchingAgent,
-                    },
-                  ]}
-                  trigger={(triggerProps, isOpen) => (
-                    <DropdownTrigger
-                      {...triggerProps}
-                      size="sm"
-                      priority={findSolutionPriority}
-                      busy={isLaunchingAgent}
-                      disabled={isLoadingAgents}
-                      aria-label={t('More solution options')}
-                      icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                    />
-                  )}
-                />
-              </ButtonBar>
-            ) : (
-              <Button
-                size="sm"
-                priority={findSolutionPriority}
-                busy={isSelectingRootCause}
-                onClick={handleSelectRootCause}
-                title={findSolutionTitle}
-              >
-                {t('Find Solution')}
-              </Button>
-            )}
-          </ButtonBar>
+          )}
+        </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
         )}
       </BottomButtonContainer>
     </CausesContainer>
@@ -586,6 +621,7 @@ const CausesContainer = styled('div')`
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
@@ -634,25 +670,17 @@ const BottomDivider = styled('div')`
 const BottomButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding-top: ${p => p.theme.space.xl};
-`;
-
-const SolutionInputContainer = styled('div')`
-  width: 100%;
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const SolutionFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
   align-items: center;
-  width: 100%;
+  gap: ${space(1)};
+  padding-top: ${p => p.theme.space.xl};
 `;
 
 const SolutionInput = styled(TextArea)`
   flex: 1;
   resize: none;
+  margin-right: ${p => p.theme.space.lg};
+  margin-left: ${p => p.theme.space['3xl']};
+  max-width: 250px;
 `;
 
 const DropdownTrigger = styled(Button)`

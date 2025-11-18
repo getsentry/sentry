@@ -16,7 +16,6 @@ from sentry.organizations.services.organization import RpcOrganizationMember, or
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import auth_control_tasks
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
@@ -29,9 +28,8 @@ AUTH_CHECK_SKEW = 3600 * 2
 
 @instrumented_task(
     name="sentry.tasks.check_auth",
-    queue="auth.control",
+    namespace=auth_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
 )
 def check_auth(chunk_size=100, **kwargs):
     """
@@ -61,9 +59,8 @@ def check_auth(chunk_size=100, **kwargs):
 # Deprecate after roll out
 @instrumented_task(
     name="sentry.tasks.check_auth_identity",
-    queue="auth.control",
+    namespace=auth_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
 )
 def check_auth_identity(auth_identity_id: int, **kwargs):
     check_single_auth_identity(auth_identity_id)
@@ -71,11 +68,9 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
 
 @instrumented_task(
     name="sentry.tasks.check_auth_identities",
-    queue="auth.control",
+    namespace=auth_control_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=auth_control_tasks, processing_deadline_duration=60
-    ),
 )
 def check_auth_identities(
     auth_identity_id: int | None = None,

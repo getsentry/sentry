@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -94,7 +94,7 @@ export function Request({event}: {event: EventTransaction}) {
     {
       key: 'curl',
       subject: t('Command'),
-      value: <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>,
+      value: <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>,
     },
   ];
 

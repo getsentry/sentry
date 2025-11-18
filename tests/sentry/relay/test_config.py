@@ -271,10 +271,12 @@ def test_project_config_uses_filter_features(
     default_project, has_custom_filters, has_blacklisted_ips
 ):
     log_messages = ["some log"]
+    trace_metric_names = ["some metric"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:log_messages", log_messages)
+    default_project.update_option("sentry:trace_metric_names", trace_metric_names)
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
@@ -287,6 +289,7 @@ def test_project_config_uses_filter_features(
         {
             "projects:custom-inbound-filters": has_custom_filters,
             "organizations:ourlogs-ingestion": True,
+            "organizations:tracemetrics-ingestion": True,
         }
     ):
         project_cfg = get_project_config(default_project)
@@ -308,6 +311,15 @@ def test_project_config_uses_filter_features(
                 "op": "glob",
                 "name": "log.body",
                 "value": ["some log"],
+            },
+        } in cfg_generic
+        assert {
+            "id": "trace-metric-name",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "trace_metric.name",
+                "value": ["some metric"],
             },
         } in cfg_generic
     else:
@@ -459,12 +471,6 @@ def test_project_config_with_all_biases_enabled(
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
             },
-            # {
-            #     "condition": {"inner": [], "op": "and"},
-            #     "id": 1004,
-            #     "samplingValue": {"type": "factor", "value": default_factor},
-            #     "type": "trace",
-            # },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
@@ -479,6 +485,12 @@ def test_project_config_with_all_biases_enabled(
                     ],
                 },
                 "id": 1001,
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
             },
             {
                 "samplingValue": {"type": "factor", "value": 1.5},
@@ -521,6 +533,74 @@ def test_project_config_with_all_biases_enabled(
                     "end": "2022-10-21T19:50:25Z",
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
+            },
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+                "condition": {"op": "and", "inner": []},
+                "id": 1000,
+            },
+        ],
+    }
+
+
+@django_db_all
+@region_silo_test
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
+@freeze_time("2022-10-21 18:50:25.000000+00:00")
+def test_project_config_with_trace_health_checks_enabled(
+    eval_dynamic_factor_lr, default_project, default_team
+):
+    eval_dynamic_factor_lr.return_value = 1.5
+
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": "boostReplayId", "active": False},
+        ],
+    )
+    default_project.add_team(default_team)
+    old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    default_project.organization.date_added = old_date
+    default_project.date_added = old_date
+
+    with Feature(
+        {
+            "organizations:dynamic-sampling": True,
+            "organizations:ds-health-checks-trace-based": True,
+        }
+    ):
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+            return_value=0.1,
+        ):
+            project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    dynamic_sampling = get_path(cfg, "config", "sampling")
+    assert dynamic_sampling == {
+        "version": 2,
+        "rules": [
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.02},
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                        }
+                    ],
+                },
+                "id": 1002,
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},

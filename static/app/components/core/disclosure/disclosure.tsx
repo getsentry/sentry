@@ -15,7 +15,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 
-export interface DisclosureProps
+interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
     React.HTMLAttributes<HTMLDivElement> {
   children: NonNullable<React.ReactNode>;
@@ -68,14 +68,7 @@ function DisclosureComponent({
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex
-        data-disclosure
-        direction="column"
-        align="start"
-        flex="1 1 100%"
-        ref={ref}
-        {...props}
-      >
+      <Flex data-disclosure direction="column" align="start" ref={ref} {...props}>
         {children}
       </Flex>
     </DisclosureContext.Provider>
@@ -118,19 +111,20 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
 }
 
 const HoverStyleFlex = styled(Flex)`
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
+  ${p =>
+    p.theme.isChonk
+      ? ''
+      : css`
+          &:hover {
+            background-color: ${p.theme.backgroundSecondary};
+          }
+        `}
 `;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
-
-  &:hover {
-    background-color: transparent;
-  }
 
   ${p =>
     p.theme.isChonk

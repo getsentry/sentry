@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +12,7 @@ jest.mock('sentry/utils/useReleaseStats');
 describe('throughputChart', () => {
   const organization = OrganizationFixture();
 
-  let eventsStatsMock!: jest.Mock;
+  let eventsTimeseriesMock!: jest.Mock;
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -22,18 +23,22 @@ describe('throughputChart', () => {
   });
 
   beforeEach(() => {
-    eventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        'queue.process': {
-          data: [[1739378162, [{count: 1}]]],
-          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
-        },
-        'queue.publish': {
-          data: [[1739378162, [{count: 1}]]],
-          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+            values: [{value: 1, timestamp: 1739378162}],
+            groupBy: [{key: 'span.op', value: 'queue.process'}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+            values: [{value: 1, timestamp: 1739378162}],
+            groupBy: [{key: 'span.op', value: 'queue.publish'}],
+          }),
+        ],
       },
     });
   });
@@ -46,13 +51,13 @@ describe('throughputChart', () => {
       {organization}
     );
     screen.getByText('Published vs Processed');
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: 'epm()',
-          field: ['epm()', 'span.op'],
-          topEvents: '2',
+          yAxis: ['epm()'],
+          groupBy: ['span.op'],
+          topEvents: 2,
           query: 'span.op:[queue.publish, queue.process]',
         }),
       })

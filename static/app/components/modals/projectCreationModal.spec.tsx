@@ -115,7 +115,7 @@ describe('Project Creation Modal', () => {
       await screen.findByText('Name your project and assign it a team')
     ).toBeInTheDocument();
     await userEvent.type(
-      screen.getByPlaceholderText('project-name'),
+      screen.getByPlaceholderText('project-slug'),
       'test-react-project'
     );
 

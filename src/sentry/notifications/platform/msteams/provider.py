@@ -1,10 +1,19 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    PreparedIntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlock,
+    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -14,7 +23,7 @@ from sentry.notifications.platform.types import (
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 if TYPE_CHECKING:
-    from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+    from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block
 
 type MSTeamsRenderable = AdaptiveCard
 
@@ -32,8 +41,6 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             Action,
             ActionSet,
             ActionType,
-            AdaptiveCard,
-            Block,
             ImageBlock,
             OpenUrlAction,
             TextSize,
@@ -44,9 +51,8 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         title_text = create_text_block(
             text=rendered_template.subject, size=TextSize.LARGE, weight=TextWeight.BOLDER
         )
-        body_text = create_text_block(text=rendered_template.body)
-
-        body_blocks: list[Block] = [title_text, body_text]
+        body_text = cls.render_body_blocks(rendered_template.body)
+        body_blocks: list[Block] = [title_text, *body_text]
 
         if len(rendered_template.actions) > 0:
             actions: list[Action] = []
@@ -78,6 +84,33 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         }
         return card
 
+    @classmethod
+    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
+        from sentry.integrations.msteams.card_builder.block import (
+            create_code_block,
+            create_text_block,
+        )
+
+        body_blocks: list[Block] = []
+        for block in body:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+                body_blocks.append(create_text_block(text=cls.render_text_blocks(block.blocks)))
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
+        return body_blocks
+
+    @classmethod
+    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+        texts = []
+        for block in blocks:
+            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+                texts.append(block.text)
+            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+                texts.append(f"**{block.text}**")
+            elif block.type == NotificationBodyTextBlockType.CODE:
+                texts.append(f"`{block.text}`")
+        return " ".join(texts)
+
 
 @provider_registry.register(NotificationProviderKey.MSTEAMS)
 class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
@@ -96,4 +129,14 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: MSTeamsRenderable) -> None:
-        pass
+        from sentry.integrations.msteams.integration import MsTeamsIntegration
+
+        if not isinstance(target, cls.target_class):
+            raise NotificationProviderError(
+                f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
+            )
+
+        msteams_target = PreparedIntegrationNotificationTarget[MsTeamsIntegration](
+            target=target, installation_cls=MsTeamsIntegration
+        )
+        msteams_target.integration_installation.send_notification(target=target, payload=renderable)

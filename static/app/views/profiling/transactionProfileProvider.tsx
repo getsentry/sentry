@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
@@ -20,13 +21,7 @@ function getTransactionId(input: Profiling.ProfileInput): string | null {
   return null;
 }
 
-interface FlamegraphViewProps {
-  children: React.ReactNode;
-}
-
-export default function ProfileAndTransactionProvider(
-  props: FlamegraphViewProps
-): React.ReactElement {
+export default function ProfileAndTransactionProvider(): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
 
@@ -58,7 +53,7 @@ export default function ProfileAndTransactionProvider(
             profileTransaction.type === 'resolved' ? profileTransaction.data : null
           }
         />
-        {props.children}
+        <Outlet />
       </ProfileTransactionContext>
     </TransactionProfileProvider>
   );

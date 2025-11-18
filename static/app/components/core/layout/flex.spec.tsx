@@ -1,8 +1,10 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex, type FlexProps} from 'sentry/components/core/layout/flex';
+import type {Responsive} from 'sentry/components/core/layout/styles';
 
 describe('Flex', () => {
   it('renders children', () => {
@@ -106,5 +108,14 @@ describe('Flex', () => {
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
     expect(paddingFirst).toEqual(paddingBottomFirst);
+  });
+
+  describe('types', () => {
+    it('has a limited display prop', () => {
+      const props: FlexProps = {};
+      expectTypeOf(props.display).toEqualTypeOf<
+        Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
   });
 });

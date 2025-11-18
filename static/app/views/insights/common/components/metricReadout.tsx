@@ -41,8 +41,8 @@ interface Props {
 export function MetricReadout(props: Props) {
   return (
     <ReadoutWrapper>
-      <ReadoutTitle alignment={'left'}>{props.title}</ReadoutTitle>
-      <ReadoutContentWrapper alignment={'left'}>
+      <ReadoutTitle alignment="left">{props.title}</ReadoutTitle>
+      <ReadoutContentWrapper alignment="left">
         <ReadoutContent {...props} />
       </ReadoutContentWrapper>
     </ReadoutWrapper>

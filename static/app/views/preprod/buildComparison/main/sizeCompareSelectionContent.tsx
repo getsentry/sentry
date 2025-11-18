@@ -1,39 +1,49 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {
   IconCalendar,
-  IconClose,
   IconCode,
   IconCommit,
   IconDownload,
-  IconFocus,
-  IconLock,
-  IconTelescope,
+  IconMobile,
+  IconSearch,
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
+  isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
+} from 'sentry/views/preprod/utils/labelUtils';
+
+import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
@@ -55,20 +65,21 @@ export function SizeCompareSelectionContent({
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const headPrNumber = headBuildDetails.vcs_info?.pr_number;
-  const headSha = headBuildDetails.vcs_info?.head_sha?.substring(0, 7);
-  const headBranchName = headBuildDetails.vcs_info?.head_ref;
-
-  const basePrNumber = selectedBaseBuild?.vcs_info?.pr_number;
-  const baseSha = selectedBaseBuild?.vcs_info?.head_sha?.substring(0, 7);
-  const baseBranchName = selectedBaseBuild?.vcs_info?.head_ref;
+  const {cursor} = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+    },
+  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
+    ...(cursor && {cursor}),
+    ...(searchQuery && {query: searchQuery}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
@@ -82,6 +93,12 @@ export function SizeCompareSelectionContent({
         enabled: !!projectId,
       }
     );
+
+  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+
+  const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
+  const hasPagination =
+    parsedLinks.previous?.results === true || parsedLinks.next?.results === true;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -110,86 +127,43 @@ export function SizeCompareSelectionContent({
 
   return (
     <Stack gap="xl">
-      <Flex align="center" gap="lg" width="100%" justify="center">
-        <Flex align="center" gap="sm">
-          <IconLock size="xs" locked />
-          <Text bold>{t('Your build:')}</Text>
-          <Text size="sm" variant="accent" bold>
-            {headPrNumber && `#${headPrNumber} `}
-            {headSha && (
-              <Flex align="center" gap="xs">
-                <IconCommit size="xs" />
-                {headSha}
-              </Flex>
-            )}
-          </Text>
-          <BuildBranch>
-            <Text size="sm" variant="muted">
-              {headBranchName}
-            </Text>
-          </BuildBranch>
-        </Flex>
+      <SizeCompareSelectedBuilds
+        isComparing={isComparing}
+        headBuildDetails={headBuildDetails}
+        baseBuildDetails={selectedBaseBuild}
+        onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
+        onTriggerComparison={() => {
+          if (!selectedBaseBuild) {
+            addErrorMessage(t('Please select a base build to compare.'));
+            return;
+          }
 
-        <Text>{t('vs')}</Text>
+          triggerComparison({
+            baseArtifactId: selectedBaseBuild.id.toString(),
+            headArtifactId: headBuildDetails.id.toString(),
+          });
+        }}
+      />
 
-        <Flex align="center" gap="sm">
-          {selectedBaseBuild ? (
-            <SelectedBaseBuild align="center" gap="sm">
-              <IconFocus size="xs" color="purple400" />
-              <Text size="sm" variant="accent" bold>
-                {t('Comparison:')}
-              </Text>
-              <Text size="sm" variant="accent" bold>
-                {basePrNumber && `#${basePrNumber} `}
-                {baseSha && (
-                  <Flex align="center" gap="xs">
-                    <IconCommit size="xs" color="purple400" />
-                    {baseSha}
-                  </Flex>
-                )}
-              </Text>
-              <BaseBuildBranch>
-                <Text size="sm" variant="muted">
-                  {baseBranchName}
-                </Text>
-              </BaseBuildBranch>
-              <Button
-                onClick={e => {
-                  e.stopPropagation();
-                  setSelectedBaseBuild(undefined);
-                }}
-                size="zero"
-                priority="transparent"
-                borderless
-                aria-label={t('Clear base build')}
-                icon={<IconClose size="xs" color="purple400" />}
-              />
-            </SelectedBaseBuild>
-          ) : (
-            <SelectBuild>
-              <Text size="sm">{t('Select a build')}</Text>
-            </SelectBuild>
-          )}
-        </Flex>
-
-        <Flex align="center" gap="sm">
-          <Button
-            onClick={() => {
-              if (selectedBaseBuild) {
-                triggerComparison({
-                  baseArtifactId: selectedBaseBuild.id.toString(),
-                  headArtifactId: headBuildDetails.id.toString(),
-                });
-              }
-            }}
-            disabled={!selectedBaseBuild || isComparing}
-            priority="primary"
-            icon={<IconTelescope size="sm" />}
-          >
-            {isComparing ? t('Comparing...') : t('Compare builds')}
-          </Button>
-        </Flex>
-      </Flex>
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder={t('Search builds')}
+          value={searchQuery}
+          onChange={e => {
+            setSearchQuery(e.target.value);
+            // Clear cursor when search query changes to avoid pagination issues
+            if (cursor) {
+              navigate(
+                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                {replace: true}
+              );
+            }
+          }}
+        />
+      </InputGroup>
 
       {buildsQuery.isLoading && <LoadingIndicator />}
       {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
@@ -209,37 +183,13 @@ export function SizeCompareSelectionContent({
               />
             );
           })}
+
+          {hasPagination && <Pagination pageLinks={pageLinks} />}
         </Stack>
       )}
     </Stack>
   );
 }
-
-const BuildBranch = styled('span')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const BaseBuildBranch = styled('span')`
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const SelectBuild = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  border-style: dashed;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
-
-const SelectedBaseBuild = styled(Flex)`
-  background-color: ${p => p.theme.surface100};
-  border: 1px solid ${p => p.theme.focusBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-`;
 
 interface BuildItemProps {
   build: BuildDetailsApiResponse;
@@ -252,8 +202,9 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
   const dateAdded = build.app_info?.date_added;
-  const downloadSize = build.size_info?.download_size_bytes;
-  const installSize = build.size_info?.install_size_bytes;
+  const sizeInfo = build.size_info;
+
+  const hasGitInfo = prNumber || branchName || commitHash;
 
   return (
     <BuildItemContainer
@@ -263,23 +214,26 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        <Flex align="center" gap="md">
-          {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
-          {prNumber && (
-            <Flex align="center" gap="sm">
-              <Text>#{prNumber}</Text>
-            </Flex>
-          )}
-          {branchName && (
-            <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
-          )}
-          {commitHash && (
-            <Flex align="center" gap="sm">
-              <IconCommit size="xs" color="gray300" />
-              <Text>{commitHash}</Text>
-            </Flex>
-          )}
-        </Flex>
+        {hasGitInfo && (
+          <Flex align="center" gap="md">
+            {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
+            {prNumber && (
+              <Flex align="center" gap="sm">
+                <Text>#{prNumber}</Text>
+              </Flex>
+            )}
+            {branchName && (
+              <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
+            )}
+            {commitHash && (
+              <Flex align="center" gap="sm">
+                <IconCommit size="xs" color="gray300" />
+                <Text>{commitHash}</Text>
+              </Flex>
+            )}
+          </Flex>
+        )}
+
         <Flex align="center" gap="md">
           {dateAdded && (
             <Flex align="center" gap="sm">
@@ -287,16 +241,24 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
               <TimeSince date={dateAdded} />
             </Flex>
           )}
-          {downloadSize && (
+          {build.app_info?.build_configuration && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(downloadSize)}</Text>
+              <IconMobile size="xs" color="gray300" />
+              <Tooltip title={t('Build configuration')}>
+                <Text monospace>{build.app_info.build_configuration}</Text>
+              </Tooltip>
             </Flex>
           )}
-          {installSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(installSize)}</Text>
+              <Text>{formattedPrimaryMetricInstallSize(sizeInfo)}</Text>
+            </Flex>
+          )}
+          {isSizeInfoCompleted(sizeInfo) && (
+            <Flex align="center" gap="sm">
+              <IconDownload size="xs" color="gray300" />
+              <Text>{formattedPrimaryMetricDownloadSize(sizeInfo)}</Text>
             </Flex>
           )}
         </Flex>
@@ -313,13 +275,13 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.surface100};
   }
 
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.surface100};
+      background-color: ${p.theme.surface200};
     `}
 `;
 

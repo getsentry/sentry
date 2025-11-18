@@ -3,7 +3,6 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,6 +13,16 @@ describe('IntegrationDetailedView', () => {
   const organization = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
+
+  function createRouterConfig(integrationSlug: string, query?: Record<string, any>) {
+    return {
+      route: '/settings/:orgId/integrations/:integrationSlug/',
+      location: {
+        pathname: `/settings/org-slug/integrations/${integrationSlug}/`,
+        ...(query && {query}),
+      },
+    };
+  }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -105,11 +114,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('shows integration name, status, and install button', async () => {
-    const router = RouterFixture({params: {integrationSlug: 'bitbucket'}});
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -118,14 +125,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('view configurations', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'bitbucket'},
-      location: {query: {tab: 'configurations'}},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -136,15 +138,16 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('disables configure for members without access', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'bitbucket'},
-      location: {query: {tab: 'configurations'}},
-    });
-    const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
+    const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {
-      organization: lowerAccessOrganization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${lowerAccessOrg.slug}/integrations/bitbucket/`,
+          query: {tab: 'configurations'},
+        },
+      },
+      organization: lowerAccessOrg,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -155,15 +158,16 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('allows members to configure github/gitlab', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-      location: {query: {tab: 'configurations'}},
-    });
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${lowerAccessOrganization.slug}/integrations/github/`,
+          query: {tab: 'configurations'},
+        },
+      },
       organization: lowerAccessOrganization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -171,13 +175,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('shows features tab for github only', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('features')).toBeInTheDocument();
@@ -189,13 +189,9 @@ describe('IntegrationDetailedView', () => {
       match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
       body: [],
     });
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -204,20 +200,12 @@ describe('IntegrationDetailedView', () => {
     expect(
       screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    ).toBeDisabled();
   });
 
   it('can enable github features', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -242,19 +230,6 @@ describe('IntegrationDetailedView', () => {
     });
 
     await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubOpenPRBot: true},
-        })
-      );
-    });
-
-    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
     );
 
@@ -269,13 +244,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('can enable gitlab features', async () => {
-    const router = RouterFixture({
-      params: {integrationSlug: 'gitlab'},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('gitlab'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

@@ -5,6 +5,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -72,9 +73,54 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_triggers_with_empty_conditions(self) -> None:
+        """Test that passing an empty list to triggers.conditions clears all conditions"""
+        # Create a workflow with a trigger condition
+        workflow_with_conditions = {
+            "name": "Workflow with Conditions",
+            "enabled": True,
+            "config": {},
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {"type": "first_seen_event", "comparison": True, "conditionResult": True},
+                ],
+            },
+            "action_filters": [],
+        }
+
+        validator = WorkflowValidator(
+            data=workflow_with_conditions,
+            context={"organization": self.organization, "request": self.make_request()},
+        )
+        validator.is_valid(raise_exception=True)
+        workflow = validator.create(validator.validated_data)
+
+        # Verify the condition was created
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 1
+
+        # Now update with empty conditions list
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_success_response(self.organization.slug, workflow.id, raw_data=data)
+
+        assert response.status_code == 200
+
+        # Verify all conditions were removed
+        workflow.refresh_from_db()
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 0
+
     def test_update_detectors_add_detector(self) -> None:
-        detector1 = self.create_detector(project_id=self.project.id)
-        detector2 = self.create_detector(project_id=self.project.id)
+        detector1 = self.create_detector(project=self.project)
+        detector2 = self.create_detector(project=self.project, type=MetricIssue.slug)
 
         assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 0
 
@@ -108,8 +154,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_update_detectors_replace_detectors(self) -> None:
         """Test replacing existing detectors with new ones"""
-        existing_detector = self.create_detector(project_id=self.project.id)
-        new_detector = self.create_detector(project_id=self.project.id)
+        existing_detector = self.create_detector(project=self.project)
+        new_detector = self.create_detector(project=self.project, type=MetricIssue.slug)
 
         existing_detector_workflow = DetectorWorkflow.objects.create(
             detector=existing_detector, workflow=self.workflow
@@ -160,7 +206,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def test_update_detectors_remove_all_detectors(self) -> None:
         """Test removing all detectors by passing empty list"""
         # Create and connect a detector initially
-        detector = self.create_detector(project_id=self.project.id)
+        detector = self.create_detector(project=self.project)
         detector_workflow = DetectorWorkflow.objects.create(
             detector=detector, workflow=self.workflow
         )
@@ -214,7 +260,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         """Test validation failure when detectors belong to different organization"""
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
-        other_detector = self.create_detector(project_id=other_project.id)
+        other_detector = self.create_detector(project=other_project)
 
         data = {
             **self.valid_workflow,
@@ -232,7 +278,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_update_detectors_transaction_rollback_on_validation_failure(self) -> None:
         """Test that workflow updates are rolled back when detector validation fails"""
-        existing_detector = self.create_detector(project_id=self.project.id)
+        existing_detector = self.create_detector(project=self.project)
         DetectorWorkflow.objects.create(detector=existing_detector, workflow=self.workflow)
 
         initial_workflow_name = self.workflow.name
@@ -279,7 +325,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_update_without_detector_ids(self) -> None:
         """Test that omitting detectorIds doesn't affect existing detector connections"""
-        detector = self.create_detector(project_id=self.project.id)
+        detector = self.create_detector(project=self.project)
         DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
         assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
 
@@ -303,7 +349,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_update_detectors_no_changes(self) -> None:
         """Test that passing the same detector IDs doesn't change anything"""
-        detector = self.create_detector(project_id=self.project.id)
+        detector = self.create_detector(project=self.project)
         DetectorWorkflow.objects.create(detector=detector, workflow=self.workflow)
         assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 1
 
@@ -344,7 +390,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
-    def tasks(self) -> AbstractContextManager:
+    def tasks(self) -> AbstractContextManager[None]:
         return TaskRunner()
 
     def setUp(self) -> None:

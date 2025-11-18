@@ -40,6 +40,13 @@ describe('DataExport', () => {
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
+  it('should render the button for an unauthorized organization using flag override', () => {
+    render(<DataExport payload={mockPayload} overrideFeatureFlags />, {
+      ...mockContext(mockUnauthorizedOrg),
+    });
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+
   it('should render custom children if provided', () => {
     render(<DataExport payload={mockPayload}>This is an example string</DataExport>, {
       ...mockContext(mockAuthorizedOrg),

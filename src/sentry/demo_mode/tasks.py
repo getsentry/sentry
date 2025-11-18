@@ -19,7 +19,6 @@ from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
 
@@ -28,8 +27,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_debug_artifacts",
-    queue="demo_mode",
-    taskworker_config=TaskworkerConfig(namespace=demomode_tasks),
+    namespace=demomode_tasks,
 )
 def sync_debug_artifacts() -> None:
 

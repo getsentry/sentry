@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -20,7 +20,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api.oauth_authorize")
+logger = logging.getLogger("sentry.oauth")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -31,20 +31,30 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
-            return self.redirect(
-                "{}#{}".format(
-                    redirect_uri,
-                    urlencode([(k, v) for k, v in params.items() if v is not None]),
-                )
+            final_uri = "{}#{}".format(
+                redirect_uri,
+                urlencode([(k, v) for k, v in params.items() if v is not None]),
             )
+        else:
+            parts = list(urlparse(redirect_uri))
+            query = parse_qsl(parts[4])
+            for key, value in params.items():
+                if value is not None:
+                    query.append((key, value))
+            parts[4] = urlencode(query)
+            final_uri = urlunparse(parts)
 
-        parts = list(urlparse(redirect_uri))
-        query = parse_qsl(parts[4])
-        for key, value in params.items():
-            if value is not None:
-                query.append((key, value))
-        parts[4] = urlencode(query)
-        return self.redirect(urlunparse(parts))
+        # Django's HttpResponseRedirect blocks custom URL schemes for security.
+        # For OAuth redirects to the Sentry mobile agent, we need to support the
+        # sentry-mobile-agent:// scheme, so we use HttpResponse with a Location
+        # header directly.
+        parsed_uri = urlparse(final_uri)
+        if parsed_uri.scheme == "sentry-mobile-agent":
+            response = HttpResponse(status=302)
+            response["Location"] = final_uri
+            return response
+
+        return self.redirect(final_uri)
 
     def error(
         self,
@@ -56,7 +66,7 @@ class OAuthAuthorizeView(AuthLoginView):
         client_id=None,
         err_response=None,
     ):
-        logging.error(
+        logger.error(
             "oauth.authorize-error",
             extra={
                 "error_name": name,
@@ -429,9 +439,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri,
                 {
                     "access_token": token.token,
-                    "expires_in": int((timezone.now() - token.expires_at).total_seconds()),
+                    "expires_in": int((token.expires_at - timezone.now()).total_seconds()),
                     "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "token_type": "bearer",
+                    "token_type": "Bearer",
                     "scope": " ".join(token.get_scopes()),
                     "state": state,
                 },

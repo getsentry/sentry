@@ -39,7 +39,10 @@ describe('LoaderScript', () => {
       statusCode: 400,
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -53,7 +56,10 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys: []});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -69,7 +75,10 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -100,8 +109,9 @@ describe('LoaderScript', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
-          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
-          otlp_logs: 'http://dev.getsentry.net:8000/api/1/otlp/v1/logs',
+          integration: 'http://dev.getsentry.net:8000/api/1/integration/',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -132,7 +142,10 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -171,7 +184,10 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -242,8 +258,9 @@ describe('LoaderScript', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
-          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
-          otlp_logs: 'http://dev.getsentry.net:8000/api/1/otlp/v1/logs',
+          integration: 'http://dev.getsentry.net:8000/api/1/integration/',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -286,7 +303,10 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript project={project} />);
+    render(<LoaderScript />, {
+      organization,
+      outletContext: {project},
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

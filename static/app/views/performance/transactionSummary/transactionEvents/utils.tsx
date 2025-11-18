@@ -3,12 +3,22 @@ import type {Location, Query} from 'history';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  isAggregateField,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import {filterToField} from 'sentry/views/performance/transactionSummary/filter';
+import {
+  decodeFilterFromLocation,
+  filterToField,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
 import {
   getTransactionSummaryBaseUrl,
   TransactionFilterOptions,
@@ -197,4 +207,70 @@ export function getPercentilesEventView(eventView: EventView): EventView {
   ];
 
   return eventView.withColumns(percentileColumns);
+}
+
+export function generateTransactionEventsEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
+  transactionName: string;
+}): EventView {
+  const query = decodeScalar(location.query.query, '');
+  const conditions = new MutableSearch(query);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
+
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
+
+  const orderby = decodeScalar(location.query.sort, '-timestamp');
+
+  // Default fields for relative span view
+  const fields = [
+    'id',
+    'user.display',
+    ...(orderby.endsWith('http.method') ? ['http.method'] : []),
+    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+    'transaction.duration',
+    'trace',
+    'timestamp',
+  ];
+  const breakdown = decodeFilterFromLocation(location);
+  if (breakdown === SpanOperationBreakdownFilter.NONE) {
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
+  } else {
+    fields.splice(2, 1, `spans.${breakdown}`);
+  }
+  const webVital = getWebVital(location);
+  if (webVital) {
+    fields.splice(3, 0, webVital);
+  }
+
+  return EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields,
+      query: conditions.formatString(),
+      projects: [],
+      orderby,
+    },
+    location
+  );
+}
+
+export function getWebVital(location: Location): WebVital | undefined {
+  const webVital = decodeScalar(location.query.webVital, '') as WebVital;
+  if (Object.values(WebVital).includes(webVital)) {
+    return webVital;
+  }
+  return undefined;
 }

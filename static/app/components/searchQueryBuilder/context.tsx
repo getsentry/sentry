@@ -10,6 +10,10 @@ import {
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -36,6 +40,7 @@ interface SearchQueryBuilderContextData {
   currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
+  disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   displayAskSeer: boolean;
@@ -59,8 +64,11 @@ interface SearchQueryBuilderContextData {
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  namespace?: string;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -102,26 +110,35 @@ export function SearchQueryBuilderProvider({
   onSearch,
   placeholder,
   recentSearches,
+  namespace,
   searchSource,
   getFilterTokenWarning,
   portalTarget,
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const organization = useOrganization();
-
-  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
-  const [displayAskSeer, setDisplayAskSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const currentInputValueRef = useRef<string>('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+
+  const organization = useOrganization();
+  const enableAISearch =
+    Boolean(enableAISearchProp) &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features');
+
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
+
+  const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
+  const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -129,6 +146,7 @@ export function SearchQueryBuilderProvider({
     disabled,
     displayAskSeerFeedback,
     setDisplayAskSeerFeedback,
+    replaceRawSearchKeys,
   });
 
   const stableFieldDefinitionGetter = useMemo(
@@ -174,6 +192,7 @@ export function SearchQueryBuilderProvider({
   const handleSearch = useHandleSearch({
     parsedQuery,
     recentSearches,
+    namespace,
     searchSource,
     onSearch,
   });
@@ -186,6 +205,7 @@ export function SearchQueryBuilderProvider({
       ...state,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
+      disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       enableAISearch,
       parseQuery,
@@ -202,13 +222,14 @@ export function SearchQueryBuilderProvider({
       handleSearch,
       placeholder,
       recentSearches,
+      namespace,
       searchSource,
       size,
       portalTarget,
       autoSubmitSeer,
       setAutoSubmitSeer,
       displayAskSeer,
-      setDisplayAskSeer,
+      setDisplayAskSeer: setDisplayAskSeerState,
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
@@ -218,11 +239,15 @@ export function SearchQueryBuilderProvider({
       setDisplayAskSeerFeedback,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
+      caseInsensitive,
+      onCaseInsensitiveClick,
     };
   }, [
     autoSubmitSeer,
+    caseInsensitive,
     disabled,
     disallowFreeText,
+    disallowLogicalOperators,
     disallowWildcard,
     dispatch,
     displayAskSeer,
@@ -234,11 +259,13 @@ export function SearchQueryBuilderProvider({
     getTagValues,
     handleSearch,
     matchKeySuggestions,
+    onCaseInsensitiveClick,
     parseQuery,
     parsedQuery,
     placeholder,
     portalTarget,
     recentSearches,
+    namespace,
     replaceRawSearchKeys,
     searchSource,
     setupAcknowledgement.orgHasAcknowledged,

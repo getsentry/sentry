@@ -12,8 +12,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
-from sentry.uptime.models import UptimeStatus
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -998,9 +998,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             alert_rule_trigger=trigger3,
             status=TriggerStatus.ACTIVE.value,
         )
+
         uptime_detector = self.create_uptime_detector()
         failed_uptime_detector = self.create_uptime_detector(
-            uptime_status=UptimeStatus.FAILED,
+            detector_state=DetectorPriorityLevel.HIGH,
         )
         ok_cron_monitor = self.create_monitor(
             name="OK Monitor",

@@ -1,16 +1,18 @@
 import styled from '@emotion/styled';
 
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 export default function FeedbackSummaryCategories() {
   const organization = useOrganization();
@@ -18,6 +20,11 @@ export default function FeedbackSummaryCategories() {
   const openForm = useFeedbackForm();
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
+  const [isExpanded, setIsExpanded] = useSyncedLocalStorageState(
+    'user-feedback-ai-summary-categories-expanded',
+    true
+  );
 
   const showSummaryCategories =
     (organization.features.includes('user-feedback-ai-summaries') ||
@@ -34,7 +41,7 @@ export default function FeedbackSummaryCategories() {
         aria-label={t('Give feedback on the AI-powered summary')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
+        size="xs"
         onClick={() =>
           openForm({
             messagePlaceholder:
@@ -54,24 +61,36 @@ export default function FeedbackSummaryCategories() {
 
   return (
     <SummaryIconContainer>
-      <IconSeer size="xs" />
-      <SummaryContainer>
-        <Flex justify="between" align="center">
-          <SummaryHeader>
-            {t('Summary')} <FeatureBadge type="experimental" />
-          </SummaryHeader>
-          <Flex gap="xs">
-            {feedbackButton({type: 'positive'})}
-            {feedbackButton({type: 'negative'})}
+      <Disclosure
+        expanded={isExpanded}
+        onExpandedChange={setIsExpanded}
+        size="md"
+        as="section"
+      >
+        <Disclosure.Title
+          trailingItems={
+            <Flex gap="xs">
+              {feedbackButton({type: 'positive'})}
+              {feedbackButton({type: 'negative'})}
+            </Flex>
+          }
+        >
+          <Flex gap="xs" align="center">
+            <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
+            <FeatureBadge type="new" />
           </Flex>
-        </Flex>
-        {organization.features.includes('user-feedback-ai-summaries') && (
-          <FeedbackSummary />
-        )}
-        {organization.features.includes('user-feedback-ai-categorization-features') && (
-          <FeedbackCategories />
-        )}
-      </SummaryContainer>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <SummaryContainer>
+            {organization.features.includes('user-feedback-ai-summaries') && (
+              <FeedbackSummary />
+            )}
+            {organization.features.includes(
+              'user-feedback-ai-categorization-features'
+            ) && <FeedbackCategories />}
+          </SummaryContainer>
+        </Disclosure.Content>
+      </Disclosure>
     </SummaryIconContainer>
   );
 }
@@ -83,17 +102,8 @@ const SummaryContainer = styled('div')`
   width: 100%;
 `;
 
-const SummaryHeader = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
-
 const SummaryIconContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  align-items: baseline;
 `;

@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent, RefObject} from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
@@ -26,7 +26,6 @@ import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
@@ -62,12 +61,10 @@ export function ArithmeticTokenFunction({
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attrText ?? ''})`}
       aria-invalid={false}
-      state={'valid'}
+      state="valid"
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
-      {'('}
       <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
-      {')'}
       <BaseGridCell {...gridCellProps}>
         <DeleteFunction token={token} />
       </BaseGridCell>
@@ -104,25 +101,25 @@ function ArgumentsGrid({
     );
   };
 
+  if (!args.length) {
+    return '()';
+  }
+
   return (
-    <Fragment>
-      {args.length ? (
-        <ArgumentsGridList
-          aria-label={t('Enter arguments')}
-          items={functionToken.attributes}
-          arguments={args}
-          rowRef={rowRef}
-          item={functionItem}
-          state={functionListState}
-          token={functionToken}
-          onArgumentsChange={(index: number, argument: string) =>
-            updateArgumentAtIndex(index, argument)
-          }
-        >
-          {item => <Item key={item.key}>{item.key}</Item>}
-        </ArgumentsGridList>
-      ) : null}
-    </Fragment>
+    <ArgumentsGridList
+      aria-label={t('Enter arguments')}
+      items={functionToken.attributes}
+      arguments={args}
+      rowRef={rowRef}
+      item={functionItem}
+      state={functionListState}
+      token={functionToken}
+      onArgumentsChange={(index: number, argument: string) =>
+        updateArgumentAtIndex(index, argument)
+      }
+    >
+      {item => <Item key={item.key}>{item.key}</Item>}
+    </ArgumentsGridList>
   );
 }
 
@@ -168,16 +165,18 @@ function ArgumentsGridList({
   });
 
   return (
-    <BaseGridCell {...gridProps} ref={ref}>
+    <ArgumentsGridWrapper {...gridProps} ref={ref}>
       {[...state.collection].map((item, index) => {
         const attribute = item.value;
 
         if (!defined(attribute)) {
           return null;
         }
+
         const argument = {label: attribute.attribute, value: attribute.text};
         return (
           <BaseGridCell key={`${attribute.key}-${attribute.attribute}`}>
+            {index === 0 ? '(' : null}
             <InternalInput
               functionItem={functionItem}
               functionListState={functionListState}
@@ -192,10 +191,11 @@ function ArgumentsGridList({
               onArgumentsChange={onArgumentsChange}
             />
             {index < functionToken.attributes.length - 1 && ','}
+            {index === state.collection.size - 1 ? ')' : null}
           </BaseGridCell>
         );
       })}
-    </BaseGridCell>
+    </ArgumentsGridWrapper>
   );
 }
 
@@ -582,7 +582,7 @@ function InternalInput({
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
-      <BaseGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
+      <ArgumentGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
         <InputBox
           tabIndex={-1}
           ref={inputRef}
@@ -598,12 +598,12 @@ function InternalInput({
           onKeyDownCapture={onKeyDownCapture}
         />
         {argumentIndex < functionToken.attributes.length - 1 && ','}
-      </BaseGridCell>
+      </ArgumentGridCell>
     );
   }
 
   return (
-    <BaseGridCell
+    <ArgumentGridCell
       {...rowProps}
       {...gridCellProps}
       tabIndex={isFocused ? 0 : -1}
@@ -661,7 +661,7 @@ function InternalInput({
           )
         }
       </ComboBox>
-    </BaseGridCell>
+    </ArgumentGridCell>
   );
 }
 
@@ -714,13 +714,14 @@ function useAttributeItems({
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
+  height: fit-content;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
+  max-width: 100%;
 
   :focus {
     background-color: ${p => p.theme.gray100};
@@ -745,6 +746,31 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   }
 `;
 
+const ArgumentsGridWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  position: relative;
+  height: 100%;
+  flex-shrink: 1;
+  flex-grow: 0;
+`;
+
+const ArgumentGridCell = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  flex: 0 1 auto;
+  max-width: fit-content;
+
+  > div input {
+    max-width: fit-content !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+`;
+
 const BaseGridCell = styled('div')`
   display: flex;
   align-items: center;
@@ -754,7 +780,7 @@ const BaseGridCell = styled('div')`
 
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const DeleteButton = styled('button')`
@@ -763,7 +789,7 @@ const DeleteButton = styled('button')`
   color: ${p => p.theme.subText};
   outline: none;
   user-select: none;
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};

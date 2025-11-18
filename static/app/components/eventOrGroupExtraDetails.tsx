@@ -226,6 +226,7 @@ const Location = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   min-width: 10px;
+  line-height: 1.1;
   ${p => p.theme.overflowEllipsis};
 `;
 

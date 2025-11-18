@@ -4,6 +4,7 @@ import orjson
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -41,6 +42,8 @@ class TestWorkflowEngineSerializer(TestCase):
         # XXX: do this so that DCGA and Action IDs aren't one to one
         other_action = self.create_action()
         other_action.delete()
+
+        self.group = self.create_group(type=MetricIssue.type_id)
 
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()
@@ -90,21 +93,21 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
-            "organizationId": self.detector.project.organization_id,
+            "organizationId": str(self.detector.project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "query": self.alert_rule.snuba_query.query,
             "aggregate": self.alert_rule.snuba_query.aggregate,
-            "timeWindow": self.alert_rule.snuba_query.time_window,
-            "resolution": self.alert_rule.snuba_query.resolution,
-            "thresholdPeriod": self.detector.config.get("thresholdPeriod"),
+            "timeWindow": self.alert_rule.snuba_query.time_window / 60,
+            "resolution": self.alert_rule.snuba_query.resolution / 60,
+            "thresholdPeriod": 1,
             "triggers": self.expected_triggers,
             "projects": [self.project.slug],
             "owner": self.detector.owner_user_id,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
-            "createdBy": {},
+            "createdBy": None,
             "description": self.detector.description or "",
-            "detectionType": self.detector.type,
+            "detectionType": self.detector.config["detection_type"],
         }
 
     def add_warning_trigger(self) -> None:
@@ -155,6 +158,7 @@ class TestWorkflowEngineSerializer(TestCase):
 
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
+
         workflow = self.create_workflow()
         WorkflowActionGroupStatus.objects.create(
             action=self.critical_action, group=self.group, workflow=workflow

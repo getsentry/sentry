@@ -1,7 +1,7 @@
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 
 export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   const values = (series?.data ?? []).map(datum => {
@@ -23,7 +23,7 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
     values,
     meta: {
       // This behavior is a little awkward. Normally `meta` shouldn't be missing, but we sometime return blank meta from helper hooks
-      valueType: series.meta?.fields?.[series.seriesName] ?? null,
+      valueType: series.meta?.fields?.[series.seriesName] ?? 'number',
       valueUnit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
       interval,
     },

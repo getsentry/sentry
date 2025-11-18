@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -438,17 +439,43 @@ class Monitor(Model):
         self.guid = uuid4()
         return old_pk
 
+    def ensure_is_muted(self) -> None:
+        """
+        Dual-write: Sync is_muted from monitor environments back to the monitor.
 
-@receiver(pre_save, sender=Monitor)
-def check_organization_monitor_limits(sender, instance, **kwargs):
+        Sets Monitor.is_muted based on whether all MonitorEnvironments are muted.
+        If there are no environments, is_muted remains unchanged.
+        """
+        # Count total environments and muted environments
+        env_counts = MonitorEnvironment.objects.filter(monitor_id=self.id).aggregate(
+            total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
+        )
+
+        # Only update if there are environments
+        if env_counts["total"] > 0:
+            all_muted = env_counts["total"] == env_counts["muted"]
+            if self.is_muted != all_muted:
+                self.update(is_muted=all_muted)
+
+
+def check_organization_monitor_limit(organization_id: int) -> None:
+    """
+    Check if adding a new monitor would exceed the organization's monitor limit.
+    Raises MonitorLimitsExceeded if the limit would be exceeded.
+    """
     if (
-        instance.pk is None
-        and sender.objects.filter(organization_id=instance.organization_id).count()
+        Monitor.objects.filter(organization_id=organization_id).count()
         == settings.MAX_MONITORS_PER_ORG
     ):
         raise MonitorLimitsExceeded(
             f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
+
+
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
+    if instance.pk is None:
+        check_organization_monitor_limit(instance.organization_id)
 
 
 @region_silo_model
@@ -617,7 +644,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE},
+            defaults={"status": MonitorStatus.ACTIVE, "is_muted": monitor.is_muted},
         )
 
         # recompute per-project monitor check-in rate limit quota
@@ -804,8 +831,18 @@ class MonitorEnvBrokenDetection(Model):
         db_table = "sentry_monitorenvbrokendetection"
 
 
+def get_cron_monitor(detector: Detector) -> Monitor:
+    """
+    Given a detector get the matching cron monitor.
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return Monitor.objects.get(id=int(data_source.source_id))
+
+
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
 class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -826,6 +863,7 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(Monitor, {"id": instance.source_id})]
@@ -840,3 +878,8 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
     def get_current_instance_count(org: Organization) -> int:
         # We don't have a limit at the moment, so no need to count.
         raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "monitors.monitor"

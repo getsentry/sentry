@@ -1,7 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -11,7 +11,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
-import {OrganizationStats, PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
+import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';
 
@@ -27,28 +27,15 @@ describe('OrganizationStats', () => {
     },
   };
   const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
-  const {organization, router} = initializeOrg({
-    organization: {features: ['global-views', 'team-insights']},
-    projects,
-    router: undefined,
-  });
+  const organization = OrganizationFixture({features: ['team-insights']});
   const endpoint = `/organizations/${organization.slug}/stats_v2/`;
-  const defaultProps: OrganizationStats['props'] = {
-    router,
-    organization,
-    ...router,
-    selection: defaultSelection,
-    route: {},
-    params: {orgId: organization.slug},
-    routeParams: {},
-  };
 
   let mockRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(defaultSelection, new Set());
+    PageFiltersStore.onInitializeUrlState(defaultSelection);
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
     mockRequest = MockApiClient.addMockResponse({
@@ -68,13 +55,16 @@ describe('OrganizationStats', () => {
    * Features and Alerts
    */
   it('renders header state without tabs', async () => {
-    const newOrg = initializeOrg();
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: OrganizationFixture(),
+    });
     expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', async () => {
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />, {
+      organization,
+    });
     expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
@@ -85,7 +75,15 @@ describe('OrganizationStats', () => {
    * Base + Error Handling
    */
   it('renders the base view', async () => {
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
+        },
+      },
+    });
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
 
@@ -159,7 +157,7 @@ describe('OrganizationStats', () => {
       url: endpoint,
       statusCode: 500,
     });
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />, {organization});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -173,7 +171,7 @@ describe('OrganizationStats', () => {
       statusCode: 400,
       body: {detail: 'No projects available'},
     });
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />, {organization});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -182,7 +180,7 @@ describe('OrganizationStats', () => {
 
   it('renders with just errors category for errors-only self-hosted', async () => {
     ConfigStore.set('isSelfHostedErrorsOnly', true);
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />, {organization});
     await userEvent.click(await screen.findByText('Category'));
     // Shows only errors as stats category
     expect(screen.getAllByRole('option')).toHaveLength(1);
@@ -193,14 +191,14 @@ describe('OrganizationStats', () => {
    * Router Handling
    */
   it('pushes state changes to the route', async () => {
-    render(<OrganizationStats {...defaultProps} />);
+    const {router} = render(<OrganizationStats />, {organization});
 
     await userEvent.click(await screen.findByText('Category'));
     await userEvent.click(screen.getByText('Attachments'));
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith(
+      expect(router.location).toEqual(
         expect.objectContaining({
-          query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
+          search: `?dataCategory=${DATA_CATEGORY_INFO.attachment.plural}`,
         })
       )
     );
@@ -208,10 +206,8 @@ describe('OrganizationStats', () => {
     await userEvent.click(screen.getByText('Periodic'));
     await userEvent.click(screen.getByText('Cumulative'));
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {transform: ChartDataTransform.CUMULATIVE},
-        })
+      expect(router.location.query).toEqual(
+        expect.objectContaining({transform: ChartDataTransform.CUMULATIVE})
       )
     );
     const inputQuery = 'proj-1';
@@ -220,23 +216,23 @@ describe('OrganizationStats', () => {
       `${inputQuery}{Enter}`
     );
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {query: inputQuery},
-        })
-      )
+      expect(router.location.query).toEqual(expect.objectContaining({query: inputQuery}))
     );
   });
 
   it('does not leak query params onto next page links', async () => {
-    const dummyLocation = PAGE_QUERY_PARAMS.reduce<{query: Record<string, string>}>(
-      (location, param) => {
-        location.query[param] = '';
-        return location;
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: PAGE_QUERY_PARAMS.reduce<Record<string, string>>((location, param) => {
+            location[param] = '';
+            return location;
+          }, {}),
+        },
       },
-      {query: {}}
-    );
-    render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />);
+    });
 
     const projectLinks = await screen.findAllByTestId('badge-display-name');
     expect(projectLinks.length).toBeGreaterThan(0);
@@ -252,25 +248,17 @@ describe('OrganizationStats', () => {
   /**
    * Project Selection
    */
-  it('renders single project without global-views', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['team-insights'];
-
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      organization: newOrg.organization,
-    });
-
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
-    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
-  });
-
-  it('renders default projects with global-views', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
-    OrganizationStore.onUpdate(newOrg.organization, {replace: true});
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      organization: newOrg.organization,
+  it('renders default projects', async () => {
+    const newOrg = OrganizationFixture({features: ['team-insights']});
+    OrganizationStore.onUpdate(newOrg, {replace: true});
+    render(<OrganizationStats />, {
+      organization: newOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
+        },
+      },
     });
 
     expect(await screen.findByText('All Projects')).toBeInTheDocument();
@@ -288,25 +276,13 @@ describe('OrganizationStats', () => {
   });
 
   it('renders with multiple projects selected', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
+    const newOrg = OrganizationFixture({features: ['team-insights']});
 
     const selectedProjects = [1, 2];
-    const newSelection = {
-      ...defaultSelection,
-      projects: selectedProjects,
-    };
 
-    render(
-      <OrganizationStats
-        {...defaultProps}
-        organization={newOrg.organization}
-        selection={newSelection}
-      />,
-      {
-        organization: newOrg.organization,
-      }
-    );
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
@@ -329,24 +305,12 @@ describe('OrganizationStats', () => {
   });
 
   it('renders with a single project selected', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
+    const newOrg = OrganizationFixture({features: ['team-insights']});
     const selectedProject = [1];
-    const newSelection = {
-      ...defaultSelection,
-      projects: selectedProject,
-    };
 
-    render(
-      <OrganizationStats
-        {...defaultProps}
-        organization={newOrg.organization}
-        selection={newSelection}
-      />,
-      {
-        organization: newOrg.organization,
-      }
-    );
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
@@ -370,10 +334,9 @@ describe('OrganizationStats', () => {
   });
 
   it('renders a project when its graph icon is clicked', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      organization: newOrg.organization,
+    const newOrg = OrganizationFixture({features: ['team-insights']});
+    render(<OrganizationStats />, {
+      organization: newOrg,
     });
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
@@ -387,23 +350,13 @@ describe('OrganizationStats', () => {
    */
   it('renders legacy organization stats without appropriate flags', async () => {
     const selectedProject = [1];
-    const newSelection = {
-      ...defaultSelection,
-      projects: selectedProject,
-    };
+
     for (const features of [['team-insights'], ['team-insights']]) {
-      const newOrg = initializeOrg();
-      newOrg.organization.features = features;
-      render(
-        <OrganizationStats
-          {...defaultProps}
-          organization={newOrg.organization}
-          selection={newSelection}
-        />,
-        {
-          organization: newOrg.organization,
-        }
-      );
+      const newOrg = OrganizationFixture({features});
+
+      render(<OrganizationStats />, {
+        organization: newOrg,
+      });
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
       await act(tick);
@@ -415,13 +368,13 @@ describe('OrganizationStats', () => {
    * Feature Flagging - Continuous Profiling
    */
   it('shows only profile duration category with continuous-profiling-stats feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights', 'continuous-profiling-stats'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling-stats'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -434,13 +387,11 @@ describe('OrganizationStats', () => {
   });
 
   it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights', 'continuous-profiling'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {organization: newOrg});
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -453,13 +404,13 @@ describe('OrganizationStats', () => {
   });
 
   it('shows both profile hours without continuous-profiling feature', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -476,18 +427,13 @@ describe('OrganizationStats', () => {
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: [
-          'global-views',
-          'team-insights',
-          'continuous-profiling-stats',
-          'continuous-profiling',
-        ],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -500,13 +446,13 @@ describe('OrganizationStats', () => {
   });
 
   it('shows only Profiles category without profiling features', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
 
@@ -519,13 +465,13 @@ describe('OrganizationStats', () => {
   });
 
   it('shows Seer categories when seer-billing feature flag is enabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights', 'seer-billing'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'seer-billing'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
     expect(screen.getByRole('option', {name: 'Issue Fixes'})).toBeInTheDocument();
@@ -533,23 +479,49 @@ describe('OrganizationStats', () => {
   });
 
   it('does not show Seer categories when seer-billing feature flag is disabled', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: ['global-views', 'team-insights'],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
     });
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     await userEvent.click(await screen.findByText('Category'));
     expect(screen.queryByRole('option', {name: 'Issue Fixes'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
+  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+  });
+
+  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
+  });
+
   it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 
-    render(<OrganizationStats {...defaultProps} />);
+    render(<OrganizationStats />);
 
     expect(
       await screen.findByText('You need at least one project to use this view')
@@ -557,38 +529,33 @@ describe('OrganizationStats', () => {
   });
 
   it('shows estimation text when profile duration category is selected', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        features: [
-          'global-views',
-          'team-insights',
-          'continuous-profiling-stats',
-          'continuous-profiling',
-        ],
-      },
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
     });
 
-    render(
-      <OrganizationStats
-        {...defaultProps}
-        location={{...defaultProps.location, query: {dataCategory: 'profileDuration'}}}
-        organization={newOrg.organization}
-      />
-    );
+    render(<OrganizationStats />, {
+      organization: newOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {dataCategory: DATA_CATEGORY_INFO.profile_duration.plural},
+        },
+      },
+    });
     expect(
       await screen.findByText('*This is an estimation, and may not be 100% accurate.')
     ).toBeInTheDocument();
   });
 
   it('denies access without project membership', async () => {
-    const newOrg = initializeOrg({
-      organization: {
-        openMembership: false,
-      },
+    const newOrg = OrganizationFixture({
+      openMembership: false,
     });
     act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
 
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
 
     expect(
       await screen.findByText('You need at least one project to use this view')

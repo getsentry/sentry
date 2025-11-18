@@ -5,8 +5,8 @@ import sentry_sdk
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.project import Project
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
 )
@@ -67,8 +67,11 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         return_value=PagerDutyIssueAlertHandler,
     )
     def test_pagerduty_action(
-        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_send_trigger
-    ):
+        self,
+        mock_get_issue_alert_handler: mock.MagicMock,
+        mock_get_group_type_handler: mock.MagicMock,
+        mock_send_trigger: mock.MagicMock,
+    ) -> None:
         """Test a PagerDuty action"""
         service_info = self.setup_pd_service()
 
@@ -81,7 +84,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                 },
                 "config": {
                     "target_identifier": str(service_info["id"]),
-                    "target_type": ActionTarget.SPECIFIC.value,
+                    "target_type": "specific",
                 },
             }
         ]
@@ -90,6 +93,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.status_code == 200
         assert mock_send_trigger.call_count == 1
         pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
+        assert pagerduty_data is not None
         assert pagerduty_data["payload"]["summary"].startswith("[Test Detector]:")
 
     @mock.patch.object(NotifyEventAction, "after")
@@ -102,8 +106,11 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         return_value=PluginIssueAlertHandler,
     )
     def test_plugin_notify_event_action(
-        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_after
-    ):
+        self,
+        mock_get_issue_alert_handler: mock.MagicMock,
+        mock_get_group_type_handler: mock.MagicMock,
+        mock_after: mock.MagicMock,
+    ) -> None:
         """Test a Plugin action (NotifyEventAction)"""
         action_data = [
             {
@@ -144,15 +151,15 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                         }
                     ],
                 },
-                "config": {"target_type": ActionTarget.SPECIFIC.value},
+                "config": {"target_type": "specific"},
             }
         ]
 
         response = self.get_error_response(self.organization.slug, actions=action_data)
 
         assert response.status_code == 400
-        assert mock_create_issue.call_count == 1
         assert response.data == {"actions": [str(form_errors)]}
+        assert mock_create_issue.call_count == 1
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -181,7 +188,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
                     ],
                 },
                 "config": {
-                    "target_type": ActionTarget.SPECIFIC.value,
+                    "target_type": "specific",
                 },
             }
         ]
@@ -208,3 +215,34 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.data == {
             "detail": "No projects found for this organization that the user has access to"
         }
+
+    @mock.patch(
+        "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"
+    )
+    @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
+    def test_updates_action_with_validated_data(
+        self, mock_get_channel_id: mock.MagicMock, mock_send_test_notification: mock.MagicMock
+    ) -> None:
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack",
+            organization=self.organization,
+            user=self.user,
+            name="slack",
+            metadata={"domain_name": "https://slack.com"},
+        )
+
+        action_data = [
+            {
+                "type": Action.Type.SLACK,
+                "config": {"targetDisplay": "cathy-sentry", "targetType": "specific"},
+                "data": {"tags": "asdf"},
+                "integrationId": self.integration.id,
+            }
+        ]
+
+        mock_get_channel_id.return_value = SlackChannelIdData(
+            prefix="#", channel_id="C1234567890", timed_out=False
+        )
+
+        self.get_success_response(self.organization.slug, actions=action_data)
+        assert mock_send_test_notification.call_count == 1

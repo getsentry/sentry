@@ -3,7 +3,6 @@ from unittest import mock
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -24,14 +23,14 @@ class TestDiscordActionValidator(TestCase):
             "type": Action.Type.DISCORD,
             "config": {
                 "targetIdentifier": "1234567890",
-                "targetType": ActionTarget.SPECIFIC.value,
+                "targetType": "specific",
             },
             "data": {"tags": "asdf"},
             "integrationId": self.integration.id,
         }
 
     @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
-    def test_validate(self, mock_validate_channel_id):
+    def test_validate(self, mock_validate_channel_id: mock.MagicMock) -> None:
         mock_validate_channel_id.return_value = None
 
         validator = BaseActionValidator(
@@ -43,12 +42,12 @@ class TestDiscordActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__empty_server(self):
+    def test_validate__empty_server(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "",
                 },
             },
@@ -62,7 +61,7 @@ class TestDiscordActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
-    def test_validate__invalid_channel_id(self, mock_validate_channel_id):
+    def test_validate__invalid_channel_id(self, mock_validate_channel_id: mock.MagicMock) -> None:
         mock_validate_channel_id.side_effect = ValidationError("Invalid channel id")
 
         validator = BaseActionValidator(

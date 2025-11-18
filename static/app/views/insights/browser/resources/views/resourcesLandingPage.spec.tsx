@@ -46,7 +46,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -59,7 +59,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('fetches domain data', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
@@ -93,7 +93,7 @@ describe('ResourcesLandingPage', () => {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`
@@ -119,7 +119,7 @@ describe('ResourcesLandingPage', () => {
         ],
         "per_page": 100,
         "project": [],
-        "query": "!sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
+        "query": "has:sentry.normalized_description !sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.insights.browser.resources.main-table",
         "sampling": "NORMAL",
         "sort": "-sum(span.self_time)",

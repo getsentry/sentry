@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -74,11 +75,18 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const DEFAULT_EVENT_TYPES = [EventTypes.ERROR, EventTypes.DEFAULT];
 
 export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> = {
+  name: t('Errors'),
   SearchBar: EventsSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   getSeriesQueryOptions: options => {
+    // If interval is 1 minute and statsPeriod is 7 days, apply a 9998m statsPeriod to avoid the 10k results limit.
+    // Applied specifically to errors dataset because it has 1m intervals, spans/logs have a minimum of 5m intervals.
+    if (options.interval === 60 && options.statsPeriod === '7d') {
+      options.statsPeriod = '9998m';
+    }
+
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorErrorsConfig.getDiscoverDataset(),
@@ -129,4 +137,13 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   // TODO: This should use the discover dataset unless `is:unresolved` is in the query
   getDiscoverDataset: () => DiscoverDatasets.ERRORS,
+  formatAggregateForTitle: aggregate => {
+    if (aggregate === 'count()') {
+      return t('Number of errors');
+    }
+    if (aggregate === 'count_unique(user)') {
+      return t('Users experiencing errors');
+    }
+    return aggregate;
+  },
 };

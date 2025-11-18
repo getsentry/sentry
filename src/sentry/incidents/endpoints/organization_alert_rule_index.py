@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options, quotas
+from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -67,11 +67,13 @@ from sentry.monitors.models import (
 )
 from sentry.relay.config.metric_extraction import (
     get_default_version_alert_metric_specs,
+    get_max_alert_specs,
     on_demand_metrics_feature_flags,
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
@@ -80,6 +82,7 @@ from sentry.uptime.types import (
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +94,17 @@ def create_metric_alert(
         raise ResourceDoesNotExist
 
     data = deepcopy(request.data)
+
+    if features.has("organizations:discover-saved-queries-deprecation", organization) and data.get(
+        "dataset"
+    ) in ["generic_metrics", "transactions"]:
+        raise ValidationError(
+            "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    if data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+        raise ValidationError("server_weighted extrapolation mode is not supported for new alerts.")
+
     if project:
         data["projects"] = [project.slug]
 
@@ -214,12 +228,20 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project = Project.objects.get(id=int(project_id))
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-        alert_specs = get_default_version_alert_metric_specs(project, enabled_features, prefilling)
+        prefilling_for_deprecation = (
+            "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+        )
+        alert_specs = get_default_version_alert_metric_specs(
+            project,
+            enabled_features,
+            prefilling,
+            prefilling_for_deprecation=prefilling_for_deprecation,
+        )
 
         return Response(
             {
                 "totalOnDemandAlertSpecs": len(alert_specs),
-                "maxAllowed": options.get("on_demand.max_alert_specs"),
+                "maxAllowed": get_max_alert_specs(organization),
             },
             status=status.HTTP_200_OK,
         )
@@ -232,6 +254,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
@@ -622,6 +645,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Return a list of active metric alert rules bound to an organization.
@@ -649,6 +673,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
+    @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Create a new metric alert rule for the given organization.

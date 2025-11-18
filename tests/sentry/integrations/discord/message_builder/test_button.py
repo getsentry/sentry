@@ -1,10 +1,11 @@
 from sentry.integrations.discord.message_builder.base.component.button import (
     DiscordButton,
     DiscordButtonStyle,
+    DiscordLinkButton,
 )
 
 
-def test_some() -> None:
+def test_custom_button() -> None:
     button = DiscordButton(
         style=DiscordButtonStyle.PRIMARY,
         custom_id="test_button",
@@ -20,20 +21,17 @@ def test_some() -> None:
     }
 
 
-def test_all() -> None:
-    button = DiscordButton(
-        style=DiscordButtonStyle.PRIMARY,
-        custom_id="test_button",
+def test_link_button() -> None:
+    button = DiscordLinkButton(
         label="button label",
         url="https://sentry.io",
-        disabled=True,
+        disabled=False,
     )
     result = button.build()
     assert result == {
         "type": 2,
-        "style": 1,
-        "custom_id": "test_button",
+        "style": 5,
         "label": "button label",
         "url": "https://sentry.io",
-        "disabled": True,
+        "disabled": False,
     }

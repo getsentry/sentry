@@ -20,7 +20,6 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {
   setApiQueryData,
   useApiQuery,
@@ -31,22 +30,17 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-type Props = RouteComponentProps<{projectId: string}>;
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type DeleteTagResponse = unknown;
 type DeleteTagVariables = {key: TagWithTopValues['key']};
 
-function ProjectTags(props: Props) {
+export default function ProjectTags() {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {projectId} = props.params;
-
-  const project = projects.find(p => p.slug === projectId);
+  const {project} = useProjectSettingsOutlet();
 
   const api = useApi();
   const queryClient = useQueryClient();
@@ -56,19 +50,19 @@ function ProjectTags(props: Props) {
     isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
-    [`/projects/${organization.slug}/${projectId}/tags/`],
+    [`/projects/${organization.slug}/${project.slug}/tags/`],
     {staleTime: 0}
   );
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
-      api.requestPromise(`/projects/${organization.slug}/${projectId}/tags/${key}/`, {
+      api.requestPromise(`/projects/${organization.slug}/${project.slug}/tags/${key}/`, {
         method: 'DELETE',
       }),
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
-        [`/projects/${organization.slug}/${projectId}/tags/`],
+        [`/projects/${organization.slug}/${project.slug}/tags/`],
         oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
@@ -88,10 +82,12 @@ function ProjectTags(props: Props) {
   const isEmpty = !tags?.length;
   return (
     <Fragment>
-      <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Tags & Context'), project.slug, false)}
+      />
       <SettingsPageHeader title={t('Tags & Context')} />
       <ProjectPermissionAlert project={project} />
-      <HighlightsSettingsForm projectSlug={projectId} />
+      <HighlightsSettingsForm projectSlug={project.slug} />
       <TextBlock>
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
@@ -152,8 +148,6 @@ function ProjectTags(props: Props) {
     </Fragment>
   );
 }
-
-export default ProjectTags;
 
 const TagPanelItem = styled(PanelItem)`
   padding: 0;

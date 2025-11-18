@@ -16,8 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
 type Props = {
   data: ProjectKey;
@@ -48,8 +48,11 @@ function KeyRow({
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
   const showOtlpTraces =
-    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
+    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
+  const showVercelLogDrainEndpoint = organization.features.includes(
+    'relay-vercel-log-drain-endpoint'
+  );
 
   return (
     <Panel>
@@ -104,6 +107,7 @@ function KeyRow({
             data={data}
             showOtlpTraces={showOtlpTraces}
             showOtlpLogs={showOtlpLogs}
+            showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}

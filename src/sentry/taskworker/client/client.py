@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import grpc
-from django.conf import settings
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     FetchNextTask,
@@ -19,7 +18,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
-from sentry import options
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
@@ -137,11 +135,13 @@ class TaskworkerClient:
         max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
         temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
         health_check_settings: HealthCheckSettings | None = None,
+        rpc_secret: str | None = None,
+        grpc_config: str | None = None,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
-
         self._hosts = hosts
-        grpc_config = options.get("taskworker.grpc_service_config")
+        self._rpc_secret = rpc_secret
+
         self._grpc_options: list[tuple[str, Any]] = [
             ("grpc.max_receive_message_length", MAX_ACTIVATION_SIZE)
         ]
@@ -191,8 +191,8 @@ class TaskworkerClient:
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("taskworker.client.connect", extra={"host": host})
         channel = grpc.insecure_channel(host, options=self._grpc_options)
-        if settings.TASKWORKER_SHARED_SECRET:
-            secrets = json.loads(settings.TASKWORKER_SHARED_SECRET)
+        if self._rpc_secret:
+            secrets = json.loads(self._rpc_secret)
             channel = grpc.intercept_channel(channel, RequestSignatureInterceptor(secrets))
         return ConsumerServiceStub(channel)
 

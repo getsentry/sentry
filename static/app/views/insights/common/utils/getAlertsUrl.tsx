@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 
 export function getAlertsUrl({
   project,
@@ -44,6 +45,20 @@ export function getAlertsUrl({
     interval: supportedInterval,
     referrer,
   };
+  // If workflow engine UI is enabled, deep-link to the new monitor flow instead
+  if (organization.features?.includes('workflow-engine-ui')) {
+    const loc = getMetricMonitorUrl({
+      project,
+      environment,
+      aggregate,
+      dataset,
+      organization,
+      name,
+      query,
+      referrer,
+    });
+    return `${loc.pathname}?${qs.stringify(loc.query)}`;
+  }
 
   return (
     makeAlertsPathname({

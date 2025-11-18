@@ -1,4 +1,12 @@
-import {BuildDetailsArtifactType} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {t} from 'sentry/locale';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {unreachable} from 'sentry/utils/unreachable';
+import {
+  BuildDetailsArtifactType,
+  getMainArtifactSizeMetric,
+  isSizeInfoCompleted,
+  type BuildDetailsSizeInfo,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 // Mapping of Launchpad platform to PlatformIcon platform
@@ -34,6 +42,66 @@ export function getReadableArtifactTypeLabel(
   }
 }
 
+export function getReadableArtifactTypeTooltip(
+  artifactType: BuildDetailsArtifactType | null
+): string {
+  if (artifactType === null) {
+    return t('Unknown');
+  }
+
+  switch (artifactType) {
+    case BuildDetailsArtifactType.XCARCHIVE:
+      return t('XCode application archive');
+    case BuildDetailsArtifactType.AAB:
+      return t('Android app bundle');
+    case BuildDetailsArtifactType.APK:
+      return t('Android application package');
+    default:
+      throw new Error(`Unknown artifact type: ${artifactType}`);
+  }
+}
+
+interface Labels {
+  appId: string;
+  buildConfiguration: string;
+  downloadSizeDescription: string;
+  downloadSizeLabel: string;
+  installSizeDescription: string;
+  installSizeLabel: string;
+  installUnavailableTooltip: string;
+}
+
+export function getLabels(platform: Platform | undefined): Labels {
+  switch (platform) {
+    case 'android':
+      return {
+        installSizeLabel: t('Uncompressed Size'),
+        downloadSizeLabel: t('Download Size'),
+        appId: t('Package name'),
+        installSizeDescription: t('Uncompressed size on disk not including AOT DEX'),
+        downloadSizeDescription: t('Bytes transferred over the network'),
+        buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t('This app cannot be installed.'),
+      };
+    case 'ios':
+    case 'macos':
+    case undefined:
+      return {
+        installSizeLabel: t('Install Size'),
+        appId: t('Bundle identifier'),
+        installSizeDescription: t('Unencrypted install size'),
+        downloadSizeDescription: t('Bytes transferred over the network'),
+        downloadSizeLabel: t('Download Size'),
+        buildConfiguration: t('Build configuration'),
+        installUnavailableTooltip: t(
+          'Code signature must be valid for this app to be installed.'
+        ),
+      };
+    default:
+      return unreachable(platform);
+  }
+}
+
 export function getReadablePlatformLabel(platform: Platform): string {
   switch (platform) {
     case 'ios':
@@ -45,4 +113,32 @@ export function getReadablePlatformLabel(platform: Platform): string {
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }
+}
+
+export function formattedPrimaryMetricInstallSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.install_size_bytes);
+  }
+  return '-';
+}
+
+export function formattedPrimaryMetricDownloadSize(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): string {
+  if (isSizeInfoCompleted(sizeInfo)) {
+    const primarySizeMetric = getMainArtifactSizeMetric(sizeInfo);
+    if (!primarySizeMetric) {
+      return '-';
+    }
+
+    return formatBytesBase10(primarySizeMetric.download_size_bytes);
+  }
+  return '-';
 }

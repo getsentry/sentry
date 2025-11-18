@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry import options
 from sentry.utils import metrics
@@ -21,7 +21,7 @@ def make_signed_seer_api_request(
     path: str,
     body: bytes,
     timeout: int | float | None = None,
-    retries: int | None = None,
+    retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host

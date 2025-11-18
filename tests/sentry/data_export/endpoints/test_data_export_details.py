@@ -26,8 +26,7 @@ class DataExportDetailsTest(APITestCase):
         )
 
     def test_content(self) -> None:
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["id"] == self.data_export.id
         assert response.data["user"] == {
             "id": str(self.user.id),
@@ -41,8 +40,7 @@ class DataExportDetailsTest(APITestCase):
         }
 
     def test_early(self) -> None:
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is None
         assert response.data["dateExpired"] is None
         assert response.data["status"] == ExportStatus.Early
@@ -52,8 +50,7 @@ class DataExportDetailsTest(APITestCase):
             date_finished=timezone.now() - timedelta(weeks=2),
             date_expired=timezone.now() + timedelta(weeks=1),
         )
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is not None
         assert response.data["dateFinished"] == self.data_export.date_finished
         assert response.data["dateExpired"] is not None
@@ -65,8 +62,7 @@ class DataExportDetailsTest(APITestCase):
             date_finished=timezone.now() - timedelta(weeks=2),
             date_expired=timezone.now() - timedelta(weeks=1),
         )
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is not None
         assert response.data["dateFinished"] == self.data_export.date_finished
         assert response.data["dateExpired"] is not None
@@ -74,8 +70,7 @@ class DataExportDetailsTest(APITestCase):
         assert response.data["status"] == ExportStatus.Expired
 
     def test_no_file(self) -> None:
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] is None
         assert response.data["fileName"] is None
 
@@ -86,8 +81,7 @@ class DataExportDetailsTest(APITestCase):
         )
         file.putfile(BytesIO(contents))
         self.data_export.update(file_id=file.id)
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] == sha1(contents).hexdigest()
         assert response.data["fileName"] == "test.csv"
 
@@ -99,9 +93,8 @@ class DataExportDetailsTest(APITestCase):
             self.endpoint,
             args=[invalid_organization.slug, self.data_export.id],
         )
-        with self.feature("organizations:discover-query"):
-            response = self.client.get(url)
-            assert response.status_code == 404
+        response = self.client.get(url)
+        assert response.status_code == 404
 
     def test_content_errors(self) -> None:
         self.data_export = ExportedData.objects.create(
@@ -111,8 +104,7 @@ class DataExportDetailsTest(APITestCase):
             query_info={"dataset": "errors"},
         )
 
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["id"] == self.data_export.id
         assert response.data["user"] == {
             "id": str(self.user.id),
@@ -133,8 +125,7 @@ class DataExportDetailsTest(APITestCase):
             query_info={"dataset": "transactions"},
         )
 
-        with self.feature("organizations:discover-query"):
-            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        response = self.get_success_response(self.organization.slug, self.data_export.id)
         assert response.data["id"] == self.data_export.id
         assert response.data["user"] == {
             "id": str(self.user.id),

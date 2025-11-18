@@ -65,6 +65,7 @@ export function AutofixHighlightWrapper({
           <AutofixHighlightPopup
             selectedText={selection?.selectedText ?? lastSelectedText.current ?? ''}
             referenceElement={selection?.referenceElement ?? lastReferenceElement.current}
+            hasUserSelection={!!selection?.isRangeSelection}
             groupId={groupId}
             runId={runId}
             stepIndex={stepIndex}

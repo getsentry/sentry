@@ -56,6 +56,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/launchpad.git
         mode: containerized
+    uptime-checker:
+      description: Service powering Sentry's uptime detection features
+      remote:
+        repo_name: uptime-checker
+        branch: main
+        repo_link: https://github.com/getsentry/uptime-checker.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
@@ -80,8 +87,6 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
-    rabbitmq:
-      description: Messaging and streaming broker
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -154,21 +159,18 @@ x-sentry-service-config:
     # Uptime monitoring
     uptime-results:
       description: Kafka consumer for uptime monitoring results
-    celery-worker:
-      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, relay, spotlight, launchpad]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad, taskbroker, taskworker]
     objectstore: [snuba, postgres, relay, spotlight, objectstore]
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
-    rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
@@ -251,6 +253,18 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
       ]
     minimal: [postgres, snuba]
+    uptime:
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        uptime-checker,
+        uptime-results,
+      ]
     ingest-all:
       [
         billing-metrics-consumer,
@@ -306,6 +320,7 @@ x-sentry-service-config:
         ingest-metrics,
         ingest-generic-metrics,
         billing-metrics-consumer,
+        uptime-checker,
         uptime-results,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
@@ -368,8 +383,6 @@ x-programs:
     command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   generic-metrics-subscription-results:
     command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  celery-worker:
-    command: sentry run worker -c 1 --autoreload
 
 services:
   postgres:
@@ -430,19 +443,6 @@ services:
       - IP=0.0.0.0
     labels:
       - orchestrator=devservices
-  rabbitmq:
-    image: ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management
-    ports:
-      - '127.0.0.1:5672:5672'
-      - '127.0.0.1:15672:15672'
-    networks:
-      - devservices
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    environment:
-      - IP=0.0.0.0
-    labels:
-      - orchestrator=devservices
   memcached:
     image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
     ports:
@@ -454,7 +454,7 @@ services:
     labels:
       - orchestrator=devservices
   spotlight:
-    image: ghcr.io/getsentry/spotlight:latest
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
     healthcheck:
       interval: 1s
       timeout: 1s

@@ -103,7 +103,6 @@ function WidgetBuilderSortBySelector() {
             <ResultsLimitSelector
               disabled={disableSortDirection && disableSort}
               name="resultsLimit"
-              menuPlacement="auto"
               options={[...new Array(maxLimit).keys()].map(resultLimit => {
                 const value = resultLimit + 1;
                 return {

@@ -83,13 +83,13 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         should_reattach: bool = True,
         defaults: Mapping[str, Any | None] | None = None,
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
-        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
 
         defaults = {
             **(defaults or {}),
@@ -108,7 +108,7 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            IntegrationIdentityLinked(
+            SlackIntegrationIdentityLinked(
                 provider=IntegrationProviderSlug.SLACK.value,
                 # Note that prior to circa March 2023 this was user.actor_id. It changed
                 # when actor ids were no longer stable between regions for the same user
@@ -133,7 +133,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         identity_model = self.create(
             idp_id=idp.id, user_id=user.id, external_id=external_id, **defaults
         )
@@ -154,7 +154,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
@@ -168,7 +168,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Updates the identity object for a given user and identity provider
         with the new external id and other fields related to the identity status

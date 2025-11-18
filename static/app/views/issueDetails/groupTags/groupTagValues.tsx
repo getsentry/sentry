@@ -5,6 +5,8 @@ import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/gr
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {FlexProps} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -203,6 +205,7 @@ export function GroupTagValues() {
         range: '90d',
       });
       const issuesPath = `/organizations/${orgId}/issues/`;
+      const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
 
       return (
         <Fragment key={tagValueIdx}>
@@ -221,7 +224,7 @@ export function GroupTagValues() {
                     hideEmail
                   />
                 ) : (
-                  <DeviceName value={tagValue.name} />
+                  <DeviceName value={tagName} />
                 )}
               </GlobalSelectionLink>
             </NameWrapper>
@@ -289,7 +292,7 @@ export function GroupTagValues() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>
@@ -399,10 +402,13 @@ const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+function Column(props: FlexProps) {
+  return <Flex align="center" {...props} />;
+}
+
+function RightAlignColumn(props: FlexProps) {
+  return <Flex align="center" justify="end" {...props} />;
+}
 
 const NameColumn = styled(Column)`
   ${p => p.theme.overflowEllipsis};
@@ -413,10 +419,6 @@ const NameColumn = styled(Column)`
 const NameWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis};
   width: auto;
-`;
-
-const RightAlignColumn = styled(Column)`
-  justify-content: flex-end;
 `;
 
 const StyledPagination = styled(Pagination)`

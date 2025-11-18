@@ -216,35 +216,6 @@ export function memoizeByReference<Arguments, Value>(
   };
 }
 
-export function memoizeVariadicByReference<
-  T extends (...args: any[]) => V,
-  V = ReturnType<T>,
->(fn: T): (...t: Parameters<T>) => V {
-  let cache: Cache<Parameters<T>, V> | null = null;
-
-  return function memoizeByReferenceCallback(...args: Parameters<T>): V {
-    // If this is the first run then eval the fn and cache the result
-    if (!cache) {
-      cache = {args, value: fn(...args)};
-      return cache.value;
-    }
-    // If args match by reference, then return cached value
-    if (
-      cache.args.length === args.length &&
-      cache.args.length !== 0 &&
-      args.length !== 0 &&
-      args.every((arg, i) => arg === cache?.args[i])
-    ) {
-      return cache.value;
-    }
-
-    // Else eval the fn and store the new value
-    cache.args = args;
-    cache.value = fn(...args);
-    return cache.value;
-  };
-}
-
 export function wrapWithSpan<T>(
   parentSpan: Span | undefined,
   fn: () => T,

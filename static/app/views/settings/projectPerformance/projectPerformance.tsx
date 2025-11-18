@@ -41,6 +41,7 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -90,6 +91,7 @@ enum DetectorConfigAdmin {
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
+  WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -98,7 +100,8 @@ export enum DetectorConfigCustomer {
   N_PLUS_DB_COUNT = 'n_plus_one_db_count',
   N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
-  LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  LARGE_HTTP_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  LARGE_HTTP_PAYLOAD_FILTERED_PATHS = 'large_http_payload_filtered_paths',
   DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
   FILE_IO_MAIN_THREAD_DURATION = 'file_io_on_main_thread_duration_threshold',
   UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
@@ -107,6 +110,7 @@ export enum DetectorConfigCustomer {
   CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
   HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
   SQL_INJECTION_QUERY_VALUE_LENGTH = 'sql_injection_query_value_length_threshold',
+  WEB_VITALS_COUNT = 'web_vitals_count',
 }
 
 type ProjectThreshold = {
@@ -175,6 +179,8 @@ function ProjectPerformance() {
     projectSlug,
     orgSlug: organization.slug,
   });
+
+  const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
 
   const {
     data: threshold,
@@ -548,6 +554,23 @@ function ProjectPerformance() {
         'issue-query-injection-vulnerability-visible'
       ),
     },
+    [IssueTitle.WEB_VITALS]: {
+      name: DetectorConfigAdmin.WEB_VITALS_ENABLED,
+      type: 'boolean',
+      label: t('Web Vitals Detection'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            web_vitals_detection_enabled: value,
+          })
+        );
+      },
+      visible: hasWebVitalsSeerSuggestions,
+    },
   };
 
   const performanceRegressionAdminFields: Field[] = [
@@ -732,7 +755,7 @@ function ProjectPerformance() {
         title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
         fields: [
           {
-            name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
             type: 'range',
             label: t('Minimum Size'),
             defaultValue: 1000000, // 1MB in bytes
@@ -748,6 +771,23 @@ function ProjectPerformance() {
             ),
             formatLabel: formatSize,
             disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
+            type: 'string',
+            label: t('Filtered Paths'),
+            placeholder: t('/api/download/, /download/file'),
+            help: t(
+              'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
+            ),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            disabledReason,
+            visible: organization.features.includes(
+              'large-http-payload-detector-improvements'
+            ),
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -938,6 +978,32 @@ function ProjectPerformance() {
           },
         ],
         initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
+      },
+      {
+        title: IssueTitle.WEB_VITALS,
+        fields: [
+          {
+            name: DetectorConfigCustomer.WEB_VITALS_COUNT,
+            type: 'range',
+            label: t('Minimum Sample Count'),
+            defaultValue: 10,
+            help: t(
+              'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
+            ),
+            tickValues: [0, allowedCountValues.length - 1],
+            allowedValues: allowedCountValues,
+            showTickLabels: true,
+            formatLabel: formatCount,
+            flexibleControlStateSize: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
+            ),
+            disabledReason,
+            visible: hasWebVitalsSeerSuggestions,
+          },
+        ],
+        initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
     ];
 

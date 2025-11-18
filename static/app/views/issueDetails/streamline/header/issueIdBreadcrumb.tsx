@@ -1,8 +1,9 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -27,25 +28,25 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    text: group.shortId,
-    successMessage: t('Copied Short-ID to clipboard'),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyShortId = useCallback(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: true,
       });
-    },
-  });
+    });
+  }, [copy, organization, group]);
 
   if (!group.shortId) {
     return null;
   }
 
   return (
-    <BreadcrumbContainer>
-      <Wrapper>
+    <Flex align="center" gap="xs">
+      <Flex gap="md" align="center">
         <ProjectBadge
           project={project}
           avatarSize={16}
@@ -76,7 +77,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
             />
           )}
         </ShortIdCopyable>
-      </Wrapper>
+      </Flex>
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
@@ -106,21 +107,9 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           }
         />
       )}
-    </BreadcrumbContainer>
+    </Flex>
   );
 }
-
-const BreadcrumbContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};

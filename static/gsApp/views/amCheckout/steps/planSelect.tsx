@@ -27,9 +27,9 @@ import {
 } from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import PlanSelectRow from 'getsentry/views/amCheckout/components/planSelectRow';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {PlanContent, StepProps} from 'getsentry/views/amCheckout/types';
 import {
   formatPrice,
@@ -51,7 +51,7 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upsell-discover2': ['discover'],
 };
 
-export function getHighlightedFeatures(referrer?: string): string[] {
+function getHighlightedFeatures(referrer?: string): string[] {
   return referrer
     ? (REFERRER_FEATURE_HIGHLIGHTS[
         referrer as keyof typeof REFERRER_FEATURE_HIGHLIGHTS
@@ -68,12 +68,13 @@ function getPlanOptions({
   activePlan,
 }: Pick<StepProps, 'billingConfig' | 'activePlan'>) {
   let plans = billingConfig.planList.filter(
-    ({billingInterval}) => billingInterval === activePlan.billingInterval
+    ({id, billingInterval}) =>
+      billingInterval === activePlan.billingInterval && id !== billingConfig.freePlan
   );
 
   plans = plans.sort((a, b) => b.basePrice - a.basePrice);
 
-  if (!plans) {
+  if (plans.length === 0) {
     throw new Error('Cannot get plan options by interval');
   }
   return plans;
@@ -264,7 +265,7 @@ function PlanSelect({
               await checkForPromptBasedPromotion({
                 organization,
                 subscription,
-                refetch,
+                onRefetch: refetch,
                 promptFeature: 'business_to_team_promo',
                 promotionData,
                 onAcceptConditions: () => {

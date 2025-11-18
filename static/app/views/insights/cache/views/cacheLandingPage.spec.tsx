@@ -110,6 +110,7 @@ describe('CacheLandingPage', () => {
           referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -315,29 +316,6 @@ const setRequestMocks = (organization: Organization) => {
     },
   });
 
-  requestMocks.missRateChart = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
-    method: 'GET',
-    match: [
-      MockApiClient.matchQuery({
-        referrer: 'api.insights.cache.samples-cache-hit-miss-chart',
-      }),
-    ],
-    body: {
-      data: [
-        [1716379200, [{count: 0.5}]],
-        [1716393600, [{count: 0.75}]],
-      ],
-      meta: {
-        fields: {
-          time: 'date',
-          cache_miss_rate: 'percentage',
-        },
-        units: {},
-      },
-    },
-  });
-
   requestMocks.throughputChart = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-timeseries/`,
     method: 'GET',
@@ -356,31 +334,6 @@ const setRequestMocks = (organization: Organization) => {
           ],
         }),
       ],
-    },
-  });
-
-  // Mock for the old useSpanSeries call in cache landing page that still uses events-stats
-  requestMocks.cacheMissRateError = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
-    method: 'GET',
-    match: [
-      MockApiClient.matchQuery({
-        referrer: 'api.insights.cache.landing-cache-hit-miss-chart',
-        transformAliasToInputFormat: '1',
-      }),
-    ],
-    body: {
-      data: [
-        [1716379200, [{count: 0.5}]],
-        [1716393600, [{count: 0.75}]],
-      ],
-      meta: {
-        fields: {
-          time: 'date',
-          cache_miss_rate: 'percentage',
-        },
-        units: {},
-      },
     },
   });
 

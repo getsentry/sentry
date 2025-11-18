@@ -1,38 +1,38 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import Feature from 'sentry/components/acl/feature';
+import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  type BuildDetailsAppInfo,
-  type BuildDetailsSizeInfo,
-} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {
+  getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
+  getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  projectId: string;
-  sizeInfo?: BuildDetailsSizeInfo;
+  projectId: string | null;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const handleInstallClick = () => {
-    openInstallModal(props.projectId, props.artifactId);
-  };
+  const labels = getLabels(props.appInfo.platform ?? undefined);
 
-  // Android uses uncompressed size, other platforms use install size
-  const installSizeText =
-    props.appInfo.platform === 'android' ? t('Uncompressed Size') : t('Install Size');
+  const datetimeFormat = getFormat({
+    seconds: true,
+    timeZone: true,
+  });
 
   return (
     <Flex direction="column" gap="xl">
@@ -42,19 +42,6 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         </AppIcon>
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
-
-      {props.sizeInfo && (
-        <Flex gap="sm">
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{installSizeText}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
-          </Flex>
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{t('Download Size')}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
-          </Flex>
-        </Flex>
-      )}
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
@@ -72,41 +59,73 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           </Text>
         </Flex>
         {props.appInfo.app_id && (
-          <Flex gap="2xs" align="center">
-            <InfoIcon>
-              <IconJson />
-            </InfoIcon>
-            <Text>{props.appInfo.app_id}</Text>
-          </Flex>
+          <Tooltip title={labels.appId}>
+            <Flex gap="2xs" align="center">
+              <InfoIcon>
+                <IconJson />
+              </InfoIcon>
+              <Text>{props.appInfo.app_id}</Text>
+            </Flex>
+          </Tooltip>
         )}
         {props.appInfo.date_added && (
+          <Tooltip title={t('App upload time')}>
+            <Flex gap="2xs" align="center">
+              <InfoIcon>
+                <IconClock />
+              </InfoIcon>
+              <Text>
+                {getFormattedDate(
+                  getUtcToSystem(props.appInfo.date_added),
+                  datetimeFormat,
+                  {local: true}
+                )}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
+        <Tooltip
+          title={getReadableArtifactTypeTooltip(props.appInfo.artifact_type ?? null)}
+        >
           <Flex gap="2xs" align="center">
             <InfoIcon>
-              <IconClock />
+              <IconFile />
             </InfoIcon>
             <Text>
-              {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+              {getReadableArtifactTypeLabel(props.appInfo.artifact_type ?? null)}
             </Text>
           </Flex>
+        </Tooltip>
+        <Feature features="organizations:preprod-build-distribution">
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconLink />
+            </InfoIcon>
+            <Text>
+              {props.projectId ? (
+                <InstallableLink
+                  onClick={() => {
+                    openInstallModal(props.projectId!, props.artifactId);
+                  }}
+                >
+                  Install
+                </InstallableLink>
+              ) : null}
+            </Text>
+          </Flex>
+        </Feature>
+        {props.appInfo.build_configuration && (
+          <Tooltip title={labels.buildConfiguration}>
+            <Flex gap="2xs" align="center">
+              <InfoIcon>
+                <IconMobile />
+              </InfoIcon>
+              <InlineCodeSnippet data-render-inline hideCopyButton>
+                {props.appInfo.build_configuration}
+              </InlineCodeSnippet>
+            </Flex>
+          </Tooltip>
         )}
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconFile />
-          </InfoIcon>
-          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type ?? null)}</Text>
-        </Flex>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconLink />
-          </InfoIcon>
-          <Text>
-            {props.appInfo.is_installable ? (
-              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
-            ) : (
-              'Not Installable'
-            )}
-          </Text>
-        </Flex>
       </Flex>
     </Flex>
   );
@@ -151,4 +170,8 @@ const InstallableLink = styled('button')`
   &:hover {
     color: ${p => p.theme.linkHoverColor};
   }
+`;
+
+const InlineCodeSnippet = styled(CodeBlock)`
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;

@@ -16,7 +16,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -49,6 +49,8 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
@@ -315,7 +317,7 @@ class Project(Model):
         # This Project has custom metrics
         has_custom_metrics: bool
 
-        # This Project has enough issue volume to use high priority alerts
+        # `has_high_priority_alerts` is DEPRECATED
         has_high_priority_alerts: bool
 
         # This Project has sent insight request spans
@@ -342,7 +344,7 @@ class Project(Model):
         # This Project has sent insight queues spans
         has_insights_queues: bool
 
-        # This Project has sent insight llm monitoring spans
+        # No longer used, use has_insights_agent_monitoring instead
         has_insights_llm_monitoring: bool
 
         # This Project has sent feature flags
@@ -356,6 +358,9 @@ class Project(Model):
 
         # This project has sent logs
         has_logs: bool
+
+        # This project has sent trace metrics
+        has_trace_metrics: bool
 
         bitfield_default = 10
 
@@ -498,7 +503,11 @@ class Project(Model):
         from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
         from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -633,6 +642,10 @@ class Project(Model):
             "linked_id", flat=True
         )
 
+        # Delete issue ownership objects to prevent them from being stuck on the old org
+        ProjectCodeOwners.objects.filter(project_id=self.id).delete()
+        RepositoryProjectPathConfig.objects.filter(project_id=self.id).delete()
+
         for external_issues in chunked(
             RangeQuerySetWrapper(
                 ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
@@ -749,6 +762,15 @@ class Project(Model):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
+        # There are projects being blocked from deletion because they have GroupHash objects
+        # that are preventing the project from being deleted.
+        try:
+            from sentry.deletions.defaults.group import delete_project_group_hashes
+
+            delete_project_group_hashes(project_id=self.id)
+        except Exception:
+            logger.warning("Failed to delete group hashes for project %s", self.id)
+
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(*args, **kwargs)
@@ -765,6 +787,14 @@ class Project(Model):
             self.pk = old_pk
 
         return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
+        with disable_default_detector_creation():
+            return super().write_relocation_import(scope, flags)
 
     # pending deletion implementation
     _pending_fields = ("slug",)

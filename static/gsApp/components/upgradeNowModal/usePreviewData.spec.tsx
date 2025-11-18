@@ -3,10 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {PlanTier} from 'getsentry/types';
@@ -53,16 +50,11 @@ describe('usePreviewData', () => {
       body: mockPreview,
     });
 
-    const {result} = renderHook(usePreviewData, {
+    const {result} = renderHookWithProviders(usePreviewData, {
       initialProps: {
         organization,
         subscription,
       },
-      wrapper: ({children}) => (
-        <QueryClientProvider client={makeTestQueryClient()}>
-          {children}
-        </QueryClientProvider>
-      ),
     });
 
     await waitFor(() =>

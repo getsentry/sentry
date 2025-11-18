@@ -28,7 +28,6 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
-    "organizations:global-views",
 ]
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
@@ -141,7 +140,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -217,7 +216,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -259,7 +258,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2}},
         )
@@ -335,7 +334,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                     dashboard=self.dashboard,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    widget_type=DashboardWidgetTypes.ERROR_EVENTS,
                     interval="1d",
                 )
                 for i in range(4)
@@ -364,7 +363,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -521,7 +520,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                     dashboard=self.dashboard,
                     title=f"Widget {i}",
                     display_type=display_type,
-                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    widget_type=DashboardWidgetTypes.ERROR_EVENTS,
                     interval="1d",
                     detail={"layout": layout},
                 )
@@ -574,7 +573,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Originally Big Number - 3 rows",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
         )
@@ -614,7 +613,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Originally Area Chart - 3 rows",
             display_type=DashboardWidgetDisplayTypes.AREA_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
         )
@@ -662,14 +661,14 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             dashboard=self.dashboard,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
         self.login_as(self.user)
@@ -695,7 +694,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             dashboard=dashboard_with_layouts,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.BAR_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
             detail={"layout": {"x": 1, "y": 0, "w": 3, "h": 3, "minH": 2}},
         )
@@ -706,7 +705,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             dashboard=dashboard_with_layouts,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
             interval="1d",
         )
 

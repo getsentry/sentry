@@ -8,6 +8,10 @@ from fixtures.github import (
     INSTALLATION_API_RESPONSE,
     INSTALLATION_DELETE_EVENT_EXAMPLE,
     INSTALLATION_EVENT_EXAMPLE,
+    ISSUES_ASSIGNED_EVENT_EXAMPLE,
+    ISSUES_CLOSED_EVENT_EXAMPLE,
+    ISSUES_REOPENED_EVENT_EXAMPLE,
+    ISSUES_UNASSIGNED_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
@@ -17,19 +21,21 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import json
 
 
 class WebhookTest(APITestCase):
@@ -717,14 +723,12 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_opened(
         self,
         mock_record: MagicMock,
         mock_metrics: MagicMock,
-        mock_open_pr_comment_workflow_delay: MagicMock,
     ) -> None:
         group = self.create_group(project=self.project, short_id=7)
         repo = Repository.objects.create(
@@ -755,30 +759,7 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-        mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
-
         assert_success_metric(mock_record)
-
-        mock_open_pr_comment_workflow_delay.assert_called_with(
-            pr_id=pr.id,
-        )
-
-    @patch("sentry.integrations.github.webhook.metrics")
-    def test_opened_missing_option(self, mock_metrics: MagicMock) -> None:
-        Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="35129377",
-            provider="integrations:github",
-            name="baxterthehacker/public-repo",
-        )
-
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_open_pr_bot", value=False
-        )
-
-        self._create_integration_and_send_pull_request_opened_event()
-
-        assert mock_metrics.incr.call_count == 0
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics: MagicMock) -> None:
@@ -994,3 +975,285 @@ class PullRequestEventWebhook(APITestCase):
         assert link.group_id == group.id
         assert link.linked_id == pr.id
         assert link.linked_type == GroupLink.LinkedType.pull_request
+
+
+@with_feature("organizations:integrations-github-project-management")
+class IssuesEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+        self.integration = integration
+
+    @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_assigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_HUB_SIGNATURE="sha1=75deab06ede0068fe16b5f1f6ee1a9509738e006",
+            HTTP_X_HUB_SIGNATURE_256="sha256=1703af48011c6709662f776163fce1e86772eff189f94e1ebff5ad66a81b711e",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
+
+        mock_sync.assert_called_once_with(
+            integration=rpc_integration,
+            external_user_name="@octocat",
+            external_issue_key="baxterthehacker/public-repo#2",
+            assign=True,
+        )
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unassigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=ISSUES_UNASSIGNED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_HUB_SIGNATURE="sha1=8d2cf8bdfaae30fc619bfbfafee3681404a12d6b",
+            HTTP_X_HUB_SIGNATURE_256="sha256=19794c8575c58d0be5d447e08b50d7cc235e7f7e76b32a0c371988d4335fab21",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
+
+        # With the fix, we now use issue.assignees (current state) instead of assignee (delta)
+        # ISSUES_UNASSIGNED_EVENT_EXAMPLE has assignees=[], so we deassign
+        mock_sync.assert_called_once_with(
+            integration=rpc_integration,
+            external_user_name="",
+            external_issue_key="baxterthehacker/public-repo#2",
+            assign=False,
+        )
+
+        assert_success_metric(mock_record)
+
+    def test_missing_assignee_data(self) -> None:
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        event_data = json.loads(ISSUES_ASSIGNED_EVENT_EXAMPLE)
+        del event_data["assignee"]
+
+        response = self.client.post(
+            path=self.url,
+            data=json.dumps(event_data),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_HUB_SIGNATURE="sha1=fake",
+            HTTP_X_HUB_SIGNATURE_256="sha256=fake",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        # Should fail due to invalid signature
+        assert response.status_code == 401
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_creates_missing_repo_for_issues(self, mock_metrics: MagicMock) -> None:
+
+        response = self.client.post(
+            path=self.url,
+            data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_HUB_SIGNATURE="sha1=75deab06ede0068fe16b5f1f6ee1a9509738e006",
+            HTTP_X_HUB_SIGNATURE_256="sha256=1703af48011c6709662f776163fce1e86772eff189f94e1ebff5ad66a81b711e",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        repos = Repository.objects.all()
+        assert len(repos) == 1
+        assert repos[0].organization_id == self.project.organization.id
+        assert repos[0].external_id == "35129377"
+        assert repos[0].provider == "integrations:github"
+        assert repos[0].name == "baxterthehacker/public-repo"
+        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_closed_issue(self, mock_record: MagicMock) -> None:
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github.integration.GitHubIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_CLOSED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_HUB_SIGNATURE="sha1=069543293765b5bec93645252813c0254b213edd",
+                HTTP_X_HUB_SIGNATURE_256="sha256=9be56955f00d995f3a8b339f62c4d2f270ba25fd169db3d08150bdc82fa914b8",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            mock_sync.assert_called_once()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_reopened_issue(self, mock_record: MagicMock) -> None:
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github.integration.GitHubIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_REOPENED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_HUB_SIGNATURE="sha1=1c1dd45d6ddff6bbc004ea19decca29e6bd98a8b",
+                HTTP_X_HUB_SIGNATURE_256="sha256=888724cc9396caf181628f81bcda5c4a29e2e9575fdf951505371090ec142ad3",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            mock_sync.assert_called_once()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_closed_issue_multiple_orgs(self, mock_record: MagicMock) -> None:
+        """Test that closed issues sync to all organization integrations"""
+        # Create second organization
+        org2 = self.create_organization(owner=self.user)
+        self.create_project(organization=org2)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(org2.id, self.user)
+
+        # Create repos for both orgs
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        Repository.objects.create(
+            organization_id=org2.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        # Create linked issues for both orgs
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github.integration.GitHubIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_CLOSED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_HUB_SIGNATURE="sha1=069543293765b5bec93645252813c0254b213edd",
+                HTTP_X_HUB_SIGNATURE_256="sha256=9be56955f00d995f3a8b339f62c4d2f270ba25fd169db3d08150bdc82fa914b8",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            # Sync should be called for each org that has a linked issue
+            assert mock_sync.call_count >= 1
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_reopened_issue_multiple_orgs(self, mock_record: MagicMock) -> None:
+        """Test that reopened issues sync to all organization integrations"""
+        # Create second organization
+        org2 = self.create_organization(owner=self.user)
+        self.create_project(organization=org2)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(org2.id, self.user)
+
+        # Create repos for both orgs
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        Repository.objects.create(
+            organization_id=org2.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        # Create linked issues for both orgs
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github.integration.GitHubIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_REOPENED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_HUB_SIGNATURE="sha1=1c1dd45d6ddff6bbc004ea19decca29e6bd98a8b",
+                HTTP_X_HUB_SIGNATURE_256="sha256=888724cc9396caf181628f81bcda5c4a29e2e9575fdf951505371090ec142ad3",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            # Sync should be called for each org that has a linked issue
+            assert mock_sync.call_count >= 1

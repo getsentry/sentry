@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import Placeholder from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
@@ -34,9 +34,9 @@ export function BreadcrumbCodeSnippet({
 
   return extraction?.html?.map(html => (
     <CodeContainer key={html}>
-      <CodeSnippet language="html" hideCopyButton>
+      <CodeBlock language="html" hideCopyButton>
         {beautify.html(html, {indent_size: 2})}
-      </CodeSnippet>
+      </CodeBlock>
     </CodeContainer>
   ));
 }

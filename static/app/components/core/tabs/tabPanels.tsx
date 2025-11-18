@@ -11,8 +11,8 @@ import type {CollectionBase, Node, Orientation} from '@react-types/shared';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {TabPanelItem} from './item';
+import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
-import {TabsContext} from '.';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 

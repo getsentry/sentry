@@ -9,12 +9,16 @@ from slack_sdk.web.slack_response import SlackResponse
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.test_notifications import (
@@ -97,7 +101,7 @@ class SlackNotifyActionTest(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
+        assert event.title in blocks[0]["text"]["text"]
 
     def test_render_label_with_notes(self) -> None:
         rule = self.get_rule(
@@ -369,7 +373,7 @@ class SlackNotifyActionTest(RuleTestCase):
             blocks = mock_post.call_args.kwargs["blocks"]
             blocks = orjson.loads(blocks)
 
-            assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
+            assert event.title in blocks[0]["text"]["text"]
             assert blocks[5]["text"]["text"] == self.organization.slug
             assert blocks[6]["text"]["text"] == self.integration.id
             assert_last_analytics_event(
@@ -384,14 +388,16 @@ class SlackNotifyActionTest(RuleTestCase):
                     notification_uuid=notification_uuid,
                 ),
             )
-            mock_record.assert_any_call(
-                "integrations.slack.notification_sent",
-                category="issue_alert",
-                organization_id=self.organization.id,
-                project_id=event.project_id,
-                group_id=event.group_id,
-                notification_uuid=notification_uuid,
-                alert_id=None,
+            assert_any_analytics_event(
+                mock_record,
+                SlackIntegrationNotificationSent(
+                    category="issue_alert",
+                    organization_id=self.organization.id,
+                    project_id=event.project_id,
+                    group_id=event.group_id,
+                    notification_uuid=notification_uuid,
+                    alert_id=None,
+                ),
             )
 
     @responses.activate

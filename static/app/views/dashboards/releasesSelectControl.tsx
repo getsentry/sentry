@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 
 import {Badge} from 'sentry/components/core/badge';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -47,6 +48,7 @@ function ReleasesSelectControl({
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setActiveReleases(selectedReleases);
   }, [selectedReleases]);
 
@@ -95,20 +97,24 @@ function ReleasesSelectControl({
       onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
       onClose={() => {
         resetSearch();
-        handleChangeFilter?.({
-          [DashboardFilterKeys.RELEASE]: activeReleases,
-        });
+        if (!isEqual(activeReleases, selectedReleases)) {
+          handleChangeFilter?.({
+            [DashboardFilterKeys.RELEASE]: activeReleases,
+          });
+        }
       }}
       value={activeReleases}
-      triggerLabel={
-        <ButtonLabelWrapper>
-          {triggerLabel}{' '}
-          {activeReleases.length > 1 && (
-            <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
-          )}
-        </ButtonLabelWrapper>
-      }
-      triggerProps={{icon: <IconReleases />}}
+      triggerProps={{
+        icon: <IconReleases />,
+        children: (
+          <ButtonLabelWrapper>
+            {triggerLabel}{' '}
+            {activeReleases.length > 1 && (
+              <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
+            )}
+          </ButtonLabelWrapper>
+        ),
+      }}
     />
   );
 }

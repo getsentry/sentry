@@ -16,7 +16,6 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
 
@@ -33,14 +32,10 @@ def get_repo_config(repo, integration_id):
 
 @instrumented_task(
     name="sentry.integrations.github.tasks.link_all_repos",
-    queue="integrations.control",
-    max_retries=3,
+    namespace=integrations_control_tasks,
+    retry=Retry(times=3),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(times=3),
-        processing_deadline_duration=60,
-    ),
 )
 @retry(exclude=(RepoExistsError, KeyError))
 def link_all_repos(

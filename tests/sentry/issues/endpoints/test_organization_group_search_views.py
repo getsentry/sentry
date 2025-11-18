@@ -220,6 +220,41 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert len(response.data) == 0
 
 
+class OrganizationGroupSearchViewsInvalidPostTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-views"
+    method = "post"
+
+    @with_feature({"organizations:issue-views": True})
+    def test_non_member_cannot_create_view(self) -> None:
+        self.login_as(user=self.user)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        non_member = self.create_user(is_superuser=False)
+
+        team1 = self.create_team(organization=self.organization, name="team1", members=[self.user])
+        self.create_member(
+            user=non_member, organization=self.organization, role="member", teams=[team1]
+        )
+        self.create_project(organization=self.organization, teams=[team1], name="proj1")
+
+        team2 = self.create_team(organization=self.organization, name="team2", members=[self.user])
+        proj2 = self.create_project(organization=self.organization, teams=[team2], name="proj2")
+
+        self.login_as(non_member)
+
+        data = {
+            "name": "Custom View One",
+            "query": "is:unresolved",
+            "querySort": "date",
+            "projects": [proj2.id],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+        self.get_error_response(self.organization.slug, **data, status_code=403)
+
+
 class OrganizationGroupSearchViewsPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
     method = "post"

@@ -42,7 +42,6 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
@@ -2818,6 +2817,43 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response()
         assert response.status_code == 500
 
+    def test_wildcard_operator_with_backslash(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "user": {
+                    "id": "1",
+                    "email": "foo@example.com",
+                    "username": r"foo\bar",
+                    "ip_address": "192.168.0.1",
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        response = self.get_success_response(query=r"user.username:foo\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query=r"user.username:*foo\\bar*")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dContains\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dStartsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dEndsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -3379,7 +3415,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3416,52 +3451,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_current_release_without_open_period(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        GroupOpenPeriod.objects.all().delete()
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release.version
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-        ).exists()
-
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
-
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3500,12 +3489,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release.version
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -3552,11 +3535,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
         assert not GroupResolution.has_resolution(group=group, release=release_3)
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
 
     def test_set_resolved_in_next_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -3664,7 +3642,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -3707,12 +3684,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3732,10 +3703,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended is None
 
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
@@ -4300,7 +4267,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             qs_params={"id": [group.id]}, priority=PriorityLevel.MEDIUM.to_str()
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot manually set priority of a metric issue."
+        assert response.data["detail"] == "Cannot manually set priority of one or more issues."
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

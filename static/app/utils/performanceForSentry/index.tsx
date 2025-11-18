@@ -155,6 +155,9 @@ export function VisuallyCompleteWithData({
 
   const isVCDSet = useRef(false);
 
+  const locationPath = useRef(location.pathname);
+  locationPath.current = location.pathname;
+
   if (isVCDSet && hasData && performance?.mark && !disabled) {
     performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
@@ -206,6 +209,17 @@ export function VisuallyCompleteWithData({
           const endMark = endMarks.at(-1);
           if (!startMark || !endMark) {
             return;
+          }
+          try {
+            const vcdTime = endMark.startTime - startMark.startTime;
+            Sentry.metrics.count('visually_complete_with_data', vcdTime, {
+              attributes: {
+                url: locationPath.current,
+              },
+              unit: 'millisecond', // DOMHighResTimeStamp
+            });
+          } catch (_) {
+            // Defensive catch since this code is auxiliary.
           }
           performance.measure(
             `VCD [${id}] #${num.current}`,

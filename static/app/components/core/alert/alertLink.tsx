@@ -102,8 +102,7 @@ function textDecorationStyles({type, theme}: {theme: Theme; type: AlertProps['ty
     text-decoration-color: ${theme.alert[type].border};
     text-decoration-style: solid;
     text-decoration-line: underline;
-    /* @TODO(jonasbadalic): can/should we standardize this transition? */
-    transition: 0.2s border-color;
+    transition: border-color ${theme.motion.smooth.moderate};
 
     &:hover {
       text-decoration-color: ${theme.alert[type].color};

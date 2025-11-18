@@ -53,9 +53,13 @@ import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuer
  *    └─────────────────────────────────────────────────────────────┘
  *
  */
-export function useVirtualStreaming(
-  data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
-) {
+export function useVirtualStreaming({
+  data,
+  highFidelity,
+}: {
+  data: InfiniteData<ApiResult<EventsLogsResult>> | undefined;
+  highFidelity?: boolean;
+}) {
   const organization = useOrganization();
   const setLogsAutoRefresh = useSetLogsAutoRefresh();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -67,11 +71,14 @@ export function useVirtualStreaming(
   const logsQueryKey = useLogsQueryKeyWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: false,
+    highFidelity,
   });
   const warnRef = useRef(() => {});
   const hasWarnedRef = useRef(false);
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
+
+  const organizationRef = useRef(organization);
 
   useEffect(() => {
     if (previousQueryKeyString !== queryKeyString) {
@@ -199,6 +206,12 @@ export function useVirtualStreaming(
 
         if (mostRecentPageDataTimestamp === null) {
           warnRef.current();
+          logger.info(
+            'No most recent page data timestamp found, setting auto-refresh to error',
+            {
+              organization: organizationRef.current.slug,
+            }
+          );
           setLogsAutoRefresh('error');
           return;
         }

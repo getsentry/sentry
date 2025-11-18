@@ -24,6 +24,9 @@ from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.discord.provider import DiscordRenderable
+from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -76,9 +79,15 @@ metadata = IntegrationMetadata(
 )
 
 
-class DiscordIntegration(IntegrationInstallation):
+class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> DiscordClient:
         return DiscordClient()
+
+    def send_notification(
+        self, target: IntegrationNotificationTarget, payload: DiscordRenderable
+    ) -> None:
+        client = self.get_client()
+        client.send_message(channel_id=target.resource_id, message=payload)
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove

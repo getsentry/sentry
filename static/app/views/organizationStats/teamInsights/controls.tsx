@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Select} from 'sentry/components/core/select';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -203,12 +203,13 @@ function TeamStatsControls({
           ...relativeOptions,
           ...props.arbitraryOptions,
         })}
-        triggerLabel={
-          period &&
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          (relativeOptions[period] || getArbitraryRelativePeriod(period)[period])
-        }
-        triggerProps={{prefix: t('Date Range')}}
+        triggerProps={{
+          prefix: t('Date Range'),
+          children:
+            period &&
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            (relativeOptions[period] || getArbitraryRelativePeriod(period)[period]),
+        }}
       />
     </ControlsWrapper>
   );

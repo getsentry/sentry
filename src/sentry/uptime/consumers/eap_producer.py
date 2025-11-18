@@ -7,13 +7,12 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
-from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +32,7 @@ _eap_items_producer = SingletonProducer(_get_eap_items_producer)
 
 
 def produce_eap_uptime_result(
-    uptime_subscription: UptimeSubscription,
-    project: Project,
+    detector: Detector,
     result: CheckResult,
     metric_tags: dict[str, str],
 ) -> None:
@@ -45,12 +43,15 @@ def produce_eap_uptime_result(
     snuba-items topic for EAP ingestion.
     """
     try:
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
             incident_status = IncidentStatus.NO_INCIDENT
 
-        trace_items = convert_uptime_result_to_trace_items(project, result, incident_status)
+        trace_items = convert_uptime_result_to_trace_items(
+            detector.project, result, incident_status
+        )
         topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
 
         for trace_item in trace_items:
@@ -69,7 +70,7 @@ def produce_eap_uptime_result(
                 "subscription_id": result["subscription_id"],
                 "check_status": result["status"],
                 "region": result["region"],
-                "project_id": project.id,
+                "project_id": detector.project.id,
                 "trace_item_count": len(trace_items),
                 "incident_status": incident_status.value,
             },

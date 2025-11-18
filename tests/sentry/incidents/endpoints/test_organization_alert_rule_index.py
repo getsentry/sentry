@@ -62,13 +62,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
-from sentry.workflow_engine.models import (
-    Action,
-    ActionAlertRuleTriggerAction,
-    AlertRuleDetector,
-    Detector,
-)
-from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models import Action, Detector
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -384,7 +378,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:workflow-engine-metric-alert-dual-write",
                     "organizations:workflow-engine-rule-serializers",
                 ]
             ),
@@ -398,7 +391,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
         assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),
@@ -646,31 +638,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)[0].type
             == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
         )
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request: MagicMock) -> None:
-        """
-        For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
-        will repurpose this test once we have a plan in place to handle them.
-        """
-        data = self.dynamic_alert_rule_dict
-        seer_return_value: StoreDataResponse = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-
-        with outbox_runner():
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-
-        assert not AlertRuleDetector.objects.filter(alert_rule_id=resp.data["id"]).exists()
-        assert not DataCondition.objects.filter().exists()
-        assert not ActionAlertRuleTriggerAction.objects.filter().exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -1692,6 +1659,60 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert alert_rule.name == "JustAValidTestRule"
+
+    def test_eap_alert_with_invalid_time_window(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["timeWindow"] = 1
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+        )
+
+    def test_transactions_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "transactions"
+        data["alertType"] = "performance"
+
+        with self.feature(
+            ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    def test_generic_metrics_dataset_deprecation_validation(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+        data["alertType"] = "performance"
+        data["aggregate"] = "p95(transaction.duration)"
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover-saved-queries-deprecation",
+                "organizations:performance-view",
+            ]
+        ):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert (
+            resp.data[0]
+            == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+        )
+
+    def test_invalid_extrapolation_mode(self) -> None:
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["extrapolation_mode"] = "server_weighted"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
 
 
 @freeze_time()

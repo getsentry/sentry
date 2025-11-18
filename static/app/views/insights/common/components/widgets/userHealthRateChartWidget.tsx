@@ -16,6 +16,7 @@ export default function UserHealthRateChartWidget(props: LoadableChartWidgetProp
   const aliases = {
     healthy_user_rate: 'rate_healthy(user)',
     crashed_user_rate: 'rate_crashed(user)',
+    unhandled_user_rate: 'rate_unhandled(user)',
     errored_user_rate: 'rate_errored(user)',
     abnormal_user_rate: 'rate_abnormal(user)',
   };

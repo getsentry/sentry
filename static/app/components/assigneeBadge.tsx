@@ -3,7 +3,7 @@ import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

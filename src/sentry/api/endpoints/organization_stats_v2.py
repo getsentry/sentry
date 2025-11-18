@@ -21,6 +21,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -159,13 +160,15 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=1),
-            RateLimitCategory.USER: RateLimit(limit=20, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
         }
-    }
+    )
     permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(

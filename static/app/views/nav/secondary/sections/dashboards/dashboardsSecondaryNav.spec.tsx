@@ -15,6 +15,11 @@ describe('DashboardsSecondaryNav', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/starred/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/starred/`,
       body: [
         DashboardListItemFixture({

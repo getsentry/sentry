@@ -19,7 +19,17 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
@@ -29,9 +39,9 @@ describe('DetectorEdit', () => {
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
-    route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+    route: '/organizations/:orgId/monitors/:detectorId/edit/',
     location: {
-      pathname: '/organizations/org-slug/issues/monitors/1/edit/',
+      pathname: '/organizations/org-slug/monitors/1/edit/',
     },
   };
 
@@ -134,7 +144,7 @@ describe('DetectorEdit', () => {
 
       // Redirect to the monitors list
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/`
+        `/organizations/${organization.slug}/monitors/`
       );
     });
 
@@ -211,9 +221,9 @@ describe('DetectorEdit', () => {
       expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
 
       // Can add an automation and save
-      await userEvent.click(screen.getByRole('button', {name: 'Connect an Automation'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Connect an Alert'}));
       const drawer = await screen.findByRole('complementary', {
-        name: 'Connect Automations',
+        name: 'Connect Alerts',
       });
       await userEvent.click(await within(drawer).findByRole('button', {name: 'Connect'}));
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
@@ -234,7 +244,7 @@ describe('DetectorEdit', () => {
       // Should navigate back to detector details page
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/1/`
+          `/organizations/${organization.slug}/monitors/1/`
         );
       });
     });
@@ -282,6 +292,9 @@ describe('DetectorEdit', () => {
       await userEvent.clear(nameInputField);
       await userEvent.type(nameInputField, 'Updated Detector Name');
 
+      const descriptionField = await screen.findByRole('textbox', {name: 'description'});
+      await userEvent.type(descriptionField, 'This is the description');
+
       // Update environment
       await userEvent.click(screen.getByText('All Environments'));
       await userEvent.click(
@@ -290,7 +303,7 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
+      const snubaQuery = mockDetector.dataSources[0].queryObj.snubaQuery;
       await waitFor(() => {
         expect(updateRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/detectors/1/`,
@@ -299,24 +312,32 @@ describe('DetectorEdit', () => {
             data: {
               detectorId: mockDetector.id,
               name: 'Updated Detector Name',
+              description: 'This is the description',
               owner: null,
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
-              dataSource: {
-                environment: 'production',
-                aggregate: snubaQuery.aggregate,
-                dataset: snubaQuery.dataset,
-                query: snubaQuery.query,
-                timeWindow: snubaQuery.timeWindow,
-                eventTypes: ['error'],
-                queryType: 0,
+              config: {
+                detectionType: 'static',
               },
+              dataSources: [
+                {
+                  environment: 'production',
+                  aggregate: snubaQuery.aggregate,
+                  dataset: snubaQuery.dataset,
+                  query: snubaQuery.query,
+                  timeWindow: snubaQuery.timeWindow,
+                  eventTypes: ['error'],
+                  queryType: 0,
+                },
+              ],
               conditionGroup: {
-                conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
+                conditions: [
+                  {comparison: 8, conditionResult: 75, type: 'gt'},
+                  {comparison: 8, conditionResult: 0, type: 'lte'},
+                ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
             },
           })
         );
@@ -324,7 +345,7 @@ describe('DetectorEdit', () => {
 
       // Should navigate back to detector details page
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/monitors/1/`
+        `/organizations/${organization.slug}/monitors/1/`
       );
     });
 
@@ -379,6 +400,56 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
     });
 
+    it('sets resolution method to Default when OK equals critical threshold', async () => {
+      const detectorWithOkEqualsHigh = MetricDetectorFixture({
+        conditionGroup: {
+          id: 'cg2',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-main',
+              type: DataConditionType.GREATER,
+              comparison: 5,
+              conditionResult: DetectorPriorityLevel.MEDIUM,
+            },
+            {
+              id: 'c-high',
+              type: DataConditionType.GREATER,
+              comparison: 10,
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+            {
+              id: 'c-ok',
+              type: DataConditionType.LESS,
+              comparison: 10, // equals high threshold
+              conditionResult: DetectorPriorityLevel.OK,
+            },
+          ],
+        },
+        dataSources: [SnubaQueryDataSourceFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${detectorWithOkEqualsHigh.id}/`,
+        body: detectorWithOkEqualsHigh,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('Default').closest('label')).toHaveClass(
+        'css-1aktlwe-RadioLineItem'
+      );
+
+      // Switching to Custom should reveal prefilled resolution input with the current OK value
+      await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
+      const resolutionInput = await screen.findByLabelText('Resolution threshold');
+      expect(resolutionInput).toHaveValue(10);
+    });
+
     it('includes comparisonDelta in events-stats request when using percent change detection', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
@@ -399,9 +470,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${mockDetector.id}/edit/`,
           },
         },
       });
@@ -413,8 +484,8 @@ describe('DetectorEdit', () => {
 
       // Set % change value to 10%
       const newThresholdValue = '22';
-      await userEvent.clear(screen.getByLabelText('Initial threshold'));
-      await userEvent.type(screen.getByLabelText('Initial threshold'), newThresholdValue);
+      await userEvent.clear(screen.getByLabelText('High threshold'));
+      await userEvent.type(screen.getByLabelText('High threshold'), newThresholdValue);
 
       // Wait for the events-stats request to be made with comparisonDelta
       // Default comparisonDelta is 1 hour (3600 seconds)
@@ -473,9 +544,9 @@ describe('DetectorEdit', () => {
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
-          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
           location: {
-            pathname: `/organizations/${organization.slug}/issues/monitors/${testDetector.id}/edit/`,
+            pathname: `/organizations/${organization.slug}/monitors/${testDetector.id}/edit/`,
           },
         },
       });
@@ -561,6 +632,56 @@ describe('DetectorEdit', () => {
 
       // Verify interval changed to 15 minutes
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('prefills thresholdType from anomaly detection condition when editing dynamic detector', async () => {
+      const dynamicDetector = MetricDetectorFixture({
+        name: 'Dynamic Detector',
+        projectId: project.id,
+        config: {
+          detectionType: 'dynamic',
+        },
+        conditionGroup: {
+          id: 'cg-dynamic',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-anomaly',
+              type: DataConditionType.ANOMALY_DETECTION,
+              comparison: {
+                sensitivity: AlertRuleSensitivity.HIGH,
+                seasonality: 'auto',
+                thresholdType: AlertRuleThresholdType.BELOW,
+              },
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/`,
+        body: dynamicDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${dynamicDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'Dynamic Detector'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
+
+      // Verify thresholdType field is prefilled with "Below"
+      expect(screen.getByText('Below')).toBeInTheDocument();
     });
 
     it('calls anomaly API when using dynamic detection', async () => {
@@ -672,19 +793,139 @@ describe('DetectorEdit', () => {
             expect.anything(),
             expect.objectContaining({
               data: expect.objectContaining({
-                dataSource: expect.objectContaining({
-                  // Aggreate needs to be transformed to this in order to save correctly
-                  aggregate:
-                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
-                  dataset: Dataset.METRICS,
-                  eventTypes: [],
-                  queryType: SnubaQueryType.CRASH_RATE,
-                }),
+                dataSources: expect.arrayContaining([
+                  expect.objectContaining({
+                    // Aggreate needs to be transformed to this in order to save correctly
+                    aggregate:
+                      'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                    dataset: Dataset.METRICS,
+                    eventTypes: [],
+                    queryType: SnubaQueryType.CRASH_RATE,
+                  }),
+                ]),
               }),
             })
           );
         });
       });
+    });
+
+    it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
+      const organizationWithDeprecation = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'discover-saved-queries-deprecation',
+        ],
+      });
+
+      const existingTransactionsDetector = MetricDetectorFixture({
+        id: '123',
+        name: 'Transactions Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organizationWithDeprecation.slug}/detectors/123/`,
+        body: existingTransactionsDetector,
+      });
+
+      const editRouterConfig = {
+        route: '/organizations/:orgId/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organizationWithDeprecation.slug}/monitors/123/edit/`,
+        },
+      };
+
+      render(<DetectorEdit />, {
+        organization: organizationWithDeprecation,
+        initialRouterConfig: editRouterConfig,
+      });
+
+      // Wait for the detector to load
+      expect(
+        await screen.findByRole('link', {name: 'Transactions Detector'})
+      ).toBeInTheDocument();
+
+      // Open dataset dropdown
+      const datasetField = screen.getByLabelText('Dataset');
+      await userEvent.click(datasetField);
+
+      // Verify transactions option IS available when editing existing transactions detector
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Transactions'})
+      ).toBeInTheDocument();
+
+      // Verify other datasets are also available
+      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+    });
+
+    it('disables interval, aggregate, and query when using the transactions dataset', async () => {
+      const transactionsDetector = MetricDetectorFixture({
+        id: '321',
+        name: 'Transaction Detector',
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'p75()',
+                dataset: Dataset.GENERIC_METRICS,
+                id: '',
+                query: '',
+                timeWindow: 60,
+                eventTypes: [EventTypes.TRANSACTION],
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${transactionsDetector.id}/`,
+        body: transactionsDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${transactionsDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: transactionsDetector.name})
+      ).toBeInTheDocument();
+
+      // Interval select should be disabled
+      const intervalField = screen.getByLabelText('Interval');
+      expect(intervalField).toBeDisabled();
+
+      // Aggregate selector should be disabled
+      expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
   });
 });

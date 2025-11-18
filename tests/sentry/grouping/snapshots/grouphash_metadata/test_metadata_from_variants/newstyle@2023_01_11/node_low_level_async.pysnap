@@ -1,7 +1,5 @@
 ---
-created: '2024-12-17T22:50:42.536533+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: message
 hashing_metadata: {
@@ -24,7 +22,8 @@ contributing variants:
   app*
     hash: "be36642f41f047346396f018f62375d3"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       app*
         exception*
           type*

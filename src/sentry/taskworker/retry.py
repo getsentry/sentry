@@ -3,7 +3,6 @@ from __future__ import annotations
 from enum import Enum
 from multiprocessing.context import TimeoutError
 
-from celery import current_task
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
@@ -11,7 +10,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     RetryState,
 )
 
-from sentry.taskworker.state import current_task as taskworker_current_task
+from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 
@@ -45,26 +44,16 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
     """
     Helper for triggering retry errors.
     If all retries have been consumed, this will raise a
-    sentry.taskworker.retry.NoRetriesRemaining or
-    celery.exceptions.MaxRetriesExceededError depending on how
-    the task is operated.
-
-    During task conversion, this function will shim
-    between celery's retry API and Taskworker retry API.
+    sentry.taskworker.retry.NoRetriesRemaining
     """
-    celery_retry = getattr(current_task, "retry", None)
-    if celery_retry:
-        current_task.retry(exc=exc)
-        assert False, "unreachable"
-    else:
-        current = taskworker_current_task()
-        if current and not current.retries_remaining:
-            metrics.incr("taskworker.retry.no_retries_remaining")
-            if raise_on_no_retries:
-                raise NoRetriesRemainingError()
-            else:
-                return
-        raise RetryError()
+    current = current_task()
+    if current and not current.retries_remaining:
+        metrics.incr("taskworker.retry.no_retries_remaining")
+        if raise_on_no_retries:
+            raise NoRetriesRemainingError()
+        else:
+            return
+    raise RetryError()
 
 
 class Retry:

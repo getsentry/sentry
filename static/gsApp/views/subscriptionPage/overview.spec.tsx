@@ -32,6 +32,7 @@ describe('Subscription > Overview', () => {
   const mockLocation = LocationFixture();
 
   beforeEach(() => {
+    organization.features = [];
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -81,6 +82,19 @@ describe('Subscription > Overview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/next-bill/`,
+      method: 'GET',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/current/`,
+      method: 'GET',
     });
 
     SubscriptionStore.set(organization.slug, {});
@@ -146,6 +160,25 @@ describe('Subscription > Overview', () => {
       ).not.toBeInTheDocument();
     }
   }
+
+  it('renders for new billing UI', async () => {
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    SubscriptionStore.set(organization.slug, subscription);
+    organization.features = ['subscriptions-v3'];
+    render(<Overview location={mockLocation} />, {organization});
+    expect(
+      await screen.findByRole('heading', {name: 'Subscription'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Next bill'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Billing information'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Receipts & notifications'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Business plan')).toBeInTheDocument();
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+  });
 
   it('renders for am3 DS plan without custom dynamic sampling toggled', async () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
@@ -836,106 +869,6 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(await screen.findByText('Errors usage this period')).toBeInTheDocument();
     expect(screen.queryByText('Trial Available')).not.toBeInTheDocument();
-  });
-
-  describe('OnDemandDisabled', () => {
-    it('renders alert when on-demand is disabled', async () => {
-      const subscription = SubscriptionFixture({
-        organization,
-        onDemandDisabled: true,
-        onDemandMaxSpend: 1000,
-      });
-      SubscriptionStore.set(organization.slug, subscription);
-
-      render(<Overview location={mockLocation} />, {organization});
-
-      expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders alert when on-demand is disabled with billing permissions', async () => {
-      const billingOrg = OrganizationFixture({access: ['org:billing']});
-      const subscription = SubscriptionFixture({
-        organization: billingOrg,
-        onDemandDisabled: true,
-        onDemandMaxSpend: 1000,
-      });
-      SubscriptionStore.set(billingOrg.slug, subscription);
-
-      render(<Overview location={mockLocation} />, {organization: billingOrg});
-
-      expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders alert when on-demand is disabled without billing permissions', async () => {
-      const nonBillingOrg = OrganizationFixture({access: []});
-      const subscription = SubscriptionFixture({
-        organization: nonBillingOrg,
-        onDemandDisabled: true,
-        onDemandMaxSpend: 1000,
-        canSelfServe: true,
-      });
-      SubscriptionStore.set(nonBillingOrg.slug, subscription);
-
-      render(<Overview location={mockLocation} />, {organization: nonBillingOrg});
-
-      expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('does not render alert when on-demand is not disabled', async () => {
-      const subscription = SubscriptionFixture({
-        organization,
-        onDemandDisabled: false,
-        onDemandMaxSpend: 1000,
-      });
-      SubscriptionStore.set(organization.slug, subscription);
-
-      render(<Overview location={mockLocation} />, {organization});
-
-      expect(await screen.findByText('Errors usage this period')).toBeInTheDocument();
-      expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
-    });
-
-    it('uses pay-as-you-go terminology for AM3 plans', async () => {
-      const subscription = SubscriptionFixture({
-        organization,
-        onDemandDisabled: true,
-        onDemandMaxSpend: 1000,
-        planTier: PlanTier.AM3,
-      });
-      SubscriptionStore.set(organization.slug, subscription);
-
-      render(<Overview location={mockLocation} />, {organization});
-
-      expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'Pay-as-you-go billing is disabled for your organization due to an unpaid pay-as-you-go invoice.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
   });
 
   it('renders breakdown for transactions only', async () => {

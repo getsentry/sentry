@@ -107,4 +107,70 @@ describe('ScrollCarousel', () => {
     await userEvent.click(leftButton);
     expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });
+
+  it('shows down arrow when elements exist below in vertical mode', async () => {
+    render(
+      <ScrollCarousel aria-label="example" data-test-id="scroll" orientation="vertical">
+        <div data-test-id="child-1" />
+        <div data-test-id="child-2" />
+        <div data-test-id="child-3" />
+      </ScrollCarousel>
+    );
+
+    const scrollContainer = screen.getByTestId('scroll');
+    const elements = [
+      screen.getByTestId('child-1'),
+      screen.getByTestId('child-2'),
+      screen.getByTestId('child-3'),
+    ];
+
+    // Element below is not visible
+    act(() =>
+      intersectionOnbserverCb([
+        {target: elements[0], intersectionRatio: 1},
+        {target: elements[1], intersectionRatio: 0.5},
+        {target: elements[2], intersectionRatio: 0},
+      ])
+    );
+
+    const downButton = screen.getByRole('button', {name: 'Scroll down'});
+    expect(screen.queryByRole('button', {name: 'Scroll up'})).not.toBeInTheDocument();
+
+    scrollContainer.scrollTo = jest.fn();
+    await userEvent.click(downButton);
+    expect(scrollContainer.scrollTo).toHaveBeenCalled();
+  });
+
+  it('shows up arrow when elements exist above in vertical mode', async () => {
+    render(
+      <ScrollCarousel aria-label="example" data-test-id="scroll" orientation="vertical">
+        <div data-test-id="child-1" />
+        <div data-test-id="child-2" />
+        <div data-test-id="child-3" />
+      </ScrollCarousel>
+    );
+
+    const scrollContainer = screen.getByTestId('scroll');
+    const elements = [
+      screen.getByTestId('child-1'),
+      screen.getByTestId('child-2'),
+      screen.getByTestId('child-3'),
+    ];
+
+    // Element above is not visible
+    act(() =>
+      intersectionOnbserverCb([
+        {target: elements[0], intersectionRatio: 0},
+        {target: elements[1], intersectionRatio: 1},
+        {target: elements[2], intersectionRatio: 1},
+      ])
+    );
+
+    const upButton = await screen.findByRole('button', {name: 'Scroll up'});
+    expect(screen.queryByRole('button', {name: 'Scroll down'})).not.toBeInTheDocument();
+
+    scrollContainer.scrollTo = jest.fn();
+    await userEvent.click(upButton);
+    expect(scrollContainer.scrollTo).toHaveBeenCalled();
+  });
 });

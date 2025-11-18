@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
@@ -292,7 +293,7 @@ export enum FieldValueType {
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
-  SMALL_INTEGER = 'small_integer', // Value suggestions are 1-1000.
+  CURRENCY = 'currency',
 }
 
 export enum WebVital {
@@ -1045,14 +1046,221 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.MAX,
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPM,
+  AggregationKey.EPS,
   AggregationKey.FAILURE_RATE,
+  AggregationKey.FAILURE_COUNT,
 ];
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
+  AggregationKey.USER_MISERY,
 ];
+
+const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
+  [AggregationKey.COUNT]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.STRING,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+        ],
+        defaultValue: OurLogKnownFieldKey.MESSAGE,
+        required: false,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        required: true,
+        defaultValue: OurLogKnownFieldKey.MESSAGE,
+      },
+    ],
+  },
+  [AggregationKey.SUM]: {
+    ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P50]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P50],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P75]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P75],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P90]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P90],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P95]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P95],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P99]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P99],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MAX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MIN]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+          FieldValueType.SIZE,
+        ],
+        required: true,
+      },
+    ],
+  },
+};
 
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
@@ -1282,6 +1490,26 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.APDEX]: {
     ...AGGREGATION_FIELDS[AggregationKey.APDEX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([FieldValueType.DURATION]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+  },
+
+  [AggregationKey.USER_MISERY]: {
+    ...AGGREGATION_FIELDS[AggregationKey.USER_MISERY],
     parameters: [
       {
         name: 'column',
@@ -1580,6 +1808,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The event identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.MESSAGE]: {
     desc: t('Error message or transaction name'),
@@ -1600,6 +1829,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.HAS]: {
@@ -1612,6 +1842,7 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The ID of an associated Session Replay'),
     kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
@@ -1627,16 +1858,19 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('The trace identification number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRACE_SPAN]: {
     desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
@@ -1683,6 +1917,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('The detector that triggered the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
@@ -1852,6 +2087,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('Status of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
@@ -1909,6 +2145,7 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     desc: t('The estimated performance level of the device, graded low, medium, or high'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -2251,7 +2488,13 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
-const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...LOG_AGGREGATION_FIELDS,
+};
+
+const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  // TODO: Add field definitions for tracemetric fields
+};
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
@@ -2575,6 +2818,12 @@ export enum ReplayClickFieldKey {
   CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
+enum ReplayTapFieldKey {
+  TAP_MESSAGE = 'tap.message',
+  TAP_VIEW_ID = 'tap.view_id',
+  TAP_VIEW_CLASS = 'tap.view_class',
+}
+
 /**
  * Some fields inside the ReplayRecord type are intentionally omitted:
  * `environment` -> Not backend support, omitted because we have a dropdown for it
@@ -2638,11 +2887,15 @@ export const REPLAY_TAG_ALIASES = {
   [ReplayFieldKey.URLS]: ReplayFieldKey.URL,
 };
 
+const SMALL_INTEGER_VALUES = ['1', '10', '100', '1000'];
+
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
     desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
@@ -2657,47 +2910,65 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
     desc: t('Number of dead clicks in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
     desc: t('Number of rage clicks in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
     desc: t('Number of issues in the replay with level=error'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_INFOS]: {
     desc: t('Number of issues in the replay with level=info'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_SCREENS]: {
     desc: t('Number of screens visited within the replay. Alias of count_urls.'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_SEGMENTS]: {
     desc: t('Number of segments in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_TRACES]: {
     desc: t('Number of traces in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_URLS]: {
     desc: t('Number of urls visited within the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.COUNT_WARNINGS]: {
     desc: t('Number of issues in the replay with level=warning'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.SMALL_INTEGER,
+    valueType: FieldValueType.INTEGER,
+    defaultValue: SMALL_INTEGER_VALUES[0],
+    values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.DURATION]: {
     desc: t('Duration of the replay, in seconds'),
@@ -2708,6 +2979,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Error instance'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayFieldKey.IS_ARCHIVED]: {
     desc: t('Whether the replay has been archived'),
@@ -2785,6 +3057,12 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
+export const REPLAY_TAP_FIELDS = [
+  ReplayTapFieldKey.TAP_MESSAGE,
+  ReplayTapFieldKey.TAP_VIEW_ID,
+  ReplayTapFieldKey.TAP_VIEW_CLASS,
+];
+
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
 const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
   [ReplayClickFieldKey.CLICK_ALT]: {
@@ -2818,6 +3096,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.DEAD_SELECTOR]: {
     desc: t(
@@ -2825,6 +3104,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.RAGE_SELECTOR]: {
     desc: t(
@@ -2832,6 +3112,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
@@ -2860,7 +3141,26 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
 };
 
+const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> = {
+  [ReplayTapFieldKey.TAP_MESSAGE]: {
+    desc: t('`Message` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
+    desc: t('`View Class` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayTapFieldKey.TAP_VIEW_ID]: {
+    desc: t('`View ID` of an element that was tapped'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export enum FeedbackFieldKey {
+  AI_CATEGORIZATION_LABELS = 'ai_categorization.labels',
   BROWSER_NAME = 'browser.name',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
@@ -2871,6 +3171,7 @@ export enum FeedbackFieldKey {
 }
 
 export const FEEDBACK_FIELDS = [
+  FeedbackFieldKey.AI_CATEGORIZATION_LABELS,
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
   FieldKey.DEVICE_BRAND,
@@ -2904,6 +3205,12 @@ export const FEEDBACK_FIELDS = [
 ];
 
 const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+    desc: t('AI-generated labels for categorizing feedback'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
+  },
   [FeedbackFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
@@ -2953,7 +3260,8 @@ export const getFieldDefinition = (
     | 'feedback'
     | 'span'
     | 'log'
-    | 'uptime' = 'event',
+    | 'uptime'
+    | 'tracemetric' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -2964,6 +3272,11 @@ export const getFieldDefinition = (
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
+      }
+      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_TAP_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
@@ -3000,6 +3313,24 @@ export const getFieldDefinition = (
       if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+      return null;
+
+    case 'tracemetric':
+      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

@@ -4,6 +4,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 export function useRegistry() {
   return useApiQuery<NotificationTemplateRegistry>(
     ['/internal/notifications/registered-templates/'],
-    {staleTime: Infinity}
+    {staleTime: 30000}
   );
 }

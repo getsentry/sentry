@@ -1,25 +1,30 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
 from django.test import RequestFactory
 from django.test.utils import override_settings
+from django.utils import timezone
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
+from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, get_cron_monitor
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
     MonitorValidator,
 )
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup, DataSource, DataSourceDetector
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
@@ -163,10 +168,14 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         validator = MonitorValidator(data=data, context=self.context)
-        assert validator.is_valid()
+        assert not validator.is_valid()
 
-        with pytest.raises(MonitorLimitsExceeded):
-            validator.save()
+        assert validator.errors["nonFieldErrors"] == [
+            ErrorDetail(
+                f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+                code="invalid",
+            )
+        ]
 
     def test_simple_with_alert_rule(self):
         data = {
@@ -210,9 +219,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
         assert monitor.config["checkin_margin"] == 1
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_assigns_seat(self, assign_seat):
+        assign_seat.return_value = Outcome.ACCEPTED
 
         data = {
             "project": self.project.slug,
@@ -225,12 +234,12 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat):
-        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_without_seat(self, assign_seat):
+        assign_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
             "project": self.project.slug,
@@ -243,7 +252,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assert assign_monitor_seat.called
+        assert assign_seat.called
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.DISABLED
 
@@ -400,6 +409,46 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["max_runtime"] == 60
         assert updated_monitor.config["timezone"] == "America/New_York"
 
+    def test_partial_config_update_different_field(self):
+        """Test that updating a config field doesn't trigger false positive margin/runtime changes."""
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+        original_next_checkin_latest = env.next_checkin_latest
+
+        # Update only timezone, NOT checkin_margin
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"timezone": "America/New_York"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["timezone"] == "America/New_York"
+        assert updated_monitor.config["checkin_margin"] == 5
+
+        # With buggy code, checking the partial
+        # new_config.get("checkin_margin") would return None, when comparing
+        # that with the existing checkin_margin we would consider it as having
+        # "changed" and would have recomputed the next_checkin_latest
+
+        # Verify that because checkin_margin was not changed we did not
+        # recompute the next_checkin_latest
+        env.refresh_from_db()
+        assert env.next_checkin_latest == original_next_checkin_latest
+
     def test_update_owner_to_user(self):
         """Test updating monitor owner to a user."""
         validator = MonitorValidator(
@@ -474,6 +523,81 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.is_muted is True
 
+    def test_update_is_muted_propagates_to_environments(self):
+        """Test that muting a monitor propagates to all its environments."""
+        # Create two monitor environments
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            is_muted=False,
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            is_muted=False,
+        )
+
+        # Mute the monitor
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"is_muted": True},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+        updated_monitor = validator.save()
+        assert updated_monitor.is_muted is True
+
+        # Verify both environments are now muted
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+        assert env1.is_muted is True
+        assert env2.is_muted is True
+
+    def test_update_is_muted_false_propagates_to_environments(self):
+        """Test that unmuting a monitor propagates to all its environments."""
+        # Start with a muted monitor
+        self.monitor.update(is_muted=True)
+
+        # Create two muted monitor environments
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            is_muted=True,
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            is_muted=True,
+        )
+
+        # Unmute the monitor
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"is_muted": False},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+        updated_monitor = validator.save()
+        assert updated_monitor.is_muted is False
+
+        # Verify both environments are now unmuted
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+        assert env1.is_muted is False
+        assert env2.is_muted is False
+
     def test_update_status_to_disabled(self):
         """Test updating monitor status to disabled."""
         validator = MonitorValidator(
@@ -492,7 +616,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.DISABLED
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_with_quota_check(self, mock_check_seat):
         """Test updating monitor status to active checks quota."""
         # Start with disabled monitor
@@ -517,9 +641,9 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
-        mock_check_seat.assert_called_once_with(self.monitor)
+        mock_check_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, self.monitor)
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
         """Test updating monitor status to active fails when quota exceeded."""
         # Start with disabled monitor
@@ -651,6 +775,135 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["timezone"] == "UTC"
         assert updated_monitor.config["failure_issue_threshold"] == 3
         assert updated_monitor.config["recovery_threshold"] == 1
+
+    def test_update_schedule_recomputes_next_checkin(self):
+        """Test that updating the schedule recomputes next_checkin for all environments."""
+        # Create monitor environments with specific next_checkin times
+        now = timezone.now().replace(second=0, microsecond=0)
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),  # Based on hourly schedule
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),  # Based on hourly schedule
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Update the schedule from hourly to daily
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": "0 0 * * *", "schedule_type": "crontab"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule"] == "0 0 * * *"
+
+        # Verify that next_checkin was recomputed for both environments
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+
+        # The next check-in should now be based on the daily schedule (next midnight)
+        expected_next_checkin = updated_monitor.get_next_expected_checkin(now)
+        expected_next_checkin_latest = updated_monitor.get_next_expected_checkin_latest(now)
+
+        assert env1.next_checkin == expected_next_checkin
+        assert env1.next_checkin_latest == expected_next_checkin_latest
+        assert env2.next_checkin == expected_next_checkin
+        assert env2.next_checkin_latest == expected_next_checkin_latest
+
+    def test_partial_config_update_does_not_trigger_schedule_recompute(self):
+        """Test that updating only checkin_margin doesn't trigger schedule recomputation."""
+        # Create a monitor environment with specific next_checkin times
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Store original next_checkin time
+        original_next_checkin = env.next_checkin
+
+        # Update only checkin_margin without including schedule fields
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"checkin_margin": 10}},  # Only updating margin, not schedule
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["checkin_margin"] == 10
+        # Schedule should remain unchanged
+        assert updated_monitor.config["schedule"] == "0 * * * *"
+        assert updated_monitor.config["schedule_type"] == ScheduleType.CRONTAB
+
+        # Verify that next_checkin was NOT recomputed (would have changed if schedule logic ran)
+        env.refresh_from_db()
+        assert env.next_checkin == original_next_checkin
+
+    def test_update_schedule_type_recomputes_next_checkin(self):
+        """Test that changing schedule_type from crontab to interval recomputes next_checkin."""
+        # Create a monitor environment
+        now = timezone.now().replace(second=0, microsecond=0)
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=now,
+            next_checkin=now + timedelta(hours=1),
+            next_checkin_latest=now + timedelta(hours=1, minutes=5),
+        )
+
+        # Change from crontab to interval schedule
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": [10, "minute"], "schedule_type": "interval"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule_type"] == ScheduleType.INTERVAL
+        assert updated_monitor.config["schedule"] == [10, "minute"]
+
+        # Verify that next_checkin was recomputed
+        env.refresh_from_db()
+
+        expected_next_checkin = updated_monitor.get_next_expected_checkin(now)
+        expected_next_checkin_latest = updated_monitor.get_next_expected_checkin_latest(now)
+
+        assert env.next_checkin == expected_next_checkin
+        assert env.next_checkin_latest == expected_next_checkin_latest
 
 
 class BaseMonitorValidatorTestCase(MonitorTestCase):
@@ -797,14 +1050,6 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id is None
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_source_creates_monitor(self, mock_assign_seat):
-        mock_assign_seat.return_value = Outcome.ACCEPTED
-        validator = self._create_validator()
-        assert validator.is_valid(), validator.errors
-        monitor = validator.validated_create_source(validator.validated_data)
-        self._assert_monitor_attributes(monitor, "Test Monitor", "test-monitor", "0 * * * *")
-
     def test_validate_with_owner(self):
         team = self.create_team(organization=self.organization)
         data = self._get_valid_data(owner=f"team:{team.id}")
@@ -844,14 +1089,6 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert not validator.is_valid()
         assert "slug" in validator.errors
         assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
-
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_quota_rejection_disables_monitor(self, mock_assign_seat):
-        mock_assign_seat.return_value = Outcome.RATE_LIMITED
-        validator = self._create_validator()
-        assert validator.is_valid(), validator.errors
-        monitor = validator.validated_create_source(validator.validated_data)
-        assert monitor.status == ObjectStatus.DISABLED
 
     def test_update_monitor(self):
         monitor = Monitor.objects.create(
@@ -896,11 +1133,13 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         data = {
             "type": "monitor_check_in_failure",
             "name": "Test Monitor Detector",
-            "dataSource": {
-                "name": "Test Monitor",
-                "slug": "test-monitor",
-                "config": self._get_base_config(),
-            },
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "slug": "test-monitor",
+                    "config": self._get_base_config(),
+                }
+            ],
         }
         data.update(overrides)
         return data
@@ -918,10 +1157,11 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["name"] == "Test Monitor Detector"
-        assert "data_source" in validated_data
-        assert validated_data["data_source"]["name"] == "Test Monitor"
-        assert validated_data["data_source"]["slug"] == "test-monitor"
+        assert "data_sources" in validated_data
+        assert validated_data["data_sources"][0]["name"] == "Test Monitor"
+        assert validated_data["data_sources"][0]["slug"] == "test-monitor"
 
+    @pytest.mark.skip("Not required yet, migrating to dataSources")
     def test_detector_requires_data_source(self):
         data = {
             "type": "monitor_check_in_failure",
@@ -929,7 +1169,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         }
         validator = self._create_validator(data)
         assert not validator.is_valid()
-        assert "dataSource" in validator.errors
+        assert "dataSources" in validator.errors
 
     def test_create_detector_validates_data_source(self):
         condition_group = DataConditionGroup.objects.create(
@@ -942,5 +1182,205 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
             context=context,
         )
         assert validator.is_valid(), validator.errors
-        assert "_creator" in validator.validated_data["data_source"]
-        assert validator.validated_data["data_source"]["data_source_type"] == "cron_monitor"
+        assert "_creator" in validator.validated_data["data_sources"][0]
+        assert validator.validated_data["data_sources"][0]["data_source_type"] == "cron_monitor"
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_enabled_assigns_seat(self, mock_assign_seat):
+        """Test that creating an enabled detector assigns a billing seat."""
+
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        validator = MonitorIncidentDetectorValidator(
+            data=self.valid_data,
+            context=context,
+        )
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        assert detector.enabled is True
+
+        # Verify seat was assigned exactly once (not double-called)
+        monitor = get_cron_monitor(detector)
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.RATE_LIMITED)
+    def test_create_enabled_no_seat_available(self, mock_assign_seat):
+        """
+        Test that creating a detector with no seats available creates it but
+        leaves it disabled.
+        """
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        validator = MonitorIncidentDetectorValidator(
+            data=self.valid_data,
+            context=context,
+        )
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        # Detector created but not enabled due to no seat assignment
+        assert detector.enabled is False
+        monitor = get_cron_monitor(detector)
+        assert monitor.status == ObjectStatus.DISABLED
+
+        # Verify seat assignment was attempted exactly once (not double-called)
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_update_enable_assigns_seat(self, mock_assign_seat):
+        """
+        Test that enabling a previously disabled detector assigns a seat.
+        """
+        # Create a disabled detector
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="monitor_check_in_failure",
+            enabled=False,
+        )
+        monitor = self._create_monitor(
+            name="Test Monitor",
+            slug="test-monitor",
+            status=ObjectStatus.DISABLED,
+        )
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.organization.id,
+            source_id=str(monitor.id),
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={"enabled": True}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        monitor.refresh_from_db()
+        assert detector.enabled is True
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        # Verify seat was assigned exactly once
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+
+    @patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=False, reason="No seats available"),
+    )
+    def test_update_enable_no_seat_available(self, mock_check_seat):
+        """
+        Test that enabling fails with validation error when no seats are
+        available.
+        """
+        # Create a disabled detector
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="monitor_check_in_failure",
+            enabled=False,
+        )
+        monitor = self._create_monitor(
+            name="Test Monitor",
+            slug="test-monitor",
+            status=ObjectStatus.DISABLED,
+        )
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.organization.id,
+            source_id=str(monitor.id),
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={"enabled": True}, context=self.context, partial=True
+        )
+
+        # Validation should fail due to no seats available
+        assert not validator.is_valid()
+        assert "enabled" in validator.errors
+        assert validator.errors["enabled"] == ["No seats available"]
+
+        # Detector and monitor should still be disabled
+        detector.refresh_from_db()
+        monitor.refresh_from_db()
+        assert detector.enabled is False
+        assert monitor.status == ObjectStatus.DISABLED
+
+        # Verify seat availability check was performed
+        mock_check_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
+
+    @patch("sentry.quotas.backend.disable_seat")
+    def test_update_disable_disables_seat(self, mock_disable_seat):
+        """Test that disabling a previously enabled detector disables the seat."""
+        # Create an enabled detector
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="monitor_check_in_failure",
+            enabled=True,
+        )
+        monitor = self._create_monitor(
+            name="Test Monitor",
+            slug="test-monitor",
+            status=ObjectStatus.ACTIVE,
+        )
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.organization.id,
+            source_id=str(monitor.id),
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={"enabled": False}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        monitor.refresh_from_db()
+        assert detector.enabled is False
+        assert monitor.status == ObjectStatus.DISABLED
+
+        # Verify disable_seat was called exactly once
+        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+
+    @patch("sentry.quotas.backend.remove_seat")
+    def test_delete_removes_seat(self, mock_remove_seat: MagicMock) -> None:
+        """Test that deleting a detector removes its billing seat immediately."""
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="monitor_check_in_failure",
+            enabled=True,
+        )
+        monitor = self._create_monitor(
+            name="Test Monitor",
+            slug="test-monitor",
+            status=ObjectStatus.ACTIVE,
+        )
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.organization.id,
+            source_id=str(monitor.id),
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={}, context=self.context
+        )
+
+        validator.delete()
+
+        # Verify remove_seat was called exactly once
+        mock_remove_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)

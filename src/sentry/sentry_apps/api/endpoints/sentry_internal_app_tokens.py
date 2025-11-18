@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -19,6 +20,7 @@ from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.audit import create_audit_entry
 
 
 @control_silo_endpoint
@@ -70,6 +72,17 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
             api_token = SentryAppInstallationTokenCreator(
                 sentry_app_installation=sentry_app_installation
             ).run(request=request, user=request.user)
+
+            create_audit_entry(
+                request=request,
+                organization_id=sentry_app_installation.organization_id,
+                target_object=api_token.id,
+                event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
+                data={
+                    "sentry_app_slug": sentry_app.slug,
+                    "sentry_app_installation_uuid": sentry_app_installation.uuid,
+                },
+            )
         except ApiTokenLimitError as e:
             return Response(str(e), status=status.HTTP_403_FORBIDDEN)
 

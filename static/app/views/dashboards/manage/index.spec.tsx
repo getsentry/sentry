@@ -15,12 +15,7 @@ import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 jest.mock('sentry/utils/localStorage');
 
-const FEATURES = [
-  'global-views',
-  'dashboards-basic',
-  'dashboards-edit',
-  'discover-query',
-];
+const FEATURES = ['dashboards-basic', 'dashboards-edit', 'discover-query'];
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -33,7 +28,7 @@ const mockUseLocation = jest.mocked(useLocation);
 
 describe('Dashboards > Detail', () => {
   const mockUnauthorizedOrg = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'discover-query'],
+    features: ['dashboards-basic', 'discover-query'],
   });
 
   const mockAuthorizedOrg = OrganizationFixture({

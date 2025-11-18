@@ -7,6 +7,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
+  EChartLegendSelectChangeHandler,
   Series,
 } from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -84,14 +85,9 @@ export function WidgetCardChartContainer({
   onWidgetTableResizeColumn,
   disableTableActions,
 }: Props) {
-  function keepLegendState({
-    selected,
-  }: {
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }) {
+  const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
-  }
+  };
 
   function getErrorOrEmptyMessage(
     errorMessage: string | undefined,

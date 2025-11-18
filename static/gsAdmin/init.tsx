@@ -2,9 +2,11 @@ import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import * as Sentry from '@sentry/react';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
@@ -37,7 +39,11 @@ export function renderApp() {
   const root = createRoot(rootEl);
   root.render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <DocumentTitleManager>
+        <NuqsAdapter defaultOptions={{shallow: false}}>
+          <RouterProvider router={router} />
+        </NuqsAdapter>
+      </DocumentTitleManager>
     </QueryClientProvider>
   );
 }

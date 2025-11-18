@@ -17,10 +17,6 @@ const FullViewport = styled('div')`
     display: none;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    height: auto;
-  }
-
   /*
   TODO: Set \`body { overflow: hidden; }\` so that the body doesn't wiggle
   when you try to scroll something that is non-scrollable.

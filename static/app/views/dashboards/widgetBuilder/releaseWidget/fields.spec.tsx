@@ -39,6 +39,23 @@ describe('generateReleaseWidgetFieldOptions', () => {
           },
         },
       },
+      'function:abnormal_rate': {
+        label: 'abnormal_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'abnormal_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:anr_rate': {
         label: 'anr_rate(…)',
         value: {
@@ -117,6 +134,23 @@ describe('generateReleaseWidgetFieldOptions', () => {
           },
         },
       },
+      'function:count_unhandled': {
+        label: 'count_unhandled(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_unhandled',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:count_unique': {
         label: 'count_unique(…)',
         value: {
@@ -168,6 +202,23 @@ describe('generateReleaseWidgetFieldOptions', () => {
           },
         },
       },
+      'function:errored_rate': {
+        label: 'errored_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'errored_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:foreground_anr_rate': {
         label: 'foreground_anr_rate(…)',
         value: {
@@ -184,6 +235,40 @@ describe('generateReleaseWidgetFieldOptions', () => {
           kind: 'function',
           meta: {
             name: 'sum',
+            parameters: [
+              {
+                columnTypes: ['integer'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:unhandled_rate': {
+        label: 'unhandled_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'unhandled_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:unhealthy_rate': {
+        label: 'unhealthy_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'unhealthy_rate',
             parameters: [
               {
                 columnTypes: ['integer'],

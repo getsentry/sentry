@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import merge from 'lodash/merge';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -130,8 +129,7 @@ export enum WildcardOperators {
   ENDS_WITH = '\uf00dEndsWith\uf00d',
 }
 
-export const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
-export type BasicOperator = (typeof basicOperators)[number];
+const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 
 export const comparisonOperators = [
   TermOperator.GREATER_THAN_EQUAL,
@@ -140,7 +138,6 @@ export const comparisonOperators = [
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
 ] as const;
-export type ComparisonOperator = (typeof comparisonOperators)[number];
 
 export const wildcardOperators = [
   TermOperator.CONTAINS,
@@ -150,6 +147,7 @@ export const wildcardOperators = [
   TermOperator.ENDS_WITH,
   TermOperator.DOES_NOT_END_WITH,
 ] as const;
+
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
 /**
@@ -1525,7 +1523,7 @@ export function parseSearch(
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
   const config = additionalConfig
-    ? merge({...defaultConfig}, additionalConfig)
+    ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
   return tryParseSearch(query, {
@@ -1534,6 +1532,28 @@ export function parseSearch(
     TermOperator,
     FilterType,
   });
+}
+
+/**
+ * Applies a partial search configuration onto the default config. This is very
+ * similar to a simple `{...a, ...b}`, but it ignores any `undefined` values of
+ * `b`. This is important because `{...{key: false}, ...{key: undefined}}`
+ * results in `{key: undefined}`, which is not what we want. We want the values
+ * of the search config to override the default _only_ if they're actually
+ * defined.
+ */
+function mergeSearchConfigWithDefaults(
+  a: SearchConfig,
+  b: Partial<SearchConfig>
+): SearchConfig {
+  const newConfig: SearchConfig = {
+    ...a,
+    ...Object.fromEntries(
+      Object.entries(b).filter(([_key, value]) => value !== undefined)
+    ),
+  };
+
+  return newConfig;
 }
 
 /**

@@ -65,7 +65,6 @@ type Props = {
   index: number;
   isTopRelease: boolean;
   location: Location;
-  newGroups: number;
   organization: Organization;
   project: ReleaseProject;
   releaseVersion: string;
@@ -86,10 +85,9 @@ function ReleaseCardProjectRow({
   releaseVersion,
   showPlaceholders,
   showReleaseAdoptionStages,
-  newGroups,
 }: Props) {
   const theme = useTheme();
-  const {id} = project;
+  const {id, newGroups} = project;
 
   const crashCount = getHealthData.getCrashCount(
     releaseVersion,

@@ -24,6 +24,11 @@ from sentry.utils.sdk import Scope, bind_organization_context
 from .organization import OrganizationPermission
 
 
+class ProjectDoesNotExist(ResourceDoesNotExist):
+    def __init__(self) -> None:
+        super().__init__(detail="Project does not exist")
+
+
 class ProjectEventsError(Exception):
     pass
 
@@ -76,6 +81,12 @@ class ProjectReleasePermission(ProjectPermission):
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
+    }
+
+
+class ProjectDistributionPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:distribution"],
     }
 
 
@@ -175,12 +186,12 @@ class ProjectEndpoint(Endpoint):
                     raise ProjectMoved(new_url, redirect.project.slug)
 
                 # otherwise project doesn't exist
-                raise ResourceDoesNotExist
+                raise ProjectDoesNotExist
             except ProjectRedirect.DoesNotExist:
-                raise ResourceDoesNotExist
+                raise ProjectDoesNotExist
 
         if project.status != ObjectStatus.ACTIVE:
-            raise ResourceDoesNotExist
+            raise ProjectDoesNotExist
 
         self.check_object_permissions(request, project)
 

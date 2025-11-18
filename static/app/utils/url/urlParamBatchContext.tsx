@@ -1,14 +1,6 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import debounce from 'lodash/debounce';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -22,27 +14,23 @@ const BatchContext = createContext<BatchContextType | null>(null);
 export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pendingUpdates, setPendingUpdates] = useState<
-    Record<string, string | string[] | undefined>
-  >({});
 
-  const batchUrlParamUpdates = useCallback(
-    (updates: Record<string, string | string[] | undefined>) => {
-      setPendingUpdates(current => ({...current, ...updates}));
-    },
-    []
-  );
+  // Store the pending updates in a `ref`. This way, queuing more updates
+  // doesn't update any state, so the context doesn't re-render and cause a
+  // re-render of all its subscribers.
+  const pendingUpdates = useRef<Record<string, string | string[] | undefined>>({});
 
   const flushUpdates = useCallback(() => {
-    if (Object.keys(pendingUpdates).length === 0) {
+    if (Object.keys(pendingUpdates.current).length === 0) {
       return;
     }
+
     navigate(
       {
         ...location,
         query: {
           ...location.query,
-          ...pendingUpdates,
+          ...pendingUpdates.current,
         },
       },
 
@@ -50,22 +38,43 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
       // when the user navigates back
       {replace: true, preventScrollReset: true}
     );
-    setPendingUpdates({});
-  }, [location, navigate, pendingUpdates]);
+    pendingUpdates.current = {};
+  }, [location, navigate]);
 
-  // Debounce URL updates
+  // Debounced URL updater function
   const updateURL = useMemo(
     () =>
       debounce(() => {
+        // Flush all current pending URL query parameter updates
         flushUpdates();
-      }, DEFAULT_DEBOUNCE_DURATION),
+      }, URL_UPDATE_DEBOUNCE),
     [flushUpdates]
   );
 
-  // Trigger the URL updates
+  const batchUrlParamUpdates = useCallback(
+    (updates: Record<string, string | string[] | undefined>) => {
+      // Immediate update the pending URL query parameter updates
+      pendingUpdates.current = {
+        ...pendingUpdates.current,
+        ...updates,
+      };
+
+      // Immediately calls the debounced URL updater function
+      updateURL();
+    },
+    [updateURL]
+  );
+
+  // Cancel pending changes during `useEffect` cleanup. All the dependencies are
+  // fairly stable, so this should _only_ happen on unmount. It's important to
+  // run this on unmount rather than on location change because this context
+  // might be mounted low in the tree, and might actually get unmounted during a
+  // location change it should be listening to.
   useEffect(() => {
-    updateURL();
-    return () => updateURL.cancel();
+    return () => {
+      updateURL.cancel();
+      pendingUpdates.current = {};
+    };
   }, [updateURL]);
 
   return (
@@ -80,3 +89,5 @@ export const useUrlBatchContext = () => {
   }
   return context;
 };
+
+const URL_UPDATE_DEBOUNCE = 300;

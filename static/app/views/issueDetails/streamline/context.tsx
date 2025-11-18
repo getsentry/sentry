@@ -53,6 +53,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  METRICS = 'metrics',
   SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
@@ -166,12 +167,18 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
+type RemoveEventSectionAction = {
+  key: SectionKey;
+  type: 'REMOVE_EVENT_SECTION';
+};
+
 type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
   | UpdateSidebarAction
-  | UpdateDetectorDetailsAction;
+  | UpdateDetectorDetailsAction
+  | RemoveEventSectionAction;
 
 function updateEventSection(
   state: IssueDetailsState,
@@ -207,6 +214,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
           return {...state, eventCount: action.count};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
+        case 'REMOVE_EVENT_SECTION': {
+          const {[action.key]: _removed, ...remainingSections} = state.sectionData;
+          return {...state, sectionData: remainingSections};
+        }
         default:
           return state;
       }

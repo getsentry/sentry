@@ -5,8 +5,10 @@ from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
 from sentry.discover import arithmetic
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
+from sentry.utils.snuba import get_measurement_name
 
 APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
@@ -23,7 +25,7 @@ class QueryParts(TypedDict):
 class DroppedFields(TypedDict):
     selected_columns: list[str]
     equations: list[dict[str, list[str]]]
-    orderby: list[dict[str, str]]
+    orderby: list[dict[str, str | list[str]]]
 
 
 COLUMNS_TO_DROP = (
@@ -32,7 +34,19 @@ COLUMNS_TO_DROP = (
     "count_web_vitals",
     "last_seen",
     "total.count",
+    "linear_regression",
+    "corr(",
 )
+
+FIELDS_TO_DROP = ("total.count",)
+
+
+def _flatten(seq, flattened_list):
+    for item in seq:
+        if isinstance(item, list):
+            _flatten(item, flattened_list)
+        else:
+            flattened_list.append(item)
 
 
 def format_percentile_term(term):
@@ -74,6 +88,17 @@ def drop_unsupported_columns(columns):
     for column in columns:
         if column.startswith(COLUMNS_TO_DROP):
             dropped_columns.append(column)
+        elif match := fields.is_function(column):
+            arguments = fields.parse_arguments(match.group("function"), match.group("columns"))
+            should_drop = False
+            for argument in arguments:
+                if argument in FIELDS_TO_DROP:
+                    dropped_columns.append(column)
+                    should_drop = True
+                    break
+            if not should_drop:
+                final_columns.append(column)
+
         else:
             final_columns.append(column)
     # if no columns are left, leave the original columns but keep track of the "dropped" columns
@@ -89,11 +114,21 @@ def apply_is_segment_condition(query: str) -> str:
     return "is_transaction:1"
 
 
+def add_equation_prefix_if_needed(term, need_equation):
+    if need_equation and term.startswith(("apdex(", "user_misery(", "count_if(")):
+        return f"equation|{term}"
+    return term
+
+
 def column_switcheroo(term):
     """Swaps out the entire column name."""
     parsed_mri = parse_mri(term)
     if parsed_mri:
         term = parsed_mri.name
+
+    measurement_name = get_measurement_name(term)
+    if measurement_name is not None and term not in SPAN_ATTRIBUTE_DEFINITIONS:
+        return f"tags[{measurement_name},number]", True
 
     column_swap_map = {
         "transaction.duration": "span.duration",
@@ -159,6 +194,59 @@ class TranslationVisitor(NodeVisitor):
 
         return children or node.text
 
+    def visit_numeric_filter(self, node, children):
+        term, did_update = search_term_switcheroo(node.text)
+        if did_update:
+            return term
+
+        _, parsed_key, _, _, _ = children
+        flattened_parsed_key: list[str] = []
+        _flatten(parsed_key, flattened_parsed_key)
+        flattened_parsed_key_str = "".join(flattened_parsed_key)
+        if flattened_parsed_key_str:
+            if (
+                not flattened_parsed_key_str.startswith("tags[")
+                and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
+            ):
+                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
+                children[1] = new_parsed_key
+
+        return children or node.text
+
+    def visit_boolean_filter(self, node, children):
+        term, did_update = search_term_switcheroo(node.text)
+        if did_update:
+            return term
+
+        negation, parsed_key, sep, boolean_val = children
+        flattened_parsed_key: list[str] = []
+        _flatten(parsed_key, flattened_parsed_key)
+        flattened_parsed_key_str = "".join(flattened_parsed_key)
+
+        flattened_parsed_val: list[str] = []
+        _flatten(boolean_val, flattened_parsed_val)
+        flattened_parsed_val_str = "".join(flattened_parsed_val)
+        if (
+            flattened_parsed_key_str
+            and not flattened_parsed_key_str.startswith("tags[")
+            and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
+        ):
+            if flattened_parsed_val_str in ["0", "1"]:
+                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
+                children[1] = new_parsed_key
+
+                return children or node.text
+
+            flattened_parsed_val_num = None
+            if negation == "":
+                if flattened_parsed_val_str.lower() == "true":
+                    flattened_parsed_val_num = "1"
+                elif flattened_parsed_val_str.lower() == "false":
+                    flattened_parsed_val_num = "0"
+                return f"(tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num if flattened_parsed_val_num is not None else flattened_parsed_val_str} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
+
+        return children or node.text
+
     def visit_text_filter(self, node, children):
         term, did_update = search_term_switcheroo(node.text)
         if did_update:
@@ -197,26 +285,27 @@ class ArithmeticTranslationVisitor(NodeVisitor):
 
 
 def translate_query(query: str):
-    flattened_query = []
-
-    def _flatten(seq):
-        for item in seq:
-            if isinstance(item, list):
-                _flatten(item)
-            else:
-                flattened_query.append(item)
+    flattened_query: list[str] = []
 
     tree = event_search_grammar.parse(query)
     parsed = TranslationVisitor().visit(tree)
-    _flatten(parsed)
+    _flatten(parsed, flattened_query)
 
     return apply_is_segment_condition("".join(flattened_query))
 
 
-def translate_columns(columns):
+def translate_columns(columns, need_equation=False):
+    """
+    @param columns: list of columns to translate
+    @param need_equation: whether to translate some of the functions to equation notation (usually if
+    the function is being used in a field/orderby)
+    """
     translated_columns = []
 
-    for column in columns:
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(columns)
+
+    for column in final_columns:
         match = fields.is_function(column)
 
         if not match:
@@ -225,6 +314,7 @@ def translate_columns(columns):
 
         translated_func, did_update = function_switcheroo(column)
         if did_update:
+            translated_func = add_equation_prefix_if_needed(translated_func, need_equation)
             translated_columns.append(translated_func)
             continue
 
@@ -236,12 +326,10 @@ def translate_columns(columns):
             translated_arguments.append(column_switcheroo(argument)[0])
 
         new_arg = ",".join(translated_arguments)
-        translated_columns.append(f"{raw_function}({new_arg})")
+        new_function = add_equation_prefix_if_needed(f"{raw_function}({new_arg})", need_equation)
+        translated_columns.append(new_function)
 
-    # need to drop columns after they have been translated to avoid issues with percentile()
-    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
-
-    return final_columns, dropped_columns
+    return translated_columns, dropped_columns
 
 
 def translate_equations(equations):
@@ -259,7 +347,7 @@ def translate_equations(equations):
 
     for equation in equations:
 
-        flattened_equation = []
+        flattened_equation: list[str] = []
 
         # strip equation prefix
         if arithmetic.is_equation(equation):
@@ -267,18 +355,15 @@ def translate_equations(equations):
         else:
             arithmetic_equation = equation
 
-        # function to flatten the parsed + updated equation
-        def _flatten(seq):
-            for item in seq:
-                if isinstance(item, list):
-                    _flatten(item)
-                else:
-                    flattened_equation.append(item)
+        # case where equation is empty, don't try to parse it
+        if arithmetic_equation == "":
+            translated_equations.append(equation)
+            continue
 
         tree = arithmetic.arithmetic_grammar.parse(arithmetic_equation)
         translation_visitor = ArithmeticTranslationVisitor()
         parsed = translation_visitor.visit(tree)
-        _flatten(parsed)
+        _flatten(parsed, flattened_equation)
 
         # record dropped fields and equations and skip these translations
         if len(translation_visitor.dropped_fields) > 0:
@@ -323,14 +408,14 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
 
             # checks if equation index is out of bounds
             if len(equations) < equation_index + 1:
-                dropped_orderby_reason = "equation at this index doesn't exist"
+                dropped_orderby_reason = "equation issue"
 
             # if there are equations
             elif len(equations) > 0:
                 selected_equation = equations[equation_index]
                 # if equation was dropped, drop the orderby too
                 if selected_equation in dropped_equations:
-                    dropped_orderby_reason = "equation was dropped"
+                    dropped_orderby_reason = "dropped"
                     decoded_orderby = (
                         selected_equation if not is_negated else f"-{selected_equation}"
                     )
@@ -342,12 +427,12 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                         new_equation_index = new_equations.index(translated_equation)
                         translated_orderby = [f"equation[{new_equation_index}]"]
                     except (IndexError, ValueError):
-                        dropped_orderby_reason = "equation was dropped"
+                        dropped_orderby_reason = "dropped"
                         decoded_orderby = (
                             selected_equation if not is_negated else f"-{selected_equation}"
                         )
             else:
-                dropped_orderby_reason = "no equations in this query"
+                dropped_orderby_reason = "no equations"
                 decoded_orderby = orderby
 
         # if orderby is an equation
@@ -356,15 +441,15 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
                 [orderby_without_neg]
             )
             if len(dropped_orderby_equation) > 0:
-                dropped_orderby_reason = "fields were dropped: " + ", ".join(
-                    dropped_orderby_equation[0]["reason"]
-                )
+                dropped_orderby_reason = dropped_orderby_equation[0]["reason"]
 
         # if orderby is a field/function
         else:
-            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
+            translated_orderby, dropped_orderby = translate_columns(
+                [orderby_without_neg], need_equation=True
+            )
             if len(dropped_orderby) > 0:
-                dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
+                dropped_orderby_reason = dropped_orderby
 
         # add translated orderby to the list and record dropped orderbys
         if dropped_orderby_reason is None:
@@ -393,7 +478,9 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(
+        query_parts["selected_columns"], need_equation=True
+    )
     new_equations, dropped_equations = translate_equations(query_parts["equations"])
     equations = query_parts["equations"] if query_parts["equations"] is not None else []
     dropped_equations_without_reasons = (

@@ -1,20 +1,24 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconEllipsis, IconSort} from 'sentry/icons';
+import {IconCopy, IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -34,6 +38,7 @@ export const stackTraceDisplayOptionLabels = {
 
 type Props = {
   children: React.ReactNode;
+  event: Event;
   eventId: Event['id'];
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
@@ -45,6 +50,7 @@ type Props = {
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
+  activeThreadId?: number;
   isNestedSection?: boolean;
 };
 
@@ -55,6 +61,7 @@ export function TraceEventDataSection({
   children,
   platform,
   projectSlug,
+  event,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -62,10 +69,12 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   isNestedSection = false,
+  activeThreadId,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const {copy} = useCopyToClipboard();
 
   const {
     displayOptions,
@@ -228,6 +237,93 @@ export function TraceEventDataSection({
     [organization, platform, projectSlug, isMobile, displayOptions, setDisplayOptions]
   );
 
+  const handleCopyRawStacktrace = useCallback(() => {
+    trackAnalytics('stack-trace.copy_raw_clicked', {
+      organization,
+      project_slug: projectSlug,
+      platform,
+      is_mobile: isMobile,
+    });
+
+    const useMinified = displayOptions.includes('minified');
+
+    const stacktraceEntries = event.entries.filter(
+      entry =>
+        entry.type === EntryType.EXCEPTION ||
+        entry.type === EntryType.STACKTRACE ||
+        entry.type === EntryType.THREADS
+    );
+
+    const rawStacktraces = stacktraceEntries.map(entry => {
+      if (entry.type === EntryType.EXCEPTION) {
+        return (
+          entry.data.values
+            ?.map(exception => {
+              const stacktraceData = useMinified
+                ? (exception.rawStacktrace ?? exception.stacktrace)
+                : exception.stacktrace;
+              return displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
+                exception,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+              });
+            })
+            .filter(Boolean)
+            .join('\n\n') ?? ''
+        );
+      }
+      if (entry.type === EntryType.STACKTRACE) {
+        return displayRawContent({
+          data: entry.data,
+          platform: entry.data.frames?.[0]?.platform ?? platform,
+          hasSimilarityEmbeddingsFeature: false,
+          includeLocation: true,
+          rawTrace: true,
+        });
+      }
+      if (entry.type === EntryType.THREADS) {
+        const activeThread = entry.data.values?.find(
+          thread => thread.id === activeThreadId
+        );
+        if (activeThread) {
+          const stacktraceData = useMinified
+            ? (activeThread.rawStacktrace ?? activeThread.stacktrace)
+            : activeThread.stacktrace;
+          if (stacktraceData) {
+            const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
+            return (
+              threadInfo +
+              displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData.frames?.[0]?.platform ?? platform,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+              })
+            );
+          }
+        }
+        return '';
+      }
+      return '';
+    });
+
+    const formattedStacktrace = rawStacktraces.filter(Boolean).join('\n\n');
+    copy(formattedStacktrace);
+  }, [
+    event,
+    platform,
+    organization,
+    projectSlug,
+    isMobile,
+    copy,
+    activeThreadId,
+    displayOptions,
+  ]);
+
   function getDisplayOptions(): Array<{
     label: string;
     value: (typeof displayOptions)[number];
@@ -375,6 +471,13 @@ export function TraceEventDataSection({
                 </SegmentedControl>
               </Tooltip>
             )}
+            <Button
+              size="xs"
+              icon={<IconCopy />}
+              onClick={handleCopyRawStacktrace}
+              aria-label={t('Copy Raw Stacktrace')}
+              title={t('Copy raw stacktrace to clipboard')}
+            />
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
                 size="xs"
@@ -415,9 +518,9 @@ export function TraceEventDataSection({
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
+                children: '',
               }}
               multiple
-              triggerLabel=""
               position="bottom-end"
               value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}

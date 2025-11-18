@@ -114,6 +114,7 @@ export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageF
           crashedCount,
           getSessionStatusSeries('abnormal', groups)[idx] || 0,
           getSessionStatusSeries('crashed', groups)[idx] || 0,
+          getSessionStatusSeries('unhandled', groups)[idx] || 0,
           getSessionStatusSeries('healthy', groups)[idx] || 0,
         ].reduce((sum, val) => sum + val, 0);
 

@@ -2,9 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {
+  FilterWrapper,
+  ProvidedFormattedQuery,
+} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricDetector,
   SnubaQueryDataSource,
@@ -32,24 +37,44 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
   return (
     <Container>
-      <Flex direction="column" gap="xs">
-        <Heading>{t('Query:')}</Heading>
+      <Flex direction="column" gap="md">
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Dataset:')}</Heading>
+          <Value>{datasetConfig.name}</Value>
+        </Flex>
+        <Heading as="h4">{t('Query:')}</Heading>
         <Query>
-          <Label>{t('visualize:')}</Label>
+          <Label>
+            <Text variant="muted">{t('Visualize')}</Text>
+          </Label>
           <Value>
-            {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+            <Flex>
+              <FilterWrapper>
+                {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+              </FilterWrapper>
+            </Flex>
           </Value>
           {query && (
             <Fragment>
-              <Label>{t('where:')}</Label>
-              <Value>{query}</Value>
+              <Label>
+                <Text variant="muted">{t('Where')}</Text>
+              </Label>
+              <Value>
+                <Tooltip
+                  showOnlyOnOverflow
+                  title={<ProvidedFormattedQuery query={query} />}
+                  maxWidth={400}
+                >
+                  <ProvidedFormattedQuery query={query} />
+                </Tooltip>
+              </Value>
             </Fragment>
           )}
         </Query>
-      </Flex>
-      <Flex gap="xs" align="center">
-        <Heading>{t('Threshold:')}</Heading>
-        <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow, true)}</Value>
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Interval:')}</Heading>
+          <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+        </Flex>
       </Flex>
     </Container>
   );
@@ -60,23 +85,19 @@ export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProp
   return <SnubaQueryDetails dataSource={dataSource} />;
 }
 
-const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
-  margin: 0;
-`;
-
 const Query = styled('dl')`
   display: grid;
-  grid-template-columns: auto auto;
-  width: fit-content;
-  gap: ${space(0.25)} ${space(0.5)};
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.xs};
   margin: 0;
+  align-items: baseline;
 `;
 
 const Label = styled('dt')`
   color: ${p => p.theme.subText};
   justify-self: flex-end;
   margin: 0;
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const Value = styled('dl')`

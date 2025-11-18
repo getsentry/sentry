@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -27,7 +27,7 @@ NOTIFICATION_SOURCE_MAP = {
         "test",
         "error-alert-service",
         "deployment-service",
-        "security-monitoring",
+        "slow-load-metric-alert",
         "performance-monitoring",
         "team-communication",
     ],
@@ -65,6 +65,11 @@ class NotificationTarget(Protocol):
     resource_type: NotificationTargetResourceType
     resource_id: str
     specific_data: dict[str, Any] | None
+
+    def to_dict(self) -> dict[str, Any]: ...
+
+    @classmethod
+    def from_dict(self, data: dict[str, Any]) -> Self: ...
 
 
 class NotificationStrategy(Protocol):
@@ -128,11 +133,10 @@ class NotificationRenderedTemplate:
     expected content of the notification based on this alone, and it will be the first thing
     they see. This string should not contain any formatting, and will be displayed as is.
     """
-    body: str
+    body: list[NotificationBodyFormattingBlock]
     """
     The full contents of the notification. Put the details of the notification here, but consider
-    keeping it concise and useful to the receiver. This string should not contain any formatting,
-    and will be displayed as is.
+    keeping it concise and useful to the receiver.
     """
     actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
@@ -167,11 +171,109 @@ class NotificationRenderedTemplate:
     """
 
 
+class NotificationBodyTextBlockType(StrEnum):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    PLAIN_TEXT = "plain_text"
+    """
+    A plain text block.
+    """
+    BOLD_TEXT = "bold_text"
+    """
+    A bolded section of text.
+    """
+    CODE = "code"
+    """
+    Inline block of code.
+    """
+
+
+class NotificationBodyFormattingBlockType(StrEnum):
+    """
+    The type of formatting to be applied to the encapsulated blocks.
+    """
+
+    PARAGRAPH = "paragraph"
+    """
+    A block of text with a line break before.
+    """
+    CODE_BLOCK = "code_block"
+    """
+    A new section of code with a line break before.
+    """
+
+
+class NotificationBodyFormattingBlock(Protocol):
+    """
+    A block that applies formatting such as a newline and encapsulates other text.
+    """
+
+    type: NotificationBodyFormattingBlockType
+    """
+    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
+    """
+    blocks: list[NotificationBodyTextBlock]
+    """
+    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
+    """
+
+
+class NotificationBodyTextBlock(Protocol):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    type: NotificationBodyTextBlockType
+    """
+    The type of the block, such as BoldTextBlock, CodeBlock, etc.
+    """
+    text: str
+    """
+    Text to be rendered in the body.
+    """
+
+
+@dataclass
+class ParagraphBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH]
+    blocks: list[NotificationBodyTextBlock]
+
+
+@dataclass
+class CodeBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK]
+    blocks: list[NotificationBodyTextBlock]
+
+
+@dataclass
+class BoldTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
+    text: str
+
+
+@dataclass
+class CodeTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.CODE]
+    text: str
+
+
+@dataclass
+class PlainTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT]
+    text: str
+
+
 class NotificationTemplate[T: NotificationData](abc.ABC):
     category: NotificationCategory
     """
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
+    """
+    example_data: T
+    """
+    The example data for this notification.
     """
 
     @abc.abstractmethod
@@ -179,14 +281,6 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         """
         Produce a rendered template given the notification data. Usually, this will involve
         formatting the data into user-friendly strings of text.
-        """
-        ...
-
-    @property
-    @abc.abstractmethod
-    def example_data(self) -> T:
-        """
-        The example data for this notification.
         """
         ...
 

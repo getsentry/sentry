@@ -8,6 +8,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -98,6 +99,9 @@ export function QueryTransactionsTable({
       query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...COLUMN_ORDER],
+  });
 
   return (
     <Fragment>
@@ -106,7 +110,7 @@ export function QueryTransactionsTable({
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -132,6 +136,7 @@ export function QueryTransactionsTable({
               organization,
               theme
             ),
+          onResizeColumn: handleResizeColumn,
         }}
       />
 

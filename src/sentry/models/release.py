@@ -32,6 +32,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
@@ -41,7 +42,6 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
-from sentry.releases.commits import get_or_create_commit
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -134,7 +134,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         operator: str,
         value,
         project_ids: Sequence[int] | None = None,
-        environments: list[str] | None = None,
+        environments: Sequence[str | int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
@@ -143,21 +143,30 @@ class ReleaseModelManager(BaseManager["Release"]):
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
 
-    def _get_group_release_version(self, group_id: int, orderby: str) -> str:
+    def _get_group_release_version(
+        self, group_id: int, environment_names: list[str] | None, orderby: str
+    ) -> str:
         from sentry.models.grouprelease import GroupRelease
 
+        group_releases = GroupRelease.objects.filter(group_id=group_id)
+
+        if environment_names:
+            group_releases = group_releases.filter(environment__in=environment_names)
+
         # Using `id__in()` because there is no foreign key relationship.
-        return self.get(
-            id__in=GroupRelease.objects.filter(group_id=group_id)
-            .order_by(orderby)
-            .values("release_id")[:1]
-        ).version
+        return self.get(id__in=group_releases.order_by(orderby).values("release_id")[:1]).version
 
     def get_group_release_version(
-        self, project_id: int, group_id: int, first: bool = True, use_cache: bool = True
+        self,
+        project_id: int,
+        group_id: int,
+        environment_names: list[str] | None,
+        first: bool = True,
+        use_cache: bool = True,
     ) -> str | None:
-        cache_key = _get_cache_key(project_id, group_id, first)
+        use_cache = use_cache and not environment_names
 
+        cache_key = _get_cache_key(project_id, group_id, first)
         release_version: Literal[False] | str | None = cache.get(cache_key) if use_cache else None
         if release_version is False:
             # We've cached the fact that no rows exist.
@@ -167,10 +176,14 @@ class ReleaseModelManager(BaseManager["Release"]):
             # Cache miss or not use_cache.
             orderby = "first_seen" if first else "-last_seen"
             try:
-                release_version = self._get_group_release_version(group_id, orderby)
+                release_version = self._get_group_release_version(
+                    group_id, environment_names, orderby
+                )
             except Release.DoesNotExist:
                 release_version = False
-            cache.set(cache_key, release_version, 3600)
+
+            if not environment_names:
+                cache.set(cache_key, release_version, 3600)
 
         # Convert the False back into a None.
         return release_version or None
@@ -204,7 +217,7 @@ class Release(Model):
     # ref might be the branch name being released
     ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     # DEPRECATED - not available in UI or editable from API
     date_started = models.DateTimeField(null=True, blank=True)
     date_released = models.DateTimeField(null=True, blank=True)
@@ -605,8 +618,8 @@ class Release(Model):
             for ref in refs:
                 repo = repos_by_name[ref["repository"]]
 
-                commit = get_or_create_commit(
-                    organization=self.organization, repo_id=repo.id, key=ref["commit"]
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
                 ReleaseHeadCommit.objects.create_or_update(
@@ -709,7 +722,7 @@ class Release(Model):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-            ReleaseHeadCommit.objects.get(
+            ReleaseHeadCommit.objects.filter(
                 organization_id=self.organization_id, release=self
             ).delete()
             ReleaseCommit.objects.filter(

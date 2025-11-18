@@ -6,20 +6,100 @@ from collections.abc import Callable, Mapping
 from typing import NamedTuple
 
 import sentry_sdk
+from django.db import router, transaction
+from rest_framework import status
 
+from sentry import options
+from sentry.api.exceptions import SentryAPIException
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.locks import locks
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
+    ERROR_DETECTOR_NAME,
+    ISSUE_STREAM_DETECTOR_NAME,
     DetectorEvaluationResult,
     DetectorGroupKey,
     WorkflowEventData,
 )
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
+
+VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
+
+
+class UnableToAcquireLockApiError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "unable_to_acquire_lock"
+    message = "Unable to acquire lock for issue alert migration."
+
+
+def _ensure_detector(project: Project, type: str) -> Detector:
+    """
+    Ensure that a detector of a given type exists for a project.
+    If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
+    and UnableToAcquireLockApiError if that fails.
+    """
+    group_type = grouptype.registry.get_by_slug(type)
+    if not group_type:
+        raise ValueError(f"Group type {type} not registered")
+    slug = group_type.slug
+    if slug not in VALID_DEFAULT_DETECTOR_TYPES:
+        raise ValueError(f"Invalid default detector type: {slug}")
+
+    # If it already exists, life is simple and we can return immediately.
+    # If there happen to be duplicates, we prefer the oldest.
+    existing = Detector.objects.filter(type=slug, project=project).order_by("id").first()
+    if existing:
+        return existing
+
+    # If we may need to create it, we acquire a lock to avoid double-creating.
+    # There isn't a unique constraint on the detector, so we can't rely on get_or_create
+    # to avoid duplicates.
+    # However, by only locking during the one-time creation, the window for a race condition is small.
+    lock = locks.get(
+        f"workflow-engine-project-{slug}-detector:{project.id}",
+        duration=2,
+        name=f"workflow_engine_default_{slug}_detector",
+    )
+    try:
+        with (
+            # Creation should be fast, so it's worth blocking a little rather
+            # than failing a request.
+            lock.blocking_acquire(initial_delay=0.1, timeout=3),
+            transaction.atomic(router.db_for_write(Detector)),
+        ):
+            detector, _ = Detector.objects.get_or_create(
+                type=slug,
+                project=project,
+                defaults={
+                    "config": {},
+                    "name": (
+                        ERROR_DETECTOR_NAME
+                        if slug == ErrorGroupType.slug
+                        else ISSUE_STREAM_DETECTOR_NAME
+                    ),
+                },
+            )
+            return detector
+    except UnableToAcquireLock:
+        raise UnableToAcquireLockApiError
+
+
+def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
+    return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
+        project, IssueStreamGroupType.slug
+    )
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
@@ -68,8 +148,6 @@ class _SplitEvents(NamedTuple):
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
 ) -> _SplitEvents:
-    from sentry.grouping.grouptype import ErrorGroupType
-
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     error_events: list[GroupEvent] = []  # only error events don't have occurrences
     events_missing_detectors: list[GroupEvent] = []
@@ -116,8 +194,6 @@ def get_detectors_by_groupevents_bulk(
     """
     Given a list of GroupEvents, return a mapping of event_id to Detector.
     """
-    from sentry.grouping.grouptype import ErrorGroupType
-
     if not event_list:
         return {}
 
@@ -241,10 +317,10 @@ def process_detectors[T](
             tags={"detector_type": detector.type},
         )
 
-        detector_results = handler.evaluate(data_packet)
-
-        if detector_results is None:
-            return results
+        with metrics.timer(
+            "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
+        ):
+            detector_results = handler.evaluate(data_packet)
 
         for result in detector_results.values():
             logger_extra = {
@@ -278,3 +354,62 @@ def process_detectors[T](
             results.append((detector, detector_results))
 
     return results
+
+
+def associate_new_group_with_detector(group: Group, detector_id: int | None = None) -> bool:
+    """
+    Associate a new Group with it's Detector in the database.
+    If the Group is an error, it can be associated without a detector ID.
+
+    Return whether the group was associated.
+    """
+    if detector_id is None:
+        # For error Groups, we know there is a Detector and we can find it by project.
+        if group.type == ErrorGroupType.type_id:
+            if not options.get("workflow_engine.associate_error_detectors", False):
+                return False
+            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+        else:
+            metrics.incr(
+                "workflow_engine.associate_new_group_with_detector",
+                tags={"group_type": group.type, "result": "failure"},
+            )
+            logger.warning(
+                "associate_new_group_with_detector_failed",
+                extra={
+                    "group_id": group.id,
+                    "group_type": group.type,
+                },
+            )
+            return False
+
+    # Check if the detector exists. If not, create DetectorGroup with null detector_id
+    # to make it clear that we were associated with a detector that no longer exists.
+    if not Detector.objects.filter(id=detector_id).exists():
+        metrics.incr(
+            "workflow_engine.associate_new_group_with_detector",
+            tags={"group_type": group.type, "result": "detector_missing"},
+        )
+        logger.warning(
+            "associate_new_group_with_detector_detector_missing",
+            extra={
+                "group_id": group.id,
+                "group_type": group.type,
+                "detector_id": detector_id,
+            },
+        )
+        DetectorGroup.objects.get_or_create(
+            detector_id=None,
+            group_id=group.id,
+        )
+        return True
+
+    DetectorGroup.objects.get_or_create(
+        detector_id=detector_id,
+        group_id=group.id,
+    )
+    metrics.incr(
+        "workflow_engine.associate_new_group_with_detector",
+        tags={"group_type": group.type, "result": "success"},
+    )
+    return True

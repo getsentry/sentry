@@ -23,6 +23,10 @@ import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {
+  metricsAnalyticsEventMap,
+  type MetricsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/metricsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
@@ -36,6 +40,8 @@ import {
 
 import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
+import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
+import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -94,6 +100,7 @@ interface EventParameters
   extends GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
+    BreadcrumbsAnalyticsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DiscoverEventParameters,
@@ -120,6 +127,7 @@ interface EventParameters
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     LogsAnalyticsEventParameters,
+    MetricsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
     ExploreAnalyticsEventParameters,
@@ -130,6 +138,7 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
+  ...breadcrumbsAnalyticsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,
@@ -146,6 +155,7 @@ const allEventMap: Record<string, string | null> = {
   ...profilingEventMap,
   ...exploreAnalyticsEventMap,
   ...logsAnalyticsEventMap,
+  ...metricsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,

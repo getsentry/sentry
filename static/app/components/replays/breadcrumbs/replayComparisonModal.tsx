@@ -82,7 +82,7 @@ export default function ReplayComparisonModal({
                 >
                   <Button
                     aria-label={t('Adjust diff')}
-                    icon={<IconSliders size="md" direction="up" />}
+                    icon={<IconSliders size="md" />}
                     borderless
                   />
                 </AutoWideHovercard>
@@ -136,6 +136,7 @@ const ModalHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   flex-direction: row;
+  flex: 1;
 `;
 
 const Title = styled('h4')`

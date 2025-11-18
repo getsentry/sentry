@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 from unittest import mock
 
@@ -11,6 +10,7 @@ from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
+    GroupedDetectorEvaluationResult,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
@@ -100,10 +100,13 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category_v2 = GroupCategory.METRIC_ALERT.value
 
         class MockDetectorHandler(DetectorHandler[dict, int]):
-            def evaluate(
+            def evaluate_impl(
                 self, data_packet: DataPacket[dict]
-            ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
-                return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
+            ) -> GroupedDetectorEvaluationResult:
+                return GroupedDetectorEvaluationResult(
+                    result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
+                    tainted=False,
+                )
 
             def extract_value(self, data_packet: DataPacket[dict]) -> int:
                 return data_packet.packet.get("value", 0)
@@ -121,9 +124,9 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 return data_packet.packet.get("dedupe", 0)
 
         class MockDetectorWithUpdateHandler(DetectorHandler[dict, int]):
-            def evaluate(
+            def evaluate_impl(
                 self, data_packet: DataPacket[dict]
-            ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+            ) -> GroupedDetectorEvaluationResult:
                 status_change = StatusChangeMessage(
                     "test_update",
                     project_id,
@@ -131,11 +134,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                     None,
                 )
 
-                return {
-                    None: DetectorEvaluationResult(
-                        None, True, DetectorPriorityLevel.HIGH, status_change
-                    )
-                }
+                return GroupedDetectorEvaluationResult(
+                    result={
+                        None: DetectorEvaluationResult(
+                            None, True, DetectorPriorityLevel.HIGH, status_change
+                        )
+                    },
+                    tainted=False,
+                )
 
             def create_occurrence(
                 self,
@@ -255,7 +261,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         group_key: DetectorGroupKey,
         value: int,
         priority: DetectorPriorityLevel,
-        detection_time: datetime,
         occurrence_id: str,
     ) -> tuple[IssueOccurrence, dict[str, Any]]:
         fingerprint = [f"{detector.id}{':' + group_key if group_key is not None else ''}"]
@@ -268,7 +273,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             occurrence_id=occurrence_id,
             project_id=detector.project_id,
             status=priority,
-            detection_time=detection_time,
             additional_evidence_data=evidence_data,
             fingerprint=fingerprint,
         )
@@ -278,10 +282,10 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
             )
         event_data["environment"] = detector.config.get("environment")
-        event_data["timestamp"] = detection_time
+        event_data["timestamp"] = issue_occurrence.detection_time
         event_data["project_id"] = detector.project_id
         event_data["event_id"] = occurrence_id
         event_data.setdefault("platform", "python")
-        event_data.setdefault("received", detection_time)
+        event_data.setdefault("received", issue_occurrence.detection_time)
         event_data.setdefault("tags", {})
         return issue_occurrence, event_data

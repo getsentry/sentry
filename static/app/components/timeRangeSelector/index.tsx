@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -132,10 +133,6 @@ export interface TimeRangeSelectorProps
    * Start date value for absolute date selector
    */
   start?: DateString;
-  /**
-   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
-   */
-  storageNamespace?: string;
   /**
    * Default initial value for using UTC
    */
@@ -374,7 +371,7 @@ export function TimeRangeSelector({
                 >
                   <TriggerLabelWrap>
                     <TriggerLabel>
-                      {selectProps.triggerLabel ?? defaultLabel}
+                      {selectProps.triggerProps?.children ?? defaultLabel}
                     </TriggerLabel>
                     {desynced && <DesyncedFilterIndicator />}
                   </TriggerLabelWrap>
@@ -455,7 +452,7 @@ export function TimeRangeSelector({
                     <FooterWrap>
                       <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
-                        <AbsoluteSelectorFooter>
+                        <Flex gap="md" justify="end">
                           {showRelative && (
                             <Button
                               size="xs"
@@ -477,7 +474,7 @@ export function TimeRangeSelector({
                           >
                             {t('Apply')}
                           </Button>
-                        </AbsoluteSelectorFooter>
+                        </Flex>
                       )}
                     </FooterWrap>
                   </Fragment>
@@ -522,12 +519,6 @@ const AbsoluteDateRangeWrap = styled('div')`
 const StyledDateRangeHook = styled(DateRangeHook)`
   border: none;
   width: max-content;
-`;
-
-const AbsoluteSelectorFooter = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
 `;
 
 const FooterMessage = styled('p')`

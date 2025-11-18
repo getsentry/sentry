@@ -317,13 +317,13 @@ function RuleListRow({
                 options={dropdownTeams}
                 value={assignee}
                 searchable
-                triggerLabel={avatarElement}
                 triggerProps={{
                   'aria-label': assignee
                     ? `Assigned to #${teamName?.name}`
                     : t('Unassigned'),
                   size: 'zero',
                   borderless: true,
+                  children: avatarElement,
                 }}
                 searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}

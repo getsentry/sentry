@@ -1,7 +1,16 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
-import {tct} from 'sentry/locale';
+import {tctCode} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+
+export const TRANSACTIONS_DATASET_DEPRECATION_MESSAGE = tctCode(
+  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+  {
+    FAQLink: (
+      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+    ),
+  }
+);
 
 export function TransactionsDatasetWarning() {
   const organization = useOrganization();
@@ -12,17 +21,5 @@ export function TransactionsDatasetWarning() {
     return null;
   }
 
-  return (
-    <Alert type="warning">
-      {tct(
-        'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
-        {
-          code: <code />,
-          FAQLink: (
-            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
-          ),
-        }
-      )}
-    </Alert>
-  );
+  return <Alert type="warning">{TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}</Alert>;
 }

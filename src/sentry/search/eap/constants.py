@@ -3,7 +3,7 @@ from typing import Literal
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter, Column
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
 from sentry.search.eap.types import SupportedTraceItemType
@@ -15,7 +15,11 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.LOGS: TraceItemType.TRACE_ITEM_TYPE_LOG,
     SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
     SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+    SupportedTraceItemType.TRACEMETRICS: TraceItemType.TRACE_ITEM_TYPE_METRIC,
+    SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
 }
+
+SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
 OPERATOR_MAP = {
     "=": ComparisonFilter.OP_EQUALS,
@@ -44,6 +48,13 @@ AGGREGATION_OPERATOR_MAP = {
     "<": AggregationComparisonFilter.OP_LESS_THAN,
     ">=": AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
     "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+
+EXTRAPOLATION_MODE_MAP = {
+    "sampleWeighted": ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+    "serverOnly": ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+    "unspecified": ExtrapolationMode.EXTRAPOLATION_MODE_UNSPECIFIED,
+    "none": ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
 }
 
 SearchType = (
@@ -172,11 +183,13 @@ RESPONSE_CODE_MAP = {
 }
 
 SAMPLING_MODE_HIGHEST_ACCURACY: SAMPLING_MODES = "HIGHEST_ACCURACY"
+SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: SAMPLING_MODES = "HIGHEST_ACCURACY_FLEX_TIME"
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
     SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+    SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME,
 }
 
 ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {

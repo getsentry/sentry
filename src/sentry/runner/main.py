@@ -57,7 +57,6 @@ for cmd in map(
         "sentry.runner.commands.killswitches.killswitches",
         "sentry.runner.commands.migrations.migrations",
         "sentry.runner.commands.plugins.plugins",
-        "sentry.runner.commands.queues.queues",
         "sentry.runner.commands.repair.repair",
         "sentry.runner.commands.rpcschema.rpcschema",
         "sentry.runner.commands.run.run",
@@ -69,7 +68,7 @@ for cmd in map(
         "sentry.runner.commands.performance.performance",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.llm.llm",
+        "sentry.runner.commands.notifications.notifications",
     ),
 ):
     cli.add_command(cmd)

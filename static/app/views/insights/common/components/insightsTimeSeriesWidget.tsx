@@ -15,6 +15,7 @@ import type {
   LegendSelection,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -41,7 +42,7 @@ import {
   ModalChartContainer,
 } from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
@@ -53,6 +54,10 @@ export interface InsightsTimeSeriesWidgetProps
   isLoading: boolean;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
+  /**
+   * Optional color palette that will be used inplace of COMMON_COLORS.
+   */
+  colorPalette?: readonly string[];
   description?: React.ReactNode;
   extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
@@ -69,6 +74,7 @@ export interface InsightsTimeSeriesWidgetProps
     referrer: string;
     search: MutableSearch;
     groupBy?: SpanFields[];
+    interval?: string;
     yAxis?: string[];
   };
   samples?: Samples;
@@ -127,16 +133,22 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: aliases?.[delayedTimeSeries.yAxis],
       });
     }),
-    ...(props.timeSeries?.filter(Boolean) ?? []).map(timeSeries => {
+    ...(props.timeSeries?.filter(Boolean) ?? []).map((timeSeries, idx) => {
       // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
       const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
 
       yAxes.add(timeSeries.yAxis);
 
+      let alias = aliases?.[delayedTimeSeries.yAxis];
+      const plottableName = formatTimeSeriesName(delayedTimeSeries);
+      if (aliases?.[plottableName]) {
+        alias = aliases?.[plottableName];
+      }
+
       return new PlottableDataConstructor(delayedTimeSeries, {
-        color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
+        color: props.colorPalette?.[idx] ?? COMMON_COLORS(theme)[plottableName],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[delayedTimeSeries.yAxis],
+        alias,
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -234,6 +246,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 search={props.queryInfo?.search}
                 aliases={aliases}
                 referrer={props.queryInfo?.referrer ?? ''}
+                interval={props.queryInfo?.interval}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (
@@ -271,6 +284,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => {
   const colors = theme.chart.getColorPalette(2);
+  const vitalColors = theme.chart.getColorPalette(4);
   return {
     'epm()': THROUGHPUT_COLOR(theme),
     'count()': COUNT_COLOR(theme),
@@ -280,5 +294,12 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
     'avg(messaging.message.receive.latency)': colors[1],
     'avg(span.duration)': colors[2],
+    'performance_score(measurements.score.lcp)': vitalColors[0],
+    'performance_score(measurements.score.fcp)': vitalColors[1],
+    'performance_score(measurements.score.inp)': vitalColors[2],
+    'performance_score(measurements.score.cls)': vitalColors[3],
+    'performance_score(measurements.score.ttfb)': vitalColors[4],
+    'epm() : span.op : queue.publish': colors[1],
+    'epm() : span.op : queue.process': colors[2],
   };
 };

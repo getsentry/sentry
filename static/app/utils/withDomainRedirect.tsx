@@ -5,10 +5,12 @@ import trimStart from 'lodash/trimStart';
 
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 
 import useOrganization from './useOrganization';
 
@@ -31,13 +33,13 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P extends RouteComponentProps>(
-  WrappedComponent: RouteComponent
-) {
+function withDomainRedirect<P>(WrappedComponent: RouteComponent) {
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
+    const params = useParams();
+    const router = useRouter();
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -56,14 +58,12 @@ function withDomainRedirect<P extends RouteComponentProps>(
         return null;
       }
 
-      const {params, routes} = props;
-
       // Regenerate the full route with the :orgId parameter omitted.
-      const newParams = {...params};
+      const newParams = {...params} as Record<string, string>;
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {routes, params: newParams});
+      const fullRoute = recreateRoute('', {routes: router.routes, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {
@@ -77,7 +77,7 @@ function withDomainRedirect<P extends RouteComponentProps>(
       }${window.location.hash}`;
 
       // Redirect to a route path with :orgId omitted.
-      return <Redirect to={redirectOrgURL} router={props.router} />;
+      return <Redirect to={redirectOrgURL} router={router} />;
     }
 
     return <WrappedComponent {...props} />;

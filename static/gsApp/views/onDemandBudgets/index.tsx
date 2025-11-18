@@ -43,11 +43,9 @@ class OnDemandBudgets extends Component<Props> {
         })}
         <Tooltip
           title={t(
-            `%s you to pay for additional data beyond your subscription's
+            `%s allows you to pay for additional data beyond your subscription's
                 reserved quotas. %s is billed monthly at the end of each usage period.`,
-            subscription.planDetails.budgetTerm === 'pay-as-you-go'
-              ? 'Pay-as-you-go allows'
-              : 'On-Demand budgets allow',
+            displayBudgetName(subscription.planDetails, {title: true}),
             displayBudgetName(subscription.planDetails, {title: true})
           )}
           skipWrapper
@@ -78,9 +76,11 @@ class OnDemandBudgets extends Component<Props> {
         })}
       >
         <div>
-          <LinkButton to={`/settings/${organization.slug}/support/`}>
-            {t('Contact Support')}
-          </LinkButton>
+          {subscription.sponsoredType !== 'education' && (
+            <LinkButton to={`/settings/${organization.slug}/support/`}>
+              {t('Contact Support')}
+            </LinkButton>
+          )}
         </div>
       </FieldGroup>
     );
@@ -203,7 +203,7 @@ class OnDemandBudgets extends Component<Props> {
       return this.renderNotEnabled();
     }
 
-    if (!hasPaymentSource && !subscription.onDemandInvoicedManual) {
+    if (!hasPaymentSource) {
       return this.renderNeedsPaymentSource();
     }
 
@@ -225,17 +225,16 @@ class OnDemandBudgets extends Component<Props> {
       onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED &&
       onDemandBudgets.sharedMaxBudget > 0
     ) {
-      const budgetType = subscription.planDetails.budgetTerm;
-      description =
-        budgetType === 'pay-as-you-go'
-          ? t(
-              'Your pay-as-you-go budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
-            )
-          : t(
-              'Your on-demand budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
-            );
+      description = t(
+        'Your %s is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.',
+        displayBudgetName(subscription.planDetails, {withBudget: true})
+      );
     } else if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-      description = t('You have dedicated on-demand budget for %s.', oxfordCategories);
+      description = t(
+        'You have dedicated %s for %s.',
+        displayBudgetName(subscription.planDetails, {withBudget: true}),
+        oxfordCategories
+      );
     }
 
     const keepInline =

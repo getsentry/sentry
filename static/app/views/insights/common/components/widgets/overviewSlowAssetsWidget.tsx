@@ -5,6 +5,8 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,9 +24,8 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -53,6 +54,9 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const yAxes = 'p75(span.duration)';
   const totalTimeField = 'sum(span.duration)';
   const title = t('Assets by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
+  const chartType = ChartType.LINE;
+  const topEvents = 3;
 
   const {
     data: assetListData,
@@ -69,7 +73,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       ],
       sorts: [{field: totalTimeField, kind: 'desc'}],
       search,
-      limit: 3,
+      limit: topEvents,
       noPagination: true,
     },
     referrer
@@ -79,30 +83,32 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     data: assetSeriesData,
     isLoading: isAssetSeriesLoading,
     error: assetSeriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: `${SpanFields.SPAN_GROUP}:[${assetListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
-      fields: [groupBy, yAxes],
+      query: `${SpanFields.SPAN_GROUP}:[${assetListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
+      groupBy: [groupBy],
       yAxis: [yAxes],
+      topEvents,
       sort: {field: yAxes, kind: 'desc'},
-      topN: 3,
       enabled: assetListData?.length > 0,
+      interval,
     },
     referrer
   );
 
+  const assetTimeSeries = assetSeriesData?.timeSeries ?? [];
+
   const isLoading = isAssetSeriesLoading || isAssetListLoading;
   const error = assetSeriesError || assetListError;
 
-  const hasData = assetListData && assetListData.length > 0 && assetSeriesData.length > 0;
+  const hasData =
+    assetListData && assetListData.length > 0 && assetTimeSeries?.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(assetSeriesData.length - 1);
+  const colorPalette = theme.chart.getColorPalette(assetTimeSeries.length - 1);
 
-  const aliases: Record<string, string> = {};
-
-  assetListData.forEach(item => {
-    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
-  });
+  const plottables = assetTimeSeries.map(
+    (ts, index) => new Line(ts, {color: colorPalette[index]})
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -114,13 +120,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       visualizationProps={{
         id: 'overviewSlowAssetsWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
-        plottables: assetSeriesData.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
-              alias: aliases[ts.seriesName],
-            })
-        ),
+        plottables,
         ...props,
         ...releaseBubbleProps,
       }}
@@ -149,7 +149,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'resource'}
+            op="resource"
           />
         </Fragment>
       ))}
@@ -161,7 +161,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     organization,
     visualize: [
       {
-        chartType: ChartType.LINE,
+        chartType,
         yAxes: [yAxes],
       },
     ],
@@ -170,8 +170,19 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
+
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents,
+  };
 
   return (
     <Widget
@@ -185,19 +196,24 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
                 key="slow assets widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
-                alertMenuOptions={assetSeriesData.map(series => ({
-                  key: series.seriesName,
-                  label: series.seriesName,
-                  to: getAlertsUrl({
-                    project,
-                    aggregate: yAxes,
-                    organization,
-                    pageFilters: selection,
-                    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-                    query: `${SpanFields.NORMALIZED_DESCRIPTION}:${series.seriesName}`,
-                    referrer,
-                  }),
-                }))}
+                addToDashboardOptions={addToDashboardOptions}
+                alertMenuOptions={plottables.map(plottable => {
+                  const timeSeries = plottable.timeSeries;
+                  const normalizedDescription = timeSeries.groupBy?.[0]?.value;
+                  return {
+                    key: plottable.name,
+                    label: plottable.name,
+                    to: getAlertsUrl({
+                      project,
+                      aggregate: yAxes,
+                      organization,
+                      pageFilters: selection,
+                      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                      query: `${SpanFields.NORMALIZED_DESCRIPTION}:${normalizedDescription}`,
+                      referrer,
+                    }),
+                  };
+                })}
               />
               <Button
                 size="xs"

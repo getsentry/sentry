@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
@@ -17,9 +17,9 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Timeline', story => {
   story('Usage', () => (
-    <CodeSnippet language="js">
+    <CodeBlock language="js">
       import Timeline from 'sentry/components/timeline';
-    </CodeSnippet>
+    </CodeBlock>
   ));
 
   story('<Timeline.Text />', () => (
@@ -29,15 +29,15 @@ export default Storybook.story('Timeline', story => {
         <code>{'<Timeline.Item />'}</code>. It generally contains descriptive text.
       </p>
       <p>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<Timeline.Item ...>
   <Timeline.Text>{someText}</Timeline.Text>
 </Timeline.Item>`}
-        </CodeSnippet>
+        </CodeBlock>
       </p>
       <h6>Example</h6>
       <Timeline.Item
-        title={'SyntaxError'}
+        title="SyntaxError"
         icon={<IconFire size="xs" />}
         timestamp={<DateTime date={now} />}
         colorConfig={{
@@ -60,17 +60,17 @@ export default Storybook.story('Timeline', story => {
         payloads.
       </p>
       <p>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<Timeline.Item ...>
   <Timeline.Data>
     <StructuredData value={someJson} ... />
   </Timeline.Data>
 </Timeline.Item>`}
-        </CodeSnippet>
+        </CodeBlock>
       </p>
       <h6>Example</h6>
       <Timeline.Item
-        title={'Navigation'}
+        title="Navigation"
         icon={<IconSort rotated size="xs" />}
         timestamp={<DateTime date={now} />}
         colorConfig={{
@@ -130,7 +130,7 @@ export default Storybook.story('Timeline', story => {
       </ul>
       <h6>Example</h6>
       <Timeline.Item
-        title={'SyntaxError'}
+        title="SyntaxError"
         icon={<IconFire size="xs" />}
         timestamp={<span style={{color: 'blue'}}>my cool timestamp</span>}
         colorConfig={{
@@ -140,7 +140,7 @@ export default Storybook.story('Timeline', story => {
         }}
       />
       <Timeline.Item
-        title={'Active Item'}
+        title="Active Item"
         icon={<IconCursorArrow size="xs" />}
         colorConfig={{
           title: 'blue400',
@@ -154,7 +154,7 @@ export default Storybook.story('Timeline', story => {
         </Timeline.Text>
       </Timeline.Item>
       <Timeline.Item
-        title={'Data'}
+        title="Data"
         icon={<IconDashboard size="xs" />}
         timestamp={
           <Button size="xs" style={{marginBottom: 4}}>
@@ -177,7 +177,7 @@ export default Storybook.story('Timeline', story => {
         </Timeline.Data>
       </Timeline.Item>
       <Timeline.Item
-        title={'Another Event'}
+        title="Another Event"
         icon={<IconClock size="xs" />}
         colorConfig={{
           title: 'purple400',
@@ -200,7 +200,7 @@ export default Storybook.story('Timeline', story => {
       <h6>Example</h6>
       <Timeline.Container>
         <Timeline.Item
-          title={'Error'}
+          title="Error"
           icon={<IconFire size="xs" />}
           colorConfig={{
             title: 'red400',
@@ -212,7 +212,7 @@ export default Storybook.story('Timeline', story => {
         </Timeline.Item>
 
         <Timeline.Item
-          title={'HTTP'}
+          title="HTTP"
           icon={<IconSort rotated size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{
@@ -233,7 +233,7 @@ export default Storybook.story('Timeline', story => {
         </Timeline.Item>
 
         <Timeline.Item
-          title={'UI Click'}
+          title="UI Click"
           icon={<IconCursorArrow size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{
@@ -246,7 +246,7 @@ export default Storybook.story('Timeline', story => {
         </Timeline.Item>
 
         <Timeline.Item
-          title={'Sentry Event'}
+          title="Sentry Event"
           icon={<IconSentry size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{

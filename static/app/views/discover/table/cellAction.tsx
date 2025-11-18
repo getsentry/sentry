@@ -328,11 +328,13 @@ export enum ActionTriggerType {
 
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
+  usePortalOnDropdown?: boolean;
 };
 
 function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
+  usePortalOnDropdown,
   ...props
 }: Props) {
   const organization = useOrganization();
@@ -357,13 +359,14 @@ function CellAction({
   });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
         {cellActions?.length ? (
           <DropdownMenu
+            usePortal={usePortalOnDropdown}
             items={cellActions}
             strategy="fixed"
             size="sm"
@@ -398,6 +401,12 @@ function CellAction({
                     e.preventDefault();
                   }
                 }}
+                hasLinks={
+                  // TODO - hack, ideally we don't directly access the DOM and use a ref instead, ideally we can determin if the cell type has a link
+                  !!document
+                    .getElementById(triggerProps.id ?? '')
+                    ?.getElementsByTagName('a')?.[0]
+                }
               >
                 {children}
               </ActionMenuTriggerV2>
@@ -409,6 +418,7 @@ function CellAction({
         )}
       </Container>
     );
+  }
 
   return (
     <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
@@ -475,10 +485,10 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')`
+const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
   a,
   span {
-    color: ${p => p.theme.textColor};
+    color: ${p => (p.hasLinks ? p.theme.linkColor : p.theme.textColor)};
   }
   :hover {
     cursor: pointer;

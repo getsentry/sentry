@@ -109,7 +109,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       borderRadius: 'inherit',
       border: `1px solid ${chonkButtonTheme.background}`,
       transform: `translateY(-${elevation})`,
-      transition: 'transform 0.06s ease-in-out',
+      transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
     '&:focus-visible': {
@@ -135,7 +135,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
       whiteSpace: 'nowrap',
       transform: `translateY(-${elevation})`,
-      transition: 'transform 0.06s ease-in-out',
+      transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
     '&:hover': {
@@ -155,6 +155,15 @@ export function DO_NOT_USE_getChonkButtonStyles(
       },
       '> span:last-child': {
         transform: 'translateY(0px)',
+      },
+    },
+
+    '&[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transition: 'none',
+      },
+      '> span:last-child': {
+        transition: 'none',
       },
     },
 

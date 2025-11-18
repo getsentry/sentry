@@ -1,29 +1,36 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {parseCursor} from 'sentry/utils/cursor';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+
+const DEFAULT_DETECTORS_PER_PAGE = 10;
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
+  cursor: string | undefined;
   /**
    * If null, all detectors will be fetched.
    */
-  detectors: Detector[];
-  isError: boolean;
-  isLoading: boolean;
-  connectedDetectorIds?: Automation['detectorIds'];
+  detectorIds: Automation['detectorIds'] | null;
+  onCursor: CursorHandler;
+  connectedDetectorIds?: Set<string>;
   emptyMessage?: string;
-  numSkeletons?: number;
+  limit?: number | null;
+  openInNewTab?: boolean;
+  query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
 };
 
@@ -59,16 +66,56 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
 }
 
 export default function ConnectedMonitorsList({
-  detectors,
-  isLoading,
-  isError,
+  detectorIds,
   connectedDetectorIds,
   toggleConnected,
   emptyMessage = t('No monitors connected'),
-  numSkeletons = 10,
+  cursor,
+  onCursor,
+  limit = DEFAULT_DETECTORS_PER_PAGE,
+  query,
+  openInNewTab,
   ...props
 }: Props) {
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
+
+  const {
+    data: detectors,
+    isLoading,
+    isError,
+    isSuccess,
+    getResponseHeader,
+  } = useDetectorsQuery(
+    {
+      ids: detectorIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
+      includeIssueStreamDetectors: true,
+    },
+    {enabled: detectorIds === null || detectorIds.length > 0}
+  );
+
+  const pageLinks = getResponseHeader?.('Link');
+  const totalCount = getResponseHeader?.('X-Hits');
+  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+
+  const paginationCaption = useMemo(() => {
+    if (isLoading || !detectors || detectors?.length === 0 || limit === null) {
+      return undefined;
+    }
+
+    const currentCursor = parseCursor(cursor);
+    const offset = currentCursor?.offset ?? 0;
+    const startCount = offset * limit + 1;
+    const endCount = startCount + detectors.length - 1;
+
+    return tct('[start]-[end] of [total]', {
+      start: startCount.toLocaleString(),
+      end: endCount.toLocaleString(),
+      total: totalCountInt.toLocaleString(),
+    });
+  }, [detectors, isLoading, cursor, limit, totalCountInt]);
 
   return (
     <Container {...props}>
@@ -86,37 +133,56 @@ export default function ConnectedMonitorsList({
           </SimpleTable.HeaderCell>
           {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
         </SimpleTable.Header>
-        {isLoading && <Skeletons canEdit={canEdit} numberOfRows={numSkeletons} />}
+        {isLoading && (
+          <Skeletons
+            canEdit={canEdit}
+            numberOfRows={
+              detectorIds === null
+                ? (limit ?? DEFAULT_DETECTORS_PER_PAGE)
+                : Math.min(detectorIds?.length ?? 0, DEFAULT_DETECTORS_PER_PAGE)
+            }
+          />
+        )}
         {isError && <LoadingError />}
-        {!isLoading && !isError && detectors.length === 0 && (
+        {((isSuccess && detectors.length === 0) ||
+          (detectorIds !== null && detectorIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
-        {detectors.map(detector => (
-          <SimpleTable.Row key={detector.id}>
-            <SimpleTable.RowCell>
-              <DetectorLink detector={detector} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="type">
-              <DetectorTypeCell type={detector.type} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="last-issue">
-              <IssueCell group={detector.latestGroup} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="owner">
-              <DetectorAssigneeCell assignee={detector.owner} />
-            </SimpleTable.RowCell>
-            {canEdit && (
-              <SimpleTable.RowCell data-column-name="connected" justify="end">
-                <Button onClick={() => toggleConnected?.({detector})} size="sm">
-                  {connectedDetectorIds?.includes(detector.id)
-                    ? t('Disconnect')
-                    : t('Connect')}
-                </Button>
+        {isSuccess &&
+          (detectorIds === null || detectorIds.length > 0) &&
+          detectors.map(detector => (
+            <SimpleTable.Row key={detector.id}>
+              <SimpleTable.RowCell>
+                <DetectorLink detector={detector} openInNewTab={openInNewTab} />
               </SimpleTable.RowCell>
-            )}
-          </SimpleTable.Row>
-        ))}
+              <SimpleTable.RowCell data-column-name="type">
+                <DetectorTypeCell type={detector.type} />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell data-column-name="last-issue">
+                <IssueCell group={detector.latestGroup} />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell data-column-name="owner">
+                <DetectorAssigneeCell assignee={detector.owner} />
+              </SimpleTable.RowCell>
+              {canEdit && (
+                <SimpleTable.RowCell data-column-name="connected" justify="end">
+                  <Button onClick={() => toggleConnected?.({detector})} size="sm">
+                    {connectedDetectorIds?.has(detector.id)
+                      ? t('Disconnect')
+                      : t('Connect')}
+                  </Button>
+                </SimpleTable.RowCell>
+              )}
+            </SimpleTable.Row>
+          ))}
       </SimpleTableWithColumns>
+      {limit && (
+        <Pagination
+          onCursor={onCursor}
+          pageLinks={pageLinks}
+          caption={totalCountInt > limit ? paginationCaption : null}
+        />
+      )}
     </Container>
   );
 }
@@ -126,9 +192,7 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px auto auto auto;
-
-  margin-bottom: ${space(2)};
+  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
 
   /*
     The connected column can be added/removed depending on props, so in order to

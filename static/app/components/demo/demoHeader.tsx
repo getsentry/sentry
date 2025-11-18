@@ -67,6 +67,8 @@ export default function DemoHeader() {
           // Using window.open instead of href={} because we need to read `email`
           // from localStorage when the user clicks the button.
           window.open(url, '_blank');
+          // log out the demo user to prevent linking the newly created account to sandbox demo user
+          logout(api);
         }}
       >
         <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>

@@ -1,7 +1,6 @@
 import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -22,9 +21,7 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', () => {
-  const router = RouterFixture();
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: OrganizationsFixture(),
@@ -36,25 +33,20 @@ describe('AccountSecurity', () => {
   });
 
   function renderComponent() {
-    return render(
-      <AccountSecurityWrapper>
-        <AccountSecurity
-          deleteDisabled={false}
-          authenticators={[]}
-          hasVerifiedEmail
-          countEnrolled={0}
-          handleRefresh={jest.fn()}
-          onDisable={jest.fn()}
-          orgsRequire2fa={[]}
-          location={router.location}
-          route={router.routes[0]!}
-          routes={router.routes}
-          router={router}
-          routeParams={router.params}
-          params={{...router.params, authId: '15'}}
-        />
-      </AccountSecurityWrapper>
-    );
+    return render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
   }
 
   it('renders empty', async () => {

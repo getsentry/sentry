@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -79,32 +78,28 @@ export default Storybook.story('CompositeSelect', story => {
           <code>options</code>.
         </p>
         <CompositeSelect
-          trigger={triggerProps => (
-            <Button
-              {...triggerProps}
-              aria-label={'Select an Option'}
-              size="sm"
-              icon={<IconSentry />}
-            >
-              Select an Option
-            </Button>
-          )}
+          triggerProps={{
+            children: 'Select an Option',
+            showChevron: false,
+            icon: <IconSentry />,
+            size: 'sm',
+          }}
         >
           <CompositeSelect.Region
-            label={'Month'}
+            label="Month"
             value={month}
             onChange={selection => setMonth(selection.value)}
             options={MONTH_OPTIONS}
           />
           <CompositeSelect.Region
-            label={'Day'}
+            label="Day"
             value={day}
             onChange={selection => setDay(selection.value)}
             options={DAY_OPTIONS}
           />
           <CompositeSelect.Region
-            label={'I am...'}
-            aria-label={'Cool'}
+            label="I am..."
+            aria-label="Cool"
             multiple
             value={adjectives}
             onChange={selection => setAdjectives(selection.map(s => s.value))}
@@ -130,25 +125,21 @@ export default Storybook.story('CompositeSelect', story => {
 
         <Flex gap="md">
           <CompositeSelect
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                aria-label={'Composite Select'}
-                size="sm"
-                icon={<IconSentry />}
-              >
-                Composite Select Single Select
-              </Button>
-            )}
+            triggerProps={{
+              size: 'sm',
+              icon: <IconSentry />,
+              children: 'Composite Select Single Select',
+              showChevron: false,
+            }}
           >
             <CompositeSelect.Region
-              label={'Mains'}
+              label="Mains"
               value={main}
               onChange={selection => setMain(selection.value)}
               options={MAIN_OPTIONS}
             />
             <CompositeSelect.Region
-              label={'Sides'}
+              label="Sides"
               value={side}
               onChange={selection => setSide(selection.value)}
               options={SIDE_OPTIONS}
@@ -156,16 +147,12 @@ export default Storybook.story('CompositeSelect', story => {
           </CompositeSelect>
 
           <CompactSelect
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                aria-label={'Compact Select'}
-                size="sm"
-                icon={<IconStar />}
-              >
-                Compact Select Single Select
-              </Button>
-            )}
+            triggerProps={{
+              size: 'sm',
+              icon: <IconStar />,
+              children: 'Compact Select Single Select',
+              showChevron: false,
+            }}
             value={drink}
             onChange={selection => setDrink(selection.value)}
             options={[
@@ -176,16 +163,12 @@ export default Storybook.story('CompositeSelect', story => {
 
           <CompactSelect
             multiple
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                aria-label={'Compact Select'}
-                size="sm"
-                icon={<IconStar />}
-              >
-                Compact Select Multiple Select
-              </Button>
-            )}
+            triggerProps={{
+              size: 'sm',
+              icon: <IconStar />,
+              children: 'Compact Select Multiple Select',
+              showChevron: false,
+            }}
             value={drinks}
             onChange={selection => setDrinks(selection.map(s => s.value))}
             options={[

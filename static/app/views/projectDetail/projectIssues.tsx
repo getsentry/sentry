@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
@@ -21,7 +22,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
@@ -63,9 +63,10 @@ type Props = {
 function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
-  const [issuesType, setIssuesType] = useState<IssuesType>(
-    (location.query.issuesType as IssuesType) || IssuesType.UNHANDLED
-  );
+  const [issuesType, setIssuesType] = useQueryState('issuesType', {
+    ...parseAsStringLiteral(Object.values(IssuesType)),
+    defaultValue: IssuesType.UNHANDLED,
+  });
   const [issuesCount, setIssuesCount] = useState<Count>({
     all: 0,
     new: 0,
@@ -185,19 +186,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     query: queryParams,
   };
 
-  function handleIssuesTypeSelection(issueType: IssuesType) {
-    const to = {
-      ...location,
-      query: {
-        ...location.query,
-        issuesType: issueType,
-      },
-    };
-
-    browserHistory.replace(to);
-    setIssuesType(issueType);
-  }
-
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
       ? null
@@ -254,7 +242,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         <SegmentedControl
           aria-label={t('Issue type')}
           value={issuesType}
-          onChange={value => handleIssuesTypeSelection(value)}
+          onChange={setIssuesType}
           size="xs"
         >
           {issuesTypes.map(({value, label, issueCount}) => (

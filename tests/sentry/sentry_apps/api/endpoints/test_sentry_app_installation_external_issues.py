@@ -14,7 +14,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         self.project = self.create_project(organization=self.org)
         self.group = self.create_group(project=self.project)
 
-    def _set_up_sentry_app(self, name, scopes):
+    def _set_up_sentry_app(self, name: str, scopes: list[str]) -> None:
         self.sentry_app = self.create_sentry_app(
             name=name,
             organization=self.org,
@@ -33,7 +33,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "sentry-api-0-sentry-app-installation-external-issues", args=[self.install.uuid]
         )
 
-    def _post_data(self):
+    def _post_data(self) -> dict[str, str | int]:
         return {
             "issueId": self.group.id,
             "webUrl": "https://somerandom.io/project/issue-id",

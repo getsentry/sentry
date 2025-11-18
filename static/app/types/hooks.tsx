@@ -5,16 +5,16 @@ import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type {SentryRouteObject} from 'sentry/components/route';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {SentryRouteObject} from 'sentry/router/types';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
-import type {RouteComponentProps, RouteContextInterface} from './legacyReactRouter';
+import type {RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -68,8 +68,6 @@ type AiSetupDataConsentProps = {
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
-
-type DisabledMemberViewProps = RouteComponentProps<{orgId: string}>;
 
 type MemberListHeaderProps = {
   members: Member[];
@@ -189,7 +187,7 @@ type ComponentHooks = {
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
-  'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
+  'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
   'component:explore-date-range-query-limit-footer': () => React.ComponentType;

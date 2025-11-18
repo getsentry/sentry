@@ -1,7 +1,5 @@
 ---
-created: '2025-09-11T18:40:11.921846+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -26,11 +24,12 @@ contributing variants:
   app*
     hash: "161ce02ecc5d6685a72e8e520ab726b3"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       app*
         exception*
           stacktrace*
-            frame* (marked in-app by stack trace rule (function:playFetch +app))
+            frame* (marked in-app by custom stack trace rule (function:playFetch +app))
               filename*
                 "dogpark.js"
               function*
@@ -42,7 +41,8 @@ contributing variants:
   system*
     hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
     contributing component: exception
-    component:
+    hint: None
+    root_component:
       system*
         exception*
           stacktrace*

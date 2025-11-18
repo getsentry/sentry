@@ -13,7 +13,7 @@ type KeyDescriptionProps = {
   size?: 'sm' | 'md';
 };
 
-function ValueType({
+export function ValueType({
   fieldDefinition,
   fieldKind,
 }: {

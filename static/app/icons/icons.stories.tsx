@@ -232,7 +232,17 @@ const SECTIONS: TSection[] = [
       {
         id: 'building',
         groups: ['product'],
-        keywords: ['business', 'office', 'company', 'corporate', 'organization'],
+        keywords: [
+          'business',
+          'office',
+          'company',
+          'corporate',
+          'organization',
+          'integration',
+          'github',
+          'external',
+          'integratedOrganization',
+        ],
         name: 'Building',
         defaultProps: {},
       },
@@ -248,13 +258,6 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['git', 'repo', 'code', 'version control', 'project'],
         name: 'Repository',
-        defaultProps: {},
-      },
-      {
-        id: 'integratedOrg',
-        groups: ['product'],
-        keywords: ['organization', 'integration', 'github', 'external'],
-        name: 'IntegratedOrg',
         defaultProps: {},
       },
     ],
@@ -718,13 +721,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'dead',
-        groups: ['status'],
-        keywords: ['dead', 'face', 'x', 'eyes', 'emotion'],
-        name: 'Dead',
-        defaultProps: {},
-      },
-      {
         id: 'diamond',
         groups: ['status'],
         keywords: ['shape', 'alert', 'diamond', 'gem', 'precious'],
@@ -760,10 +756,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'slow',
+        id: 'bot',
         groups: ['status'],
-        keywords: ['frame', 'mobile', 'snail', 'performance', 'lag'],
-        name: 'Slow',
+        keywords: ['bot', 'ai'],
+        name: 'Bot',
         defaultProps: {},
       },
     ],
@@ -783,6 +779,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'add-isCircled',
+        name: 'Add',
+        defaultProps: {
+          isCircled: true,
+        },
+      },
+      {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
@@ -790,6 +793,13 @@ const SECTIONS: TSection[] = [
         name: 'Subtract',
         defaultProps: {
           isCircled: false,
+        },
+      },
+      {
+        id: 'subtract-isCircled',
+        name: 'Subtract',
+        defaultProps: {
+          isCircled: true,
         },
       },
       {
@@ -803,6 +813,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'checkmark-isCircled',
+        name: 'Checkmark',
+        defaultProps: {
+          isCircled: true,
+        },
+      },
+      {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
@@ -810,6 +827,13 @@ const SECTIONS: TSection[] = [
         name: 'Close',
         defaultProps: {
           isCircled: false,
+        },
+      },
+      {
+        id: 'close-isCircled',
+        name: 'Close',
+        defaultProps: {
+          isCircled: true,
         },
       },
       {
@@ -1050,6 +1074,24 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
+        defaultProps: {
+          rotated: false,
+        },
+      },
+      {
+        id: 'sort',
+        groups: ['action'],
+        keywords: ['order', 'arrange', 'organize', 'rank'],
+        name: 'Sort',
+        defaultProps: {
+          rotated: true,
+        },
+      },
+      {
+        id: 'case',
+        groups: ['action'],
+        keywords: ['case', 'toggle', 'search', 'case sensitive', 'A', 'Aa'],
+        name: 'Case',
         defaultProps: {},
       },
       {
@@ -1137,21 +1179,9 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'sliders-direction-left',
-        groups: ['action'],
-        keywords: ['settings', 'slide', 'adjust', 'controls', 'config'],
-        additionalProps: ['direction'],
+        id: 'sliders',
         name: 'Sliders',
-        defaultProps: {
-          direction: 'left',
-        },
-      },
-      {
-        id: 'sliders-direction-up',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {},
       },
       {
         id: 'fix',
@@ -1285,16 +1315,17 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'good'],
+        id: 'thumb-direction-up',
+        keywords: ['feedback', 'good', 'like', 'approve'],
         additionalProps: ['direction'],
         name: 'Thumb',
-        defaultProps: {},
+        defaultProps: {
+          direction: 'up',
+        },
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'bad', 'poor'],
-        additionalProps: ['direction'],
+        id: 'thumb-direction-down',
+        keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
         name: 'Thumb',
         defaultProps: {
           direction: 'down',
@@ -1807,10 +1838,7 @@ function IconCard(props: IconCardProps) {
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';
 
-  const {onClick, label} = useCopyToClipboard({
-    successMessage: `Copied ${labels[action]} to clipboard`,
-    text: snippets[action],
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Tooltip
@@ -1849,7 +1877,13 @@ function IconCard(props: IconCardProps) {
         </Stack>
       }
     >
-      <Cell onClick={onClick} aria-label={label}>
+      <Cell
+        onClick={() =>
+          copy(snippets[action], {
+            successMessage: `Copied ${labels[action]} to clipboard`,
+          })
+        }
+      >
         {props.children}
       </Cell>
     </Tooltip>

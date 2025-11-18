@@ -1,31 +1,53 @@
-import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
+import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
+  isSizeAnalysisComparisonInProgress,
   MetricsArtifactType,
   SizeAnalysisComparisonState,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import type {
+  SizeAnalysisComparison,
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
 
+function getMainComparison(
+  response: SizeComparisonApiResponse | undefined
+): SizeAnalysisComparison | undefined {
+  return response?.comparisons.find(
+    c => c.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+}
+
 export function SizeCompareMainContent() {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -40,89 +62,88 @@ export function SizeCompareMainContent() {
       {
         staleTime: 0,
         enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+        refetchInterval: query => {
+          const mainComparison = getMainComparison(query.state.data?.[0]);
+          return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+        },
       }
     );
 
-  const successfulComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp =>
-      comp.state === SizeAnalysisComparisonState.SUCCESS &&
-      // TODO: Allow user to select artifact type
-      comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
-  );
+  const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${successfulComparison?.head_size_metric_id}/${successfulComparison?.base_size_metric_id}/download/`,
+      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
     ],
     {
       staleTime: 0,
       enabled:
-        !!successfulComparison?.head_size_metric_id &&
-        !!successfulComparison?.base_size_metric_id &&
+        !!mainArtifactComparison?.head_size_metric_id &&
+        !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
         !!baseArtifactId,
     }
   );
 
-  // Process the comparison data for metrics cards
-  const processedMetrics = useMemo(() => {
-    if (!comparisonDataQuery.data) {
+  const {mutate: triggerComparison, isPending: isComparing} = useMutation<
+    void,
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
+  >({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      navigate(
+        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+      );
+    },
+    onError: error => {
+      const errorMessage =
+        (typeof error?.responseJSON?.error === 'string'
+          ? error?.responseJSON.error
+          : null) ?? t('Failed to trigger comparison. Please try again.');
+      addErrorMessage(errorMessage);
+    },
+  });
+
+  // Filter diff items based on the toggle and search query
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
       return [];
     }
 
-    const {diff_items, size_metric_diff_item} = comparisonDataQuery.data;
+    let items = comparisonDataQuery.data.diff_items;
 
-    // Calculate summary data
-    const installSizeDiff =
-      size_metric_diff_item.head_install_size - size_metric_diff_item.base_install_size;
-    const downloadSizeDiff =
-      size_metric_diff_item.head_download_size - size_metric_diff_item.base_download_size;
-    const installSizePercentage =
-      installSizeDiff / size_metric_diff_item.base_install_size;
-    const downloadSizePercentage =
-      downloadSizeDiff / size_metric_diff_item.base_download_size;
+    // Filter by size if hideSmallChanges is enabled
+    if (hideSmallChanges) {
+      items = items.filter(item => Math.abs(item.size_diff) >= 500);
+    }
 
-    const largestChange = diff_items.sort(
-      (a, b) => Math.abs(b.size_diff) - Math.abs(a.size_diff)
-    )[0];
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      items = items.filter(item => item.path.toLowerCase().includes(query));
+    }
 
-    // Calculate metrics
-    const metrics = [
-      {
-        title: t('Install Size'),
-        head: size_metric_diff_item.head_install_size,
-        base: size_metric_diff_item.base_install_size,
-        diff:
-          size_metric_diff_item.head_install_size -
-          size_metric_diff_item.base_install_size,
-        percentageChange: installSizePercentage,
-        icon: IconCode,
-      },
-      {
-        title: t('Download Size'),
-        head: size_metric_diff_item.head_download_size,
-        base: size_metric_diff_item.base_download_size,
-        diff:
-          size_metric_diff_item.head_download_size -
-          size_metric_diff_item.base_download_size,
-        percentageChange: downloadSizePercentage,
-        icon: IconDownload,
-      },
-      {
-        title: t('Largest change'),
-        head: largestChange ? largestChange?.head_size || 0 : 0,
-        base: largestChange ? largestChange?.base_size || 0 : 0,
-        diff: largestChange ? largestChange?.size_diff || 0 : 0,
-        icon: IconFile,
-      },
-    ];
+    return items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges, searchQuery]);
 
-    return metrics;
-  }, [comparisonDataQuery.data]);
-
-  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
-    return <LoadingIndicator />;
+  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
+    return (
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        style={{minHeight: '60vh', padding: theme.space.md}}
+      >
+        <LoadingIndicator />
+      </Flex>
+    );
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
@@ -136,97 +157,156 @@ export function SizeCompareMainContent() {
     );
   }
 
+  if (!mainArtifactComparison) {
+    return (
+      <BuildError
+        title={t('No comparison data available')}
+        message={t("We don't have any comparison data available yet for these builds.")}
+      >
+        <Button
+          priority="primary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          {t('Trigger a comparison')}
+        </Button>
+      </BuildError>
+    );
+  }
+
+  if (
+    [
+      SizeAnalysisComparisonState.PROCESSING,
+      SizeAnalysisComparisonState.PENDING,
+    ].includes(mainArtifactComparison.state)
+  ) {
+    return (
+      <Flex width="100%" justify="center" align="center">
+        <BuildProcessing
+          title={t('Running diff engine')}
+          message={t('Hang tight, this may take a few minutes...')}
+        />
+      </Flex>
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.FAILED) {
+    return (
+      <BuildError
+        title={t('Comparison failed')}
+        message={
+          mainArtifactComparison.error_message ||
+          t("Something went wrong, we're looking into it.")
+        }
+      >
+        <Button
+          priority="default"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          <Flex gap="sm">
+            <IconRefresh size="sm" />
+            {t('Retry')}
+          </Flex>
+        </Button>
+      </BuildError>
+    );
+  }
+
   return (
     <Flex direction="column" gap="2xl">
-      {/* TODO: Build compare details */}
-
-      {/* Metrics Grid */}
-      <Grid columns="repeat(3, 1fr)" gap="lg">
-        {processedMetrics.map((metric, index) => {
-          let variant: 'danger' | 'success' | 'muted' = 'muted';
-          if (metric.diff > 0) {
-            variant = 'danger';
-          } else if (metric.diff < 0) {
-            variant = 'success';
-          }
-
-          return (
-            <Container
-              background="primary"
-              radius="lg"
-              padding="xl"
-              border="primary"
-              key={index}
-            >
-              <Flex direction="column" gap="md">
-                <Flex gap="sm">
-                  <metric.icon size="sm" />
-                  <Text variant="muted" size="sm">
-                    {metric.title}
-                  </Text>
-                </Flex>
-                <Flex align="end" gap="sm">
-                  <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  {/* TODO: Danger/success */}
-                  <InlineText variant={variant} size="sm">
-                    <Text variant={variant} size="sm">
-                      {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
-                      {formatBytesBase10(Math.abs(metric.diff))}
-                    </Text>
-                    {metric.percentageChange && (
-                      <InlineText variant={variant} size="sm">
-                        {'('}
-                        <PercentChange
-                          value={metric.percentageChange}
-                          minimumValue={0.001}
-                          preferredPolarity="-"
-                          colorize
-                        />
-                        {')'}
-                      </InlineText>
-                    )}
-                  </InlineText>
-                </Flex>
-                <Flex gap="xs">
-                  <Text variant="muted" size="sm">
-                    {t('Comparison:')}
-                  </Text>
-                  <Text variant="muted" size="sm" bold>
-                    {metric.base === 0
-                      ? t('Not present')
-                      : formatBytesBase10(metric.base)}
-                  </Text>
-                </Flex>
-              </Flex>
-            </Container>
+      <SizeCompareSelectedBuilds
+        headBuildDetails={sizeComparisonQuery.data.head_build_details}
+        baseBuildDetails={sizeComparisonQuery.data.base_build_details}
+        isComparing={false}
+        onClearBaseBuild={() => {
+          navigate(
+            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
           );
-        })}
-      </Grid>
+        }}
+      />
 
-      {/* Files Changed Section */}
+      <BuildComparisonMetricCards
+        comparisonResults={comparisonDataQuery.data}
+        comparisonResponse={sizeComparisonQuery.data}
+      />
+
+      {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
-          {/* TODO: Collapsable */}
-          <Flex align="center" gap="sm" padding="xl">
-            <Heading as="h2">{t('Files Changed:')}</Heading>
-            <Heading as="h2" variant="muted">
-              {comparisonDataQuery.data?.diff_items.length}
-            </Heading>
+          <Flex align="center" justify="between" padding="xl">
+            <Flex align="center" gap="sm">
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
+              </Heading>
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Button
+                priority="transparent"
+                size="sm"
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+            </Flex>
           </Flex>
-          <SizeCompareItemDiffTable
-            diffItems={comparisonDataQuery.data?.diff_items || []}
-          />
+          {isFilesExpanded && (
+            <Stack>
+              <Flex
+                align="center"
+                gap="xl"
+                paddingLeft="xl"
+                paddingRight="xl"
+                paddingBottom="xl"
+                wrap="wrap"
+              >
+                <InputGroup style={{width: '100%', minWidth: '200px'}}>
+                  <InputGroup.LeadingItems>
+                    <IconSearch />
+                  </InputGroup.LeadingItems>
+                  <InputGroup.Input
+                    placeholder={t('Search')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </InputGroup>
+                <Flex align="center" gap="lg" wrap="nowrap">
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Flex>
+              <SizeCompareItemDiffTable
+                diffItems={filteredDiffItems}
+                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+              />
+            </Stack>
+          )}
         </Flex>
       </Container>
     </Flex>
   );
 }
-
-const InlineText = styled(Text)`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;

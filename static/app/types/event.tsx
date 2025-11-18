@@ -51,16 +51,17 @@ export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom_fingerprint',
-  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
 
 interface BaseVariant {
+  contributes: boolean;
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
+  hint: string | null;
   key: string;
   type: string;
 }
@@ -89,10 +90,6 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
-interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
-  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
-}
-
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -108,7 +105,6 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
-  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 /**
@@ -524,6 +520,7 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
 }
 
 export enum UnityContextKey {
+  ACTIVE_SCENE_NAME = 'active_scene_name',
   COPY_TEXTURE_SUPPORT = 'copy_texture_support',
   EDITOR_VERSION = 'editor_version',
   INSTALL_MODE = 'install_mode',
@@ -532,6 +529,7 @@ export enum UnityContextKey {
 }
 
 export interface UnityContext {
+  [UnityContextKey.ACTIVE_SCENE_NAME]: string;
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
   [UnityContextKey.INSTALL_MODE]: string;

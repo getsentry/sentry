@@ -11,7 +11,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer, features
+from sentry import analytics, buffer
 from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -184,21 +184,6 @@ def activate_downstream_actions(
                 grouped_futures[key] = (future.callback, [rule_future])
             else:
                 grouped_futures[key][1].append(rule_future)
-
-    if features.has(
-        "organizations:workflow-engine-process-workflows",
-        rule.project.organization,
-    ):
-        if is_post_process:
-            logger_name = "post_process.process_rules.triggered_actions"
-        else:
-            logger_name = "post_process.delayed_processing.triggered_actions"
-
-        metrics.incr(
-            logger_name,
-            amount=instantiated_actions,
-            tags={"event_type": event.group.type},
-        )
 
     return grouped_futures
 

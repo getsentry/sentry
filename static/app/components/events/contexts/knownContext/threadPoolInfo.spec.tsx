@@ -83,8 +83,8 @@ describe('ThreadPoolInfoContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'threadpool_info'}
-        alias={'threadpool_info'}
+        type="threadpool_info"
+        alias="threadpool_info"
         value={{...MOCK_THREAD_POOL_INFO_CONTEXT, max_worker_threads: ''}}
       />
     );

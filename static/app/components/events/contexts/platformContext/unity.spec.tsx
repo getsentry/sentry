@@ -7,6 +7,7 @@ import {getUnityContextData} from 'sentry/components/events/contexts/platformCon
 
 const MOCK_UNITY_CONTEXT = {
   type: 'unity' as const,
+  active_scene_name: '2_NativeSupport',
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
   editor_version: '2022.1.23f1',
   install_mode: 'Store',
@@ -28,6 +29,11 @@ const MOCK_REDACTION = {
 describe('UnityContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getUnityContextData({data: MOCK_UNITY_CONTEXT})).toEqual([
+      {
+        key: 'active_scene_name',
+        subject: 'Active Scene Name',
+        value: '2_NativeSupport',
+      },
       {
         key: 'copy_texture_support',
         subject: 'Copy Texture Support',
@@ -62,8 +68,8 @@ describe('UnityContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'unity'}
-        alias={'unity'}
+        type="unity"
+        alias="unity"
         value={{...MOCK_UNITY_CONTEXT, install_mode: ''}}
       />
     );

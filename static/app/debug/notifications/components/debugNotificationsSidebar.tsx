@@ -5,10 +5,10 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useRouteSource} from 'sentry/debug/notifications/hooks/useRouteSource';
 
 export function DebugNotificationsSidebar() {
-  const location = useLocation();
+  const {routeSource, baseRoute} = useRouteSource();
   const {data: registry = {}} = useRegistry();
   return (
     <Flex direction="column" gap="xl" padding="xl 0">
@@ -26,11 +26,11 @@ export function DebugNotificationsSidebar() {
                 <Container key={registration.source} as="li">
                   <NotificationLinkButton
                     borderless
-                    active={location.query.source === registration.source}
+                    active={routeSource === registration.source}
                     to={
-                      location.query.source === registration.source
-                        ? {query: {...location.query, source: undefined}}
-                        : {query: {...location.query, source: registration.source}}
+                      routeSource === registration.source
+                        ? baseRoute
+                        : {pathname: `${baseRoute}${registration.source}/`}
                     }
                   >
                     {registration.source}

@@ -1,10 +1,10 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
-from sentry.grouping.variants import CustomFingerprintVariant
+from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,
@@ -13,7 +13,8 @@ from sentry.seer.similarity.utils import (
     _is_snipped_context_line,
     filter_null_from_string,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
+    get_token_count,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -39,8 +40,22 @@ class GetStacktraceStringTest(TestCase):
                         "hint": None,
                         "values": [
                             {
+                                "id": "type",
+                                "name": None,
+                                "contributes": True,
+                                "hint": None,
+                                "values": ["ZeroDivisionError"],
+                            },
+                            {
+                                "id": "value",
+                                "name": None,
+                                "contributes": False,
+                                "hint": None,
+                                "values": ["division by zero"],
+                            },
+                            {
                                 "id": "stacktrace",
-                                "name": "stack-trace",
+                                "name": "stacktrace",
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
@@ -82,20 +97,6 @@ class GetStacktraceStringTest(TestCase):
                                     }
                                 ],
                             },
-                            {
-                                "id": "type",
-                                "name": None,
-                                "contributes": True,
-                                "hint": None,
-                                "values": ["ZeroDivisionError"],
-                            },
-                            {
-                                "id": "value",
-                                "name": None,
-                                "contributes": False,
-                                "hint": None,
-                                "values": ["division by zero"],
-                            },
                         ],
                     }
                 ],
@@ -127,8 +128,22 @@ class GetStacktraceStringTest(TestCase):
                                 "hint": None,
                                 "values": [
                                     {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["ZeroDivisionError"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["division by zero"],
+                                    },
+                                    {
                                         "id": "stacktrace",
-                                        "name": "stack-trace",
+                                        "name": "stacktrace",
                                         "contributes": True,
                                         "hint": None,
                                         "values": [
@@ -170,20 +185,6 @@ class GetStacktraceStringTest(TestCase):
                                             }
                                         ],
                                     },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["ZeroDivisionError"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["division by zero"],
-                                    },
                                 ],
                             },
                             {
@@ -193,8 +194,22 @@ class GetStacktraceStringTest(TestCase):
                                 "hint": None,
                                 "values": [
                                     {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["Exception"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["Catch divide by zero error"],
+                                    },
+                                    {
                                         "id": "stacktrace",
-                                        "name": "stack-trace",
+                                        "name": "stacktrace",
                                         "contributes": True,
                                         "hint": None,
                                         "values": [
@@ -274,20 +289,6 @@ class GetStacktraceStringTest(TestCase):
                                             },
                                         ],
                                     },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["Exception"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["Catch divide by zero error"],
-                                    },
                                 ],
                             },
                         ],
@@ -300,7 +301,7 @@ class GetStacktraceStringTest(TestCase):
     MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
-            "description": "in-app thread stack-trace",
+            "description": "in-app thread stacktrace",
             "hash": "hash",
             "component": {
                 "id": "app",
@@ -316,7 +317,7 @@ class GetStacktraceStringTest(TestCase):
                         "values": [
                             {
                                 "id": "stacktrace",
-                                "name": "stack-trace",
+                                "name": "stacktrace",
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
@@ -406,8 +407,15 @@ class GetStacktraceStringTest(TestCase):
             "hint": None,
             "values": [
                 {
+                    "id": "value",
+                    "name": None,
+                    "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+                {
                     "id": "stacktrace",
-                    "name": "stack-trace",
+                    "name": "stacktrace",
                     "contributes": True,
                     "hint": None,
                     "values": frames,
@@ -418,13 +426,6 @@ class GetStacktraceStringTest(TestCase):
                     "contributes": True,
                     "hint": None,
                     "values": [exception_type_str],
-                },
-                {
-                    "id": "value",
-                    "name": None,
-                    "contributes": False,
-                    "hint": None,
-                    "values": [exception_value],
                 },
             ],
         }
@@ -493,13 +494,13 @@ class GetStacktraceStringTest(TestCase):
 
     def test_contributing_exception_no_frames(self) -> None:
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = []
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_contributing_exception_no_contributing_frames(self) -> None:
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = (
             self.create_frames(1, False)
         )
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
@@ -721,15 +722,15 @@ class GetStacktraceStringTest(TestCase):
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] = self.create_frames(
             20, True
         )
         # Create 20 non-contributing frames, 21-40 -> none should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, False, 21
         )
         # Create 20 contributing frames, 41-60 -> all should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, True, 41
         )
         stacktrace_str = get_stacktrace_string(data_frames)
@@ -780,7 +781,7 @@ class GetStacktraceStringTest(TestCase):
         for base64_prefix in BASE64_ENCODED_PREFIXES:
             base64_filename = f"{base64_prefix} extra content that could be long and useless"
             data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
-            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][2]["values"][0][
                 "values"
             ][1]["values"][0] = base64_filename
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
@@ -793,7 +794,7 @@ class GetStacktraceStringTest(TestCase):
     def test_replace_file_with_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][1]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -803,9 +804,9 @@ class GetStacktraceStringTest(TestCase):
     def test_no_filename_or_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete module from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -816,9 +817,9 @@ class GetStacktraceStringTest(TestCase):
         for ignored_filename in IGNORED_FILENAMES:
             exception = copy.deepcopy(self.BASE_APP_DATA)
             # delete module from the exception so we don't fall back to that
-            del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+            del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
             # replace filename with ignored value
-            exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0][
+            exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0][
                 "values"
             ][0] = ignored_filename
             stacktrace_string = get_stacktrace_string(exception)
@@ -905,7 +906,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -924,7 +925,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -949,7 +950,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -975,7 +976,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -993,7 +994,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only contributing frames are counted
         )
 
@@ -1010,7 +1011,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only in-app frames are counted
         )
 
@@ -1030,10 +1031,7 @@ class HasTooManyFramesTest(TestCase):
             contributing_variant, _ = get_contributing_variant_and_component(variants)
             assert contributing_variant.variant_name == expected_variant_name
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is True
-            )
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         self.event.data["platform"] = "java"
@@ -1048,6 +1046,204 @@ class HasTooManyFramesTest(TestCase):
         assert isinstance(contributing_variant, CustomFingerprintVariant)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because it's grouped by fingerprint
         )
+
+
+class GetTokenCountTest(TestCase):
+    def setUp(self) -> None:
+        self.event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "ZeroDivisionError('division by zero')",
+                "platform": "python",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "python_onboarding.py",
+                                        "function": "divide_by_zero",
+                                        "context_line": "divide = 1/0",
+                                        "lineno": 10,
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+
+    def test_uses_cached_stacktrace_string(self) -> None:
+        """Test that get_token_count uses cached stacktrace_string if available."""
+        # Pre-cache a stacktrace string on the event
+        cached_stacktrace = "ZeroDivisionError: division by zero\nFile cached.py, function cached_func\n    cached_line = True"
+        self.event.data["stacktrace_string"] = cached_stacktrace
+
+        # The token count should be based on the cached string, not recalculated
+        with patch(
+            "sentry.seer.similarity.utils.get_stacktrace_string"
+        ) as mock_get_stacktrace_string:
+
+            # Use empty variants since we're testing cached behavior
+            variants: dict[str, BaseVariant] = {}
+            token_count = get_token_count(self.event, variants, "python")
+            mock_get_stacktrace_string.assert_not_called()
+
+            # Exact token count for this specific string using jina tokenizer
+            assert token_count == 30
+
+            # Verify the cached string is still there (not consumed)
+            assert self.event.data.get("stacktrace_string") == cached_stacktrace
+
+    def test_different_stacktraces_give_different_counts(self) -> None:
+        """Test that different stacktraces give different token counts."""
+        # Test with cached stacktrace strings to get exact counts
+        simple_stacktrace = 'Error: simple\n  File "a.py", function a\n    x = 1'
+        complex_stacktrace = 'VeryLongExceptionNameThatShouldIncreaseTokenCount: This is a very long exception message with lots of details about what went wrong in the application when processing the user request\n  File "very_long_filename_that_describes_the_module.py", function very_descriptive_function_name_that_explains_what_it_does\n    result = some_very_complex_operation_with_many_parameters_and_calculations(param1, param2, param3)\n  File "another_long_filename.py", function another_complex_function\n    processed_data = transform_and_validate_user_input_with_comprehensive_error_handling(raw_input)'
+
+        simple_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Simple error",
+                "platform": "python",
+                "stacktrace_string": simple_stacktrace,
+            },
+        )
+
+        complex_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Complex error",
+                "platform": "python",
+                "stacktrace_string": complex_stacktrace,
+            },
+        )
+
+        simple_variants = simple_event.get_grouping_variants(normalize_stacktraces=True)
+        complex_variants = complex_event.get_grouping_variants(normalize_stacktraces=True)
+
+        simple_count = get_token_count(simple_event, simple_variants, "python")
+        complex_count = get_token_count(complex_event, complex_variants, "python")
+
+        # Exact token counts for these specific strings using jina tokenizer
+        assert simple_count == 18
+        assert complex_count == 159
+
+    def test_returns_zero_for_empty_stacktrace(self) -> None:
+        """Test that get_token_count returns 0 for events with no meaningful stacktrace."""
+        # Create an event with no stacktrace data
+        empty_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Empty event",
+                "platform": "python",
+            },
+        )
+
+        variants = empty_event.get_grouping_variants(normalize_stacktraces=True)
+        token_count = get_token_count(empty_event, variants, "python")
+
+        assert token_count == 0
+
+    def test_handles_exception_gracefully(self) -> None:
+        """Test that get_token_count handles exceptions gracefully and returns 0."""
+
+        broken_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Example event",
+                "stacktrace_string": "Example stacktrace",
+            },
+        )
+
+        # Mock tokenizer encoding to raise an exception
+        with patch("sentry.seer.similarity.utils.get_tokenizer") as mock_get_tokenizer:
+            mock_tokenizer = Mock()
+            mock_tokenizer.encode.side_effect = ValueError("Tokenizer encoding failed")
+            mock_get_tokenizer.return_value = mock_tokenizer
+
+            with patch("sentry.seer.similarity.utils.logger.exception") as mock_logger_exception:
+                # Use empty variants for this error test case
+                variants: dict[str, BaseVariant] = {}
+                token_count = get_token_count(broken_event, variants=variants, platform="python")
+                mock_logger_exception.assert_called()
+
+                assert token_count == 0
+
+    def test_handles_empty_variants_gracefully(self) -> None:
+        """Test that get_token_count handles empty variants without crashing."""
+
+        event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Example event",
+                # No cached stacktrace_string, so it will try to generate one
+            },
+        )
+
+        # Use empty variants - this should not crash
+        variants: dict[str, BaseVariant] = {}
+        token_count = get_token_count(event, variants=variants, platform="python")
+
+        # Should return 0 for empty variants
+        assert token_count == 0
+
+    def test_generates_stacktrace_string_from_variants(self) -> None:
+        """
+        Test that get_token_count correctly generates a stacktrace string from variants
+        when no cached stacktrace_string is available.
+        """
+        # Create an event with a stacktrace but NO cached stacktrace_string
+        event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "ZeroDivisionError('division by zero')",
+                "platform": "python",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "python_onboarding.py",
+                                        "function": "divide_by_zero",
+                                        "context_line": "divide = 1/0",
+                                        "lineno": 10,
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                # Explicitly no stacktrace_string cached
+            },
+        )
+
+        # Get real variants from the event
+        variants = event.get_grouping_variants(normalize_stacktraces=True)
+
+        # Call get_token_count - this should generate the stacktrace string from variants
+        token_count = get_token_count(event, variants, "python")
+
+        # The token count should be non-zero because we have a valid stacktrace
+        # Before the fix, this would return 0 due to the key mismatch bug
+        assert token_count > 0
+        # Verify we get the expected token count for this specific stacktrace
+        assert token_count == 33

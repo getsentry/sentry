@@ -47,7 +47,6 @@ import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/w
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
 import {TrendsWidget} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
-import {VitalWidget} from 'sentry/views/performance/landing/widgets/widgets/vitalWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -194,10 +193,6 @@ function WidgetContainerInner(props: Props) {
           {...widgetProps}
           titleTooltip={titleTooltip}
         />
-      );
-    case GenericPerformanceWidgetDataType.VITALS:
-      return (
-        <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return (

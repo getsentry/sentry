@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from typing import Literal, NotRequired, TypedDict
 
@@ -33,10 +33,11 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.columns import ColumnDefinitions, VirtualColumnDefinition
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import (
     can_expose_attribute,
@@ -107,6 +108,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
+        "organizations:tracemetrics-enabled",
     ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -139,37 +141,54 @@ def is_valid_item_type(item_type: str) -> bool:
 
 
 def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitions:
-    return SPAN_DEFINITIONS if item_type == SupportedTraceItemType.SPANS else OURLOG_DEFINITIONS
+    if item_type == SupportedTraceItemType.SPANS:
+        return SPAN_DEFINITIONS
+    elif item_type == SupportedTraceItemType.LOGS:
+        return OURLOG_DEFINITIONS
+    elif item_type == SupportedTraceItemType.TRACEMETRICS:
+        return TRACE_METRICS_DEFINITIONS
+
+    raise ValueError(f"Invalid item type: {item_type}")
 
 
 def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_KEYS_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_KEYS_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def resolve_attribute_values_referrer(item_type: str) -> Referrer:
-    return (
-        Referrer.API_SPANS_TAG_VALUES_RPC
-        if item_type == SupportedTraceItemType.SPANS.value
-        else Referrer.API_LOGS_TAG_VALUES_RPC
-    )
+    if item_type == SupportedTraceItemType.SPANS.value:
+        return Referrer.API_SPANS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.LOGS.value:
+        return Referrer.API_LOGS_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.TRACEMETRICS.value:
+        return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
+    else:
+        raise ValueError(f"Invalid item type: {item_type}")
 
 
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
-    key, attribute_source = translate_internal_to_public_alias(name, type, item_type)
+    public_key, public_name, attribute_source = translate_internal_to_public_alias(
+        name, type, item_type
+    )
     secondary_aliases = get_secondary_aliases(name, item_type)
 
-    if key is not None:
-        name = key
+    if public_key is not None and public_name is not None:
+        pass
     elif type == "number":
-        key = f"tags[{name},number]"
+        public_key = f"tags[{name},number]"
+        public_name = name
     else:
-        key = name
+        public_key = name
+        public_name = name
 
     serialized_source: dict[str, str | bool] = {
         "source_type": attribute_source["source_type"].value
@@ -179,9 +198,9 @@ def as_attribute_key(
 
     attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
-        "key": key,
+        "key": public_key,
         # name is what will be used to display the tag nicely in the UI
-        "name": name,
+        "name": public_name,
         # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
         # eg. sentry.environment and environment set by the user both have the same alias (name).
         "attributeSource": serialized_source,
@@ -341,11 +360,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         max_attribute_values = options.get("explore.trace-items.values.max")
 
-        definitions = (
-            SPAN_DEFINITIONS
-            if item_type == SupportedTraceItemType.SPANS.value
-            else OURLOG_DEFINITIONS
-        )
+        definitions = get_column_definitions(SupportedTraceItemType(item_type))
 
         def data_fn(offset: int, limit: int):
             executor = TraceItemAttributeValuesAutocompletionExecutor(
@@ -389,7 +404,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         self.resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=definitions
         )
-        self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
+        self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
+            key
+        )
         self.autocomplete_function: dict[str, Callable[[], list[TagValue]]] = (
             {key: self.project_id_autocomplete_function for key in self.PROJECT_ID_KEYS}
             | {key: self.project_slug_autocomplete_function for key in self.PROJECT_SLUG_KEYS}
@@ -403,10 +420,12 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
 
     def resolve_attribute_key(
-        self, key: str, snuba_params: SnubaParams
-    ) -> tuple[constants.SearchType, AttributeKey]:
-        resolved_attr, _ = self.resolver.resolve_attribute(key)
-        return resolved_attr.search_type, resolved_attr.proto_definition
+        self, key: str
+    ) -> tuple[constants.SearchType, AttributeKey, VirtualColumnDefinition | None]:
+        resolved_attr, context_definition = self.resolver.resolve_attribute(key)
+        if context_definition:
+            resolved_attr = self.resolver.map_context_to_original_column(context_definition)
+        return resolved_attr.search_type, resolved_attr.proto_definition, context_definition
 
     def execute(self) -> list[TagValue]:
         func = self.autocomplete_function.get(self.key)
@@ -605,6 +624,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
+        values: Sequence[str] = rpc_response.values
+        if self.context_definition:
+            context = self.context_definition.constructor(self.snuba_params)
+            values = [context.value_map.get(value, value) for value in values]
+
         return [
             TagValue(
                 key=self.key,
@@ -613,7 +637,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 first_seen=None,
                 last_seen=None,
             )
-            for value in rpc_response.values
+            for value in values
             if value
         ]
 

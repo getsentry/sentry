@@ -1,7 +1,6 @@
 import threading
 from typing import ClassVar
 
-from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
@@ -42,7 +41,6 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
 
     def contribute_to_class(self, model, name):
         super().contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 
     def clear_local_cache(self, **kwargs):
