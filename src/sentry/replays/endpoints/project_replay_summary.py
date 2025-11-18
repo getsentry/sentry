@@ -194,17 +194,39 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     status=404,
                 )
 
-            # We expect the start and end times to be present, and error + respond 500 if they're not.
+            # Extract start and end times from the replay (pass None if missing or invalid).
             replay = process_raw_response(snuba_response, fields=[])[0]
-            replay_start = datetime.fromisoformat(replay.get("started_at") or "")
-            replay_end = datetime.fromisoformat(replay.get("finished_at") or "")
+
+            def validate_iso_timestamp(timestamp: str | None) -> str | None:
+                """Validate that timestamp is a valid ISO format string, return None if invalid."""
+                if not timestamp:
+                    return None
+                try:
+                    datetime.fromisoformat(timestamp)
+                    return timestamp
+                except (ValueError, TypeError):
+                    return None
+
+            replay_start = validate_iso_timestamp(replay.get("started_at"))
+            replay_end = validate_iso_timestamp(replay.get("finished_at"))
+
+            if not replay_start or not replay_end:
+                logger.warning(
+                    "Replay start or end time missing or invalid.",
+                    extra={
+                        "started_at": replay.get("started_at"),
+                        "finished_at": replay.get("finished_at"),
+                        "replay_id": replay_id,
+                        "organization_id": project.organization.id,
+                    },
+                )
 
             return self.make_seer_request(
                 SEER_START_TASK_ENDPOINT_PATH,
                 {
                     "replay_id": replay_id,
-                    "replay_start": replay_start.isoformat(),
-                    "replay_end": replay_end.isoformat(),
+                    "replay_start": replay_start,
+                    "replay_end": replay_end,
                     "num_segments": num_segments,
                     "organization_id": project.organization.id,
                     "project_id": project.id,
