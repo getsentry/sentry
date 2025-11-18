@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:54.580594+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "a12d579fed7636c2a5d2fae110c95ce5"
+  hash: "63f25f224c4a56add964d1570880704c"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"
         stacktrace*
           frame (marked out of app by the client)
             filename*
@@ -51,18 +53,18 @@ app:
               "samplescript.cs"
             function*
               "SampleScript.ThrowNull ()"
-        type*
-          "NullReferenceException"
-        value (ignored because stacktrace takes precedence)
-          "Object reference not set to an instance of an object"
 --------------------------------------------------------------------------
 system:
-  hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
+  hash: "7909deacdb3f511a715efb7f2670d4dc"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"
         stacktrace*
           frame*
             filename*
@@ -104,7 +106,3 @@ system:
               "samplescript.cs"
             function*
               "SampleScript.ThrowNull ()"
-        type*
-          "NullReferenceException"
-        value (ignored because stacktrace takes precedence)
-          "Object reference not set to an instance of an object"

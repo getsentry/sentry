@@ -27,11 +27,11 @@ preprod: 0018_add_preprod_artifact_app_icon_id_field
 
 prevent: 0002_alter_integration_id_not_null
 
-releases: 0002_delete_dual_written_commit_tables
+releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1001_prevent_grouphistory_infinte_recursion
+sentry: 1003_group_history_prev_history_safe_removal
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0093_add_action_config_index
+workflow_engine: 0098_detectorgroup_detector_set_null

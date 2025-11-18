@@ -46,3 +46,21 @@ class TestQueryPreprocessing(TestCase):
             self.g2.id,
             self.g3.id,
         }
+
+    def test_threshold(self) -> None:
+        group = self.create_group(id=128)
+        i = 999
+
+        local_threshold = 200
+
+        for _ in range(local_threshold + 100):
+            old = self.create_group(id=i)
+            i += 1
+            GroupRedirect.objects.create(
+                organization_id=group.project.organization_id,
+                group_id=group.id,
+                previous_group_id=old.id,
+                date_added=datetime.now(UTC) - timedelta(hours=1),
+            )
+
+        assert len(get_all_merged_group_ids([group.id], local_threshold)) <= local_threshold + 2

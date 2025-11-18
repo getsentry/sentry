@@ -191,7 +191,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data["organization"][git_org_name] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -266,9 +266,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert (
-            resp.data["organization"][git_org_name]["repo_overrides"]["my-repo"]["bug_prediction"][
-                "sensitivity"
-            ]
+            resp.data["organization"]["repo_overrides"]["my-repo"]["bug_prediction"]["sensitivity"]
             == "high"
         )
 
@@ -346,29 +344,30 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         params = {"repoId": repo_id}
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 200
-        # Should return both orgs with their consent status
-        expected_orgs = [
-            {
-                "org_id": org_with_consent.id,
-                "org_slug": org_with_consent.slug,
-                "org_name": org_with_consent.name,
-                "has_consent": True,
-            },
-            {
-                "org_id": org_without_consent.id,
-                "org_slug": org_without_consent.slug,
-                "org_name": org_without_consent.name,
-                "has_consent": False,
-            },
-        ]
-        # Sort both lists by org_id to ensure consistent comparison
-        expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
-        actual_data = {
-            "organizations": sorted(resp.data["organizations"], key=lambda x: x["org_id"])
-        }
-        assert actual_data == {"organizations": expected_orgs}
+        with self.feature("organizations:gen-ai-features"):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+            assert resp.status_code == 200
+            # Should return both orgs with their consent status
+            expected_orgs = [
+                {
+                    "org_id": org_with_consent.id,
+                    "org_slug": org_with_consent.slug,
+                    "org_name": org_with_consent.name,
+                    "has_consent": True,
+                },
+                {
+                    "org_id": org_without_consent.id,
+                    "org_slug": org_without_consent.slug,
+                    "org_name": org_without_consent.name,
+                    "has_consent": False,
+                },
+            ]
+            # Sort both lists by org_id to ensure consistent comparison
+            expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
+            actual_data = {
+                "organizations": sorted(resp.data["organizations"], key=lambda x: x["org_id"])
+            }
+            assert actual_data == {"organizations": expected_orgs}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -396,7 +395,8 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         params = {"repoId": repo_id}
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 200
-        # Should return empty list as the repository is inactive
-        assert resp.data == {"organizations": []}
+        with self.feature("organizations:gen-ai-features"):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+            assert resp.status_code == 200
+            # Should return empty list as the repository is inactive
+            assert resp.data == {"organizations": []}

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, Self
+from typing import Any, Literal, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -138,11 +138,10 @@ class NotificationRenderedTemplate:
     expected content of the notification based on this alone, and it will be the first thing
     they see. This string should not contain any formatting, and will be displayed as is.
     """
-    body: str
+    body: list[NotificationBodyFormattingBlock]
     """
     The full contents of the notification. Put the details of the notification here, but consider
-    keeping it concise and useful to the receiver. This string should not contain any formatting,
-    and will be displayed as is.
+    keeping it concise and useful to the receiver.
     """
     actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
@@ -175,6 +174,100 @@ class NotificationRenderedTemplate:
     in the required fields, as it will make the contents of your notification vary from email to other
     providers.
     """
+
+
+class NotificationBodyTextBlockType(StrEnum):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    PLAIN_TEXT = "plain_text"
+    """
+    A plain text block.
+    """
+    BOLD_TEXT = "bold_text"
+    """
+    A bolded section of text.
+    """
+    CODE = "code"
+    """
+    Inline block of code.
+    """
+
+
+class NotificationBodyFormattingBlockType(StrEnum):
+    """
+    The type of formatting to be applied to the encapsulated blocks.
+    """
+
+    PARAGRAPH = "paragraph"
+    """
+    A block of text with a line break before.
+    """
+    CODE_BLOCK = "code_block"
+    """
+    A new section of code with a line break before.
+    """
+
+
+class NotificationBodyFormattingBlock(Protocol):
+    """
+    A block that applies formatting such as a newline and encapsulates other text.
+    """
+
+    type: NotificationBodyFormattingBlockType
+    """
+    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
+    """
+    blocks: list[NotificationBodyTextBlock]
+    """
+    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
+    """
+
+
+class NotificationBodyTextBlock(Protocol):
+    """
+    Represents a block of text to be rendered in the notification body.
+    """
+
+    type: NotificationBodyTextBlockType
+    """
+    The type of the block, such as BoldTextBlock, CodeBlock, etc.
+    """
+    text: str
+    """
+    Text to be rendered in the body.
+    """
+
+
+@dataclass
+class ParagraphBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH]
+    blocks: list[NotificationBodyTextBlock]
+
+
+@dataclass
+class CodeBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK]
+    blocks: list[NotificationBodyTextBlock]
+
+
+@dataclass
+class BoldTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
+    text: str
+
+
+@dataclass
+class CodeTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.CODE]
+    text: str
+
+
+@dataclass
+class PlainTextBlock(NotificationBodyTextBlock):
+    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT]
+    text: str
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

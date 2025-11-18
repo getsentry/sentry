@@ -301,6 +301,7 @@ function SearchQueryBuilderInputInternal({
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
+      filterItem: item,
       filterValue,
     });
   const sortedFilteredItems = useSortedFilterKeyItems({
@@ -437,6 +438,18 @@ function SearchQueryBuilderInputInternal({
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
+            return;
+          }
+
+          if (option.type === 'logic-filter') {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
             return;
           }
 

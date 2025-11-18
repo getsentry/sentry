@@ -189,7 +189,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
 
         widget.widget_type = DashboardWidgetTypes.SPANS
-        widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_4.value
+        widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
         widget.changed_reason = dropped_fields_info
         widget.save()
 

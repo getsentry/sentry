@@ -1,6 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,15 +22,14 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -53,10 +49,7 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '100');
@@ -79,15 +72,14 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -114,15 +106,14 @@ describe('Thresholds', () => {
         />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":-200,"max2":100},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -134,10 +125,7 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '0.5');
@@ -174,14 +162,14 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 

@@ -2,10 +2,15 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {
+  getPredefinedValues,
+  tokenSupportsMultipleValues,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +20,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {
+  getFieldDefinitionForDataset,
+  getFilterToken,
+} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 type FilterSelectorProps = {
@@ -48,6 +57,39 @@ function FilterSelector({
   const {dataset, tag} = globalFilter;
   const {selection} = usePageFilters();
 
+  // Retrieve full tag definition to check if it has predefined values
+  const datasetFilterKeys = searchBarData.getFilterKeys();
+  const fullTag = datasetFilterKeys[tag.key];
+  const fieldDefinition = getFieldDefinitionForDataset(tag, dataset);
+
+  const filterToken = useMemo(
+    () => getFilterToken(globalFilter, fieldDefinition),
+    [globalFilter, fieldDefinition]
+  );
+
+  const canSelectMultipleValues = filterToken
+    ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
+    : true;
+
+  // Retrieve predefined values if the tag has any
+  const predefinedValues = useMemo(() => {
+    if (!filterToken) {
+      return null;
+    }
+    const filterValue = filterToken.value.text;
+    return getPredefinedValues({
+      key: fullTag,
+      filterValue,
+      token: filterToken,
+      fieldDefinition,
+    });
+  }, [fullTag, filterToken, fieldDefinition]);
+
+  // Only fetch values if the tag has no predefined values
+  const shouldFetchValues = fullTag
+    ? !fullTag.predefined && predefinedValues === null
+    : true;
+
   const baseQueryKey = useMemo(
     () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
     [tag, selection, searchQuery]
@@ -63,33 +105,58 @@ function FilterSelector({
       return result ?? [];
     },
     placeholderData: keepPreviousData,
-    enabled: true,
+    enabled: shouldFetchValues,
     staleTime: 5 * 60 * 1000,
   });
 
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo(() => {
-    const optionMap = new Map<string, {label: string; value: string}>();
-    const addOption = (value: string) => optionMap.set(value, {label: value, value});
-
-    // Filter values fetched using getTagValues
-    fetchedFilterValues?.forEach(addOption);
-    // Filter values in the global filter
-    activeFilterValues.forEach(addOption);
-    // Staged filter values inside the filter selector
-    stagedFilterValues.forEach(addOption);
-
-    // Allow setting a custom filter value based on search input
-    if (searchQuery) {
-      addOption(searchQuery);
+    if (predefinedValues && !canSelectMultipleValues) {
+      return predefinedValues.flatMap(section =>
+        section.suggestions.map(suggestion => ({
+          label: suggestion.value,
+          value: suggestion.value,
+        }))
+      );
     }
 
-    // Reversing the order allows effectively deduplicating the values
-    // and avoid losing their original order from the fetched results
-    // (e.g. without this, all staged values would be grouped at the top of the list)
-    return Array.from(optionMap.values()).reverse();
-  }, [fetchedFilterValues, activeFilterValues, stagedFilterValues, searchQuery]);
+    const optionMap = new Map<string, SelectOption<string>>();
+    const fixedOptionMap = new Map<string, SelectOption<string>>();
+    const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
+      map.set(value, {label: value, value});
+
+    // Filter values in the global filter
+    activeFilterValues.forEach(value => addOption(value, optionMap));
+
+    // Predefined values
+    predefinedValues?.forEach(suggestionSection => {
+      suggestionSection.suggestions.forEach(suggestion =>
+        addOption(suggestion.value, optionMap)
+      );
+    });
+    // Filter values fetched using getTagValues
+    fetchedFilterValues?.forEach(value => addOption(value, optionMap));
+
+    // Allow setting a custom filter value based on search input
+    if (searchQuery && !optionMap.has(searchQuery)) {
+      addOption(searchQuery, fixedOptionMap);
+    }
+    // Staged filter values inside the filter selector
+    stagedFilterValues.forEach(value => {
+      if (!optionMap.has(value)) {
+        addOption(value, fixedOptionMap);
+      }
+    });
+    return [...Array.from(fixedOptionMap.values()), ...Array.from(optionMap.values())];
+  }, [
+    fetchedFilterValues,
+    predefinedValues,
+    activeFilterValues,
+    stagedFilterValues,
+    searchQuery,
+    canSelectMultipleValues,
+  ]);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues)) {
@@ -98,19 +165,77 @@ function FilterSelector({
     setActiveFilterValues(opts);
 
     // Build filter condition string
-    const filterValue = () => {
-      if (opts.length === 0) {
-        return '';
-      }
-      const mutableSearch = new MutableSearch('');
-      return mutableSearch.addFilterValueList(tag.key, opts).toString();
-    };
+    const mutableSearch = new MutableSearch('');
 
+    let filterValue = '';
+    if (opts.length === 1) {
+      filterValue = mutableSearch.addFilterValue(tag.key, opts[0]!).toString();
+    } else if (opts.length > 1) {
+      filterValue = mutableSearch.addFilterValueList(tag.key, opts).toString();
+    }
     onUpdateFilter({
       ...globalFilter,
-      value: filterValue(),
+      value: filterValue,
     });
   };
+
+  const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
+    <Flex gap="md">
+      {activeFilterValues.length > 0 && (
+        <StyledButton
+          aria-label={t('Clear Selections')}
+          size="zero"
+          borderless
+          onClick={() => {
+            setSearchQuery('');
+            handleChange([]);
+            closeOverlay();
+          }}
+        >
+          {t('Clear')}
+        </StyledButton>
+      )}
+      <StyledButton
+        aria-label={t('Remove Filter')}
+        size="zero"
+        onClick={() => onRemoveFilter(globalFilter)}
+      >
+        {t('Remove Filter')}
+      </StyledButton>
+    </Flex>
+  );
+
+  const renderFilterSelectorTrigger = () => (
+    <FilterSelectorTrigger
+      globalFilter={globalFilter}
+      activeFilterValues={initialValues}
+      options={options}
+      queryResult={queryResult}
+    />
+  );
+
+  if (!canSelectMultipleValues) {
+    return (
+      <CompactSelect
+        multiple={false}
+        disabled={false}
+        options={options}
+        value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
+        onChange={option => {
+          const newValue = option?.value;
+          handleChange(newValue ? [newValue] : []);
+        }}
+        onClose={() => {
+          setStagedFilterValues([]);
+        }}
+        menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+        menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
+        triggerProps={{
+          children: renderFilterSelectorTrigger(),
+        }}
+      />
+    );
+  }
 
   return (
     <HybridFilter
@@ -126,7 +251,8 @@ function FilterSelector({
       onStagedValueChange={value => {
         setStagedFilterValues(value);
       }}
-      sizeLimit={10}
+      sizeLimit={30}
+      maxMenuWidth={500}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
@@ -136,40 +262,9 @@ function FilterSelector({
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
       menuTitle={t('%s Filter', getDatasetLabel(dataset))}
-      menuHeaderTrailingItems={({closeOverlay}: any) => (
-        <Flex gap="md">
-          {activeFilterValues.length > 0 && (
-            <StyledButton
-              aria-label={t('Clear Selections')}
-              size="zero"
-              borderless
-              onClick={() => {
-                setSearchQuery('');
-                handleChange([]);
-                closeOverlay();
-              }}
-            >
-              {t('Clear')}
-            </StyledButton>
-          )}
-          <StyledButton
-            aria-label={t('Remove Filter')}
-            size="zero"
-            onClick={() => onRemoveFilter(globalFilter)}
-          >
-            {t('Remove Filter')}
-          </StyledButton>
-        </Flex>
-      )}
+      menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
       triggerProps={{
-        children: (
-          <FilterSelectorTrigger
-            globalFilter={globalFilter}
-            activeFilterValues={initialValues}
-            options={options}
-            queryResult={queryResult}
-          />
-        ),
+        children: renderFilterSelectorTrigger(),
       }}
     />
   );

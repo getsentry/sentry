@@ -10,9 +10,12 @@ import {
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {WEB_VITALS_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -71,6 +74,7 @@ export function ClientTable() {
   existingQuery.addFilterValues('!sentry.origin', ['auto.db.*', 'auto'], false);
 
   const {query} = useTransactionNameQuery();
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query: `${existingQuery.formatString()} ${query ?? ''}`.trim(),
     fields: [
@@ -85,20 +89,25 @@ export function ClientTable() {
       'count_if(span.op,equals,navigation)',
       'count_if(span.op,equals,pageload)',
     ],
+    sort: tableSort,
     referrer: Referrer.CLIENT_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 

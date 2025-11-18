@@ -134,7 +134,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         operator: str,
         value,
         project_ids: Sequence[int] | None = None,
-        environments: list[str] | None = None,
+        environments: Sequence[str | int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
@@ -722,7 +722,7 @@ class Release(Model):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-            ReleaseHeadCommit.objects.get(
+            ReleaseHeadCommit.objects.filter(
                 organization_id=self.organization_id, release=self
             ).delete()
             ReleaseCommit.objects.filter(

@@ -61,7 +61,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
 
         response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
         if config:
-            response_data["organization"][git_organization_name] = config.data
+            response_data["organization"] = config.data
 
         return Response(response_data, status=200)
 
@@ -103,6 +103,6 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
         )
 
         response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
-        response_data["organization"][git_organization_name] = request.data
+        response_data["organization"] = request.data
 
         return Response(response_data, status=200)

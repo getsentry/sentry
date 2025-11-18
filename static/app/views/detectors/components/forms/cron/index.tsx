@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -31,6 +32,7 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
       <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
     </FormStack>
   );

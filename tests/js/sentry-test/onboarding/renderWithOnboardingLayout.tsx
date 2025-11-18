@@ -1,7 +1,8 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
@@ -41,14 +42,16 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, project, router} = initializeOrg({
-    organization: renderOptions.organization,
-    router: {
-      location: {
-        query: selectedOptions,
-      },
+  const organization = OrganizationFixture(renderOptions.organization);
+  const project = ProjectFixture({organization});
+
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`,
+      query: selectedOptions,
     },
-  });
+    route: `/organizations/:orgId/projects/:projectId/getting-started/`,
+  };
 
   const projectKey = 'test-project-key-id';
 
@@ -87,8 +90,7 @@ export function renderWithOnboardingLayout<
     />,
     {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     }
   );
 }

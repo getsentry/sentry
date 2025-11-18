@@ -642,6 +642,7 @@ describe('CustomerOverview', () => {
     const organization = OrganizationFixture({});
     const subscription = SubscriptionFixture({
       organization,
+      plan: 'am3_f',
     });
 
     subscription.planDetails = {

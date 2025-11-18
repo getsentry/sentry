@@ -755,7 +755,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
-            "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,
             "gitlabPRBot": False,
@@ -850,7 +849,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
-        assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
         assert "to {}".format(data["gitlabOpenPRBot"]) in log.data["gitlabOpenPRBot"]
@@ -1531,6 +1529,22 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.login_as(user)
 
         self.get_error_response(org.slug, status_code=403)
+
+    def test_delete_relocation_pending(self) -> None:
+        org = self.create_organization(
+            owner=self.user, status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        )
+        with self.tasks():
+            self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
     def test_cannot_remove_default(self) -> None:
         with unguarded_write(using=router.db_for_write(Organization)):

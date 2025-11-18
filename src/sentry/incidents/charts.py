@@ -136,20 +136,17 @@ def fetch_metric_issue_open_periods(
     open_period_identifier: int,
     time_period: Mapping[str, str],
     user: User | RpcUser | None = None,
+    time_window: int = 0,
 ) -> list[Any]:
     detector_id = open_period_identifier
     try:
-        if features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            organization,  # Metric issue single processing
-        ):
-            # temporarily fetch the alert rule ID from the detector ID
-            alert_rule_detector = AlertRuleDetector.objects.filter(
-                detector_id=open_period_identifier, alert_rule_id__isnull=False
-            ).first()
-            if alert_rule_detector is not None:
-                # open_period_identifier is a metric detector ID -> get the alert rule ID
-                open_period_identifier = alert_rule_detector.alert_rule_id
+        # temporarily fetch the alert rule ID from the detector ID
+        alert_rule_detector = AlertRuleDetector.objects.filter(
+            detector_id=open_period_identifier, alert_rule_id__isnull=False
+        ).first()
+        if alert_rule_detector is not None:
+            # open_period_identifier is a metric detector ID -> get the alert rule ID
+            open_period_identifier = alert_rule_detector.alert_rule_id
 
         if features.has(
             "organizations:new-metric-issue-charts",
@@ -161,6 +158,7 @@ def fetch_metric_issue_open_periods(
                 path=f"/organizations/{organization.slug}/open-periods/",
                 params={
                     "detectorId": detector_id,
+                    "bucketSize": time_window,
                     **time_period,
                 },
             )
@@ -177,8 +175,10 @@ def fetch_metric_issue_open_periods(
                     **time_period,
                 },
             )
-        # TODO (mifu67): temporary log that I'm going to remove after debugging. Get the data for old and new
-        if organization.slug == "mf-test-n7":
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            organization,
+        ):
             logger.info(
                 "fetching metric issue open periods",
                 extra={
@@ -257,11 +257,12 @@ def build_metric_alert_chart(
         # But we don't need it to render the chart, so it's fine for now.
         chart_data_detector = {
             "detector": detector_serialized_response,
-            "open_periods": fetch_metric_issue_open_periods(
+            "openPeriods": fetch_metric_issue_open_periods(
                 organization,
                 alert_context.action_identifier_id,
                 time_period,
                 user,
+                snuba_query.time_window,
             ),
         }
     else:
@@ -352,7 +353,10 @@ def build_metric_alert_chart(
             chart_data.update(chart_data_detector)
         else:
             chart_data.update(chart_data_alert_rule)
-        if organization.slug == "mf-test-n7":
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            organization,
+        ):
             logger.info(
                 "passed chart data",
                 extra={

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -7,19 +7,23 @@ import {Text} from '@sentry/scraps/text';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
-import DetectorsList from 'sentry/views/detectors/list';
+import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
+import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
+import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
+import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
-  useMonitorViewContext,
   type MonitorListAdditionalColumn,
   type MonitorViewContextValue,
-  type RenderVisualizationParams,
 } from 'sentry/views/detectors/monitorViewContext';
 import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
@@ -107,43 +111,57 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
   },
 ];
 
+const TITLE = t('Cron Monitors');
+const DESCRIPTION = t(
+  "Cron monitors check in on recurring jobs and tell you if they're running on schedule, failing, or succeeding."
+);
+const DOCS_URL = 'https://docs.sentry.io/product/crons/';
+
 export default function CronDetectorsList() {
-  const parentContext = useMonitorViewContext();
+  const detectorListQuery = useDetectorListQuery({
+    detectorFilter: 'monitor_check_in_failure',
+  });
 
-  const renderVisualization = useCallback(({detector}: RenderVisualizationParams) => {
-    if (!detector) {
-      return (
-        <Cell
-          data-column-name="visualization"
-          padding="lg 0"
-          borderLeft="muted"
-          height="100%"
-        >
-          <CheckInPlaceholder />
-        </Cell>
-      );
-    }
-    if (detector.type === 'monitor_check_in_failure') {
-      return <VisualizationCell detector={detector} />;
-    }
-    return null;
-  }, []);
-
-  const contextValue = useMemo<MonitorViewContextValue>(
-    () => ({
-      ...parentContext,
-      detectorFilter: 'monitor_check_in_failure',
-      renderVisualization,
-      showTimeRangeSelector: true,
-      emptyState: <CronsLandingPanel />,
+  const contextValue = useMemo<MonitorViewContextValue>(() => {
+    return {
       additionalColumns: ADDITIONAL_COLUMNS,
-    }),
-    [parentContext, renderVisualization]
-  );
+      renderVisualization: ({detector}) => {
+        if (!detector) {
+          return (
+            <Cell
+              data-column-name="visualization"
+              padding="lg 0"
+              borderLeft="muted"
+              height="100%"
+            >
+              <CheckInPlaceholder />
+            </Cell>
+          );
+        }
+        if (detector.type === 'monitor_check_in_failure') {
+          return <VisualizationCell detector={detector} />;
+        }
+        return null;
+      },
+    };
+  }, []);
 
   return (
     <MonitorViewContext.Provider value={contextValue}>
-      <DetectorsList />
+      <SentryDocumentTitle title={TITLE}>
+        <WorkflowEngineListLayout
+          actions={<DetectorListActions detectorType="monitor_check_in_failure" />}
+          title={TITLE}
+          description={DESCRIPTION}
+          docsUrl={DOCS_URL}
+        >
+          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListContent
+            {...detectorListQuery}
+            emptyState={<CronsLandingPanel />}
+          />
+        </WorkflowEngineListLayout>
+      </SentryDocumentTitle>
     </MonitorViewContext.Provider>
   );
 }

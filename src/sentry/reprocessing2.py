@@ -97,7 +97,7 @@ from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -114,12 +114,10 @@ logger = logging.getLogger("sentry.reprocessing")
 
 # Group-related models are only a few per-group and are migrated at
 # once.
-GROUP_MODELS_TO_MIGRATE_RAW = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
-
 # If we were to move groupinbox to the new, empty group, inbox would show the
 # empty, unactionable group while it is reprocessing. Let post-process take
 # care of assigning GroupInbox like normally.
-GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE_RAW if x != models.GroupInbox)
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in DIRECT_GROUP_RELATED_MODELS if x != models.GroupInbox)
 
 # Event attachments and group reports are per-event. This means that:
 #
@@ -414,11 +412,7 @@ def _maybe_copy_attachment_into_cache(
         else:
             # otherwise, we store it in objectstore
             with attachment.getfile() as fp:
-                stored_id = (
-                    get_attachments_client()
-                    .for_project(project.organization_id, project.id)
-                    .put(fp)
-                )
+                stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
             # but we then also make that storage permanent, as otherwise
             # the codepaths won’t be cleaning up this stored file.
             # essentially this means we are moving the file from the previous storage

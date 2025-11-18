@@ -465,7 +465,6 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
-    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
 ) -> StreamProcessor:
@@ -536,6 +535,9 @@ def get_stream_processor(
 
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
+
+        # Set commit interval to 1 second (1000ms)
+        consumer_config["auto.commit.interval.ms"] = 1000
 
         return consumer_config
 
@@ -628,7 +630,6 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
-        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 
@@ -666,7 +667,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         # Update the min_partition global tag based on current partition assignment
         if partitions:
             min_partition = min(p.index for p in partitions)
-            add_global_tags(min_partition=str(min_partition))
+            add_global_tags(tags={"min_partition": str(min_partition)})
 
         return self.inner.create_with_partitions(commit, partitions)
 

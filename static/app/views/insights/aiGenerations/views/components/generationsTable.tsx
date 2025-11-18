@@ -1,97 +1,148 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import type {NewQuery} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
-import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  AI_GENERATIONS_PAGE_FILTER,
+  INPUT_OUTPUT_FIELD,
+  type GenerationFields,
+} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
+import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const INITIAL_COLUMN_ORDER = [
-  {key: SpanFields.SPAN_ID, name: 'Span ID', width: 100},
-  {
-    key: SpanFields.GEN_AI_REQUEST_MESSAGES,
-    name: 'Input / Output',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: SpanFields.GEN_AI_REQUEST_MODEL,
-    name: 'Model',
-    width: 200,
-  },
-  {key: SpanFields.TIMESTAMP, name: 'Timestamp'},
-] as const;
+const columnWidths: Partial<Record<GenerationFields, number>> = {
+  [SpanFields.ID]: 100,
+  [INPUT_OUTPUT_FIELD]: COL_WIDTH_UNDEFINED,
+  [SpanFields.GEN_AI_REQUEST_MODEL]: 200,
+};
 
-function getLastUserMessage(messages?: string) {
+const prettyFieldNames: Partial<Record<GenerationFields, string>> = {
+  [SpanFields.GEN_AI_REQUEST_MODEL]: t('Model'),
+};
+
+const DEFAULT_SORT: Sort = {field: SpanFields.TIMESTAMP, kind: 'desc'};
+
+function getLastInputMessage(messages?: string) {
   if (!messages) {
     return null;
   }
   try {
     const messagesArray = JSON.parse(messages);
-    const lastUserMessage = messagesArray.findLast(
-      (message: any) => message.role === 'user'
-    )?.content;
-    return typeof lastUserMessage === 'string'
-      ? lastUserMessage
-      : lastUserMessage[0].text.toString();
+    const lastInputMessage =
+      messagesArray.findLast((message: any) => message.role === 'user')?.content ||
+      messagesArray.findLast((message: any) => message.role === 'system')?.content;
+    return typeof lastInputMessage === 'string'
+      ? lastInputMessage
+      : lastInputMessage[0].text.toString();
   } catch (error) {
     return messages;
   }
 }
 
+const REQUIRED_FIELDS = [
+  SpanFields.SPAN_STATUS,
+  SpanFields.PROJECT,
+  SpanFields.TIMESTAMP,
+  SpanFields.TRACE,
+  SpanFields.ID,
+  SpanFields.GEN_AI_REQUEST_MESSAGES,
+  SpanFields.GEN_AI_RESPONSE_TEXT,
+  SpanFields.GEN_AI_RESPONSE_OBJECT,
+];
+
 export function GenerationsTable() {
   const {openTraceViewDrawer} = useTraceViewDrawer({});
-  const query = useCombinedQuery(
-    // Only show generation spans that result in a response to the user's message
-    `${getAIGenerationsFilter()}  AND !span.op:gen_ai.embeddings`
-  );
-
+  const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
   const {cursor} = useTableCursor();
+  const {tableSort} = useTableSort(DEFAULT_SORT);
+  const [fields] = useFieldsQueryParam();
+  const location = useLocation();
+  const organization = useOrganization();
+  const theme = useTheme();
+  const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
-  const {data, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
-    {
-      search: query,
-      fields: [
-        SpanFields.TRACE,
-        SpanFields.SPAN_ID,
-        SpanFields.SPAN_STATUS,
-        SpanFields.SPAN_DESCRIPTION,
-        SpanFields.GEN_AI_REQUEST_MESSAGES,
-        SpanFields.GEN_AI_RESPONSE_TEXT,
-        SpanFields.GEN_AI_RESPONSE_OBJECT,
-        SpanFields.GEN_AI_REQUEST_MODEL,
-        SpanFields.TIMESTAMP,
-      ],
-      sorts: [{field: SpanFields.TIMESTAMP, kind: 'desc'}],
-      cursor,
-      keepPreviousData: true,
-      limit: 20,
-    },
-    Referrer.GENERATIONS_TABLE
-  );
+  const fieldsToQuery = useMemo(() => {
+    return [
+      ...fields.filter(
+        (field): field is SpanFields =>
+          field !== INPUT_OUTPUT_FIELD && !REQUIRED_FIELDS.includes(field)
+      ),
+    ];
+  }, [fields]);
 
-  type TableData = (typeof data)[number];
+  const eventView = useMemo(() => {
+    const queryFields = [...REQUIRED_FIELDS, ...fieldsToQuery];
+
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'AI Generations',
+      fields: queryFields,
+      orderby: [`${tableSort.kind === 'desc' ? '-' : ''}${tableSort.field}`],
+      query,
+      version: 2,
+      dataset: DiscoverDatasets.SPANS,
+    };
+
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+  }, [fieldsToQuery, query, selection, tableSort.field, tableSort.kind]);
+
+  const {
+    data = [],
+    meta,
+    isLoading,
+    error,
+    pageLinks,
+    isPlaceholderData,
+  } = useSpansQuery<Array<Record<string, any>>>({
+    eventView,
+    cursor,
+    limit: 20,
+    referrer: Referrer.GENERATIONS_TABLE,
+    initialData: [],
+    allowAggregateConditions: false,
+    trackResponseAnalytics: false,
+    queryExtras: {caseInsensitive},
+  });
+
+  type TableData = Record<string, any>;
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<keyof TableData>, dataRow: TableData) => {
-      if (column.key === SpanFields.SPAN_ID) {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
+      if (column.key === SpanFields.ID) {
         return (
           <div>
             <Button
@@ -99,23 +150,23 @@ export function GenerationsTable() {
               onClick={() => {
                 openTraceViewDrawer(
                   dataRow.trace,
-                  dataRow.span_id,
+                  dataRow.id,
                   getTimeStampFromTableDateField(dataRow.timestamp)
                 );
               }}
             >
-              {getShortEventId(dataRow.span_id)}
+              {getShortEventId(dataRow.id)}
             </Button>
           </div>
         );
       }
 
-      if (column.key === SpanFields.GEN_AI_REQUEST_MESSAGES) {
+      if (column.key === INPUT_OUTPUT_FIELD) {
         const noValueFallback = <Text variant="muted">–</Text>;
         const statusValue = dataRow[SpanFields.SPAN_STATUS];
         const isError = statusValue && statusValue !== 'ok' && statusValue !== 'unknown';
 
-        const userMessage = getLastUserMessage(
+        const userMessage = getLastInputMessage(
           dataRow[SpanFields.GEN_AI_REQUEST_MESSAGES]
         );
         const outputValue =
@@ -174,40 +225,59 @@ export function GenerationsTable() {
       if (column.key === SpanFields.TIMESTAMP) {
         return (
           <TextAlignRight>
-            <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+            <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
           </TextAlignRight>
         );
       }
-      return <div>{dataRow[column.key]}</div>;
+      const fieldRenderer = getFieldRenderer(column.key, meta!);
+      return fieldRenderer(dataRow, {
+        location,
+        organization,
+        theme,
+        projectSlug: dataRow.project,
+      });
     },
-    [openTraceViewDrawer]
+    [openTraceViewDrawer, meta, location, organization, theme]
   );
 
-  const renderHeadCell = useCallback((column: GridColumnOrder<keyof TableData>) => {
-    return (
-      <HeadSortCell
-        align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
-        sortKey={column.key}
-        forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnOrder<string>) => {
+      return (
+        <HeadSortCell
+          align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
+          currentSort={tableSort}
+          sortKey={column.key}
+          forceCellGrow={column.key === INPUT_OUTPUT_FIELD}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   return (
-    <PlatformInsightsTable
-      data={data}
-      stickyHeader
-      isLoading={isLoading}
-      error={error}
-      initialColumnOrder={INITIAL_COLUMN_ORDER as any}
-      pageLinks={pageLinks}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-      }}
-      isPlaceholderData={isPlaceholderData}
-    />
+    <Container>
+      <PlatformInsightsTable
+        key={fields.join(',')}
+        data={data}
+        stickyHeader
+        isLoading={isLoading}
+        error={error}
+        initialColumnOrder={fields.map(
+          (field): GridColumnOrder<string> => ({
+            key: field,
+            name: prettyFieldNames[field] ?? field,
+            width: columnWidths[field] ?? COL_WIDTH_UNDEFINED,
+          })
+        )}
+        pageLinks={pageLinks}
+        grid={{
+          renderBodyCell,
+          renderHeadCell,
+        }}
+        isPlaceholderData={isPlaceholderData}
+      />
+    </Container>
   );
 }

@@ -12,8 +12,7 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
   extends Omit<
@@ -35,7 +34,6 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
   initialColumnOrder,
   ...props
 }: PlatformInsightsTableProps<DataRow>) {
-  const {sortField, sortOrder} = useTableSortParams();
   const {setCursor} = useTableCursor();
 
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -56,7 +54,8 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
             onResizeColumn: handleResizeColumn,
           }}
           columnOrder={columnOrder}
-          columnSortBy={[{key: sortField as keyof DataRow, order: sortOrder}]}
+          // Unused in the grid component
+          columnSortBy={[]}
           minimumColWidth={COL_WIDTH_MINIMUM}
           emptyMessage={
             <EmptyMessage size="large" icon={<IconSearch size="xl" />}>

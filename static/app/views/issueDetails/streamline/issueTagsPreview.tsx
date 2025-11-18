@@ -6,6 +6,7 @@ import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
@@ -90,6 +91,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = formatVersion(value.name);
     } else if (tag.key === 'device') {
       name = <DeviceName value={value.name} />;
+    } else if (value.name === '') {
+      name = <Text variant="muted">{t('(empty)')}</Text>;
     }
 
     return {
@@ -190,7 +193,7 @@ function DistributionsDrawerButton({
         replace
         disabled={tags.length === 0}
       >
-        {includeFeatureFlags
+        {includeFeatureFlags && !isScreenSmall
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })

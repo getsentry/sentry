@@ -1,44 +1,59 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api import client
+from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
 
 
-def execute_trace_query_chart(
+def execute_table_query(
     *,
     org_id: int,
-    query: str,
+    dataset: str,
+    fields: list[str],
+    per_page: int,
     stats_period: str,
-    y_axes: list[str],
-    group_by: list[str] | None = None,
+    query: str | None = None,
+    sort: str | None = None,
     project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
 ) -> dict[str, Any] | None:
     """
-    Execute a trace query to get chart/timeseries data by calling the events-stats endpoint.
+    Execute a query to get table data by calling the events endpoint.
+
+    Arg notes:
+        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
+        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
+        If neither project_ids nor project_slugs are provided, all active projects will be queried.
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -46,29 +61,100 @@ def execute_trace_query_chart(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    # Use provided project_ids or get all project IDs for the organization
-    if project_ids is None:
-        project_ids = list(organization.project_set.values_list("id", flat=True))
-        if not project_ids:
-            logger.warning("No projects found for organization", extra={"org_id": org_id})
-            return None
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+    # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    if sort:
+        # Auto-select sort field to avoid snuba errors.
+        sort_field = sort.lstrip("-")
+        if sort_field not in fields:
+            fields.append(sort_field)
 
     params: dict[str, Any] = {
-        "query": query,
+        "dataset": dataset,
+        "field": fields,
+        "query": query or None,
+        "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
+        "per_page": per_page,
         "statsPeriod": stats_period,
-        "yAxis": y_axes,
         "project": project_ids,
-        "dataset": "spans",
+        "projectSlug": project_slugs,
+        "sampling": sampling_mode,
         "referrer": Referrer.SEER_RPC,
-        "transformAliasToInputFormat": "1",  # Required for RPC datasets
     }
 
-    # Add group_by if provided (for top events)
-    if group_by and len(group_by) > 0:
-        params["topEvents"] = 5
-        params["field"] = group_by
-        params["excludeOther"] = "0"  # Include "Other" series
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
 
+    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events/",
+        params=params,
+    )
+    return {"data": resp.data["data"]}
+
+
+def execute_timeseries_query(
+    *,
+    org_id: int,
+    dataset: str,
+    y_axes: list[str],
+    group_by: list[str] | None = None,
+    query: str,
+    stats_period: str,
+    interval: str | None = None,
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    partial: Literal["0", "1"] | None = None,
+) -> dict[str, Any] | None:
+    """
+    Execute a query to get chart/timeseries data by calling the events-stats endpoint.
+
+    Arg notes:
+        interval: The interval of each bucket. Valid stats period format, e.g. '3h'.
+        partial: Whether to allow partial buckets if the last bucket does not align with rollup.
+        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
+        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
+        If neither project_ids nor project_slugs are provided, all active projects will be queried.
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    group_by = group_by or []
+    if not project_ids and not project_slugs:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
+    # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "yAxis": y_axes,
+        "field": y_axes + group_by,
+        "query": query,
+        "statsPeriod": stats_period,
+        "interval": interval,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "sampling": sampling_mode,
+        "referrer": Referrer.SEER_RPC,
+        "partial": partial,
+        "excludeOther": "0",  # Always include "Other" series
+    }
+
+    # Add top_events if group_by is provided
+    if group_by and get_dataset(dataset) in TOP_EVENTS_DATASETS:
+        params["topEvents"] = 5
+
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
     resp = client.get(
         auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
         user=None,
@@ -99,79 +185,6 @@ def execute_trace_query_chart(
     return data
 
 
-def execute_trace_query_table(
-    *,
-    org_id: int,
-    query: str,
-    stats_period: str,
-    sort: str,
-    group_by: list[str] | None = None,
-    y_axes: list[str] | None = None,
-    per_page: int = 50,
-    mode: Literal["spans", "aggregates"] = "spans",
-    project_ids: list[int] | None = None,
-) -> dict[str, Any] | None:
-    """
-    Execute a trace query to get table data by calling the events endpoint.
-    """
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        logger.warning("Organization not found", extra={"org_id": org_id})
-        return None
-
-    # Use provided project_ids or get all project IDs for the organization
-    if project_ids is None:
-        project_ids = list(organization.project_set.values_list("id", flat=True))
-        if not project_ids:
-            logger.warning("No projects found for organization", extra={"org_id": org_id})
-            return None
-
-    # Determine fields based on mode
-    if mode == "aggregates":
-        # Aggregates mode: group_by fields + aggregate functions
-        fields = []
-        if group_by:
-            fields.extend(group_by)
-        if y_axes:
-            fields.extend(y_axes)
-    else:
-        # Samples mode: default span fields
-        fields = [
-            "id",
-            "span.op",
-            "span.description",
-            "span.duration",
-            "transaction",
-            "timestamp",
-            "project",
-            "trace",
-        ]
-
-    params: dict[str, Any] = {
-        "query": query,
-        "statsPeriod": stats_period,
-        "field": fields,
-        "sort": sort if sort else ("-timestamp" if not group_by else None),
-        "per_page": per_page,
-        "project": project_ids,
-        "dataset": "spans",
-        "referrer": Referrer.SEER_RPC,
-        "transformAliasToInputFormat": "1",  # Required for RPC datasets
-    }
-
-    # Remove None values
-    params = {k: v for k, v in params.items() if v is not None}
-
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events/",
-        params=params,
-    )
-    return resp.data
-
-
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     """
     Get the full span waterfall and connected errors for a trace.
@@ -197,6 +210,9 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     # Get full trace id if a short id is provided. Queries EAP for a single span.
     # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
+    # TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
+    # This can be done with a materialized string column for the first 8 chars and a secondary index.
+    # Alternatively we can try more consistent ways of passing the full ID to Explorer.
     if len(trace_id) < 32:
         full_trace_id = None
         now = datetime.now(timezone.utc)
@@ -280,6 +296,198 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
+def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[str, Any]:
+    """
+    Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
+
+    This function:
+    1. Queries EAP spans across all projects in the organization
+    2. Uses 14-day sliding windows to search up to 90 days back
+    3. Finds spans with matching profile_id/profiler_id and aggregates timestamps
+    4. Fetches the raw profile data from the profiling service
+    5. Converts to execution tree and formats as ASCII flamegraph
+
+    Args:
+        profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
+        organization_id: Organization ID to search within
+
+    Returns:
+        Dictionary with either:
+        - Success: {"formatted_profile": str, "metadata": dict}
+        - Failure: {"error": str}
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Organization not found",
+            extra={"organization_id": organization_id},
+        )
+        return {"error": "Organization not found"}
+
+    # Get all projects for the organization
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+
+    if not projects:
+        logger.warning(
+            "rpc_get_profile_flamegraph: No projects found for organization",
+            extra={"organization_id": organization_id},
+        )
+        return {"error": "No projects found for organization"}
+
+    # Search up to 90 days back using 14-day sliding windows
+    now = datetime.now(UTC)
+    window_days = 14
+    max_days = 90
+
+    full_profile_id: str | None = None
+    full_profiler_id: str | None = None
+    project_id: int | None = None
+    min_start_ts: float | None = None
+    max_end_ts: float | None = None
+
+    # Slide back in time in 14-day windows
+    for days_back in range(0, max_days, window_days):
+        window_end = now - timedelta(days=days_back)
+        window_start = now - timedelta(days=min(days_back + window_days, max_days))
+
+        snuba_params = SnubaParams(
+            start=window_start,
+            end=window_end,
+            projects=projects,
+            organization=organization,
+        )
+
+        # Query with aggregation to get profile metadata
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)",
+            selected_columns=[
+                "profile.id",
+                "profiler.id",
+                "project.id",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+            ],
+            orderby=[],
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+            sampling_mode="NORMAL",
+        )
+
+        data = result.get("data")
+        logger.info(
+            "rpc_get_profile_flamegraph: ran spans query in window",
+            extra={
+                "profile_id": profile_id,
+                "organization_id": organization_id,
+                "data": data,
+                "window_start": window_start.isoformat(),
+                "window_end": window_end.isoformat(),
+            },
+        )
+        if data:
+            row = data[0]
+            full_profile_id = row.get("profile.id")
+            full_profiler_id = row.get("profiler.id")
+            project_id = row.get("project.id")
+            min_start_ts = row.get("min(precise.start_ts)")
+            max_end_ts = row.get("max(precise.finish_ts)")
+
+            logger.info(
+                "rpc_get_profile_flamegraph: found profile in window",
+                extra={
+                    "profile_id": profile_id,
+                    "organization_id": organization_id,
+                    "data": data,
+                    "window_start": window_start.isoformat(),
+                    "window_end": window_end.isoformat(),
+                    "full_profile_id": full_profile_id,
+                    "full_profiler_id": full_profiler_id,
+                    "project_id": project_id,
+                    "min_start_ts": min_start_ts,
+                    "max_end_ts": max_end_ts,
+                },
+            )
+            break
+
+    # Determine profile type and actual ID to use
+    is_continuous = bool(full_profiler_id and not full_profile_id)
+    actual_profile_id = full_profiler_id or full_profile_id
+
+    if not actual_profile_id:
+        logger.info(
+            "rpc_get_profile_flamegraph: Profile not found",
+            extra={"profile_id": profile_id, "organization_id": organization_id},
+        )
+        return {"error": "Profile not found in the last 90 days"}
+    if not project_id:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Could not find project id for profile",
+            extra={"profile_id": profile_id, "organization_id": organization_id},
+        )
+        return {"error": "Project not found"}
+
+    logger.info(
+        "rpc_get_profile_flamegraph: Found profile",
+        extra={
+            "profile_id": actual_profile_id,
+            "project_id": project_id,
+            "is_continuous": is_continuous,
+            "min_start_ts": min_start_ts,
+            "max_end_ts": max_end_ts,
+        },
+    )
+
+    # Fetch the profile data
+    profile_data = fetch_profile_data(
+        profile_id=actual_profile_id,
+        organization_id=organization_id,
+        project_id=project_id,
+        start_ts=min_start_ts,
+        end_ts=max_end_ts,
+        is_continuous=is_continuous,
+    )
+
+    if not profile_data:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Failed to fetch profile data from profiling service",
+            extra={"profile_id": actual_profile_id, "project_id": project_id},
+        )
+        return {"error": "Failed to fetch profile data from profiling service"}
+
+    # Convert to execution tree (returns dicts, not Pydantic models)
+    execution_tree = _convert_profile_to_execution_tree(profile_data)
+
+    if not execution_tree:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Empty execution tree",
+            extra={"profile_id": actual_profile_id, "project_id": project_id},
+        )
+        return {"error": "Failed to generate execution tree from profile data"}
+
+    # Extract thread_id from profile data
+    profile = profile_data.get("profile") or profile_data.get("chunk", {}).get("profile")
+    samples = profile.get("samples", []) if profile else []
+    thread_id = str(samples[0]["thread_id"]) if samples else None
+
+    return {
+        "execution_tree": execution_tree,
+        "metadata": {
+            "profile_id": actual_profile_id,
+            "project_id": project_id,
+            "is_continuous": is_continuous,
+            "start_ts": min_start_ts,
+            "end_ts": max_end_ts,
+            "thread_id": thread_id,
+        },
+    }
+
+
 def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
     """
     Look up a repository by full name (owner/repo-name) that the org has access to.
@@ -346,7 +554,8 @@ def _get_issue_event_timeseries(
     first_seen_delta: timedelta,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
-    Get event counts over time for an issue by calling the events-stats endpoint.
+    Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
+    a stats period and interval based on the issue's first seen date and EVENT_TIMESERIES_RESOLUTIONS.
     """
 
     stats_period, interval = None, None
@@ -358,35 +567,21 @@ def _get_issue_event_timeseries(
     stats_period = stats_period or "90d"
     interval = interval or "3d"
 
-    params: dict[str, Any] = {
-        "dataset": "issuePlatform",
-        "query": f"issue:{issue_short_id}",
-        "yAxis": "count()",
-        "partial": "1",
-        "statsPeriod": stats_period,
-        "interval": interval,
-        "project": project_id,
-        "referrer": Referrer.SEER_RPC,
-    }
-
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events-stats/",
-        params=params,
+    data = execute_timeseries_query(
+        org_id=organization.id,
+        dataset="issuePlatform",
+        y_axes=["count()"],
+        group_by=[],
+        query=f"issue:{issue_short_id}",
+        stats_period=stats_period,
+        interval=interval,
+        project_ids=[project_id],
+        partial="1",
     )
-    if resp.status_code != 200 or not (resp.data or {}).get("data"):
-        logger.warning(
-            "Failed to get event counts for issue",
-            extra={
-                "organization_slug": organization.slug,
-                "project_id": project_id,
-                "issue_id": issue_short_id,
-            },
-        )
-        return None
 
-    return {"count()": {"data": resp.data["data"]}}, stats_period, interval
+    if data is None:
+        return None
+    return data, stats_period, interval
 
 
 def get_issue_details(
@@ -507,3 +702,165 @@ def get_issue_details(
         "project_id": int(serialized_group["project"]["id"]),
         "project_slug": serialized_group["project"]["slug"],
     }
+
+
+def get_replay_metadata(
+    *,
+    replay_id: str,
+    organization_id: int,
+    project_slug: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get the metadata for a replay through an aggregate replay event query.
+
+    Args:
+        replay_id: The ID of the replay. Either a valid UUID or a 8-character hex string prefix. If known, the full ID is recommended for performance.
+        organization_id: The ID of the organization the replay belongs to.
+        project_slug: The slug of the project to query. If not provided, all projects in the organization will be queried.
+
+    Returns:
+        A dict containing the metadata for the replay, or None if it's not found.
+        The return type should conform to ReplayDetailsResponse (may have extra fields).
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "replay_id": replay_id},
+        )
+        return None
+
+    if not features.has("organizations:session-replay", organization):
+        return None
+
+    p_ids_and_slugs = list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", "slug")
+    )
+
+    if not p_ids_and_slugs:
+        logger.warning(
+            "No projects found for given organization and project slug",
+            extra={"organization_id": organization_id, "project_slug": project_slug},
+        )
+        return None
+
+    start, end = default_start_end_dates()
+
+    if len(replay_id) < 32:
+        # Subquery for the full replay ID.
+        full_replay_id = query_replay_id_by_prefix(
+            project_ids=[id for id, _ in p_ids_and_slugs],
+            replay_id_prefix=replay_id,
+            start=start,
+            end=end,
+            organization=organization,
+        )
+        if not full_replay_id:
+            logger.warning(
+                "Replay short ID lookup failed",
+                extra={"replay_id": replay_id, "organization_id": organization_id},
+            )
+            return None
+
+        replay_id = full_replay_id
+
+    try:
+        replay_id = str(
+            uuid.UUID(replay_id)
+        )  # Normalizing with dashes is recommended for the query.
+    except ValueError:
+        logger.warning(
+            "Invalid replay ID", extra={"replay_id": replay_id, "organization_id": organization_id}
+        )
+        return None
+
+    snuba_response = query_replay_instance(
+        project_id=[id for id, _ in p_ids_and_slugs],
+        replay_id=replay_id,
+        start=start,
+        end=end,
+        organization=organization,
+        request_user_id=None,
+    )
+    response = process_raw_response(
+        snuba_response,
+        fields=[],
+    )
+    if not response:
+        logger.warning(
+            "Replay instance not found - no data returned from query",
+            extra={
+                "replay_id": replay_id,
+                "organization_id": organization_id,
+            },
+        )
+        return None
+
+    # Add project_slug field.
+    result = cast(dict[str, Any], response[0])
+    result["project_slug"] = next(
+        filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
+    )[1]
+    return result
+
+
+def get_trace_item_attributes(
+    *,
+    org_id: int,
+    project_id: int,
+    trace_id: str,
+    item_id: str,
+    item_type: str,
+) -> dict[str, Any]:
+    """
+    Fetch all attributes for a given trace item (span, metric, log, etc.).
+
+    This is a generic version that supports all trace item types.
+
+    Args:
+        org_id: Organization ID
+        project_id: Project ID
+        trace_id: Trace ID
+        item_id: The item ID (span_id, metric_id, log_id, etc.)
+        item_type: The trace item type as a string ("spans", "tracemetrics", "logs", etc.)
+
+    Returns:
+        Dict with "attributes" key containing all attributes for the item
+    """
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "get_trace_item_attributes: Organization not found",
+            extra={"org_id": org_id},
+        )
+        return {"attributes": []}
+
+    try:
+        project = Project.objects.get(id=project_id, organization=organization)
+    except Project.DoesNotExist:
+        logger.warning(
+            "get_trace_item_attributes: Project not found",
+            extra={"org_id": org_id, "project_id": project_id},
+        )
+        return {"attributes": []}
+
+    params = {
+        "item_type": item_type,
+        "referrer": Referrer.SEER_RPC.value,
+        "trace_id": trace_id,
+    }
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/projects/{organization.slug}/{project.slug}/trace-items/{item_id}/",
+        params=params,
+    )
+
+    return {"attributes": resp.data["attributes"]}

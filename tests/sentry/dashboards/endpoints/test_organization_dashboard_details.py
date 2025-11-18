@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.discover.models import DatasetSourcesTypes
+from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -1513,6 +1514,79 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Invalid interval" in response.content
+
+    def test_add_widget_e2e_test_with_translation(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "transaction widget to translate",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "widgetType": "transaction-like",
+                    "limit": 3,
+                    "queries": [
+                        {
+                            "fields": [
+                                "title",
+                                "total.count",
+                                "count()",
+                                "count_web_vitals(measurements.lcp,good)",
+                            ],
+                            "columns": ["title", "total.count"],
+                            "aggregates": ["count()", "count_web_vitals(measurements.lcp,good)"],
+                            "conditions": "title:foo",
+                            "orderby": "-count_web_vitals(measurements.lcp,good)",
+                            "order": 0,
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert DashboardWidget.objects.filter(title="transaction widget to translate").exists()
+        widget = DashboardWidget.objects.filter(title="transaction widget to translate").first()
+        assert widget is not None
+        assert widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.USER.value
+        assert widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
+        assert widget.interval == "5m"
+
+        widget_queries = DashboardWidgetQuery.objects.filter(widget=widget)
+        assert widget_queries.count() == 1
+        widget_query = widget_queries.first()
+        assert widget_query is not None
+        assert widget_query.fields == [
+            "title",
+            "total.count",
+            "count()",
+            "count_web_vitals(measurements.lcp,good)",
+        ]
+        assert widget_query.aggregates == ["count()", "count_web_vitals(measurements.lcp,good)"]
+        assert widget_query.columns == ["title", "total.count"]
+        assert widget_query.conditions == "title:foo"
+        assert widget_query.orderby == "-count_web_vitals(measurements.lcp,good)"
+
+        translated_widget = translate_dashboard_widget(widget)
+        assert translated_widget.widget_type == DashboardWidgetTypes.SPANS
+        assert (
+            translated_widget.dataset_source
+            == DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
+        )
+        assert translated_widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
+        assert translated_widget.interval == "5m"
+
+        translated_widget_queries = DashboardWidgetQuery.objects.filter(widget=translated_widget)
+        assert translated_widget_queries.count() == 1
+        translated_widget_query = translated_widget_queries.first()
+        assert translated_widget_query is not None
+        assert translated_widget_query.fields == ["transaction", "count(span.duration)"]
+        assert translated_widget_query.aggregates == ["count(span.duration)"]
+        assert translated_widget_query.columns == ["transaction"]
+        assert translated_widget_query.conditions == "(transaction:foo) AND is_transaction:1"
+        assert translated_widget_query.orderby == ""
 
     def test_update_widget_title(self) -> None:
         data = {
@@ -3274,6 +3348,67 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Field links are only supported for table widgets" in response.content
+
+    def test_does_not_update_if_linked_dashboard_does_not_appear_in_fields(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "user.email"],
+                            "columns": ["user.email"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not appear in the fields of the query" in response.content
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
