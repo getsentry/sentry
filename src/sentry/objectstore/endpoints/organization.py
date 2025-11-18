@@ -6,7 +6,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.endpoints.chunk import ChunkUploadPermission
 from sentry.models.organization import Organization
 
 
@@ -18,7 +17,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    permission_classes = OrganizationEndpoint.permission_classes + (ChunkUploadPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
