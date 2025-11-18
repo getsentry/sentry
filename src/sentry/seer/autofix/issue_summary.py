@@ -116,24 +116,22 @@ def _apply_user_preference_upper_bound(
     # If fixability is None but user preference exists, use user preference
     if fixability_suggestion is None and user_preference is not None:
         return AutofixStoppingPoint(user_preference)
-
     # If fixability exists but user preference is None, use fixability
-    if fixability_suggestion is not None and user_preference is None:
+    elif fixability_suggestion is not None and user_preference is None:
         return fixability_suggestion
-
     # If both are None, return ROOT_CAUSE as default
-    if fixability_suggestion is None and user_preference is None:
+    elif fixability_suggestion is None and user_preference is None:
         return AutofixStoppingPoint.ROOT_CAUSE
-
     # Both are not None - return the more conservative one
-    user_stopping_point = AutofixStoppingPoint(user_preference)
-
-    return (
-        fixability_suggestion
-        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
-        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
-        else user_stopping_point
-    )
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
 
 
 @instrumented_task(
