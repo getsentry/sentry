@@ -45,7 +45,7 @@ export interface BuildDetailsVcsInfo {
   provider?: string | null;
 }
 
-interface BuildDetailsSizeInfoSizeMetric {
+export interface BuildDetailsSizeInfoSizeMetric {
   metrics_artifact_type: MetricsArtifactType;
   install_size_bytes: number;
   download_size_bytes: number;

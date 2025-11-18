@@ -25,6 +25,7 @@ interface ComparisonMetric {
   head: number;
   icon: ReactNode;
   key: string;
+  labelTooltip: string;
   percentageChange: number;
   title: string;
 }
@@ -47,6 +48,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
         key: 'install',
         title: labels.installSizeLabel,
         icon: <IconCode size="sm" />,
+        labelTooltip: labels.installSizeDescription,
         head: size_metric_diff_item.head_install_size,
         base: size_metric_diff_item.base_install_size,
         diff:
@@ -63,6 +65,7 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
         key: 'download',
         title: labels.downloadSizeLabel,
         icon: <IconDownload size="sm" />,
+        labelTooltip: labels.downloadSizeDescription,
         head: size_metric_diff_item.head_download_size,
         base: size_metric_diff_item.base_download_size,
         diff:
@@ -88,7 +91,12 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
         const {variant, icon} = getTrend(metric.diff);
 
         return (
-          <MetricCard key={metric.key} icon={metric.icon} label={metric.title}>
+          <MetricCard
+            key={metric.key}
+            icon={metric.icon}
+            label={metric.title}
+            labelTooltip={metric.labelTooltip}
+          >
             <Stack gap="xs">
               <Flex align="end" gap="sm" wrap="wrap">
                 <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
