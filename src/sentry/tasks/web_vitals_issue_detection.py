@@ -112,7 +112,7 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
-    sent_counts = defaultdict[WebVitalIssueDetectionGroupingType, int](int)
+    sent_counts: dict[WebVitalIssueDetectionGroupingType, int] = defaultdict(int)
     rejected_no_trace_count = 0
     for web_vital_issue_group in web_vital_issue_groups:
         scores = web_vital_issue_group["scores"]
@@ -131,8 +131,9 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
             start_time_delta=DEFAULT_START_TIME_DELTA,
         )
         if trace:
-            send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
-            sent_counts[web_vital_issue_group["vital_grouping"]] += 1
+            sent = send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
+            if sent:
+                sent_counts[web_vital_issue_group["vital_grouping"]] += 1
         else:
             rejected_no_trace_count += 1
 
@@ -243,10 +244,10 @@ def get_highest_opportunity_page_vitals_for_project(
             samples_count = row.get(f"count_scores(measurements.score.{vital})")
             score_under_threshold = score is not None and score < SCORE_THRESHOLD
             enough_samples = samples_count is not None and samples_count >= samples_count_threshold
-            if not enough_samples:
-                rejected_insufficient_samples_count += 1
-                continue
             if score is not None and score_under_threshold and p75_value is not None:
+                if not enough_samples:
+                    rejected_insufficient_samples_count += 1
+                    continue
                 if (VITAL_GROUPING_MAP[vital], name) not in web_vital_issue_groups:
                     web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)] = {
                         "transaction": name,
