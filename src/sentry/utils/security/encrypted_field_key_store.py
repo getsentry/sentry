@@ -37,6 +37,9 @@ class FernetKeyStore:
         if not path.exists() or not path.is_dir():
             raise ImproperlyConfigured(f"Key directory not found: {path}")
 
+        # Clear the keys dictionary to avoid stale data
+        cls._keys = {}
+
         for file_path in path.iterdir():
             if file_path.is_file():
                 # Skip hidden files
