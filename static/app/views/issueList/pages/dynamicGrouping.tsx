@@ -20,13 +20,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 // Import the cluster summaries data
 import clusterSummariesData from './cluster_summaries_v7_full.json';
 
+interface AssignedEntity {
+  email: string | null;
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface ClusterSummary {
-  cluster_avg_similarity: number;
+  assignedTo: AssignedEntity[];
+  cluster_avg_similarity: number | null;
   cluster_id: number;
-  cluster_min_similarity: number;
-  cluster_size: number;
+  cluster_min_similarity: number | null;
+  cluster_size: number | null;
   description: string;
-  fixability_score: number;
+  fixability_score: number | null;
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
@@ -103,9 +111,9 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
           )}
         </ClusterTitle>
         <IssueCount>
-          <CountNumber>{cluster.cluster_size}</CountNumber>
+          <CountNumber>{cluster.cluster_size ?? cluster.group_ids.length}</CountNumber>
           <CountLabel size="xs" variant="muted">
-            {tn('issue', 'issues', cluster.cluster_size)}
+            {tn('issue', 'issues', cluster.cluster_size ?? cluster.group_ids.length)}
           </CountLabel>
         </IssueCount>
       </CardHeader>
@@ -154,15 +162,19 @@ function DynamicGrouping() {
   // Filter and sort clusters by fixability score (descending)
   const filteredAndSortedClusters = useMemo(() => {
     return [...clusterSummariesData]
-      .filter((cluster: ClusterSummary) => cluster.cluster_size >= minClusterSize)
+      .filter(
+        (cluster: ClusterSummary) =>
+          (cluster.cluster_size ?? cluster.group_ids.length) >= minClusterSize
+      )
       .sort(
-        (a: ClusterSummary, b: ClusterSummary) => b.fixability_score - a.fixability_score
+        (a: ClusterSummary, b: ClusterSummary) =>
+          (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
       );
   }, [minClusterSize]);
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
-      (sum: number, c: ClusterSummary) => sum + c.cluster_size,
+      (sum: number, c: ClusterSummary) => sum + (c.cluster_size ?? c.group_ids.length),
       0
     );
   }, [filteredAndSortedClusters]);
