@@ -1,8 +1,8 @@
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,7 +11,6 @@ import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -27,9 +26,10 @@ type ErrorDetectorFormData = {
 function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
+  const theme = useTheme();
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
         <Section title={t('Detect')}>
           <Text as="p">
@@ -93,7 +93,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </Section>
       </Container>
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
@@ -158,10 +158,3 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     </EditLayout>
   );
 }
-
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;
