@@ -1,10 +1,11 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
@@ -17,8 +18,7 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// Import the cluster summaries data
-import clusterSummariesData from './cluster_summaries_v7_full.json';
+const STORAGE_KEY = 'dynamic-grouping-cluster-data';
 
 interface AssignedEntity {
   email: string | null;
@@ -158,10 +158,54 @@ function ClusterCard({cluster}: {cluster: ClusterSummary}) {
 function DynamicGrouping() {
   const organization = useOrganization();
   const [minClusterSize, setMinClusterSize] = useState(1);
+  const [jsonInput, setJsonInput] = useState('');
+  const [clusterData, setClusterData] = useState<ClusterSummary[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [showInput, setShowInput] = useState(true);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setClusterData(parsed);
+        setJsonInput(stored);
+        setShowInput(false);
+      } catch {
+        // If stored data is invalid, clear it
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  const handleJsonSubmit = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) {
+        setParseError(t('JSON must be an array of cluster summaries'));
+        return;
+      }
+      setClusterData(parsed);
+      setParseError(null);
+      setShowInput(false);
+      localStorage.setItem(STORAGE_KEY, jsonInput);
+    } catch (error) {
+      setParseError(error instanceof Error ? error.message : t('Invalid JSON format'));
+    }
+  };
+
+  const handleClear = () => {
+    setClusterData([]);
+    setJsonInput('');
+    setParseError(null);
+    setShowInput(true);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
   // Filter and sort clusters by fixability score (descending)
   const filteredAndSortedClusters = useMemo(() => {
-    return [...clusterSummariesData]
+    return [...clusterData]
       .filter(
         (cluster: ClusterSummary) =>
           (cluster.cluster_size ?? cluster.group_ids.length) >= minClusterSize
@@ -170,7 +214,7 @@ function DynamicGrouping() {
         (a: ClusterSummary, b: ClusterSummary) =>
           (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
       );
-  }, [minClusterSize]);
+  }, [clusterData, minClusterSize]);
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
@@ -194,40 +238,81 @@ function DynamicGrouping() {
       />
 
       <PageHeader>
-        <Heading as="h1">{t('Dynamic Grouping')}</Heading>
-        <Subheading variant="muted">
-          {t('AI-powered clustering of related issues across your organization.')}
-        </Subheading>
+        <HeaderContent>
+          <HeaderText>
+            <Heading as="h1">{t('Dynamic Grouping')}</Heading>
+            <Subheading variant="muted">
+              {t('AI-powered clustering of related issues across your organization.')}
+            </Subheading>
+          </HeaderText>
+          {clusterData.length > 0 && !showInput && (
+            <HeaderActions gap="sm">
+              <Button size="sm" onClick={() => setShowInput(true)}>
+                {t('Update Data')}
+              </Button>
+              <Button size="sm" priority="danger" onClick={handleClear}>
+                {t('Clear')}
+              </Button>
+            </HeaderActions>
+          )}
+        </HeaderContent>
       </PageHeader>
 
-      <FilterBar gap="md" align="center" justify="between">
-        <FilterControls gap="sm" align="center">
-          <Text size="sm" variant="muted">
-            {t('Minimum issues per cluster:')}
-          </Text>
-          <NumberInput
-            min={1}
-            value={minClusterSize}
-            onChange={value => setMinClusterSize(value ?? 1)}
-            aria-label={t('Minimum issues per cluster')}
-            size="sm"
-          />
-        </FilterControls>
-        <ResultsSummary size="sm" variant="muted">
-          {tn(
-            'Viewing %s issue in %s cluster',
-            'Viewing %s issues across %s clusters',
-            totalIssues,
-            filteredAndSortedClusters.length
-          )}
-        </ResultsSummary>
-      </FilterBar>
+      {showInput || clusterData.length === 0 ? (
+        <InputSection>
+          <Flex direction="column" gap="md">
+            <Text size="sm" variant="muted">
+              {t('Paste cluster summaries JSON data below:')}
+            </Text>
+            <JsonTextarea
+              value={jsonInput}
+              onChange={e => setJsonInput(e.target.value)}
+              placeholder={t('Paste JSON array here...')}
+              rows={10}
+            />
+            {parseError && <Alert type="error">{parseError}</Alert>}
+            <Flex gap="sm">
+              <Button priority="primary" onClick={handleJsonSubmit}>
+                {t('Load Data')}
+              </Button>
+              {clusterData.length > 0 && (
+                <Button onClick={() => setShowInput(false)}>{t('Cancel')}</Button>
+              )}
+            </Flex>
+          </Flex>
+        </InputSection>
+      ) : (
+        <Fragment>
+          <FilterBar gap="md" align="center" justify="between">
+            <FilterControls gap="sm" align="center">
+              <Text size="sm" variant="muted">
+                {t('Minimum issues per cluster:')}
+              </Text>
+              <NumberInput
+                min={1}
+                value={minClusterSize}
+                onChange={value => setMinClusterSize(value ?? 1)}
+                aria-label={t('Minimum issues per cluster')}
+                size="sm"
+              />
+            </FilterControls>
+            <ResultsSummary size="sm" variant="muted">
+              {tn(
+                'Viewing %s issue in %s cluster',
+                'Viewing %s issues across %s clusters',
+                totalIssues,
+                filteredAndSortedClusters.length
+              )}
+            </ResultsSummary>
+          </FilterBar>
 
-      <CardsGrid>
-        {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
-          <ClusterCard key={cluster.cluster_id} cluster={cluster} />
-        ))}
-      </CardsGrid>
+          <CardsGrid>
+            {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
+              <ClusterCard key={cluster.cluster_id} cluster={cluster} />
+            ))}
+          </CardsGrid>
+        </Fragment>
+      )}
     </PageContainer>
   );
 }
@@ -241,6 +326,21 @@ const PageContainer = styled('div')`
 
 const PageHeader = styled('div')`
   margin-bottom: ${space(4)};
+`;
+
+const HeaderContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: ${space(2)};
+`;
+
+const HeaderText = styled('div')`
+  flex: 1;
+`;
+
+const HeaderActions = styled(Flex)`
+  flex-shrink: 0;
 `;
 
 const Subheading = styled(Text)`
@@ -407,6 +507,38 @@ const FilterControls = styled(Flex)`
 
 const ResultsSummary = styled(Text)`
   white-space: nowrap;
+`;
+
+const InputSection = styled('div')`
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(3)};
+  margin-bottom: ${space(3)};
+`;
+
+const JsonTextarea = styled('textarea')`
+  width: 100%;
+  min-height: 300px;
+  padding: ${space(1.5)};
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: ${p => p.theme.purple300};
+    box-shadow: 0 0 0 1px ${p => p.theme.purple300};
+  }
+
+  &::placeholder {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 export default DynamicGrouping;
