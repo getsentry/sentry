@@ -70,7 +70,7 @@ function MetricsSectionContent({
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const {result} = useMetricsIssueSection({traceId});
+  const {result, error} = useMetricsIssueSection({traceId});
   const abbreviatedTableData = result.data
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
@@ -105,7 +105,7 @@ function MetricsSectionContent({
     [group, event, project, openDrawer, organization, traceId]
   );
 
-  if (!result.data || result.data.length === 0) {
+  if (!result.data || result.data.length === 0 || error) {
     // Don't show the metrics section if there are no metrics
     return null;
   }
