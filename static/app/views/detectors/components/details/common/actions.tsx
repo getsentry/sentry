@@ -13,8 +13,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useDeleteDetectorMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorMutation';
 import {
-  makeMonitorBasePathname,
   makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
@@ -106,10 +106,10 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
       priority: 'danger',
       onConfirm: async () => {
         await deleteDetector(detector.id);
-        navigate(makeMonitorBasePathname(organization.slug));
+        navigate(makeMonitorTypePathname(organization.slug, detector.type));
       },
     });
-  }, [deleteDetector, detector.id, navigate, organization.slug]);
+  }, [deleteDetector, detector.id, detector.type, navigate, organization.slug]);
 
   const canEdit = useCanEditDetector({
     detectorType: detector.type,
