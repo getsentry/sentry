@@ -327,7 +327,6 @@ module = [
     "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
     "tests.sentry.api.helpers.test_group_index",
-    "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
     "arg-type",

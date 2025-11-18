@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypeGuard
 
 from django.utils import timezone
 
@@ -38,7 +38,15 @@ class OccurrenceTestMixin:
         assert o1.priority == o2.priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
-        kwargs: IssueOccurrenceData = {
+        def _is_issue_occurrence_data(d: dict[str, Any]) -> TypeGuard[IssueOccurrenceData]:
+            for k in IssueOccurrenceData.__required_keys__:
+                if k in {"assignee", "priority"}:
+                    continue
+                if k not in d.keys():
+                    return False
+            return True
+
+        kwargs = {
             "id": uuid.uuid4().hex,
             "project_id": 1,
             "event_id": uuid.uuid4().hex,
@@ -56,9 +64,10 @@ class OccurrenceTestMixin:
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
-        kwargs.update(overrides)  # type: ignore[typeddict-item]
-
+        kwargs.update(overrides)
         process_occurrence_data(kwargs)
+
+        assert _is_issue_occurrence_data(kwargs)
         return kwargs
 
     def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
@@ -88,7 +97,15 @@ class OccurrenceTestMixin:
 
 class StatusChangeTestMixin:
     def build_statuschange_data(self, **overrides: Any) -> StatusChangeMessageData:
-        kwargs: StatusChangeMessageData = {
+        def _is_status_change_message_data(d: dict[str, Any]) -> TypeGuard[StatusChangeMessageData]:
+            for k in StatusChangeMessageData.__required_keys__:
+                if k in {"update_date"}:
+                    continue
+                if k not in d.keys():
+                    return False
+            return True
+
+        kwargs = {
             "id": uuid.uuid4().hex,
             "project_id": 1,
             "fingerprint": ["some-fingerprint"],
@@ -97,9 +114,10 @@ class StatusChangeTestMixin:
             "detector_id": None,
             "activity_data": {"test": "test"},
         }
-        kwargs.update(overrides)  # type: ignore[typeddict-item]
-
+        kwargs.update(overrides)
         process_occurrence_data(kwargs)
+
+        assert _is_status_change_message_data(kwargs)
         return kwargs
 
     def build_statuschange(self, **overrides: Any) -> StatusChangeMessage:
@@ -144,6 +162,8 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         if release:
             event_data["release"] = release
             event_data["tags"].extend([("release", release)])
+
+        assert hasattr(self, "store_event")
 
         event = self.store_event(
             data=event_data,
