@@ -109,6 +109,6 @@ def test_export_replay_blob_data() -> None:
 
     # Assert a job is created for each retention-period.
     assert len(jobs) == 3
-    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1"
-    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1"
-    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1"
+    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1/"
+    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1/"
+    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1/"
