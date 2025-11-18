@@ -116,8 +116,14 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
+    API_EXPLORE_SPANS_RAW_COUNT_HIGH_ACCURACY = "api.explore.spans.raw-count.high-accuracy"
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
+        "api.explore.tracemetrics.raw-count.high-accuracy"
+    )
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
@@ -832,9 +838,6 @@ class Referrer(StrEnum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
-    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
-        "tagstore.get_groups_user_counts.open_pr_comment"
-    )
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
     TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
     TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (

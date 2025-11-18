@@ -68,15 +68,12 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     if not all([frames, stacks, samples]):
         return []
 
-    # Find the MainThread ID
-    thread_metadata = profile.get("thread_metadata", {}) or {}
-    main_thread_id = next(
-        (key for key, value in thread_metadata.items() if value.get("name") == "MainThread"), None
-    )
-    if (
-        not main_thread_id and len(thread_metadata) == 1
-    ):  # if there is only one thread, use that as the main thread
-        main_thread_id = list(thread_metadata.keys())[0]
+    # Use the thread ID from the first sample as this should be the one with the most application logic
+    if samples:
+        main_thread_id = str(samples[0]["thread_id"])
+    else:
+        # No samples - can't determine thread
+        main_thread_id = None
 
     def _get_elapsed_since_start_ns(
         sample: dict[str, Any], all_samples: list[dict[str, Any]]

@@ -11,9 +11,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -44,6 +47,7 @@ const rightAlignColumns = new Set([
 
 export function CommandsTable() {
   const {query} = useTransactionNameQuery();
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query: `span.op:console.command* ${query ?? ''}`.trim(),
     fields: [
@@ -55,20 +59,25 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
+    sort: tableSort,
     referrer: Referrer.PATHS_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'command'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'command'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 

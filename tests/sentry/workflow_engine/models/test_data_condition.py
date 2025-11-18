@@ -5,7 +5,7 @@ import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
 
 
@@ -18,7 +18,7 @@ class GetConditionResultTest(TestCase):
     def test_str(self) -> None:
         dc = self.create_data_condition(condition_result="wrong")
         with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
-            assert dc.get_condition_result() is None
+            assert dc.get_condition_result() == ConditionError(msg="Invalid condition result")
             assert mock_logger.error.call_args[0][0] == "Invalid condition result"
 
     def test_int(self) -> None:
@@ -94,7 +94,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result="wrong"
         )
-        assert dc.evaluate_value(2) is None
+        assert dc.evaluate_value(2) == ConditionError(msg="Invalid condition result")
 
     def test_condition_evaluation__data_condition_exception(self) -> None:
         def evaluate_value(value: int, comparison: int) -> bool:

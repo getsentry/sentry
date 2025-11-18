@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.266082+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -24,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "b8baf791d22ac902d5f59a7eedd844fd"
+    hash: "11e3dca34353528edf7608d914e134f9"
     contributing component: exception
     hint: None
     root_component:
@@ -43,6 +41,3 @@ contributing variants:
             frame*
               function*
                 "glTexSubImage2D"
-            frame*
-              function*
-                "abort"

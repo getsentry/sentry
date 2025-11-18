@@ -518,6 +518,17 @@ export function getTraceViewBreadcrumbs({
         },
         leafBreadcrumb,
       ];
+    case TraceViewSources.TRACE_METRICS:
+      return [
+        {
+          label: t('Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
+            location.query
+          ),
+        },
+        leafBreadcrumb,
+      ];
     default:
       return [
         {

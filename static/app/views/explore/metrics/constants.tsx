@@ -38,6 +38,7 @@ export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TRACE_FLAGS,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
   TraceMetricKnownFieldKey.CLIENT_SAMPLE_RATE,
 ];
 
@@ -45,6 +46,7 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
@@ -72,8 +74,15 @@ export const TraceSamplesTableEmbeddedColumns: Array<
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
   TraceMetricKnownFieldKey.TIMESTAMP,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_NAME,
+  TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+];
+
+export const NoPaddingColumns: VirtualTableSampleColumnKey[] = [
+  VirtualTableSampleColumnKey.EXPAND_ROW,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
 ];
 
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
@@ -153,10 +162,6 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
     {
       label: 'avg',
       value: 'avg',
-    },
-    {
-      label: 'last',
-      value: 'last',
     },
     {
       label: 'per_second',

@@ -16,7 +16,7 @@ from sentry.seer.fetch_issues.by_function_name import (
 from sentry.seer.fetch_issues.utils import RepoProjects, get_repo_and_projects
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
-from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
+from tests.sentry.seer.fetch_issues.test_by_text_query import CreateEventTestCase
 
 
 class TestLeftTruncatedPaths(CreateEventTestCase):
@@ -398,6 +398,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Basic structure checks
+        assert "error" not in seer_response
         assert "issues" in seer_response
         assert "issues_full" in seer_response
         assert len(seer_response["issues"]) > 0

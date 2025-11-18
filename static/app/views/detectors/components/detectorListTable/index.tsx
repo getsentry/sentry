@@ -31,7 +31,7 @@ import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {
   useMonitorViewContext,
   type MonitorListAdditionalColumn,

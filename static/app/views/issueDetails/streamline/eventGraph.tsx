@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   useCallback,
   useEffect,
@@ -495,9 +494,9 @@ export function EventGraph({
         ) : (
           <div />
         )}
-        <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
-        </LoadingChartContainer>
+        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
+          <Placeholder height="90px" testId="event-graph-loading" />
+        </Flex>
       </Grid>
     );
   }
@@ -627,7 +626,7 @@ function SummaryContainer(props: FlexProps) {
   const theme = useTheme();
   return (
     <Flex
-      padding="lg"
+      padding="lg xs lg lg"
       direction="column"
       gap={theme.isChonk ? 'sm' : 'xs'}
       radius="md"
@@ -668,13 +667,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const LoadingChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const GraphAlert = styled(Alert)`
+export const GraphAlert = styled(Alert)`
   padding-left: ${p => p.theme.space['2xl']};
   margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;

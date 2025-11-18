@@ -3,8 +3,10 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
 
@@ -2365,6 +2367,66 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 3_600_000, event_counts, ignore_accuracy=True
         )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._make_rpc_requests",
+        wraps=_make_rpc_requests,
+    )
+    def test_extrapolation_mode_server_only(self, mock_rpc_request) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"server_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans, is_eap=True)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "extrapolationMode": "serverOnly",
+            },
+        )
+
+        assert (
+            mock_rpc_request.call_args.kwargs["timeseries_requests"][0]
+            .expressions[0]
+            .aggregation.extrapolation_mode
+            == ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        )
+
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 1
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "count()"
+
+        # TODO: Ensure server only extrapolation actually gets applied
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",

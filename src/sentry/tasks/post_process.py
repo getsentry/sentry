@@ -659,32 +659,6 @@ def post_process_group(
             tags=metric_tags,
         )
 
-        if not is_reprocessed:
-            received_at = event.data.get("received")
-            saved_at = event.data.get("nodestore_insert")
-            post_processed_at = time()
-
-            if saved_at:
-                metrics.timing(
-                    "events.saved_to_post_processed",
-                    post_processed_at - saved_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-            else:
-                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
-
-            if received_at:
-                metrics.timing(
-                    "events.time-to-post-process",
-                    post_processed_at - received_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-            else:
-                metrics.incr("events.missing_received", tags=metric_tags)
-
 
 def run_post_process_job(job: PostProcessJob) -> None:
     group_event = job["event"]
@@ -1046,13 +1020,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-    if not (
-        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
-        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
-    ):
-        return
-
     process_workflow_engine(job)
 
 
@@ -1305,6 +1272,44 @@ def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
         return False
 
     return True
+
+
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            metrics.incr(
+                "data_forwarding.forward_event",
+                tags={"provider": provider},
+            )
+        except Exception:
+            metrics.incr(
+                "data_forwarding.forward_event.error",
+                tags={"provider": provider},
+            )
+            logger.exception(
+                "data_forwarding.forward_event.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1591,42 +1596,20 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.seer.autofix.utils import (
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+    )
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
+    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
     if group.seer_fixability_score is not None:
         return
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
-        GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
-        GroupCategory.MOBILE,
-        GroupCategory.FRONTEND,
-        GroupCategory.DB_QUERY,
-        GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
-        return
-
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return
-
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return
-
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
+    if is_issue_eligible_for_seer_automation(group) is False:
         return
 
     # Don't run if there's already a task in progress for this issue
@@ -1635,22 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization)
-    if not seer_enabled:
-        return
-
-    from sentry import quotas
-    from sentry.constants import DataCategory
-
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return
-
-    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
-
-    if is_seer_scanner_rate_limited(project, group.organization):
+    if is_seer_scanner_rate_limited(group.project, group.organization):
         return
 
     start_seer_automation.delay(group.id)
@@ -1670,6 +1638,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1698,4 +1667,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     kick_off_seer_automation,
     process_rules,
     process_resource_change_bounds,
+    process_data_forwarding,
 ]

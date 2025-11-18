@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 
@@ -43,7 +46,13 @@ const formGroups: JsonFormObject[] = [
         name: 'sentry:feedback_ai_spam_detection',
         type: 'boolean',
         label: t('Enable Spam Detection'),
-        help: t('Toggles whether or not to enable auto spam detection in User Feedback.'),
+        help: () => (
+          <Fragment>
+            {t('Toggles whether or not to enable auto spam detection in User Feedback.')}
+            <br />
+            <AiPrivacyNotice />
+          </Fragment>
+        ),
         getData: data => ({options: data}),
         visible: ({features, hasAiEnabled}) =>
           features.has('user-feedback-spam-ingest') && hasAiEnabled,

@@ -7,7 +7,7 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
-  insights?: AppleInsightResults;
+  insights?: InsightResults;
   missing_dsym_binaries?: string[];
 }
 
@@ -19,7 +19,7 @@ export enum SizeAnalysisComparisonState {
   FAILED = 3,
 }
 
-interface SizeAnalysisComparison {
+export interface SizeAnalysisComparison {
   base_size_metric_id: number;
   comparison_id: number | null;
   error_code: string | null;
@@ -34,6 +34,15 @@ export interface SizeComparisonApiResponse {
   base_build_details: BuildDetailsApiResponse;
   comparisons: SizeAnalysisComparison[];
   head_build_details: BuildDetailsApiResponse;
+}
+
+export function isSizeAnalysisComparisonInProgress(
+  sizeComparison: SizeAnalysisComparison | undefined
+): boolean {
+  return (
+    sizeComparison?.state === SizeAnalysisComparisonState.PENDING ||
+    sizeComparison?.state === SizeAnalysisComparisonState.PROCESSING
+  );
 }
 
 /**
@@ -180,7 +189,9 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-export interface AppleInsightResults {
+interface MultipleNativeLibraryArchsInsightResult extends FilesInsightResult {}
+
+export interface InsightResults {
   alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
@@ -193,6 +204,7 @@ export interface AppleInsightResults {
   localized_strings_minify?: LocalizedStringCommentsInsightResult;
   loose_images?: LooseImagesInsightResult;
   main_binary_exported_symbols?: MainBinaryExportMetadataResult;
+  multiple_native_library_archs?: MultipleNativeLibraryArchsInsightResult;
   small_files?: SmallFilesInsightResult;
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;

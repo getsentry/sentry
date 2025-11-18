@@ -240,6 +240,12 @@ describe('DetectorDetails', () => {
         body: [],
       });
 
+      // Mock uptime summary endpoint
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/uptime-summary/',
+        body: {},
+      });
+
       // Mock uptime checks endpoint
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeDetector.id}/checks/`,
@@ -301,7 +307,7 @@ describe('DetectorDetails', () => {
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
       // Verify check-in data is displayed
-      expect(screen.getAllByText('Uptime')).toHaveLength(2); // timeline legend + check-in row
+      expect(screen.getAllByText('Uptime')).toHaveLength(4); // breadcrumb + section heading + timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
       expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row

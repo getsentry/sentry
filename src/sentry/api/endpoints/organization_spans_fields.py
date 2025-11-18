@@ -58,7 +58,7 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
@@ -184,7 +184,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         with handle_query_errors():
             tag_values = executor.execute()
 
-        tag_values.sort(key=lambda tag: tag.value)
+        tag_values.sort(key=lambda tag: tag.value or "")
 
         paginator = ChainPaginator([tag_values], max_limit=max_span_tag_values)
 

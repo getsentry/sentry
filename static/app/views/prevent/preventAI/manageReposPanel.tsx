@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,7 +11,6 @@ import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
@@ -18,7 +19,6 @@ import type {
   PreventAIFeatureConfigsByName,
   Sensitivity,
 } from 'sentry/types/prevent';
-import useOrganization from 'sentry/utils/useOrganization';
 import {usePreventAIGitHubConfig} from 'sentry/views/prevent/preventAI/hooks/usePreventAIConfig';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
@@ -70,12 +70,7 @@ function ManageReposPanel({
   allRepos = [],
   isEditingOrgDefaults,
 }: ManageReposPanelProps) {
-  const organization = useOrganization();
   const {enableFeature, isLoading, error: updateError} = useUpdatePreventAIFeature();
-
-  const canEditSettings =
-    organization.access.includes('org:write') ||
-    organization.access.includes('org:admin');
 
   const {
     data: githubConfigData,
@@ -201,7 +196,7 @@ function ManageReposPanel({
                 <Switch
                   size="lg"
                   checked={!doesUseOrgDefaults}
-                  disabled={isLoading || !canEditSettings}
+                  disabled={isLoading}
                   onChange={async () => {
                     await enableFeature({
                       feature: 'use_org_defaults',
@@ -237,11 +232,7 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.vanilla.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.vanilla.enabled;
                       await enableFeature({
@@ -272,9 +263,7 @@ function ManageReposPanel({
                           value={repoConfig.vanilla.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
@@ -297,45 +286,6 @@ function ManageReposPanel({
                 )}
               </Flex>
 
-              {/* Test Generation Feature */}
-              <Flex direction="column">
-                <Flex
-                  border="muted"
-                  radius="md"
-                  background="secondary"
-                  padding="lg xl"
-                  align="center"
-                  justify="between"
-                >
-                  <Flex direction="column" gap="sm">
-                    <Text size="md">{t('Enable Test Generation')}</Text>
-                    <Text variant="muted" size="sm">
-                      {t('Run when @sentry generate-test is commented on a PR.')}
-                    </Text>
-                  </Flex>
-                  <Switch
-                    size="lg"
-                    checked={repoConfig.test_generation.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
-                    onChange={async () => {
-                      const newValue = !repoConfig.test_generation.enabled;
-                      await enableFeature({
-                        feature: 'test_generation',
-                        enabled: newValue,
-                        gitOrgName: org.name,
-                        originalConfig: orgConfig,
-                        repoId: githubRepoId,
-                      });
-                    }}
-                    aria-label="Enable Test Generation"
-                  />
-                </Flex>
-              </Flex>
-
               {/* Error Prediction Feature with SubItems */}
               <Flex direction="column">
                 <Flex
@@ -355,11 +305,7 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.bug_prediction.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.bug_prediction.enabled;
                       await enableFeature({
@@ -390,9 +336,7 @@ function ManageReposPanel({
                           value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
@@ -426,9 +370,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_ready_for_review}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
@@ -446,6 +388,39 @@ function ManageReposPanel({
                         />
                       </FieldGroup>
                       <FieldGroup
+                        label={<Text size="md">{t('Auto Run on New Commits')}</Text>}
+                        help={
+                          <Text size="xs" variant="muted">
+                            {t('Run when new commits are pushed to a PR.')}
+                          </Text>
+                        }
+                        alignRight
+                        flexibleControlStateSize
+                      >
+                        <Switch
+                          size="lg"
+                          checked={
+                            repoConfig.bug_prediction.triggers.on_new_commit ?? false
+                          }
+                          disabled={
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
+                          }
+                          onChange={async () => {
+                            const newValue =
+                              !repoConfig.bug_prediction.triggers.on_new_commit;
+                            await enableFeature({
+                              feature: 'bug_prediction',
+                              trigger: {on_new_commit: newValue},
+                              enabled: true,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
+                            });
+                          }}
+                          aria-label="Auto Run on New Commits"
+                        />
+                      </FieldGroup>
+                      <FieldGroup
                         label={<Text size="md">{t('Run When Mentioned')}</Text>}
                         help={
                           <Text size="xs" variant="muted">
@@ -459,9 +434,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_command_phrase}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =

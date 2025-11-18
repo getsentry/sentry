@@ -28,6 +28,7 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -859,7 +860,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
                 "sentry.uptime.autodetect.result_handler.update_uptime_detector",
-                side_effect=UptimeMonitorNoSeatAvailable(None),
+                side_effect=UptimeMonitorNoSeatAvailable(
+                    SeatAssignmentResult(assignable=False, reason="Testing")
+                ),
             ),
             self.tasks(),
             self.feature(features),
