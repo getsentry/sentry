@@ -312,7 +312,7 @@ def get_anomaly_threshold_data_from_seer(
         logger.warning("Timeout error when hitting anomaly detection alert data endpoint")
         return None
 
-    if response.status > 400:
+    if response.status >= 400:
         logger.error(
             "Error when hitting Seer alert data endpoint",
             extra={
