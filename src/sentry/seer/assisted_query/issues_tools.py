@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from sentry.api import client
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -244,7 +245,11 @@ def _get_built_in_issue_fields(
 
 
 def get_issue_filter_keys(
-    *, org_id: int, project_ids: list[int], stats_period: str = "7d"
+    *,
+    org_id: int,
+    project_ids: list[int] | None = None,
+    stats_period: str = "7d",
+    include_feature_flags: bool = False,
 ) -> dict[str, Any] | None:
     """
     Get available issue filter keys (tags, feature flags, and built-in fields).
@@ -271,6 +276,10 @@ def get_issue_filter_keys(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    # Treat empty projects as a query for all projects.
+    if not project_ids:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -313,19 +322,22 @@ def get_issue_filter_keys(
     tags = list(tags_dict.values())
 
     # Get feature flags
-    flags_params = {
-        **base_params,
-        "dataset": Dataset.Events.value,
-        "useFlagsBackend": "1",
-        "useCache": "1",
-    }
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/",
-        params=flags_params,
-    )
-    feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
+    if include_feature_flags:
+        flags_params = {
+            **base_params,
+            "dataset": Dataset.Events.value,
+            "useFlagsBackend": "1",
+            "useCache": "1",
+        }
+        flags_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/",
+            params=flags_params,
+        )
+        feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
+    else:
+        feature_flags = []
 
     # Get built-in issue fields
     tag_keys = [tag.get("key") for tag in tags if tag.get("key")]
@@ -341,9 +353,10 @@ def get_issue_filter_keys(
 def get_filter_key_values(
     *,
     org_id: int,
-    project_ids: list[int],
     attribute_key: str,
+    is_feature_flag: bool = False,
     substring: str | None = None,
+    project_ids: list[int] | None = None,
     stats_period: str = "7d",
 ) -> list[dict[str, Any]] | None:
     """
@@ -375,6 +388,10 @@ def get_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    # Treat empty projects as a query for all projects.
+    if not project_ids:
+        project_ids = [ALL_ACCESS_PROJECT_ID]
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -414,38 +431,40 @@ def get_filter_key_values(
 
     all_results: list[dict[str, Any]] = []
 
-    # 1. Try events dataset (regular tags)
-    events_params = {**base_params, "dataset": Dataset.Events.value}
-    events_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=events_params,
-    )
-    if events_resp.status_code == 200 and events_resp.data:
-        all_results.extend(events_resp.data)
+    if is_feature_flag:
+        # Try events dataset with flags backend (feature flags)
+        flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
+        flags_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
+            params=flags_params,
+        )
+        if flags_resp.status_code == 200 and flags_resp.data:
+            all_results.extend(flags_resp.data)
 
-    # 2. Try search_issues dataset
-    issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
-    issues_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=issues_params,
-    )
-    if issues_resp.status_code == 200 and issues_resp.data:
-        all_results.extend(issues_resp.data)
+    else:
+        # Try events dataset (regular tags)
+        events_params = {**base_params, "dataset": Dataset.Events.value}
+        events_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
+            params=events_params,
+        )
+        if events_resp.status_code == 200 and events_resp.data:
+            all_results.extend(events_resp.data)
 
-    # 3. Try events dataset with flags backend (feature flags)
-    flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=flags_params,
-    )
-    if flags_resp.status_code == 200 and flags_resp.data:
-        all_results.extend(flags_resp.data)
+        # Try search_issues dataset
+        issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
+        issues_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
+            params=issues_params,
+        )
+        if issues_resp.status_code == 200 and issues_resp.data:
+            all_results.extend(issues_resp.data)
 
     if not all_results:
         return []

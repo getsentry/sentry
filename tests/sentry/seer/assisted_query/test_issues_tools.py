@@ -13,15 +13,13 @@ from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    databases = {"default", "control"}
 
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_issue_filter_keys_success(self):
+    def test_get_issue_filter_keys_with_feature_flags(self):
         """Test that get_issue_filter_keys returns tags and feature flags"""
         # Create an error event with custom tags
         self.store_event(
@@ -65,6 +63,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            include_feature_flags=True,
         )
 
         assert result is not None
@@ -99,6 +98,75 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "feature_a" in flag_keys
             assert "feature_b" in flag_keys
 
+    def test_get_issue_filter_keys_exclude_feature_flags(self):
+        """Test that get_issue_filter_keys excludes feature flags when include_feature_flags is False"""
+        # Create an error event with custom tags
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"fruit": "apple", "color": "red"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an issue platform event
+        self.process_occurrence(
+            event_id="b" * 32,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"issue_tag": "value"},
+                "timestamp": self.min_ago.isoformat(),
+                "received": self.min_ago.isoformat(),
+            },
+        )
+
+        # Create an event with feature flags
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "feature_a", "result": True},
+                            {"flag": "feature_b", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            include_feature_flags=False,
+        )
+
+        assert result is not None
+        assert "tags" in result
+        assert "feature_flags" in result  # Key should still be present, but empty list
+
+        # Check tags (merged event_tags and issue_tags)
+        tags = result["tags"]
+        assert isinstance(tags, list)
+        assert len(tags) > 0
+        # Verify structure of tags
+        for tag in tags:
+            assert "key" in tag
+            assert "name" in tag
+            assert "totalValues" in tag
+
+        # Check that our custom tags are present
+        tag_keys = {tag["key"] for tag in tags}
+        assert "fruit" in tag_keys
+        assert "color" in tag_keys
+
+        # Check feature flags empty
+        assert len(result["feature_flags"]) == 0
+
     def test_get_issue_filter_keys_nonexistent_organization(self):
         """Test that nonexistent organization returns None"""
         result = get_issue_filter_keys(
@@ -106,19 +174,6 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_ids=[self.project.id],
         )
         assert result is None
-
-    def test_get_issue_filter_keys_empty_projects(self):
-        """Test with empty project list"""
-        result = get_issue_filter_keys(
-            org_id=self.organization.id,
-            project_ids=[],
-        )
-        assert result is not None
-        assert "tags" in result
-        assert "feature_flags" in result
-        # Should return empty or minimal results
-        assert isinstance(result["tags"], list)
-        assert isinstance(result["feature_flags"], list)
 
     def test_get_issue_filter_keys_multiple_projects(self):
         """Test with multiple projects"""
@@ -143,24 +198,23 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_id=project2.id,
         )
 
-        result = get_issue_filter_keys(
-            org_id=self.organization.id,
-            project_ids=[self.project.id, project2.id],
-        )
+        for pids in [[self.project.id, project2.id], [], None]:
+            result = get_issue_filter_keys(
+                org_id=self.organization.id,
+                project_ids=pids,
+            )
 
-        assert result is not None
-        assert "tags" in result
+            assert result is not None
+            assert "tags" in result
 
-        tags = result["tags"]
-        tag_keys = {tag["key"] for tag in tags}
-        # Both project tags should be present
-        assert "project1_tag" in tag_keys
-        assert "project2_tag" in tag_keys
+            tags = result["tags"]
+            tag_keys = {tag["key"] for tag in tags}
+            # Both project tags should be present
+            assert "project1_tag" in tag_keys
+            assert "project2_tag" in tag_keys
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    databases = {"default", "control"}
 
     def setUp(self):
         super().setUp()
@@ -198,6 +252,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="environment",
+            is_feature_flag=False,
         )
 
         assert result is not None
@@ -253,6 +308,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="issue_type",
+            is_feature_flag=False,
         )
 
         assert result is not None
@@ -265,7 +321,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 assert "count" in item
 
     def test_get_filter_key_values_with_flags_backend(self):
-        """Test getting feature flag values (automatically detected by 'feature.' prefix)"""
+        """Test getting feature flag values with is_feature_flag=True"""
         # Create events with feature flags
         self.store_event(
             data={
@@ -294,21 +350,26 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
 
-        # Function should automatically detect feature flag by "feature." prefix
         result = get_filter_key_values(
             org_id=self.organization.id,
             project_ids=[self.project.id],
-            attribute_key="feature.organizations:test-feature",
+            attribute_key="organizations:test-feature",
+            is_feature_flag=True,
         )
 
         assert result is not None
-        assert isinstance(result, list)
-        # Should have flag values
-        if len(result) > 0:
-            for item in result:
-                assert "key" in item
-                assert "value" in item
-                assert "count" in item
+        assert len(result) == 2
+        for item in result:
+            assert "key" in item
+            assert "value" in item
+            assert "count" in item
+            assert "lastSeen" in item
+            assert "firstSeen" in item
+            assert item["count"] == 1
+
+        values = {item["value"] for item in result}
+        assert "true" in values
+        assert "false" in values
 
     def test_get_filter_key_values_nonexistent_organization(self):
         """Test that nonexistent organization returns None"""
@@ -351,20 +412,22 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_id=project2.id,
         )
 
-        result = get_filter_key_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id, project2.id],
-            attribute_key="region",
-        )
+        for pids in [[self.project.id, project2.id], [], None]:
+            result = get_filter_key_values(
+                org_id=self.organization.id,
+                project_ids=pids,
+                attribute_key="region",
+                is_feature_flag=False,
+            )
 
-        assert result is not None
-        assert isinstance(result, list)
-        assert len(result) > 0
+            assert result is not None
+            assert isinstance(result, list)
+            assert len(result) > 0
 
-        # Should have values from both projects
-        values = {item["value"] for item in result}
-        assert "us-east" in values
-        assert "us-west" in values
+            # Should have values from both projects
+            values = {item["value"] for item in result}
+            assert "us-east" in values
+            assert "us-west" in values
 
     def test_get_filter_key_values_merges_across_datasets(self):
         """Test that values from multiple datasets are merged correctly"""
@@ -412,6 +475,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="category",
+            is_feature_flag=False,
         )
 
         assert result is not None
@@ -477,6 +541,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_ids=[self.project.id],
             attribute_key="environment",
             substring="prod",
+            is_feature_flag=False,
         )
 
         assert result is not None
@@ -491,9 +556,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "development" not in values
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
-    databases = {"default", "control"}
 
     def setUp(self):
         super().setUp()
