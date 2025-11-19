@@ -1,5 +1,5 @@
-from uuid import uuid4
 from typing import Any
+from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings

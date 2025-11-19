@@ -3,8 +3,8 @@ from unittest.mock import PropertyMock, patch
 
 from django.test import Client, RequestFactory
 
-from sentry.utils.session_store import RedisSessionStore, redis_property
 from sentry.utils.json import dumps, loads
+from sentry.utils.session_store import RedisSessionStore, redis_property
 
 
 class LaggyRedisClient:
