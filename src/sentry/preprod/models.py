@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from enum import IntEnum
 
 import sentry_sdk
@@ -142,43 +143,47 @@ class PreprodArtifact(DefaultFieldsModel):
     # The objectstore id of the app icon
     app_icon_id = models.CharField(max_length=255, null=True)
 
-    def get_sibling_artifacts_for_commit(self) -> models.QuerySet[PreprodArtifact]:
+    def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
-        Get sibling artifacts for the same commit, deduplicated by app_id.
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
 
-        When multiple artifacts exist for the same app_id (e.g., due to reprocessing),
-        this method returns only one artifact per app_id to prevent duplicate rows
-        in status checks:
-        - For the calling artifact's app_id: Returns the calling artifact itself
-        - For other app_ids: Returns the earliest (oldest) artifact for that app_id
+        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        (e.g., due to reprocessing or CI retries), this method returns only one artifact
+        per combination to prevent duplicate rows in status checks:
+        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For other combinations: Returns the earliest (oldest) artifact for that combination
 
-        Note: Results are filtered by the current artifact's organization for security.
+        Note: Deduplication by both app_id and artifact_type is necessary because
+        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+
+        Results are filtered by the current artifact's organization for security.
 
         Returns:
-            QuerySet of PreprodArtifact objects, deduplicated by app_id, ordered by app_id
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            ordered by app_id
         """
-        from collections import defaultdict
-
         if not self.commit_comparison:
-            return PreprodArtifact.objects.none()
+            return []
 
         all_artifacts = PreprodArtifact.objects.filter(
             commit_comparison=self.commit_comparison,
             project__organization_id=self.project.organization_id,
-        ).order_by("app_id", "date_added")
+        ).order_by("app_id", "artifact_type", "date_added")
 
-        artifacts_by_app_id = defaultdict(list)
+        artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:
-            artifacts_by_app_id[artifact.app_id].append(artifact)
+            key = (artifact.app_id, artifact.artifact_type)
+            artifacts_by_key[key].append(artifact)
 
-        selected_ids = []
-        for app_id, artifacts in artifacts_by_app_id.items():
-            if self.app_id == app_id:
-                selected_ids.append(self.id)
+        selected_artifacts = []
+        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
+            if self.app_id == app_id and self.artifact_type == artifact_type:
+                selected_artifacts.append(self)
             else:
-                selected_ids.append(artifacts[0].id)
+                selected_artifacts.append(artifacts[0])
 
-        return PreprodArtifact.objects.filter(id__in=selected_ids).order_by("app_id")
+        selected_artifacts.sort(key=lambda a: a.app_id or "")
+        return selected_artifacts
 
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None

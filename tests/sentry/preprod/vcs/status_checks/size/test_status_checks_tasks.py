@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import responses
+from django.utils import timezone
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
@@ -729,16 +731,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert summary.endswith("..."), "Truncated summary should end with '...'"
 
     def test_sibling_deduplication_after_reprocessing(self):
-        """Test that get_sibling_artifacts_for_commit() deduplicates by app_id.
+        """Test that get_sibling_artifacts_for_commit() deduplicates by (app_id, artifact_type).
 
         When artifacts are reprocessed (e.g., CI retry), new artifacts are created
-        with the same app_id. This test verifies that the sibling lookup returns
-        only one artifact per app_id to prevent duplicate rows in status checks.
+        with the same (app_id, artifact_type). This test verifies that the sibling lookup
+        returns only one artifact per (app_id, artifact_type) to prevent duplicate rows
+        in status checks.
         """
-        from datetime import timedelta
-
-        from django.utils import timezone
-
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="a" * 40,
@@ -750,10 +749,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             base_ref="main",
         )
 
-        # Create initial artifacts (simulating first upload)
         ios_old = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.ios",
             app_name="iOS App Old",
             build_version="1.0.0",
@@ -773,6 +772,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         android_old = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_id="com.example.android",
             app_name="Android App Old",
             build_version="1.0.0",
@@ -789,13 +789,12 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        # Simulate passage of time before reprocessing
         later_time = timezone.now() + timedelta(hours=1)
 
-        # Create reprocessed artifacts (simulating CI retry)
         ios_new = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.ios",
             app_name="iOS App New",
             build_version="1.0.0",
@@ -817,6 +816,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         android_new = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_id="com.example.android",
             app_name="Android App New",
             build_version="1.0.0",
@@ -835,7 +835,6 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        # Test 1: When ios_new triggers, should get ios_new + android_old
         siblings_from_ios_new = list(ios_new.get_sibling_artifacts_for_commit())
         assert len(siblings_from_ios_new) == 2, (
             f"Expected 2 siblings (one per app_id), got {len(siblings_from_ios_new)}. "
@@ -850,7 +849,6 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             android_old.id in sibling_ids_from_ios_new
         ), "For other app_ids, should use earliest artifact (android_old, not android_new)"
 
-        # Test 2: When android_new triggers, should get android_new + ios_old
         siblings_from_android_new = list(android_new.get_sibling_artifacts_for_commit())
         assert len(siblings_from_android_new) == 2
 
@@ -862,9 +860,131 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             ios_old.id in sibling_ids_from_android_new
         ), "For other app_ids, should use earliest artifact (ios_old, not ios_new)"
 
-        # Test 3: Verify old artifacts also get deduplicated siblings
         siblings_from_ios_old = list(ios_old.get_sibling_artifacts_for_commit())
         assert len(siblings_from_ios_old) == 2
         sibling_ids_from_ios_old = {s.id for s in siblings_from_ios_old}
         assert ios_old.id in sibling_ids_from_ios_old
         assert android_old.id in sibling_ids_from_ios_old
+
+    def test_sibling_deduplication_with_same_app_id_different_platforms(self):
+        """Test that iOS and Android builds with the same app_id are not deduplicated.
+
+        Users can upload both Android and iOS builds with the same app_id (e.g., "com.example.app").
+        This test verifies that the sibling lookup returns both platform artifacts even if they
+        share the same app_id, because deduplication is by (app_id, artifact_type).
+        """
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/cross-platform",
+            base_ref="main",
+        )
+
+        same_app_id = "com.example.multiplatform"
+
+        ios_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id=same_app_id,
+            app_name="Multiplatform App (iOS)",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        android_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            app_id=same_app_id,
+            app_name="Multiplatform App (Android)",
+            build_version="1.0.0",
+            build_number=1,
+            commit_comparison=commit_comparison,
+        )
+        android_artifact.date_added = timezone.now() + timedelta(seconds=1)
+        android_artifact.save(update_fields=["date_added"])
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        siblings_from_ios = list(ios_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_ios) == 2, (
+            f"Expected 2 siblings (iOS + Android with same app_id), got {len(siblings_from_ios)}. "
+            f"Both platforms should be included even with the same app_id."
+        )
+
+        sibling_ids_from_ios = {s.id for s in siblings_from_ios}
+        assert (
+            ios_artifact.id in sibling_ids_from_ios
+        ), "iOS artifact should be included in siblings"
+        assert (
+            android_artifact.id in sibling_ids_from_ios
+        ), "Android artifact should be included even with same app_id (different platform)"
+
+        siblings_from_android = list(android_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_android) == 2
+
+        sibling_ids_from_android = {s.id for s in siblings_from_android}
+        assert android_artifact.id in sibling_ids_from_android
+        assert ios_artifact.id in sibling_ids_from_android
+
+        later_time = timezone.now() + timedelta(hours=1)
+        ios_artifact_new = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id=same_app_id,
+            app_name="Multiplatform App (iOS v2)",
+            build_version="1.0.0",
+            build_number=2,
+            commit_comparison=commit_comparison,
+        )
+        ios_artifact_new.date_added = later_time
+        ios_artifact_new.save(update_fields=["date_added"])
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_artifact_new,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        siblings_from_ios_new = list(ios_artifact_new.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_ios_new) == 2, (
+            f"Expected 2 siblings after iOS reprocessing, got {len(siblings_from_ios_new)}. "
+            f"Should show 1 iOS (newest) + 1 Android (only one)."
+        )
+
+        sibling_ids_from_ios_new = {s.id for s in siblings_from_ios_new}
+        assert (
+            ios_artifact_new.id in sibling_ids_from_ios_new
+        ), "New iOS artifact should be included (triggering artifact)"
+        assert (
+            android_artifact.id in sibling_ids_from_ios_new
+        ), "Original Android should still be included"
+        assert (
+            ios_artifact.id not in sibling_ids_from_ios_new
+        ), "Old iOS artifact should be deduplicated (not the triggering artifact)"
