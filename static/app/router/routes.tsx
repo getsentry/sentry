@@ -12,6 +12,10 @@ import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
+import {
+  WorkflowEngineRedirectToAutomationDetails,
+  WorkflowEngineRedirectToAutomationEdit,
+} from 'sentry/views/alerts/workflowEngineRedirects';
 import App from 'sentry/views/app';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import AuthLayout from 'sentry/views/auth/layout';
@@ -1487,13 +1491,22 @@ function buildRoutes(): RouteObject[] {
             },
             {
               path: ':ruleId/',
-              component: make(() => import('sentry/views/alerts/edit')),
+              component: WorkflowEngineRedirectToAutomationEdit,
               deprecatedRouteProps: true,
+              children: [
+                {
+                  index: true,
+                  component: make(() => import('sentry/views/alerts/edit')),
+                  deprecatedRouteProps: true,
+                },
+              ],
             },
           ],
         },
         {
           path: ':projectId/:ruleId/details/',
+          component: WorkflowEngineRedirectToAutomationDetails,
+          deprecatedRouteProps: true,
           children: [
             {
               index: true,
