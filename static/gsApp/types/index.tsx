@@ -705,7 +705,9 @@ type StaticInvoiceItemType =
   | 'credit_applied' // Deprecated: replaced by balance_change
   | 'daily_events' // Deprecated
   | 'reserved' // Deprecated: legacy name for reserved_events
-  | 'reserved_seer_budget'; // Special case: shared budget for seer_autofix and seer_scanner
+  | 'reserved_seer_budget' // Special case: shared budget for seer_autofix and seer_scanner
+  | 'reserved_seer_users' // Special case: reserved prevent users (PREVENT_USER category maps to this)
+  | 'activated_seer_users'; // Activation-based prevent users billing (PREVENT_USER category)
 
 /**
  * Complete invoice item type union.
