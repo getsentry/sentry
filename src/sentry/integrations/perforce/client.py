@@ -337,6 +337,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             username: Perforce username
+            p4: Optional P4 connection to reuse (avoids creating new connection)
 
         Returns:
             User info dictionary with Email and FullName fields, or None if not found
@@ -486,22 +487,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                 change = change_info[0]
                                 username = change.get("user", "unknown")
 
-                                # Get user information from Perforce for email and full name
-                                author_email = f"{username}@perforce"
-                                author_name = username
-
-                                # Fetch user info if not in cache
-                                if username != "unknown" and username not in user_cache:
-                                    user_cache[username] = self.get_user(username)
-
-                                user_info = user_cache.get(username)
-                                if user_info:
-                                    # Use actual email from Perforce if available
-                                    if user_info.get("email"):
-                                        author_email = user_info["email"]
-                                    # Use full name from Perforce if available
-                                    if user_info.get("full_name"):
-                                        author_name = user_info["full_name"]
+                                # Get author information (with caching and p4 connection reuse)
+                                author_email, author_name = self.get_author_info(
+                                    username, user_cache, p4
+                                )
 
                                 # Handle potentially null/invalid time field
                                 time_value = change.get("time") or 0
