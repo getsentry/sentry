@@ -17,9 +17,11 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
+    ApiInvalidRequestError,
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
@@ -910,6 +912,100 @@ class RegionJiraIntegrationTest(APITestCase):
                 # test resolve -- 31 is "done" transition id
                 installation.sync_status_outbound(external_issue, True, self.project.id)
                 mock_transition_issue.assert_called_with("SEN-5", "31")
+
+    def test_sync_status_outbound_assigns_before_transition(self) -> None:
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
+        )
+
+        with assume_test_silo_mode_of(IntegrationExternalProject):
+            IntegrationExternalProject.objects.create(
+                external_id="10100",
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization_id=self.organization.id, integration_id=self.integration.id
+                ).id,
+                resolved_status="10101",
+                unresolved_status="3",
+            )
+
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+        )
+        user = self.create_user(email="assignee@example.com")
+        GroupAssignee.objects.create(group=group, project=group.project, user_id=user.id)
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        call_tracker = {"count": 0}
+
+        def transition_side_effect(*args, **kwargs):
+            if call_tracker["count"] == 0:
+                call_tracker["count"] += 1
+                raise ApiInvalidRequestError(
+                    '{"errorMessages":["An Assignee is required for all finished work."],"errors":{}}',
+                    url="https://example.atlassian.net/rest/api/2/issue/SEN-5/transitions",
+                )
+            call_tracker["count"] += 1
+            return None
+
+        with mock.patch.object(
+            StubJiraApiClient, "transition_issue", side_effect=transition_side_effect
+        ) as mock_transition_issue:
+            with mock.patch.object(installation, "get_client", get_client):
+                with mock.patch.object(installation, "sync_assignee_outbound") as mock_sync_assignee:
+                    installation.sync_status_outbound(external_issue, True, group.project_id)
+
+        assert mock_transition_issue.call_count == 2
+        assert mock_sync_assignee.call_count == 1
+        assigned_user = mock_sync_assignee.call_args[0][1]
+        assert assigned_user is not None
+        assert assigned_user.id == user.id
+
+    def test_sync_status_outbound_without_assignee_raises(self) -> None:
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
+        )
+
+        with assume_test_silo_mode_of(IntegrationExternalProject):
+            IntegrationExternalProject.objects.create(
+                external_id="10100",
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization_id=self.organization.id, integration_id=self.integration.id
+                ).id,
+                resolved_status="10101",
+                unresolved_status="3",
+            )
+
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        with mock.patch.object(
+            StubJiraApiClient,
+            "transition_issue",
+            side_effect=ApiInvalidRequestError(
+                '{"errorMessages":["An Assignee is required for all finished work."],"errors":{}}',
+                url="https://example.atlassian.net/rest/api/2/issue/SEN-5/transitions",
+            ),
+        ) as mock_transition_issue:
+            with mock.patch.object(installation, "get_client", get_client):
+                with mock.patch.object(installation, "sync_assignee_outbound") as mock_sync_assignee:
+                    with pytest.raises(IntegrationConfigurationError) as excinfo:
+                        installation.sync_status_outbound(external_issue, True, group.project_id)
+
+        assert mock_transition_issue.call_count == 1
+        mock_sync_assignee.assert_not_called()
+        assert "requires an assignee" in str(excinfo.value)
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self) -> None:

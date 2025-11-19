@@ -38,6 +38,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouplink import GroupLink
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.eventstore.models import GroupEvent
@@ -1137,7 +1139,61 @@ class JiraIntegration(IssueSyncIntegration):
         try:
             client.transition_issue(external_issue.key, transition["id"])
         except ApiInvalidRequestError as e:
+            if self._is_assignee_required_transition_error(e):
+                self._assign_issue_before_transition(external_issue, project_id)
+                try:
+                    client.transition_issue(external_issue.key, transition["id"])
+                except ApiInvalidRequestError as retry_error:
+                    self.raise_error(retry_error)
+                return
             self.raise_error(e)
+
+    def _is_assignee_required_transition_error(self, exc: ApiInvalidRequestError) -> bool:
+        if not exc.json:
+            return False
+
+        error_messages = exc.json.get("errorMessages") or []
+        return any(
+            "assignee" in message.lower() and "require" in message.lower()
+            for message in error_messages
+        )
+
+    def _assign_issue_before_transition(
+        self, external_issue: ExternalIssue, project_id: int
+    ) -> None:
+        assignee = self._get_group_assignee(external_issue, project_id)
+        if assignee is None:
+            raise IntegrationConfigurationError(
+                "Jira requires an assignee before this transition can complete, but the "
+                "linked Sentry issue is not assigned to a user."
+            )
+
+        self.sync_assignee_outbound(external_issue, assignee)
+
+    def _get_group_assignee(
+        self, external_issue: ExternalIssue, project_id: int
+    ) -> RpcUser | None:
+        group_id = (
+            GroupLink.objects.filter(
+                project_id=project_id,
+                linked_type=GroupLink.LinkedType.issue,
+                linked_id=external_issue.id,
+            )
+            .values_list("group_id", flat=True)
+            .first()
+        )
+        if group_id is None:
+            return None
+
+        user_id = (
+            GroupAssignee.objects.filter(group_id=group_id)
+            .values_list("user_id", flat=True)
+            .first()
+        )
+        if user_id is None:
+            return None
+
+        return user_service.get_user(user_id=user_id)
 
     def _get_done_statuses(self):
         client = self.get_client()
