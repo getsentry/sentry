@@ -446,10 +446,12 @@ def update_coding_agent_state(
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
-    Raises SeerApiError for non-2xx responses.
+    Returns True if the update was applied. Returns False when the agent_id
+    cannot be mapped to a Seer autofix run. Raises SeerApiError for other
+    non-2xx responses.
     """
     path = "/v1/automation/autofix/coding-agent/state/update"
 
@@ -474,4 +476,25 @@ def update_coding_agent_state(
     )
 
     if response.status >= 400:
+        if response.status == 404 and _is_missing_agent_mapping(response.data):
+            logger.info(
+                "seer.autofix.coding_agent_state_not_registered",
+                extra={"agent_id": agent_id},
+            )
+            return False
         raise SeerApiError(response.data.decode("utf-8"), response.status)
+
+    return True
+
+
+def _is_missing_agent_mapping(response_data: bytes) -> bool:
+    try:
+        body = orjson.loads(response_data)
+    except orjson.JSONDecodeError:
+        return False
+
+    detail = body.get("detail")
+    if not isinstance(detail, str):
+        return False
+
+    return detail.startswith("No run_id found for agent_id")

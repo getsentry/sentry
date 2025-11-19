@@ -239,20 +239,29 @@ class CursorWebhookEndpoint(Endpoint):
         result: CodingAgentResult | None = None,
     ):
         try:
-            update_coding_agent_state(
+            update_sent = update_coding_agent_state(
                 agent_id=agent_id,
                 status=status,
                 agent_url=agent_url,
                 result=result,
             )
-            logger.info(
-                "cursor_webhook.status_updated_to_seer",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                    "has_result": result is not None,
-                },
-            )
+            if update_sent:
+                logger.info(
+                    "cursor_webhook.status_updated_to_seer",
+                    extra={
+                        "agent_id": agent_id,
+                        "status": status.value,
+                        "has_result": result is not None,
+                    },
+                )
+            else:
+                logger.info(
+                    "cursor_webhook.agent_not_registered",
+                    extra={
+                        "agent_id": agent_id,
+                        "status": status.value,
+                    },
+                )
         except SeerApiError:
             logger.exception(
                 "cursor_webhook.seer_update_error",

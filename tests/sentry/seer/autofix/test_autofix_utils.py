@@ -8,10 +8,12 @@ from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
+    CodingAgentResult,
     CodingAgentStatus,
     get_autofix_prompt,
     get_coding_agent_prompt,
     is_issue_eligible_for_seer_automation,
+    update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import TestCase
@@ -138,6 +140,76 @@ class TestGetCodingAgentPrompt(TestCase):
         expected = "Please fix the following issue:\n\nRoot cause analysis prompt"
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
+
+
+class TestUpdateCodingAgentState(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.result = CodingAgentResult(
+            description="done",
+            repo_provider="github",
+            repo_full_name="getsentry/sentry",
+            pr_url="https://github.com/getsentry/sentry/pull/1",
+        )
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_successful_update_returns_true(self, mock_make_request):
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.data = b"{}"
+        mock_make_request.return_value = mock_response
+
+        applied = update_coding_agent_state(
+            agent_id="agent-1",
+            status=CodingAgentStatus.COMPLETED,
+            agent_url="https://cursor.com/agents/agent-1",
+            result=self.result,
+        )
+
+        assert applied is True
+        call = mock_make_request.call_args
+        assert call.args[1] == "/v1/automation/autofix/coding-agent/state/update"
+        payload = orjson.loads(call.kwargs["body"])
+        assert payload["agent_id"] == "agent-1"
+        assert payload["updates"]["status"] == "completed"
+
+    @patch("sentry.seer.autofix.utils.logger")
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_missing_agent_is_ignored(self, mock_make_request, mock_logger):
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_response.data = orjson.dumps(
+            {"detail": "No run_id found for agent_id agent-404"}
+        )
+        mock_make_request.return_value = mock_response
+
+        applied = update_coding_agent_state(
+            agent_id="agent-404",
+            status=CodingAgentStatus.COMPLETED,
+            agent_url=None,
+            result=self.result,
+        )
+
+        assert applied is False
+        mock_logger.info.assert_called_once_with(
+            "seer.autofix.coding_agent_state_not_registered",
+            extra={"agent_id": "agent-404"},
+        )
+
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_other_errors_raise(self, mock_make_request):
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_response.data = orjson.dumps({"detail": "Some other issue"})
+        mock_make_request.return_value = mock_response
+
+        with pytest.raises(SeerApiError):
+            update_coding_agent_state(
+                agent_id="agent-unknown",
+                status=CodingAgentStatus.COMPLETED,
+                agent_url=None,
+                result=self.result,
+            )
 
 
 class TestAutofixStateParsing(TestCase):
