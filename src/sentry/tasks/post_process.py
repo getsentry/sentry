@@ -1663,13 +1663,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
 
-            # Check if we're already processing automation for this group
+            # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
             automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
-            if cache.get(automation_dispatch_cache_key) is not None:
+            if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
-
-            # Set cache with 5 minute TTL to prevent duplicate dispatches
-            cache.set(automation_dispatch_cache_key, True, timeout=300)
 
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
