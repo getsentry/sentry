@@ -33,7 +33,6 @@ import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -57,6 +56,8 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -82,8 +83,8 @@ type Props = {
   api: Client;
   loading: boolean;
   location: Location;
+  navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
@@ -129,7 +130,7 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
     : [eventView.getYAxis()];
 }
 
-export class Results extends Component<Props, State> {
+class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const savedQueryDataset = getSavedQueryDataset(
       nextProps.organization,
@@ -399,8 +400,7 @@ export class Results extends Component<Props, State> {
   }
 
   handleCursor: CursorHandler = (cursor, path, query, _direction) => {
-    const {router} = this.props;
-    router.push({
+    this.props.navigate({
       pathname: path,
       query: {...query, cursor},
     });
@@ -423,7 +423,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleSearch = (query: string) => {
-    const {router, location} = this.props;
+    const {location, navigate} = this.props;
 
     const queryParams = normalizeDateTimeParams({
       ...location.query,
@@ -433,14 +433,14 @@ export class Results extends Component<Props, State> {
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });
   };
 
   handleYAxisChange = (value: string[]) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
       location.query.display as DisplayModes
     );
@@ -457,7 +457,7 @@ export class Results extends Component<Props, State> {
           : location.query.display,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -474,14 +474,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleDisplayChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       display: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -493,7 +493,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleIntervalChange = (value: string | undefined) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
@@ -501,7 +501,7 @@ export class Results extends Component<Props, State> {
     };
 
     if (location.query.interval !== value) {
-      router.push({
+      navigate({
         pathname: location.pathname,
         query: newQuery,
       });
@@ -514,14 +514,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleTopEventsChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       topEvents: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -921,9 +921,19 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
+function SavedQueryAPI(
+  props: Omit<Props, 'loading' | 'savedQuery' | 'setSavedQuery'> & {
+    savedQuery?: SavedQuery;
+    setSavedQuery?: (savedQuery?: SavedQuery) => void;
+  }
+) {
   const queryClient = useQueryClient();
-  const {organization, location} = props;
+  const {
+    organization,
+    location,
+    savedQuery: providedSavedQuery,
+    setSavedQuery: providedSetSavedQuery,
+  } = props;
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -931,21 +941,28 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
     ],
     [organization, location.query.id]
   );
+
+  // Only fetch if we don't already have a savedQuery (homepage provides its own)
   const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
     queryKey,
     {
-      enabled: Boolean(location.query.id),
+      enabled: Boolean(location.query.id) && !providedSavedQuery,
       staleTime: 0,
     }
   );
 
-  const setSavedQuery = useCallback(
+  const defaultSetSavedQuery = useCallback(
     (newQuery?: SavedQuery) => {
       setApiQueryData(queryClient, queryKey, newQuery);
       queryClient.refetchQueries({queryKey});
     },
     [queryClient, queryKey]
   );
+
+  const setSavedQuery = providedSetSavedQuery ?? defaultSetSavedQuery;
+  const savedQuery =
+    providedSavedQuery ??
+    (hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data);
 
   if (isFetching) {
     return <LoadingIndicator />;
@@ -957,22 +974,45 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 
   return (
     <Results
-      {...props}
-      savedQuery={
-        hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
-      }
+      api={props.api}
+      organization={props.organization}
+      selection={props.selection}
+      location={props.location}
+      navigate={props.navigate}
+      isHomepage={props.isHomepage}
+      savedQuery={savedQuery}
       loading={isFetching}
       setSavedQuery={setSavedQuery}
     />
   );
 }
 
-export default function ResultsContainer(
-  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
-) {
+export type ResultsWrapperProps = {
+  isHomepage?: boolean;
+  savedQuery?: SavedQuery;
+  setSavedQuery?: (savedQuery?: SavedQuery) => void;
+};
+
+/**
+ * ResultsWrapper - Functional wrapper around the Results class component
+ *
+ * This component provides modern React patterns (hooks) while maintaining
+ * compatibility with the legacy Results class component.
+ *
+ * Usage:
+ * - Use the named export `ResultsWrapper` when passing props (e.g., from homepage)
+ * - The default export is used by routes and accepts no props
+ */
+export function ResultsWrapper({
+  isHomepage,
+  savedQuery,
+  setSavedQuery,
+}: ResultsWrapperProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -989,9 +1029,9 @@ export default function ResultsContainer(
     <PageFiltersContainer
       disablePersistence={
         organization.features.includes('discover-query') &&
-        !!(props.savedQuery || props.location.query.id)
+        !!(savedQuery || location.query.id)
       }
-      skipLoadLastUsed={!!props.savedQuery}
+      skipLoadLastUsed={!!savedQuery}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
@@ -1000,9 +1040,24 @@ export default function ResultsContainer(
         api={api}
         organization={organization}
         selection={selection}
-        {...props}
+        location={location}
+        navigate={navigate}
+        savedQuery={savedQuery}
+        setSavedQuery={setSavedQuery}
+        isHomepage={isHomepage}
       />
     </PageFiltersContainer>
+  );
+}
+
+// Default export for routes - no props
+export default function ResultsWrapperRoute() {
+  return (
+    <ResultsWrapper
+      isHomepage={undefined}
+      savedQuery={undefined}
+      setSavedQuery={undefined}
+    />
   );
 }
 
