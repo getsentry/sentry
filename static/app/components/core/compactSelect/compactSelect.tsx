@@ -3,8 +3,7 @@ import {Item, Section} from '@react-stately/collections';
 
 import {t} from 'sentry/locale';
 
-import type {ControlProps} from './control';
-import {Control} from './control';
+import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
@@ -112,7 +111,7 @@ export function CompactSelect<Value extends SelectKey>({
       grid={grid}
       size={size}
       items={itemsWithKey}
-      value={value ?? defaultValue}
+      value={value}
     >
       <List
         {...listProps}
