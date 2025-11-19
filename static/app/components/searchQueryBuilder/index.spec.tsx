@@ -434,6 +434,7 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 1'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 2'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Logic'})).toBeInTheDocument();
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
@@ -717,25 +718,19 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic category', () => {
-      it('does not render logic category when on first input', async () => {
+      it('renders conditional and parenthetical filters', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
           organization: {features: ['search-query-builder-conditionals-combobox-menus']},
         });
-
         await userEvent.click(getLastInput());
-        expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
 
-        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument();
-      });
-
-      it('renders logic category when not on first input', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="span.op:test" />, {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        });
-
-        await userEvent.click(getLastInput());
         // Should show conditionals button
         expect(await screen.findByRole('button', {name: 'Logic'})).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Logic'}));
+        expect(await screen.findByRole('option', {name: '('})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: ')'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'AND'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'OR'})).toBeInTheDocument();
       });
     });
   });
