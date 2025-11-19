@@ -8,7 +8,7 @@ describe('CompactSelect', () => {
       <CompositeSelect menuTitle="Menu title">
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue="choice_one"
+          value="choice_one"
           onChange={() => {}}
           options={[
             {value: 'choice_one', label: 'Choice One'},
@@ -18,7 +18,7 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          defaultValue={['choice_three', 'choice_four']}
+          value={['choice_three', 'choice_four']}
           onChange={() => {}}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
@@ -252,7 +252,7 @@ describe('CompactSelect', () => {
       <CompositeSelect grid>
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue="choice_one"
+          value="choice_one"
           onChange={() => {}}
           options={[
             {value: 'choice_one', label: 'Choice One'},
@@ -317,7 +317,7 @@ describe('CompactSelect', () => {
       <CompositeSelect>
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue={1}
+          value={1}
           onChange={onChange}
           options={[
             {value: 1, label: 'One'},
