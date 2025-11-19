@@ -274,8 +274,9 @@ def get_event_filter_key_values(
         params={**base_params, "dataset": Dataset.Events.value},
     )
 
+    # Try ff query. In the case of collisions we use tag values as we deem them more important.
+    # TODO: Pass in an explicit is_feature_flag param if the agent can produce it.
     if not resp.data:
-        # Try feature flags query
         resp = client.get(
             auth=api_key,
             user=None,
