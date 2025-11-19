@@ -308,7 +308,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of changelist dictionaries
         """
-        return []
+        return None
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -324,7 +324,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return []
+        return None
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
