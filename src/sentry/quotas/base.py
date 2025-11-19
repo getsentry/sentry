@@ -648,9 +648,7 @@ class Quota(Service):
         Removes an assigned seat.
         """
 
-    def remove_seats(
-        self, data_category: DataCategory, seat_objects: Sequence[SeatObject]
-    ) -> None:
+    def remove_seats(self, data_category: DataCategory, seat_objects: Sequence[SeatObject]) -> None:
         """
         Removes assigned seats for a batch of objects.
 
