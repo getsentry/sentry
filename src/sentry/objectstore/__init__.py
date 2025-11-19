@@ -40,6 +40,9 @@ class SentryMetricsBackend(MetricsBackend):
 _ATTACHMENTS_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timedelta(days=30)))
 
+_PREPROD_CLIENT: Client | None = None
+_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
+
 
 def create_client() -> Client:
     from sentry import options as options_store
@@ -61,6 +64,14 @@ def get_attachments_session(org: int, project: int) -> Session:
         _ATTACHMENTS_CLIENT = create_client()
 
     return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
+
+
+def get_preprod_session(org: int, project: int) -> Session:
+    global _PREPROD_CLIENT
+    if not _PREPROD_CLIENT:
+        _PREPROD_CLIENT = create_client()
+
+    return _PREPROD_CLIENT.session(_PREPROD_USECASE, org=org, project=project)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
