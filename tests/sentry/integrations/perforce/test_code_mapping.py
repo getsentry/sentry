@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 from unittest.mock import patch
 
-=======
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.perforce.integration import (
     PerforceIntegration,
@@ -36,12 +33,9 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         self.org_integration = self.integration.organizationintegration_set.first()
         assert self.org_integration is not None
 
-<<<<<<< HEAD
     def tearDown(self):
         super().tearDown()
 
-=======
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
     def test_code_mapping_depot_root_to_slash(self):
         """
         Test code mapping: depot/ -> /
@@ -80,8 +74,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
 
     def test_code_mapping_with_symbolic_revision_syntax(self):
         """
-        Test code mapping with Symbolic's #revision syntax.
-        The #revision should be preserved in the output.
+        Test code mapping with Symbolic's @revision syntax.
+        The @revision should be preserved in the output.
         """
         repo = Repository.objects.create(
             name="//depot",
@@ -101,17 +95,17 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
-        # Test C++ path from Symbolic: depot/game/src/main.cpp#1
+        # Test C++ path from Symbolic: depot/game/src/main.cpp@42
         frame = EventFrame(
-            filename="depot/game/src/main.cpp#1", abs_path="depot/game/src/main.cpp#1"
+            filename="depot/game/src/main.cpp@42", abs_path="depot/game/src/main.cpp@42"
         )
 
         result = convert_stacktrace_frame_path_to_source_path(
             frame=frame, code_mapping=code_mapping, platform="native", sdk_name="sentry.native"
         )
 
-        # Should strip "depot/" and preserve "#1"
-        assert result == "game/src/main.cpp#1"
+        # Should strip "depot/" and preserve "@42"
+        assert result == "game/src/main.cpp@42"
 
     def test_code_mapping_multiple_depots(self):
         """Test code mappings for multiple depots (depot and myproject)"""
@@ -348,7 +342,6 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
-<<<<<<< HEAD
         # Mock the Perforce client's check_file to avoid actual P4 connection
         self.check_file_patcher = patch(
             "sentry.integrations.perforce.client.PerforceClient.check_file",
@@ -360,8 +353,6 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         self.check_file_patcher.stop()
         super().tearDown()
 
-=======
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
     def test_python_sdk_path_full_flow(self):
         """Test full flow: Python SDK -> code mapping -> format_source_url"""
         # 1. Python SDK sends this path
@@ -387,94 +378,78 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         """Test full flow: Symbolic C++ -> code mapping -> format_source_url"""
         # 1. Symbolic transformer sends this path
         frame = EventFrame(
-            filename="depot/game/src/main.cpp#1", abs_path="depot/game/src/main.cpp#1"
+            filename="depot/game/src/main.cpp@42", abs_path="depot/game/src/main.cpp@42"
         )
 
         # 2. Code mapping transforms it (use existing code_mapping from setUp)
         mapped_path = convert_stacktrace_frame_path_to_source_path(
             frame=frame, code_mapping=self.code_mapping, platform="native", sdk_name="sentry.native"
         )
-        assert mapped_path == "game/src/main.cpp#1"
+        assert mapped_path == "game/src/main.cpp@42"
 
-        # 3. format_source_url creates final URL (preserves #1)
+        # 3. format_source_url creates final URL (preserves @42)
         url = self.installation.format_source_url(repo=self.repo, filepath=mapped_path, branch=None)
-        assert url == "p4://depot/game/src/main.cpp#1"
+        assert url == "p4://depot/game/src/main.cpp@42"
 
-    def test_full_flow_with_swarm_viewer(self):
-        """Test full flow with Swarm viewer configuration"""
-        integration_with_swarm = self.create_integration(
+    def test_full_flow_with_web_viewer(self):
+        """Test full flow with P4Web viewer configuration"""
+        integration_with_web = self.create_integration(
             organization=self.organization,
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-web-flow",
             metadata={
-<<<<<<< HEAD
                 "p4port": "ssl:perforce.example.com:1666",
                 "user": "testuser",
                 "password": "testpass",
                 "auth_type": "password",
                 "web_url": "https://p4web.example.com",
-=======
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Create repo with web viewer integration
-        repo_swarm = Repository.objects.create(
+        repo_web = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
-            integration_id=integration_with_swarm.id,
+            integration_id=integration_with_web.id,
             config={"depot_path": "//depot"},
         )
 
         # Use a new project to avoid unique constraint on (project_id, stack_root)
-        project_swarm = self.create_project(organization=self.organization)
+        project_web = self.create_project(organization=self.organization)
 
-        org_integration_swarm = integration_with_swarm.organizationintegration_set.first()
-        assert org_integration_swarm is not None
+        org_integration_web = integration_with_web.organizationintegration_set.first()
+        assert org_integration_web is not None
 
-        code_mapping_swarm = RepositoryProjectPathConfig.objects.create(
-            project=project_swarm,
+        code_mapping_web = RepositoryProjectPathConfig.objects.create(
+            project=project_web,
             organization_id=self.organization.id,
-            repository=repo_swarm,
-            organization_integration_id=org_integration_swarm.id,
-            integration_id=integration_with_swarm.id,
+            repository=repo_web,
+            organization_integration_id=org_integration_web.id,
+            integration_id=integration_with_web.id,
             stack_root="depot/",
             source_root="/",
             default_branch=None,
         )
 
-<<<<<<< HEAD
         # Python SDK path with #revision from Symbolic
         frame = EventFrame(
             filename="depot/app/services/processor.py#42",
             abs_path="depot/app/services/processor.py#42",
-=======
-        # Python SDK path with @revision from Symbolic
-        frame = EventFrame(
-            filename="depot/app/services/processor.py@42",
-            abs_path="depot/app/services/processor.py@42",
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
         )
 
         # Code mapping
         mapped_path = convert_stacktrace_frame_path_to_source_path(
             frame=frame,
-            code_mapping=code_mapping_swarm,
+            code_mapping=code_mapping_web,
             platform="python",
             sdk_name="sentry.python",
         )
 
-        # format_source_url with Swarm viewer (revision extracted from filename)
+        # format_source_url with web viewer (revision extracted from filename)
         assert mapped_path is not None
-        url = installation.format_source_url(repo=repo_swarm, filepath=mapped_path, branch=None)
+        url = installation.format_source_url(repo=repo_web, filepath=mapped_path, branch=None)
 
-<<<<<<< HEAD
         # Swarm format: /files/<depot_path>?v=<revision>
         assert url == "https://p4web.example.com/files//depot/app/services/processor.py?v=42"
-=======
-        assert url == "https://p4web.example.com//depot/app/services/processor.py?ac=64&rev1=42"
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
