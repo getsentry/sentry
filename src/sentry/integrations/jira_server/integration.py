@@ -667,6 +667,54 @@ class JiraServerIntegration(IssueSyncIntegration):
             results.append((key, value))
         return results
 
+    @staticmethod
+    def _has_user_supplied_value(value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return value != ""
+        if isinstance(value, bool):
+            return True
+        if isinstance(value, (list, tuple, set)):
+            return len(value) > 0
+        if isinstance(value, dict):
+            return len(value) > 0
+        return True
+
+    @staticmethod
+    def _ensure_list(value: Any) -> list[Any]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, (tuple, set)):
+            return list(value)
+        return [value]
+
+    @staticmethod
+    def _extract_option_identifier(value: Any) -> Any:
+        if isinstance(value, dict):
+            return value.get("value") or value.get("id") or value.get("name")
+        return value
+
+    @staticmethod
+    def _extract_id_identifier(value: Any) -> Any:
+        if isinstance(value, dict):
+            return value.get("id") or value.get("value") or value.get("key") or value.get("name")
+        return value
+
+    @staticmethod
+    def _extract_user_identifier(value: Any, user_id_field: str) -> Any:
+        if isinstance(value, dict):
+            return (
+                value.get(user_id_field)
+                or value.get("accountId")
+                or value.get("name")
+                or value.get("key")
+                or value.get("username")
+            )
+        return value
+
     def error_message_from_json(self, data):
         message = ""
         if data.get("errorMessages"):
@@ -1006,7 +1054,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         for field in issue_type_fields:
             field_name = field["fieldId"]
             if field_name == "description":
-                cleaned_data[field_name] = data[field_name]
+                cleaned_data[field_name] = data.get(field_name)
                 continue
             elif field_name == "summary":
                 title = data.get("title")
@@ -1016,59 +1064,108 @@ class JiraServerIntegration(IssueSyncIntegration):
                 labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
                 cleaned_data["labels"] = labels
                 continue
-            if field_name in data.keys():
-                v = data.get(field_name)
-                if not v:
+            raw_value = data.get(field_name)
+            if not self._has_user_supplied_value(raw_value):
+                raw_value = field.get("defaultValue")
+                if not self._has_user_supplied_value(raw_value):
                     continue
 
-                schema = field.get("schema")
-                if schema:
-                    if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field_name] = v
-                        continue
-                    if schema["type"] == "user" or schema.get("items") == "user":
-                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                            # custom multi-picker
-                            v = [{user_id_field: user_id} for user_id in v]
-                        else:
-                            v = {user_id_field: v}
-                    elif schema["type"] == "issuelink":  # used by Parent field
-                        v = {"key": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
-                        v = v
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
+            v = raw_value
+            schema = field.get("schema")
+            if schema:
+                if schema.get("type") == "string" and not schema.get("custom"):
+                    cleaned_data[field_name] = v
+                    continue
+                if schema["type"] == "user" or schema.get("items") == "user":
+                    if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
+                        user_values = []
+                        for user_value in self._ensure_list(v):
+                            identifier = self._extract_user_identifier(user_value, user_id_field)
+                            if identifier:
+                                user_values.append({user_id_field: identifier})
+                        if user_values:
+                            cleaned_data[field_name] = user_values
+                    else:
+                        identifier = self._extract_user_identifier(v, user_id_field)
+                        if identifier:
+                            cleaned_data[field_name] = {user_id_field: identifier}
+                    continue
+                if schema["type"] == "issuelink":
+                    issue_key = v if isinstance(v, str) else None
+                    if issue_key is None and isinstance(v, dict):
+                        issue_key = v.get("key")
+                    if issue_key:
+                        cleaned_data[field_name] = {"key": issue_key}
+                    continue
+                if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
+                    cleaned_data[field_name] = v
+                    continue
+                if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
+                    sprint_value = self._extract_id_identifier(v)
+                    try:
+                        cleaned_data[field_name] = int(str(sprint_value))
+                    except (TypeError, ValueError):
+                        raise IntegrationError(f"Invalid sprint ({sprint_value}) specified")
+                    continue
+                if schema["type"] == "array" and schema.get("items") == "option":
+                    option_values = [
+                        {"value": option_value}
+                        for option_value in (
+                            self._extract_option_identifier(item) for item in self._ensure_list(v)
+                        )
+                        if option_value is not None
+                    ]
+                    if option_values:
+                        cleaned_data[field_name] = option_values
+                    continue
+                if schema["type"] == "array" and schema.get("items") == "string":
+                    string_values = self._ensure_list(v)
+                    if string_values:
+                        cleaned_data[field_name] = string_values
+                    continue
+                if schema["type"] == "array" and schema.get("items") != "string":
+                    id_values = [
+                        {"id": identifier}
+                        for identifier in (
+                            self._extract_id_identifier(item) for item in self._ensure_list(v)
+                        )
+                        if identifier is not None
+                    ]
+                    if id_values:
+                        cleaned_data[field_name] = id_values
+                    continue
+                if schema["type"] == "option":
+                    option_value = self._extract_option_identifier(v)
+                    if option_value is not None:
+                        cleaned_data[field_name] = {"value": option_value}
+                    continue
+                if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
+                    cleaned_data[field_name] = v
+                    continue
+                if (
+                    schema["type"] == "number"
+                    or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
+                ):
+                    numeric_value = self._extract_id_identifier(v)
+                    if numeric_value is not None:
+                        number_str = str(numeric_value)
                         try:
-                            v = int(v)
-                        except ValueError:
-                            raise IntegrationError(f"Invalid sprint ({v}) specified")
-                    elif schema["type"] == "array" and schema.get("items") == "option":
-                        v = [{"value": vx} for vx in v]
-                    elif schema["type"] == "array" and schema.get("items") == "string":
-                        v = [v]
-                    elif schema["type"] == "array" and schema.get("items") != "string":
-                        v = [{"id": vx} for vx in v]
-                    elif schema["type"] == "option":
-                        v = {"value": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
-                        v = v
-                    elif (
-                        schema["type"] == "number"
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
-                    ):
-                        try:
-                            if "." in v:
-                                v = float(v)
+                            if "." in number_str:
+                                v = float(number_str)
                             else:
-                                v = int(v)
+                                v = int(number_str)
                         except ValueError:
-                            pass
-                    elif (
-                        schema.get("type") != "string"
-                        or (schema.get("items") and schema.get("items") != "string")
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
-                    ):
-                        v = {"id": v}
-                cleaned_data[field_name] = v
+                            v = numeric_value
+                if (
+                    schema.get("type") != "string"
+                    or (schema.get("items") and schema.get("items") != "string")
+                    or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
+                ):
+                    identifier = self._extract_id_identifier(v)
+                    if identifier is None:
+                        continue
+                    v = {"id": identifier}
+            cleaned_data[field_name] = v
 
         if not (
             isinstance(cleaned_data.get("issuetype"), dict)
