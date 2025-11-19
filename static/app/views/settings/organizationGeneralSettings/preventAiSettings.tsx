@@ -52,17 +52,13 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       ),
     }),
     visible: ({model}) => {
-      // Check if feature flag is on - if so, use current model value for dynamic toggling
       if (hasFeatureFlag) {
         return !!model.getValue('hideAiFeatures');
       }
-      // If flag is off, use initialData because setValue forces model value to false
       return model.initialData.hideAiFeatures === true;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
     setValue: value => {
-      // If feature flag is off, always show as disabled (false)
-      // regardless of the org's actual setting
       if (!hasFeatureFlag) {
         return false;
       }
