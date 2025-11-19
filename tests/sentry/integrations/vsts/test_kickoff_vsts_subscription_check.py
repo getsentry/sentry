@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from time import time
 from typing import Any
+from unittest.mock import patch
 
 import responses
 
@@ -126,3 +127,26 @@ class VstsSubscriptionCheckTest(TestCase):
             kickoff_vsts_subscription_check()
 
         assert_no_subscription("vsts1", "subscription1")
+
+    @responses.activate
+    def test_skip_recent_subscription(self) -> None:
+        integration = self.create_provider_integration(
+            provider=PROVIDER,
+            name="vsts1",
+            external_id="vsts1",
+            metadata={
+                "domain_name": "https://vsts1.visualstudio.com/",
+                "subscription": {"id": "subscription1", "check": time()},
+            },
+        )
+        integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+        with patch(
+            "sentry.integrations.vsts.tasks.kickoff_subscription_check.time",
+            return_value=time() + 60,
+        ), patch(
+            "sentry.integrations.vsts.tasks.kickoff_subscription_check.vsts_subscription_check.apply_async"
+        ) as mock_apply_async:
+            kickoff_vsts_subscription_check()
+
+        mock_apply_async.assert_not_called()
