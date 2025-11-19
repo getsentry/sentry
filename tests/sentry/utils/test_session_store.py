@@ -93,9 +93,7 @@ class RedisSessionStoreTestCase(TestCase):
 
     def test_write_survives_transient_read_failure(self) -> None:
         fake_client = FakeRedisClient()
-        with patch(
-            "sentry.utils.session_store.redis.redis_clusters.get", return_value=fake_client
-        ):
+        with patch("sentry.utils.session_store.redis.redis_clusters.get", return_value=fake_client):
             store = self.TestRedisSessionStore(self.request, "test-store")
             store.regenerate()
 
@@ -108,9 +106,7 @@ class RedisSessionStoreTestCase(TestCase):
 
     def test_cache_eventually_invalidates_when_missing(self) -> None:
         fake_client = FakeRedisClient()
-        with patch(
-            "sentry.utils.session_store.redis.redis_clusters.get", return_value=fake_client
-        ):
+        with patch("sentry.utils.session_store.redis.redis_clusters.get", return_value=fake_client):
             store = self.TestRedisSessionStore(self.request, "test-store")
             store.regenerate()
 
