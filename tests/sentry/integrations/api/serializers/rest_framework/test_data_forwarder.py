@@ -230,8 +230,8 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "access_key" in config_errors or "secret_key" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "access_key" in config_errors_str and "secret_key" in config_errors_str
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
         config: dict[str, str] = {
@@ -419,8 +419,8 @@ class DataForwarderSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
         assert "config" in serializer.errors
-        config_errors = serializer.errors["config"]
-        assert "index" in config_errors or "source" in config_errors
+        config_errors_str = str(serializer.errors["config"])
+        assert "index" in config_errors_str and "source" in config_errors_str
 
     def test_splunk_config_validation_invalid_token_format(self) -> None:
         config: dict[str, str] = {

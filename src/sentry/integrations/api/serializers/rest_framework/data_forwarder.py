@@ -52,7 +52,7 @@ class DataForwarderSerializer(Serializer):
     )
     config = serializers.DictField(child=serializers.CharField(allow_blank=True), default=dict)
     project_ids = serializers.ListField(
-        child=serializers.IntegerField(), allow_empty=True, required=True
+        child=serializers.IntegerField(), allow_empty=True, required=False, default=list
     )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
