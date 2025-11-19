@@ -30,6 +30,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.pipeline.base import sanitize_pipeline_message
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
@@ -358,19 +359,25 @@ class OAuth2CallbackView:
             state = request.GET.get("state")
             code = request.GET.get("code")
 
+            sanitized_error = sanitize_pipeline_message(error)
+
             if error:
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error or None},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(_format_pipeline_error(ERR_INVALID_STATE, sanitized_error))
 
             if state != pipeline.fetch_state("state"):
+                pipeline_state = pipeline.fetch_state("state")
+                extra_state = sanitize_pipeline_message(state)
+                extra_pipeline_state = sanitize_pipeline_message(pipeline_state)
+                extra_code = sanitize_pipeline_message(code)
                 extra = {
                     "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
+                    "state": extra_state or None,
+                    "pipeline_state": extra_pipeline_state or None,
+                    "code": extra_code or None,
                 }
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
@@ -386,12 +393,13 @@ class OAuth2CallbackView:
 
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
-            error = data.get("error")
-            return pipeline.error(data["error_description"])
+            description = sanitize_pipeline_message(data["error_description"])
+            return pipeline.error(description or ERR_TOKEN_RETRIEVAL)
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            token_error = sanitize_pipeline_message(data["error"])
+            logger.info("identity.token-exchange-error", extra={"error": token_error})
+            return pipeline.error(_format_pipeline_error(ERR_TOKEN_RETRIEVAL, token_error))
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
@@ -399,3 +407,9 @@ class OAuth2CallbackView:
         pipeline.bind_state("data", data)
 
         return pipeline.next_step()
+
+
+def _format_pipeline_error(message: str, detail: str | None) -> str:
+    if detail:
+        return f"{message}\nError: {detail}"
+    return message

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, Self
 
@@ -14,6 +15,7 @@ from sentry.organizations.services.organization import RpcOrganization, organiza
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
+from sentry.utils.strings import strip_lone_surrogates, truncatechars
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
@@ -24,6 +26,23 @@ from .views.base import PipelineView
 from .views.nested import NestedPipelineView
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
+_SANITIZE_CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_SANITIZE_TEMPLATE_PATTERN = re.compile(r"\$\s*\{")
+_SANITIZE_WHITESPACE_PATTERN = re.compile(r"\s{2,}")
+_MAX_PIPELINE_MESSAGE_LENGTH = 1024
+
+
+def sanitize_pipeline_message(message: str | None, *, max_length: int = _MAX_PIPELINE_MESSAGE_LENGTH) -> str:
+    if not message:
+        return ""
+
+    sanitized = strip_lone_surrogates(message)
+    sanitized = _SANITIZE_CONTROL_CHAR_PATTERN.sub("", sanitized)
+    sanitized = sanitized.replace("\r", " ").replace("\n", " ")
+    sanitized = _SANITIZE_TEMPLATE_PATTERN.sub("$ {", sanitized)
+    sanitized = _SANITIZE_WHITESPACE_PATTERN.sub(" ", sanitized).strip()
+
+    return truncatechars(sanitized, max_length)
 
 
 class _HasKey(Protocol):
@@ -189,18 +208,19 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         return step.dispatch(self.request, pipeline=self)
 
     def error(self, message: str) -> HttpResponseBase:
+        sanitized_message = sanitize_pipeline_message(message)
         self.get_logger().error(
-            f"PipelineError: {message}",
+            f"PipelineError: {sanitized_message}",
             extra={
                 "organization_id": self.organization.id if self.organization else None,
                 "provider": self.provider.key,
-                "error": message,
+                "error": sanitized_message,
             },
         )
 
         return render_to_response(
             template="sentry/pipeline-error.html",
-            context={"error": message},
+            context={"error": sanitized_message},
             request=self.request,
         )
 

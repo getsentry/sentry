@@ -13,11 +13,38 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.pipeline.base import sanitize_pipeline_message
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
+
+
+class _DummyLifecycle:
+    def __init__(self) -> None:
+        self.failures: list[dict[str, object] | None] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+    def record_failure(
+        self,
+        failure_reason,
+        extra: dict[str, object] | None = None,
+        create_issue: bool = True,
+        sample_log_rate: float | None = None,
+    ) -> None:
+        self.failures.append(extra)
+
+    def record_halt(self, *args, **kwargs):
+        pass
+
+    def record_success(self):
+        pass
 
 
 @control_silo_test
@@ -157,6 +184,52 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    @patch("sentry.identity.oauth2.record_event")
+    def test_callback_error_parameter_is_sanitized(
+        self, mock_record_event: MagicMock, mock_record: MagicMock
+    ) -> None:
+        lifecycle = _DummyLifecycle()
+        capture_cm = MagicMock()
+        capture_cm.__enter__.return_value = lifecycle
+        capture_cm.__exit__.return_value = False
+        mock_record_event.return_value.capture.return_value = capture_cm
+
+        session = Client().session
+
+        pipeline_request = RequestFactory().get("/")
+        pipeline_request.session = session
+        pipeline_request.subdomain = None
+        user = getattr(self.request, "user", None)
+        if user is None:
+            user = MagicMock()
+            user.is_authenticated = False
+        pipeline_request.user = user
+
+        pipeline = IdentityPipeline(request=pipeline_request, provider_key="dummy")
+        pipeline.initialize()
+        pipeline.bind_state("state", "expected-state")
+        pipeline.state.step_index = 1
+
+        payload = "${j${::-n}di:dns${::-:}${::-/}example.bxss.me}"
+        callback_request = RequestFactory().get(
+            "/",
+            {
+                "error": payload,
+                "state": "expected-state",
+            },
+        )
+        callback_request.session = session
+        callback_request.subdomain = None
+        callback_request.user = user
+
+        response = self.view.dispatch(callback_request, pipeline)
+        assert response.status_code == 200
+
+        assert lifecycle.failures
+        logged_error = lifecycle.failures[0]["error"]
+        assert logged_error == sanitize_pipeline_message(payload)
+        assert "${" not in logged_error
+        assert "$ {" in logged_error
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
