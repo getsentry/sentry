@@ -894,7 +894,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         self.group.update(seer_fixability_score=0.80)
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
