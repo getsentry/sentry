@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
 from sentry import features, options
@@ -16,6 +17,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.utils import metrics
 from sentry.web_vitals.issue_platform_adapter import send_web_vitals_issue_to_platform
 from sentry.web_vitals.query import get_trace_by_web_vital_measurement
 from sentry.web_vitals.types import (
@@ -67,8 +69,11 @@ def run_web_vitals_issue_detection() -> None:
 
     # Spawn a sub-task for each project
     projects = Project.objects.filter(id__in=enabled_project_ids).select_related("organization")
+    projects_checked_count = 0
+    projects_dispatched_count = 0
 
     for project in projects:
+        projects_checked_count += 1
         if not check_seer_setup_for_project(project):
             continue
 
@@ -78,6 +83,18 @@ def run_web_vitals_issue_detection() -> None:
             continue
 
         detect_web_vitals_issues_for_project.delay(project.id)
+        projects_dispatched_count += 1
+
+    metrics.incr(
+        "web_vitals_issue_detection.projects.checked",
+        amount=projects_checked_count,
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "web_vitals_issue_detection.projects.dispatched",
+        amount=projects_dispatched_count,
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -95,6 +112,8 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
+    sent_counts: dict[WebVitalIssueDetectionGroupingType, int] = defaultdict(int)
+    rejected_no_trace_count = 0
     for web_vital_issue_group in web_vital_issue_groups:
         scores = web_vital_issue_group["scores"]
         values = web_vital_issue_group["values"]
@@ -112,7 +131,26 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
             start_time_delta=DEFAULT_START_TIME_DELTA,
         )
         if trace:
-            send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
+            sent = send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
+            if sent:
+                sent_counts[web_vital_issue_group["vital_grouping"]] += 1
+        else:
+            rejected_no_trace_count += 1
+
+    for vital_grouping, count in sent_counts.items():
+        metrics.incr(
+            "web_vitals_issue_detection.issues.sent",
+            amount=count,
+            tags={"kind": vital_grouping},  # rendering, cls, or inp
+            sample_rate=1.0,
+        )
+
+    metrics.incr(
+        "web_vitals_issue_detection.rejected",
+        amount=rejected_no_trace_count,
+        tags={"reason": "no_trace"},
+        sample_rate=1.0,
+    )
 
 
 def get_highest_opportunity_page_vitals_for_project(
@@ -189,6 +227,7 @@ def get_highest_opportunity_page_vitals_for_project(
         tuple[WebVitalIssueDetectionGroupingType, str], WebVitalIssueGroupData
     ] = {}
     seen_names = set()
+    rejected_insufficient_samples_count = 0
     for row in result.get("data", []):
         name = row.get("transaction")
         if not name:
@@ -205,12 +244,10 @@ def get_highest_opportunity_page_vitals_for_project(
             samples_count = row.get(f"count_scores(measurements.score.{vital})")
             score_under_threshold = score is not None and score < SCORE_THRESHOLD
             enough_samples = samples_count is not None and samples_count >= samples_count_threshold
-            if (
-                score is not None
-                and score_under_threshold
-                and enough_samples
-                and p75_value is not None
-            ):
+            if score is not None and score_under_threshold and p75_value is not None:
+                if not enough_samples:
+                    rejected_insufficient_samples_count += 1
+                    continue
                 if (VITAL_GROUPING_MAP[vital], name) not in web_vital_issue_groups:
                     web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)] = {
                         "transaction": name,
@@ -226,6 +263,13 @@ def get_highest_opportunity_page_vitals_for_project(
                     web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][
                         vital
                     ] = p75_value
+
+    metrics.incr(
+        "web_vitals_issue_detection.rejected",
+        amount=rejected_insufficient_samples_count,
+        tags={"reason": "insufficient_samples"},
+        sample_rate=1.0,
+    )
 
     return list(web_vital_issue_groups.values())
 
