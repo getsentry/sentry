@@ -50,12 +50,14 @@ class DataForwarderSerializer(Serializer):
             (DataForwarderProviderSlug.SPLUNK, "Splunk"),
         ]
     )
-    config = serializers.DictField(child=serializers.CharField(allow_blank=False), default=dict)
+    config = serializers.DictField(child=serializers.CharField(allow_blank=True), default=dict)
     project_ids = serializers.ListField(
         child=serializers.IntegerField(), allow_empty=True, required=True
     )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
+        # Filter out empty string values (cleared optional fields)
+        config = {k: v for k, v in config.items() if v != ""}
         provider = self.initial_data.get("provider")
 
         if provider == DataForwarderProviderSlug.SQS:
