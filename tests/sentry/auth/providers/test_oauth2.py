@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from functools import cached_property
-from unittest.mock import MagicMock
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from django.test import RequestFactory

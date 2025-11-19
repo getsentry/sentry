@@ -8,7 +8,9 @@ _ALLOWED_OAUTH_ERROR_CHARS = frozenset(string.ascii_letters + string.digits + "-
 _MAX_OAUTH_ERROR_LENGTH = 128
 
 
-def sanitize_oauth_error(error: str | None, *, max_length: int = _MAX_OAUTH_ERROR_LENGTH) -> str | None:
+def sanitize_oauth_error(
+    error: str | None, *, max_length: int = _MAX_OAUTH_ERROR_LENGTH
+) -> str | None:
     """
     Normalize an OAuth ``error`` query parameter value.
 
