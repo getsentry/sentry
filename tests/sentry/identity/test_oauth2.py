@@ -1,10 +1,11 @@
 from collections import namedtuple
 from functools import cached_property
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
@@ -209,3 +210,34 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_callback_params_restart_when_state_missing(self) -> None:
+        request = RequestFactory().get("/?code=shuttle")
+        request.session = Client().session
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+
+        with patch.object(pipeline, "fetch_state", return_value=None), patch.object(
+            pipeline, "next_step"
+        ) as mock_next_step, patch.object(pipeline, "bind_state") as mock_bind_state:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        mock_next_step.assert_not_called()
+        mock_bind_state.assert_any_call("state", ANY)
+
+    def test_callback_params_resume_when_state_present(self) -> None:
+        request = RequestFactory().get("/?code=shuttle")
+        request.session = Client().session
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        expected_response = HttpResponse("ok")
+
+        with patch.object(pipeline, "fetch_state", return_value="stored-state"), patch.object(
+            pipeline, "next_step", return_value=expected_response
+        ) as mock_next_step:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response is expected_response
+        mock_next_step.assert_called_once_with()
