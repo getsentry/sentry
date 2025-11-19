@@ -98,8 +98,8 @@ class EmailFieldMappingKeys(StrEnum):
     EmailFieldMappingKeys is an enum that represents the keys of an email field mapping.
     """
 
-    FALLTHROUGH_TYPE_KEY = "fallthroughType"
-    TARGET_TYPE_KEY = "targetType"
+    FALLTHROUGH_TYPE_KEY = "fallthrough_type"
+    TARGET_TYPE_KEY = "target_type"
 
 
 class ActionFieldMapping(TypedDict):
@@ -740,7 +740,7 @@ class EmailDataBlob(DataBlob):
     EmailDataBlob represents the data blob for an email notification action.
     """
 
-    fallthroughType: str = ""
+    fallthrough_type: str = ""
 
 
 issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {
