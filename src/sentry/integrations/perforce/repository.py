@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry.integrations.services.integration import integration_service
@@ -133,18 +134,21 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 # Get last N changes
                 changes = client.get_changes(f"{depot_path}/...", max_changes=20)
             else:
-                # Get changes between start and end
-                # P4 doesn't have native compare, so get changes up to end_sha
-                changes = client.get_changes(f"{depot_path}/...", max_changes=100, start_cl=end_sha)
+                # Get changes between start and end (exclusive start, inclusive end)
+                # P4 -e flag returns changes >= specified CL, so we get all recent changes
+                # and filter to range (start_sha, end_sha]
+                changes = client.get_changes(f"{depot_path}/...", max_changes=100)
 
-                # Filter to only changes after start_sha
+                # Filter to only changes in range: start_sha < change <= end_sha
                 if changes:
                     start_cl_num = int(start_sha) if start_sha.isdigit() else 0
-                    # Filter out invalid changelist data
+                    end_cl_num = int(end_sha) if end_sha.isdigit() else 0
                     filtered_changes = []
                     for c in changes:
                         try:
-                            if int(c["change"]) > start_cl_num:
+                            cl_num = int(c["change"])
+                            # Include changes that are: after start AND at or before end
+                            if start_cl_num < cl_num <= end_cl_num:
                                 filtered_changes.append(c)
                         except (TypeError, ValueError, KeyError):
                             # Skip malformed changelist data
@@ -184,8 +188,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 except (TypeError, ValueError):
                     time_int = 0
 
-                # Format timestamp (P4 time is Unix timestamp)
-                timestamp = self.format_date(time_int)
+                # Convert Unix timestamp to ISO 8601 format
+                timestamp = datetime.fromtimestamp(time_int, tz=timezone.utc).isoformat()
 
                 # Get user information from Perforce
                 username = cl.get("user", "unknown")
