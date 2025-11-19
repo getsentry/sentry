@@ -301,7 +301,6 @@ function SearchQueryBuilderInputInternal({
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
-      filterItem: item,
       filterValue,
     });
   const sortedFilteredItems = useSortedFilterKeyItems({
