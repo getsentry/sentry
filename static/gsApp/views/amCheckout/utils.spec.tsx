@@ -1,7 +1,5 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 
-import {DataCategory} from 'sentry/types/core';
-
 import {AddOnCategory, InvoiceItemType, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
@@ -208,23 +206,6 @@ describe('utils', () => {
       );
       expect(utils.displayUnitPrice({cents: 0.0167})).toBe('$0.000167');
       expect(utils.displayUnitPrice({cents: 0.528})).toBe('$0.00528');
-    });
-  });
-
-  describe('getEventsWithUnit', () => {
-    it('returns correct event amount', () => {
-      expect(utils.getEventsWithUnit(1_000, DataCategory.ERRORS)).toBe('1K');
-      expect(utils.getEventsWithUnit(50_000, DataCategory.ERRORS)).toBe('50K');
-      expect(utils.getEventsWithUnit(1_000_000, DataCategory.TRANSACTIONS)).toBe('1M');
-      expect(utils.getEventsWithUnit(4_000_000, DataCategory.TRANSACTIONS)).toBe('4M');
-      expect(utils.getEventsWithUnit(1, DataCategory.ATTACHMENTS)).toBe('1GB');
-      expect(utils.getEventsWithUnit(999, DataCategory.ATTACHMENTS)).toBe('999GB');
-      expect(utils.getEventsWithUnit(1_000, DataCategory.ATTACHMENTS)).toBe('1TB');
-      expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4TB');
-      expect(utils.getEventsWithUnit(1_000_000_000, DataCategory.ERRORS)).toBe('1B');
-      expect(utils.getEventsWithUnit(10_000_000_000, DataCategory.ERRORS)).toBe('10B');
-      expect(utils.getEventsWithUnit(1, DataCategory.LOG_BYTE)).toBe('1GB');
-      expect(utils.getEventsWithUnit(25, DataCategory.LOG_BYTE)).toBe('25GB');
     });
   });
 

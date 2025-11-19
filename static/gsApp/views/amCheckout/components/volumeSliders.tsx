@@ -201,18 +201,13 @@ function VolumeSliders({
                   <div>
                     <SpaceBetweenGrid>
                       <VolumeAmount>
-                        {isByteCategory(category)
-                          ? utils.getEventsWithUnit(
-                              formData.reserved[category] ?? 0,
-                              category
-                            )
-                          : formatReservedWithUnits(
-                              formData.reserved[category] ?? null,
-                              category,
-                              {
-                                isAbbreviated: true,
-                              }
-                            )}
+                        {formatReservedWithUnits(
+                          formData.reserved[category] ?? null,
+                          category,
+                          {
+                            isAbbreviated: !isByteCategory(category),
+                          }
+                        )}
                       </VolumeAmount>
                       <div>
                         <Price isIncluded={isIncluded}>
@@ -251,12 +246,14 @@ function VolumeSliders({
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>
                         {tct('[min] included', {
-                          min: isByteCategory(category)
-                            ? utils.getEventsWithUnit(min, category)
-                            : formatReservedWithUnits(min, category),
+                          min: formatReservedWithUnits(min, category),
                         })}
                       </div>
-                      <div>{utils.getEventsWithUnit(max, category)}</div>
+                      <div>
+                        {formatReservedWithUnits(max, category, {
+                          isAbbreviated: !isByteCategory(category),
+                        })}
+                      </div>
                     </MinMax>
                   </div>
                   {showTransactionsDisclaimer && (
@@ -323,8 +320,16 @@ function VolumeSliders({
                       onChange={value => value && handleReservedChange(value, category)}
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
-                      <div>{utils.getEventsWithUnit(min, category)}</div>
-                      <div>{utils.getEventsWithUnit(max, category)}</div>
+                      <div>
+                        {formatReservedWithUnits(min, category, {
+                          isAbbreviated: !isByteCategory(category),
+                        })}
+                      </div>
+                      <div>
+                        {formatReservedWithUnits(max, category, {
+                          isAbbreviated: !isByteCategory(category),
+                        })}
+                      </div>
                     </MinMax>
                   </div>
                   {showTransactionsDisclaimer && (
