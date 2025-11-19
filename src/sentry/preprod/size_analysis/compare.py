@@ -378,6 +378,13 @@ def _compare_files(
         base_file = base_files_dict.get(path)
 
         if head_file and base_file:
+            logger.info(
+                "preprod.size_analysis.compare.file_exists_in_both",
+                extra={
+                    "head_file": head_file,
+                    "base_file": base_file,
+                },
+            )
             # File exists in both - check for size change
             size_diff = head_file.total_savings - base_file.total_savings
             diff_type = (
@@ -397,6 +404,12 @@ def _compare_files(
                 )
             )
         elif head_file:
+            logger.info(
+                "preprod.size_analysis.compare.file_added_in_head",
+                extra={
+                    "head_file": head_file,
+                },
+            )
             # File added in head
             diff_items.append(
                 DiffItem(
@@ -409,6 +422,12 @@ def _compare_files(
                 )
             )
         elif base_file:
+            logger.info(
+                "preprod.size_analysis.compare.file_removed_from_head",
+                extra={
+                    "base_file": base_file,
+                },
+            )
             # File removed from head
             diff_items.append(
                 DiffItem(
@@ -488,28 +507,50 @@ def _compare_groups(
 
 def _diff_insight(
     insight_type: str,
-    head_insight: BaseInsightResult,
-    base_insight: BaseInsightResult,
+    head_insight: BaseInsightResult | None,
+    base_insight: BaseInsightResult | None,
 ) -> InsightDiffItem:
-    total_savings_change = head_insight.total_savings - base_insight.total_savings
+    if head_insight is None and base_insight is None:
+        raise ValueError("Both head and base insights are None")
+
+    if head_insight is None:
+        status = "resolved"
+        # Resolved insight - all items removed
+        total_savings_change = -base_insight.total_savings
+        head_files = []
+        base_files = base_insight.files if isinstance(base_insight, FilesInsightResult) else []
+        head_groups = []
+        base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
+    elif base_insight is None:
+        status = "new"
+        # New insight - all items added
+        total_savings_change = head_insight.total_savings
+        head_files = head_insight.files if isinstance(head_insight, FilesInsightResult) else []
+        base_files = []
+        head_groups = head_insight.groups if isinstance(head_insight, GroupsInsightResult) else []
+        base_groups = []
+    else:
+        status = "unresolved"
+        # Unresolved insight - compare both
+        total_savings_change = head_insight.total_savings - base_insight.total_savings
+        head_files = head_insight.files if isinstance(head_insight, FilesInsightResult) else []
+        base_files = base_insight.files if isinstance(base_insight, FilesInsightResult) else []
+        head_groups = head_insight.groups if isinstance(head_insight, GroupsInsightResult) else []
+        base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
 
     file_diffs = []
     group_diffs = []
 
-    if isinstance(head_insight, FilesInsightResult) and isinstance(
-        base_insight, FilesInsightResult
-    ):
-        file_diffs = _compare_files(head_insight.files, base_insight.files)
-    elif isinstance(head_insight, GroupsInsightResult) and isinstance(
-        base_insight, GroupsInsightResult
-    ):
-        group_diffs = _compare_groups(head_insight.groups, base_insight.groups)
+    if head_files or base_files:
+        file_diffs = _compare_files(head_files, base_files)
+    elif head_groups or base_groups:
+        group_diffs = _compare_groups(head_groups, base_groups)
 
     # TODO(EME-) Implement non-File/GroupinsightsResult insight diffs in future
 
     return InsightDiffItem(
         insight_type=insight_type,
-        status="unresolved",  # TODO
+        status=status,
         total_savings_change=total_savings_change,
         file_diffs=file_diffs,
         group_diffs=group_diffs,
@@ -531,18 +572,18 @@ def _compare_insights(
     # Convert insights to dictionaries for easier comparison
     head_insight_dict = (
         {
-            field_name: getattr(head_insights, field_name)
-            for field_name in head_insights.__class__.model_fields.keys()
-            if getattr(head_insights, field_name) is not None
+            field_name: value
+            for field_name, value in vars(head_insights).items()
+            if value is not None
         }
         if head_insights
         else {}
     )
     base_insight_dict = (
         {
-            field_name: getattr(base_insights, field_name)
-            for field_name in base_insights.__class__.model_fields.keys()
-            if getattr(base_insights, field_name) is not None
+            field_name: value
+            for field_name, value in vars(base_insights).items()
+            if value is not None
         }
         if base_insights
         else {}
@@ -566,26 +607,10 @@ def _compare_insights(
         # Determine status and create diff item
         if head_insight is not None and base_insight is None:
             # New insight in head
-            insight_diff_items.append(
-                InsightDiffItem(
-                    insight_type=insight_type,
-                    status="new",
-                    total_savings_change=head_insight.total_savings,
-                    file_diffs=[],
-                    group_diffs=[],
-                )
-            )
+            insight_diff_items.append(_diff_insight(insight_type, head_insight, None))
         elif head_insight is None and base_insight is not None:
             # Resolved insight (was in base, not in head)
-            insight_diff_items.append(
-                InsightDiffItem(
-                    insight_type=insight_type,
-                    status="resolved",
-                    total_savings_change=-base_insight.total_savings,
-                    file_diffs=[],
-                    group_diffs=[],
-                )
-            )
+            insight_diff_items.append(_diff_insight(insight_type, None, base_insight))
         else:
             # Unresolved insight (exists in both)
             if head_insight and base_insight:
