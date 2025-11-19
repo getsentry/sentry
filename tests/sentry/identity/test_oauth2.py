@@ -9,7 +9,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -156,6 +156,35 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_error_parameter_is_sanitized(self, _mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "bad\ninput\rpayload\x00\tend"})
+        request.subdomain = None
+
+        pipeline = MagicMock()
+        pipeline.provider = MagicMock(key="dummy")
+        pipeline_response = MagicMock()
+        pipeline.error.return_value = pipeline_response
+
+        result = self.view.dispatch(request, pipeline)
+
+        expected_error = "bad input payload end"
+        pipeline.error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError: {expected_error}")
+        assert result == pipeline_response
+
+    def test_error_parameter_fallback_placeholder(self, _mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "\n\r\t"})
+        request.subdomain = None
+
+        pipeline = MagicMock()
+        pipeline.provider = MagicMock(key="dummy")
+        pipeline_response = MagicMock()
+        pipeline.error.return_value = pipeline_response
+
+        result = self.view.dispatch(request, pipeline)
+
+        pipeline.error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError: [redacted]")
+        assert result == pipeline_response
 
 
 @control_silo_test

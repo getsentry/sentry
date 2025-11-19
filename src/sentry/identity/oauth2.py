@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+import unicodedata
 from time import time
 from typing import Any
 from urllib.parse import parse_qsl, urlencode
@@ -34,6 +35,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import strip_lone_surrogates, to_single_line_str, truncatechars
 
 from .base import Provider
 
@@ -42,6 +44,20 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+
+def _sanitize_oauth_error(error: str) -> str:
+    """
+    Remove control characters and collapse whitespace so user-controlled values cannot inject
+    arbitrary log lines or multi-line content into pipeline errors.
+    """
+
+    sanitized = strip_lone_surrogates(str(error))
+    sanitized = sanitized.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    sanitized = "".join(ch for ch in sanitized if unicodedata.category(ch)[0] != "C")
+    sanitized = to_single_line_str(sanitized)
+    sanitized = truncatechars(sanitized, 200)
+    return sanitized or "[redacted]"
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +375,12 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = _sanitize_oauth_error(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {sanitized_error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {
