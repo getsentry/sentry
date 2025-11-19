@@ -47,7 +47,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         help_text="Name of the monitor",
     )
     type = serializers.CharField()
-    config = serializers.JSONField(required=True)
+    config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
@@ -134,7 +134,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
             # Handle config field update
-            if "config" in validated_data:
+            if validated_data.get("config"):
                 instance.config = validated_data.get("config", instance.config)
                 try:
                     enforce_config_schema(instance)
