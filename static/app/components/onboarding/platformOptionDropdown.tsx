@@ -9,6 +9,10 @@ import useRouter from 'sentry/utils/useRouter';
 
 type OptionControlProps = {
   /**
+   * Click handler
+   */
+  onChange: (selectedOption: SelectOption<string>) => void;
+  /**
    * The platform options for which the control is rendered
    */
   option: PlatformOption<any>;
@@ -20,10 +24,6 @@ type OptionControlProps = {
    * Whether the option is disabled
    */
   disabled?: boolean;
-  /**
-   * Click handler
-   */
-  onChange?: (selectedOption: SelectOption<string>) => void;
 };
 
 type PlatformOptionsControlProps = {

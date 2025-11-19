@@ -12,7 +12,7 @@ import Crumb from './crumb';
 import Divider from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps extends SingleSelectProps<string> {
+interface BreadcrumbDropdownProps extends Omit<SingleSelectProps<string>, 'onChange'> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
@@ -45,12 +45,9 @@ function BreadcrumbDropdown({
   }
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       searchable
       options={options.map(item => ({...item, hideCheck: true}))}
-      onChange={selected => {
-        onCrumbSelect(selected.value);
-      }}
       closeOnSelect
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
@@ -65,6 +62,9 @@ function BreadcrumbDropdown({
         />
       )}
       {...props}
+      onChange={selected => {
+        onCrumbSelect(selected.value);
+      }}
     />
   );
 }

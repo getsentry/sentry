@@ -12,12 +12,12 @@ import {t, tn} from 'sentry/locale';
 
 type Props = {
   onChange: (value: string) => void;
+  onFilterChange: (options: Array<SelectOption<string>>) => void;
   placeholder: string;
   query: string;
   className?: string;
   filterOptions?: Array<SelectOptionOrSection<string>>;
   filterSelections?: Array<SelectOption<string>>;
-  onFilterChange?: (options: Array<SelectOption<string>>) => void;
 };
 
 function SearchBarAction({
@@ -53,7 +53,7 @@ function SearchBarAction({
           multiple
           maxMenuHeight={400}
           options={filterOptions}
-          value={filterSelections?.map(f => f.value)}
+          value={filterSelections?.map(f => f.value) ?? []}
           onChange={onFilterChange}
           trigger={trigger}
         />

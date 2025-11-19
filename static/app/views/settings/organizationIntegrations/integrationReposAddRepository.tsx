@@ -125,7 +125,7 @@ export function IntegrationReposAddRepository({
       menuWidth={250}
       options={dropdownItems}
       onChange={addRepo}
-      disabled={false}
+      value={undefined}
       menuTitle={t('Repositories')}
       emptyMessage={
         query.isFetching
