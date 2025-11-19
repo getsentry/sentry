@@ -31,7 +31,7 @@ releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1003_group_history_prev_history_safe_removal
+sentry: 1004_group_history_prev_history_delete
 
 social_auth: 0003_social_auth_json_field
 
