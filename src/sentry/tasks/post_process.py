@@ -1660,14 +1660,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Early returns for eligibility checks (cheap checks first)
             if not is_issue_eligible_for_seer_automation(group):
                 return
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
 
             # Now acquire a longer lock to avoid race conditions when starting the automation
             lock_key, lock_name = get_issue_summary_lock_key(group.id)
-            lock = locks.get(lock_key, duration=10, name=lock_name)
+            lock = locks.get(lock_key, duration=30, name=lock_name)
             if lock.locked():
-                return
-
-            if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
 
             # Check if summary exists in cache
