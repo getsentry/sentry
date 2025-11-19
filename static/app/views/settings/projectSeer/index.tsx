@@ -204,6 +204,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
+    getData: () => ({}),
     visible: ({model}) => {
       const tuningValue = model?.getValue('autofixAutomationTuning');
       // Handle both boolean (toggle) and string (dropdown) values
