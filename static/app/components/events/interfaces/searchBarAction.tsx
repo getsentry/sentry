@@ -53,7 +53,7 @@ function SearchBarAction({
           multiple
           maxMenuHeight={400}
           options={filterOptions}
-          value={filterSelections?.map(f => f.value) ?? []}
+          value={filterSelections?.map(f => f.value)}
           onChange={onFilterChange}
           trigger={trigger}
         />
