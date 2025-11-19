@@ -276,6 +276,16 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """
         depot_path = repo.config.get("depot_path", repo.name)
 
+        # Handle Swarm web viewer URLs
+        if self.org_integration:
+            web_url = self.org_integration.config.get("web_url")
+            if web_url and url.startswith(web_url):
+                # Strip Swarm base URL and /files prefix
+                # e.g., "https://swarm.example.com/files//depot/path/file.cpp" -> "//depot/path/file.cpp"
+                url = url[len(web_url) :]
+                if url.startswith("/files"):
+                    url = url[6:]  # Remove "/files"
+
         # Remove p4:// prefix
         if url.startswith("p4://"):
             url = url[5:]
