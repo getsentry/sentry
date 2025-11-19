@@ -173,19 +173,18 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             web_url = self.org_integration.config.get("web_url")
 
         if web_url:
-            # Extract revision from filepath if present (e.g., "file.cpp@42")
+            # Extract file revision from filepath if present (e.g., "file.cpp#1")
             revision = None
             path_without_rev = full_path
-            if "@" in full_path:
-                path_without_rev, revision = full_path.rsplit("@", 1)
+            if "#" in full_path:
+                path_without_rev, revision = full_path.rsplit("#", 1)
 
             # Swarm format: /files/<depot_path>?v=<revision>
             if revision:
                 return f"{web_url}/files{path_without_rev}?v={revision}"
             return f"{web_url}/files{full_path}"
 
-        # Default: p4:// protocol URL
-        # Perforce uses @ for revisions, which is already in the filepath from Symbolic
+        # Default: p4:// protocol URL with file revision (#) syntax
         # Strip leading // from full_path to avoid p4:////
         return f"p4://{full_path.lstrip('/')}"
 
