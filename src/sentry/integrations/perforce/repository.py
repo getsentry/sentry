@@ -196,7 +196,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 if username != "unknown" and username not in user_cache:
                     user_cache[username] = client.get_user(username)
 
-                user_info = user_cache[username]
+                user_info = user_cache.get(username)
                 if user_info:
                     # Use actual email from Perforce if available
                     if user_info.get("email"):
