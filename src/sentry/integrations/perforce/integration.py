@@ -162,7 +162,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Returns:
             List of repository dictionaries
         """
-        return None
+        return []
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Check if integration can access the depot."""
