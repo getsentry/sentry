@@ -9,7 +9,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (path:**/go/pkg/mod/** -app))
+          frame (marked out of app by built-in stack trace rule (path:**/go/pkg/mod/** -app))
             module*
               "github.com/robfig/cron/v3"
             filename (ignored because module takes precedence)

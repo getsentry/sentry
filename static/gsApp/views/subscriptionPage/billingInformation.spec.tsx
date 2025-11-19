@@ -627,6 +627,7 @@ describe('Billing details form', () => {
         zipCode: '94242',
         expMonth: 8,
         expYear: 2030,
+        brand: 'Visa',
       },
     });
 

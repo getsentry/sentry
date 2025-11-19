@@ -16,7 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {FTCConsentLocation} from 'getsentry/types';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
 type Props = StepProps;

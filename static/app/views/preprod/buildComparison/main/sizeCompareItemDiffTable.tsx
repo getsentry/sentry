@@ -336,11 +336,10 @@ const ChangeAmountCell = styled(SimpleTable.RowCell)<{changeType: DiffType}>`
   color: ${p => {
     switch (p.changeType) {
       case 'increased':
-      case 'decreased':
-        return p.theme.warningText;
       case 'added':
         return p.theme.dangerText;
       case 'removed':
+      case 'decreased':
         return p.theme.successText;
       default:
         throw new Error(`Invalid change type: ${p.changeType}`);

@@ -36,10 +36,18 @@ export function getLastEventId(): string | undefined {
 // pollute our breadcrumbs since they may occur a LOT.
 //
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
-const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_BREADCRUMB_FETCH_HOSTS = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_SPANS_BY_DESCRIPTION = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in

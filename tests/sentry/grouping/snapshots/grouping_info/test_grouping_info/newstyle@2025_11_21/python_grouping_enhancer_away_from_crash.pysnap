@@ -263,7 +263,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by the client but ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "marked in-app by the client but ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -533,7 +533,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -577,7 +577,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -621,7 +621,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -665,7 +665,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -709,7 +709,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -753,7 +753,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -797,7 +797,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (path:**/release_webhook.py v-group)",
+                    "hint": "ignored by custom stack trace rule (path:**/release_webhook.py v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -50,6 +50,20 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 
 
 @dataclass(frozen=True)
+class ConditionError:
+    """
+    Represents the failed evaluation of a data condition.
+    Not intended to be detailed or comprehensive; code returning this
+    is assumed to have already reported the error.
+
+    A message is provided for clarity and to aid in debugging; a singleton placeholder
+    value would also work, but would be less clear.
+    """
+
+    msg: str
+
+
+@dataclass(frozen=True)
 class DetectorEvaluationResult:
     # TODO - Should group key live at this level?
     group_key: DetectorGroupKey
@@ -75,12 +89,54 @@ class WorkflowEventData:
 
 @dataclass
 class WorkflowEvaluationData:
-    group_event: GroupEvent | Activity
+    event: GroupEvent | Activity
     action_groups: set[DataConditionGroup] | None = None
     workflows: set[Workflow] | None = None
     triggered_actions: set[Action] | None = None
     triggered_workflows: set[Workflow] | None = None
     associated_detector: Detector | None = None
+
+    def get_snapshot(self) -> dict[str, Any]:
+        """
+        This method will take the complex data structures, like models / list of models,
+        and turn them into the critical attributes of a model or lists of IDs.
+        """
+
+        associated_detector = None
+        if self.associated_detector:
+            associated_detector = self.associated_detector.get_snapshot()
+
+        workflow_ids = None
+        if self.workflows:
+            workflow_ids = [workflow.id for workflow in self.workflows]
+
+        triggered_workflows = None
+        if self.triggered_workflows:
+            triggered_workflows = [workflow.get_snapshot() for workflow in self.triggered_workflows]
+
+        action_filter_conditions = None
+        if self.action_groups:
+            action_filter_conditions = [group.get_snapshot() for group in self.action_groups]
+
+        triggered_actions = None
+        if self.triggered_actions:
+            triggered_actions = [action.get_snapshot() for action in self.triggered_actions]
+
+        event_id = None
+        if hasattr(self.event, "event_id"):
+            # Activity's do not have an event id
+            event_id = self.event.event_id
+
+        return {
+            "workflow_ids": workflow_ids,
+            "associated_detector": associated_detector,
+            "event": self.event,
+            "event_id": event_id,
+            "group": self.event.group,
+            "action_filter_conditions": action_filter_conditions,
+            "triggered_actions": triggered_actions,
+            "triggered_workflows": triggered_workflows,
+        }
 
 
 @dataclass(frozen=True)
@@ -120,7 +176,7 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**asdict(self.data), "debug_msg": self.msg})
+        logger.info(log_str, extra={**self.data.get_snapshot(), "debug_msg": self.msg})
 
 
 class ConfigTransformer(ABC):
@@ -225,6 +281,11 @@ class DataConditionHandler(Generic[T]):
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
+        """
+        Evaluate the value of a data condition.
+        Any error that results in a failure to provide a correct result should
+        raise a DataConditionEvaluationException.
+        """
         raise NotImplementedError
 
 

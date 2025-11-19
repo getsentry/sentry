@@ -8,6 +8,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils import metrics
 
 I64_MAX = 2**63 - 1
 
@@ -15,7 +16,6 @@ FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
     "hash": "sentry.hash",
-    "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
@@ -123,6 +123,12 @@ def _anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, float):
         return AnyValue(double_value=value)
     elif isinstance(value, (list, dict)):
+        metrics.incr(
+            "spans.buffer.convert.stringify",
+            tags={
+                "type": "list" if isinstance(value, list) else "dict",
+            },
+        )
         return AnyValue(string_value=orjson.dumps(value).decode())
 
     raise ValueError(f"Unknown value type: {type(value)}")

@@ -692,6 +692,64 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 200
         mock_call_seer.assert_called_once_with(self.group, serialized_event, None)
 
+    @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
+    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary._call_seer")
+    @patch("sentry.seer.autofix.issue_summary._get_event")
+    def test_get_issue_summary_with_should_run_automation_false(
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_trace_tree,
+        mock_run_automation,
+        mock_get_acknowledgement,
+    ):
+        """Test that should_run_automation=False prevents _run_automation from being called."""
+        mock_get_acknowledgement.return_value = True
+        event = Mock(
+            event_id="test_event_id",
+            data="test_event_data",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
+        mock_get_event.return_value = [serialized_event, event]
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+            scores=SummarizeIssueScores(
+                possible_cause_confidence=0.0,
+                possible_cause_novelty=0.0,
+            ),
+        )
+        mock_call_seer.return_value = mock_summary
+        mock_get_trace_tree.return_value = {"trace": "tree"}
+
+        expected_response_summary = mock_summary.dict()
+        expected_response_summary["event_id"] = event.event_id
+
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, should_run_automation=False
+        )
+
+        assert status_code == 200
+        assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
+        mock_get_event.assert_called_once_with(self.group, self.user, provided_event_id=None)
+        mock_get_trace_tree.assert_called_once()
+        mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
+
+        # Verify that _run_automation was NOT called
+        mock_run_automation.assert_not_called()
+
+        # Check if the cache was set correctly
+        cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
+        assert cached_summary == expected_response_summary
+
 
 class TestGetStoppingPointFromFixability:
     @pytest.mark.parametrize(
@@ -702,7 +760,10 @@ class TestGetStoppingPointFromFixability:
             (0.40, AutofixStoppingPoint.SOLUTION),
             (0.65, AutofixStoppingPoint.SOLUTION),
             (0.66, AutofixStoppingPoint.CODE_CHANGES),
-            (1.0, AutofixStoppingPoint.CODE_CHANGES),
+            (0.77, AutofixStoppingPoint.CODE_CHANGES),
+            (0.78, AutofixStoppingPoint.OPEN_PR),
+            (0.79, AutofixStoppingPoint.OPEN_PR),
+            (1.0, AutofixStoppingPoint.OPEN_PR),
         ],
     )
     def test_stopping_point_mapping(self, score, expected):
@@ -735,7 +796,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),
+            scores=SummarizeIssueScores(fixability_score=0.70),
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
@@ -848,10 +909,12 @@ class TestApplyUserPreferenceUpperBound:
     @pytest.mark.parametrize(
         "fixability,user_pref,expected",
         [
-            # Fixability is None - always return None
-            (None, "open_pr", None),
-            (None, "solution", None),
-            (None, None, None),
+            # Fixability is None - return user preference if available, otherwise ROOT_CAUSE
+            (None, "open_pr", AutofixStoppingPoint.OPEN_PR),
+            (None, "code_changes", AutofixStoppingPoint.CODE_CHANGES),
+            (None, "solution", AutofixStoppingPoint.SOLUTION),
+            (None, "root_cause", AutofixStoppingPoint.ROOT_CAUSE),
+            (None, None, AutofixStoppingPoint.ROOT_CAUSE),
             # User preference is None - return fixability suggestion
             (AutofixStoppingPoint.OPEN_PR, None, AutofixStoppingPoint.OPEN_PR),
             (AutofixStoppingPoint.CODE_CHANGES, None, AutofixStoppingPoint.CODE_CHANGES),
@@ -926,7 +989,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def test_user_preference_limits_high_fixability(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
-        """High fixability (CODE_CHANGES) limited by user preference (SOLUTION)"""
+        """High fixability (OPEN_PR) limited by user preference (SOLUTION)"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -934,7 +997,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),  # High = CODE_CHANGES
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = "solution"
 
@@ -994,12 +1057,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),  # High = CODE_CHANGES
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = None
 
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
-        # Should use CODE_CHANGES from fixability
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
+        # Should use OPEN_PR from fixability
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR

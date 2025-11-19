@@ -67,8 +67,11 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
         return AutofixStoppingPoint.SOLUTION
-    else:
+    # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
+    elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
+    else:
+        return AutofixStoppingPoint.OPEN_PR
 
 
 def _fetch_user_preference(project_id: int) -> str | None:
@@ -105,22 +108,30 @@ def _fetch_user_preference(project_id: int) -> str | None:
 def _apply_user_preference_upper_bound(
     fixability_suggestion: AutofixStoppingPoint | None,
     user_preference: str | None,
-) -> AutofixStoppingPoint | None:
+) -> AutofixStoppingPoint:
     """
     Apply user preference as an upper bound on the fixability-based stopping point.
     Returns the more conservative (earlier) stopping point between the two.
     """
-    if fixability_suggestion is None or user_preference is None:
+    # If fixability is None but user preference exists, use user preference
+    if fixability_suggestion is None and user_preference is not None:
+        return AutofixStoppingPoint(user_preference)
+    # If fixability exists but user preference is None, use fixability
+    elif fixability_suggestion is not None and user_preference is None:
         return fixability_suggestion
-
-    user_stopping_point = AutofixStoppingPoint(user_preference)
-
-    return (
-        fixability_suggestion
-        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
-        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
-        else user_stopping_point
-    )
+    # If both are None, return ROOT_CAUSE as default
+    elif fixability_suggestion is None and user_preference is None:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # Both are not None - return the more conservative one
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
 
 
 @instrumented_task(
@@ -365,6 +376,7 @@ def _generate_summary(
     force_event_id: str | None,
     source: SeerAutomationSource,
     cache_key: str,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
@@ -389,12 +401,13 @@ def _generate_summary(
         trace_tree,
     )
 
-    try:
-        _run_automation(group, user, event, source)
-    except Exception:
-        logger.exception(
-            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-        )
+    if should_run_automation:
+        try:
+            _run_automation(group, user, event, source)
+        except Exception:
+            logger.exception(
+                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
@@ -429,6 +442,7 @@ def get_issue_summary(
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
     source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
+    should_run_automation: bool = True,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -438,6 +452,7 @@ def get_issue_summary(
         user: The user requesting the summary
         force_event_id: Optional event ID to force summarizing a specific event
         source: The source triggering the summary generation
+        should_run_automation: Whether to trigger automation after generating summary
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -455,13 +470,13 @@ def get_issue_summary(
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock_duration = 10  # How long the lock is held if acquired (seconds)
+    lock_duration = 40  # How long the lock is held if acquired (seconds). request timeout is 30 sec
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
     # if force_event_id is set, we always generate a new summary
     if force_event_id:
         summary_dict, status_code = _generate_summary(
-            group, user, force_event_id, source, cache_key
+            group, user, force_event_id, source, cache_key, should_run_automation
         )
         _log_seer_scanner_billing_event(group, source)
         return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
@@ -483,7 +498,7 @@ def get_issue_summary(
 
             # Lock acquired and cache is still empty, proceed with generation
             summary_dict, status_code = _generate_summary(
-                group, user, force_event_id, source, cache_key
+                group, user, force_event_id, source, cache_key, should_run_automation
             )
             _log_seer_scanner_billing_event(group, source)
             return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code

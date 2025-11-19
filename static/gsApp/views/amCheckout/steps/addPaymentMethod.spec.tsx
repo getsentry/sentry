@@ -109,6 +109,7 @@ describe('AddPaymentMethod', () => {
         countryCode: 'US',
         expMonth: 12,
         expYear: 2028,
+        brand: 'Visa',
       },
     };
 
@@ -141,6 +142,7 @@ describe('AddPaymentMethod', () => {
         countryCode: 'US',
         expMonth: 12,
         expYear: 2028,
+        brand: 'Visa',
       },
     };
 
