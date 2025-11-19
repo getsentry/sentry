@@ -941,7 +941,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         response = trigger_autofix(group=group, user=user, instruction="Test instruction")
         assert response.status_code == 202
-        mock_record_seer_run.assert_not_called()
+        mock_record_seer_run.assert_called_once()
 
 
 @requires_snuba
