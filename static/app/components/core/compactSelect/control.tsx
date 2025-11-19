@@ -502,67 +502,73 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        {overlayIsOpen && (
-          <StyledPositionWrapper zIndex={theme.zIndex?.dropdown} {...overlayProps}>
-            <StyledOverlay
-              width={menuWidth ?? menuFullWidth}
-              minWidth={overlayProps.style!.minWidth}
-              maxWidth={maxMenuWidth}
-              maxHeight={overlayProps.style!.maxHeight}
-              maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuTitle || clearable}
-              data-menu-has-search={searchable}
-              data-menu-has-footer={!!menuFooter}
-            >
-              <FocusScope contain={overlayIsOpen}>
-                {(menuTitle ||
-                  menuHeaderTrailingItems ||
-                  (clearable && showClearButton)) && (
-                  <MenuHeader size={size}>
-                    <MenuTitle>{menuTitle}</MenuTitle>
-                    <MenuHeaderTrailingItems>
-                      {loading && <StyledLoadingIndicator size={12} />}
-                      {typeof menuHeaderTrailingItems === 'function'
-                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                        : menuHeaderTrailingItems}
-                      {clearable && showClearButton && (
-                        <ClearButton onClick={clearSelection} size="zero" borderless>
-                          {t('Clear')}
-                        </ClearButton>
-                      )}
-                    </MenuHeaderTrailingItems>
-                  </MenuHeader>
-                )}
-                {searchable && (
-                  <SearchInput
-                    ref={searchRef}
-                    placeholder={searchPlaceholder}
-                    value={searchInputValue}
-                    onFocus={onSearchFocus}
-                    onBlur={onSearchBlur}
-                    onChange={e => updateSearch(e.target.value)}
-                    size="xs"
-                    {...searchKeyboardProps}
-                  />
-                )}
-                {typeof menuBody === 'function'
-                  ? menuBody({closeOverlay: overlayState.close})
-                  : menuBody}
-                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
-                {menuFooter && (
-                  <MenuFooter>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
-                  </MenuFooter>
-                )}
-              </FocusScope>
-            </StyledOverlay>
-          </StyledPositionWrapper>
-        )}
+        <StyledPositionWrapper
+          visible={overlayIsOpen}
+          zIndex={theme.zIndex?.dropdown}
+          {...overlayProps}
+        >
+          <StyledOverlay
+            width={menuWidth ?? menuFullWidth}
+            minWidth={overlayProps.style!.minWidth}
+            maxWidth={maxMenuWidth}
+            maxHeight={overlayProps.style!.maxHeight}
+            maxHeightProp={maxMenuHeight}
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-search={searchable}
+            data-menu-has-footer={!!menuFooter}
+          >
+            <FocusScope contain={overlayIsOpen}>
+              {overlayIsOpen && (
+                <Fragment>
+                  {(menuTitle ||
+                    menuHeaderTrailingItems ||
+                    (clearable && showClearButton)) && (
+                    <MenuHeader size={size}>
+                      <MenuTitle>{menuTitle}</MenuTitle>
+                      <MenuHeaderTrailingItems>
+                        {loading && <StyledLoadingIndicator size={12} />}
+                        {typeof menuHeaderTrailingItems === 'function'
+                          ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                          : menuHeaderTrailingItems}
+                        {clearable && showClearButton && (
+                          <ClearButton onClick={clearSelection} size="zero" borderless>
+                            {t('Clear')}
+                          </ClearButton>
+                        )}
+                      </MenuHeaderTrailingItems>
+                    </MenuHeader>
+                  )}
+                  {searchable && (
+                    <SearchInput
+                      ref={searchRef}
+                      placeholder={searchPlaceholder}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      size="xs"
+                      {...searchKeyboardProps}
+                    />
+                  )}
+                  {typeof menuBody === 'function'
+                    ? menuBody({closeOverlay: overlayState.close})
+                    : menuBody}
+                  {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                  {menuFooter && (
+                    <MenuFooter>
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </MenuFooter>
+                  )}
+                </Fragment>
+              )}
+            </FocusScope>
+          </StyledOverlay>
+        </StyledPositionWrapper>
       </ControlWrap>
     </SelectContext>
   );
@@ -677,8 +683,9 @@ const StyledOverlay = styled(Overlay, {
 
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
-})<{zIndex?: number}>`
+})<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
+  display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
 `;
 
