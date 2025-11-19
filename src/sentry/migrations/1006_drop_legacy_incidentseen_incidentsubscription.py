@@ -20,19 +20,19 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1003_group_history_prev_history_safe_removal"),
+        ("sentry", "1005_add_groupemailthread_project_date_index"),
     ]
 
     operations = [
         SafeRunSQL(
             """
-            DROP TABLE IF EXISTS sentry_incidentseen;
+            DROP TABLE IF EXISTS sentry_incidentseen CASCADE;
             """,
             hints={"tables": ["sentry_incidentseen"]},
         ),
         SafeRunSQL(
             """
-            DROP TABLE IF EXISTS sentry_incidentsubscription;
+            DROP TABLE IF EXISTS sentry_incidentsubscription CASCADE;
             """,
             hints={"tables": ["sentry_incidentsubscription"]},
         ),
