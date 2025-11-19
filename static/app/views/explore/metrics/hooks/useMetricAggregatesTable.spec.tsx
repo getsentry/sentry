@@ -44,7 +44,10 @@ describe('useMetricAggregatesTable', () => {
     renderHookWithProviders(
       () =>
         useMetricAggregatesTable({
-          metricName: 'test metric',
+          traceMetric: {
+            name: 'test metric',
+            type: 'counter',
+          },
           limit: 100,
           enabled: true,
         }),

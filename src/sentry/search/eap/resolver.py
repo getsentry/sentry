@@ -56,6 +56,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -139,31 +140,34 @@ class SearchResolver:
             span.set_tag("SearchResolver.resolved_query", where)
             span.set_tag("SearchResolver.environment_query", environment_query)
 
-        # The RPC request meta does not contain the environment.
-        # So we have to inject it as a query condition.
-        #
-        # To do so, we want to AND it with the query.
-        # So if either one is not defined, we just use the other.
-        # But if both are defined, we AND them together.
-
-        if not environment_query:
-            return where, having, contexts
-
-        if not where:
-            return environment_query, having, []
-
-        return (
-            TraceItemFilter(
-                and_filter=AndFilter(
-                    filters=[
-                        environment_query,
-                        where,
-                    ]
-                )
-            ),
-            having,
-            contexts,
+        where = and_trace_item_filters(
+            where,
+            # The RPC request meta does not contain the environment.
+            # So we have to inject it as a query condition.
+            environment_query,
         )
+
+        return where, having, contexts
+
+    @sentry_sdk.trace
+    def resolve_query_with_columns(
+        self,
+        querystring: str | None,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
+    ]:
+        where, having, contexts = self.resolve_query(querystring)
+
+        # Some datasets like trace metrics require we inject additional
+        # conditions in the top level.
+        dataset_conditions = self.resolve_dataset_conditions(selected_columns, equations)
+        where = and_trace_item_filters(where, dataset_conditions)
+
+        return where, having, contexts
 
     def __resolve_environment_query(self) -> TraceItemFilter | None:
         resolved_column, _ = self.resolve_column("environment")
@@ -560,6 +564,9 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
+        if not self.params.is_timeseries_request and context_definition:
+            value = self.remap_value_using_context_definition(context_definition, value)
+
         return (
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
@@ -628,6 +635,8 @@ class SearchResolver:
         def remap_value(old_value: str) -> list[str]:
             if old_value in inverse_value_map:
                 return inverse_value_map[old_value]
+            elif old_value in context.value_map:
+                return [old_value]
             elif context.default_value:
                 return [context.default_value]
             else:
@@ -987,7 +996,7 @@ class SearchResolver:
 
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
-            if missing_args > 0 and argument_definition.default_arg:
+            if missing_args > 0 and argument_definition.default_arg is not None:
                 if isinstance(argument_definition, ValueArgumentDefinition):
                     parsed_args.append(argument_definition.default_arg)
                 else:
@@ -1064,7 +1073,7 @@ class SearchResolver:
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
-            extrapolation_override=self.config.disable_aggregate_extrapolation,
+            search_config=self.config,
         )
 
         resolved_context = None
@@ -1174,3 +1183,35 @@ class SearchResolver:
                 return Column(conditional_aggregation=col.proto_definition), contexts
             elif isinstance(col, ResolvedFormula):
                 return Column(formula=col.proto_definition), contexts
+
+    def resolve_dataset_conditions(
+        self,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
+        extra_conditions = self.config.extra_conditions(self, selected_columns, equations)
+
+        return and_trace_item_filters(extra_conditions)
+
+    def remap_value_using_context_definition(
+        self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
+    ) -> str | int | list[str] | Any:
+        context = context_definition.constructor(self.params)
+
+        # if the value passed is one of the potential values, then it's expected
+        # and we should pass it through as is
+        for val in context.value_map.values():
+            if val == value:
+                return value
+
+        # if the value passed is one of the potential keys, then it should before
+        # remapped to the value
+        if isinstance(value, str) and value in context.value_map:
+            value = context.value_map[value]
+
+        # now that we've checked all potentially allowed values, we should fall back
+        # to using the default
+        if context.default_value:
+            return context.default_value
+
+        return value

@@ -24,7 +24,8 @@ from sentry.utils import json
 def test_export_blob_data() -> None:
     # Function parameters which could be abstracted to test multiple variations of this behavior.
     gcs_project_id = "1"
-    pubsub_topic = "PUBSUB_TOPIC"
+    notification_topic = "PUBSUB_TOPIC"
+    pubsub_topic = f"projects/{gcs_project_id}/topics/{notification_topic}"
     bucket_name = "BUCKET"
     bucket_prefix = "PREFIX"
     start_date = datetime(year=2025, month=1, day=31)
@@ -38,7 +39,7 @@ def test_export_blob_data() -> None:
         source_prefix=bucket_prefix,
         destination_bucket="b",
         destination_prefix="destination_prefix/",
-        notification_topic=pubsub_topic,
+        notification_topic=notification_topic,
         job_description=job_description,
         job_duration=job_duration,
         transfer_job_name=None,
@@ -69,7 +70,11 @@ def test_export_blob_data() -> None:
             ),
             notification_config=NotificationConfig(
                 pubsub_topic=pubsub_topic,
-                event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+                event_types=[
+                    NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_ABORTED,
+                ],
                 payload_format=NotificationConfig.PayloadFormat.JSON,
             ),
         )
@@ -104,6 +109,6 @@ def test_export_replay_blob_data() -> None:
 
     # Assert a job is created for each retention-period.
     assert len(jobs) == 3
-    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1"
-    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1"
-    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1"
+    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1/"
+    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1/"
+    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1/"

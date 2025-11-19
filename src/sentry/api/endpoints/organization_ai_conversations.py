@@ -1,6 +1,8 @@
 import json  # noqa: S003
 import logging
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -56,7 +58,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -126,7 +128,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
             config=SearchResolverConfig(auto_fields=True),
-            sampling_mode=None,
+            sampling_mode="NORMAL",
         )
 
         logger.info(
@@ -143,43 +145,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         if not conversation_ids:
             return []
 
-        # # Step 2: Get complete aggregations for these conversations (all time)
-        # all_time_params = dataclasses.replace(
-        #     snuba_params,
-        #     start=datetime(2020, 1, 1),
-        #     end=datetime(2100, 1, 1),
-        # )
+        # Step 2 & 3: Run aggregation and enrichment queries in parallel
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_aggregations = executor.submit(
+                self._get_aggregations, snuba_params, conversation_ids
+            )
+            future_enrichment = executor.submit(
+                self._get_enrichment_data, snuba_params, conversation_ids
+            )
 
-        logger.info(
-            "[ai-conversations] Getting complete aggregations for conversations",
-            extra={"conversation_ids": conversation_ids},
-        )
-        results = Spans.run_table_query(
-            params=snuba_params,
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
-            selected_columns=[
-                "gen_ai.conversation.id",
-                "failure_count()",
-                "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(span.op,equals,gen_ai.execute_tool)",
-                "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.usage.total_cost)",
-                "min(precise.start_ts)",
-                "max(precise.finish_ts)",
-                "count_unique(trace)",
-            ],
-            orderby=None,
-            offset=0,
-            limit=len(conversation_ids),
-            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-            config=SearchResolverConfig(auto_fields=True),
-            sampling_mode="HIGHEST_ACCURACY",
-        )
-
-        logger.info(
-            "[ai-conversations] Got complete aggregations for conversations",
-            extra={"results": json.dumps(results)},
-        )
+            results = future_aggregations.result()
+            enrichment_data = future_enrichment.result()
 
         # Create a map of conversation data by ID
         conversations_map = {}
@@ -200,7 +176,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
                 "totalTokens": int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
                 "totalCost": float(row.get("sum(gen_ai.usage.total_cost)") or 0),
                 "timestamp": timestamp_ms,
-                "traceCount": int(row.get("count_unique(trace)") or 0),
+                "traceCount": 0,  # Will be set in _apply_enrichment
                 "traceIds": [],
             }
 
@@ -217,17 +193,49 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
         ]
 
         if conversations:
-            self._enrich_conversations(snuba_params, conversations)
+            self._apply_enrichment(conversations, enrichment_data)
 
         return conversations
 
-    def _enrich_conversations(self, snuba_params, conversations: list[dict]) -> None:
+    def _get_aggregations(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
         """
-        Enrich conversations with flow and trace IDs by querying all spans.
+        Get aggregated metrics for conversations (query 2).
         """
-        conversation_ids = [conv["conversationId"] for conv in conversations]
+        logger.info(
+            "[ai-conversations] Getting complete aggregations for conversations",
+            extra={"conversation_ids": conversation_ids},
+        )
+        results = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "failure_count()",
+                "count_if(gen_ai.operation.type,equals,ai_client)",
+                "count_if(span.op,equals,gen_ai.execute_tool)",
+                "sum(gen_ai.usage.total_tokens)",
+                "sum(gen_ai.usage.total_cost)",
+                "min(precise.start_ts)",
+                "max(precise.finish_ts)",
+            ],
+            orderby=None,
+            offset=0,
+            limit=len(conversation_ids),
+            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
+        )
 
-        # Query all spans for these conversations to get both agent flows and trace IDs
+        logger.info(
+            "[ai-conversations] Got complete aggregations for conversations",
+            extra={"results": json.dumps(results)},
+        )
+        return cast(dict[str, Any], results)
+
+    def _get_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> dict[str, Any]:
+        """
+        Get enrichment data (flows and trace IDs) for conversations (query 3).
+        """
         logger.info(
             "[ai-conversations] Enriching conversations",
             extra={"conversation_ids": conversation_ids},
@@ -238,12 +246,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             selected_columns=[
                 "gen_ai.conversation.id",
                 "span.op",
-                "span.description",
                 "gen_ai.agent.name",
                 "trace",
                 "precise.start_ts",
             ],
-            orderby=["gen_ai.conversation.id", "precise.start_ts"],
+            orderby=["precise.start_ts"],
             offset=0,
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
@@ -254,14 +261,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
             "[ai-conversations] Got all spans results",
             extra={"all_spans_results": json.dumps(all_spans_results)},
         )
+        return cast(dict[str, Any], all_spans_results)
 
+    def _apply_enrichment(self, conversations: list[dict], enrichment_data: dict) -> None:
+        """
+        Apply enrichment data (flows and trace IDs) to conversations.
+        """
         flows_by_conversation = defaultdict(list)
         traces_by_conversation = defaultdict(set)
         logger.info(
             "[ai-conversations] Collecting traces and flows",
-            extra={"all_spans_results": json.dumps(all_spans_results)},
+            extra={"enrichment_data": json.dumps(enrichment_data)},
         )
-        for row in all_spans_results.get("data", []):
+        for row in enrichment_data.get("data", []):
             conv_id = row.get("gen_ai.conversation.id", "")
             if not conv_id:
                 continue
@@ -279,8 +291,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsV2EndpointBase):
 
         for conversation in conversations:
             conv_id = conversation["conversationId"]
+            traces = traces_by_conversation.get(conv_id, set())
             conversation["flow"] = flows_by_conversation.get(conv_id, [])
-            conversation["traceIds"] = list(traces_by_conversation.get(conv_id, set()))
+            conversation["traceIds"] = list(traces)
+            conversation["traceCount"] = len(traces)
 
         logger.info(
             "[ai-conversations] Enriched conversations",

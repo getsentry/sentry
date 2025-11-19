@@ -58,6 +58,7 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
                 "id": str(self.detector.id),
                 "projectId": str(self.project.id),
                 "name": "Original Detector",
+                "description": None,
                 "type": MonitorIncidentType.slug,
                 "workflowIds": [],
                 "owner": None,
@@ -100,25 +101,26 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             "projectId": self.project.id,
             "type": MonitorIncidentType.slug,
             "name": "Test Monitor Detector",
-            "dataSource": {
-                "name": "Test Monitor",
-                "config": {
-                    "schedule": "0 * * * *",
-                    "scheduleType": "crontab",
-                },
-            },
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
         }
         data.update(overrides)
         return data
 
     def test_create_monitor_incident_detector_validates_correctly(self):
         data = self._get_detector_post_data()
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                **data,
-                status_code=201,
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
 
         assert response.data["name"] == "Test Monitor Detector"
         assert response.data["type"] == MonitorIncidentType.slug
@@ -155,45 +157,48 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
     def test_create_monitor_incident_detector_validation_error(self):
         data = self._get_detector_post_data(
-            dataSource={
-                "config": {
-                    "schedule": "invalid cron",
-                    "scheduleType": "crontab",
-                },
-            }
+            dataSources=[
+                {
+                    "config": {
+                        "schedule": "invalid cron",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ]
         )
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert "dataSource" in response.data
-        assert "Either name or slug must be provided" in str(response.data["dataSource"])
+        assert "dataSources" in response.data
+        assert "Either name or slug must be provided" in str(response.data["dataSources"])
 
     def test_create_monitor_with_optional_fields(self):
         data = self._get_detector_post_data(
-            dataSource={
-                "name": "Full Config Monitor",
-                "slug": "full-config-monitor",
-                "status": "disabled",
-                "isMuted": True,
-                "config": {
-                    "schedule": "*/30 * * * *",
-                    "scheduleType": "crontab",
-                    "checkinMargin": 15,
-                    "maxRuntime": 120,
-                    "timezone": "America/New_York",
-                    "failureIssueThreshold": 3,
-                    "recoveryThreshold": 2,
-                },
-            },
+            dataSources=[
+                {
+                    "name": "Full Config Monitor",
+                    "slug": "full-config-monitor",
+                    "status": "disabled",
+                    "isMuted": True,
+                    "config": {
+                        "schedule": "*/30 * * * *",
+                        "scheduleType": "crontab",
+                        "checkinMargin": 15,
+                        "maxRuntime": 120,
+                        "timezone": "America/New_York",
+                        "failureIssueThreshold": 3,
+                        "recoveryThreshold": 2,
+                    },
+                }
+            ],
         )
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                **data,
-                status_code=201,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
 
         monitor = Monitor.objects.get(
             organization_id=self.organization.id, slug="full-config-monitor"
@@ -221,13 +226,12 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
             "name": "Updated Detector",
             "owner": new_user.get_actor_identifier(),
         }
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+        )
 
         assert response.data["name"] == "Updated Detector"
         assert response.data["owner"] == {
@@ -250,23 +254,24 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
     def test_update_monitor_config_through_detector(self):
         data = {
             "name": "Updated Detector With Monitor Config",
-            "dataSource": {
-                "name": "Updated Monitor Name",
-                "config": {
-                    "schedule": "*/30 * * * *",
-                    "scheduleType": "crontab",
-                    "checkinMargin": 10,
-                    "maxRuntime": 60,
-                },
-            },
+            "dataSources": [
+                {
+                    "name": "Updated Monitor Name",
+                    "config": {
+                        "schedule": "*/30 * * * *",
+                        "scheduleType": "crontab",
+                        "checkinMargin": 10,
+                        "maxRuntime": 60,
+                    },
+                }
+            ],
         }
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+        )
 
         self.detector.refresh_from_db()
         assert self.detector.name == "Updated Detector With Monitor Config"
@@ -286,12 +291,11 @@ class OrganizationDetectorDeleteTest(BaseDetectorTestCase):
     def test_delete_monitor_incident_detector(self):
         detector_id = self.detector.id
         monitor_id = self.monitor.id
-        with self.tasks():
-            self.get_success_response(
-                self.organization.slug,
-                detector_id,
-                status_code=204,
-            )
+        self.get_success_response(
+            self.organization.slug,
+            detector_id,
+            status_code=204,
+        )
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         assert Monitor.objects.filter(id=monitor_id).exists()

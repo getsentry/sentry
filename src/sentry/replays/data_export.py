@@ -127,10 +127,9 @@ def export_clickhouse_rows(
 #  \______/  \______/  \______/
 
 
-def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
+def request_create_transfer_job(request: CreateTransferJobRequest) -> TransferJob:
     client = storage_transfer_v1.StorageTransferServiceClient()
-    client.create_transfer_job(request)
-    return None
+    return client.create_transfer_job(request)
 
 
 def create_transfer_job[T](
@@ -166,7 +165,7 @@ def create_transfer_job[T](
     :param job_duration: The amount of time the job should take to complete. Longer runs put less
         pressure on our buckets.
     :param destination_prefix:
-    :param notification_topic: Specifying a topic will enable automatic run retries on failure.
+    :param notification_topic: topic to which we'll notify the success or failure of the transfer.
     :param do_create_transfer_job: Injected function which creates the transfer-job.
     :param get_current_datetime: Injected function which computes the current datetime.
     """
@@ -197,8 +196,12 @@ def create_transfer_job[T](
 
     if notification_topic:
         transfer_job.notification_config = NotificationConfig(
-            pubsub_topic=notification_topic,
-            event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+            pubsub_topic=f"projects/{gcp_project_id}/topics/{notification_topic}",
+            event_types=[
+                NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
+                NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
+                NotificationConfig.EventType.TRANSFER_OPERATION_ABORTED,
+            ],
             payload_format=NotificationConfig.PayloadFormat.JSON,
         )
 
@@ -590,7 +593,7 @@ def export_replay_blob_data[T](
             gcp_project_id=gcp_project_id,
             transfer_job_name=None,
             source_bucket=source_bucket,
-            source_prefix=f"{retention_days}/{project_id}",
+            source_prefix=f"{retention_days}/{project_id}/",
             destination_bucket=destination_bucket,
             destination_prefix=destination_prefix,
             notification_topic=pubsub_topic_name,

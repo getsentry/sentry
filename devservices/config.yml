@@ -56,6 +56,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/launchpad.git
         mode: containerized
+    uptime-checker:
+      description: Service powering Sentry's uptime detection features
+      remote:
+        repo_name: uptime-checker
+        branch: main
+        repo_link: https://github.com/getsentry/uptime-checker.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
@@ -246,6 +253,18 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
       ]
     minimal: [postgres, snuba]
+    uptime:
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        uptime-checker,
+        uptime-results,
+      ]
     ingest-all:
       [
         billing-metrics-consumer,
@@ -301,6 +320,7 @@ x-sentry-service-config:
         ingest-metrics,
         ingest-generic-metrics,
         billing-metrics-consumer,
+        uptime-checker,
         uptime-results,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,

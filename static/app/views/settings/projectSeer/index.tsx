@@ -6,8 +6,10 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -21,6 +23,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -29,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {AutofixRepositories} from './autofixRepositories';
 import {SEER_THRESHOLD_OPTIONS} from './constants';
@@ -37,10 +41,6 @@ const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
-
-interface ProjectSeerProps {
-  project: Project;
-}
 
 export const SEER_THRESHOLD_MAP = [
   'off',
@@ -84,13 +84,34 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
-function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
+const autofixAutomationToggleField = {
+  name: 'autofixAutomationTuning',
+  label: t('Auto-Trigger Fixes'),
+  help: () =>
+    t(
+      'When enabled, Seer will automatically analyze actionable issues in the background.'
+    ),
+  type: 'boolean',
+  saveOnBlur: true,
+  saveMessage: t('Automatic Seer settings updated'),
+  getData: (data: Record<PropertyKey, unknown>) => ({
+    autofixAutomationTuning: data.autofixAutomationTuning ? 'always' : 'off',
+  }),
+} satisfies FieldObject;
+
+function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
+  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
+
+  const cursorIntegration = codingAgentIntegrations?.integrations.find(
+    integration => integration.provider === 'cursor'
+  );
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -105,22 +126,44 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     [project.slug, queryClient, organization.slug]
   );
 
+  const hasCursorIntegration = Boolean(
+    organization.features.includes('integrations-cursor') && cursorIntegration
+  );
+
   const handleStoppingPointChange = useCallback(
-    (value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr') => {
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: value,
-      });
+    (
+      value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
+    ) => {
+      if (value === 'cursor_handoff') {
+        if (!cursorIntegration) {
+          throw new Error('Cursor integration not found');
+        }
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: 'cursor_background_agent',
+            integration_id: parseInt(cursorIntegration.id, 10),
+          },
+        });
+      } else {
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: value,
+          automation_handoff: undefined,
+        });
+      }
     },
-    [updateProjectSeerPreferences, preference?.repositories]
+    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
   );
 
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
-    label: t('Stopping Point for Auto-Triggered Fixes'),
+    label: t('Where should Seer stop?'),
     help: () =>
       t(
-        'Choose how far Seer should go before stopping for your approval. This does not affect Issue Fixes that you manually start.'
+        'Choose how far Seer should go during automated runs before stopping for your approval. This does not affect Issue Fixes that you manually start.'
       ),
     type: 'choice',
     options: [
@@ -129,6 +172,19 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
         details: t('Seer will stop after identifying the root cause.'),
       },
+      ...(hasCursorIntegration
+        ? [
+            {
+              value: 'cursor_handoff',
+              label: (
+                <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>
+              ),
+              details: t(
+                "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
+              ),
+            },
+          ]
+        : []),
       {
         value: 'solution',
         label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
@@ -148,9 +204,21 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
-    visible: ({model}) =>
-      model?.getValue('seerScannerAutomation') === true &&
-      model?.getValue('autofixAutomationTuning') !== 'off',
+    visible: ({model}) => {
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      // Handle both boolean (toggle) and string (dropdown) values
+      const automationEnabled =
+        typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+
+      // When feature flag is ON (toggle mode): only check automation
+      // When feature flag is OFF (dropdown mode): check both scanner and automation
+      if (isTriageSignalsFeatureOn) {
+        return automationEnabled;
+      }
+
+      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
+      return scannerEnabled && automationEnabled;
+    },
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -177,8 +245,10 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         </div>
       ),
       fields: [
-        seerScannerAutomationField,
-        autofixAutomatingTuningField,
+        ...(isTriageSignalsFeatureOn ? [] : [seerScannerAutomationField]),
+        isTriageSignalsFeatureOn
+          ? autofixAutomationToggleField
+          : autofixAutomatingTuningField,
         automatedRunStoppingPointField,
       ],
     },
@@ -187,16 +257,24 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   return (
     <Fragment>
       <Form
-        key={preference?.automated_run_stopping_point ?? 'root_cause'}
+        key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
+          preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause')
+        }-${isTriageSignalsFeatureOn}`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
-          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
-          automated_run_stopping_point:
-            preference?.automated_run_stopping_point ?? 'root_cause',
+          // Same DB field, different UI: toggle (boolean) vs dropdown (string)
+          autofixAutomationTuning: isTriageSignalsFeatureOn
+            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+            : (project.autofixAutomationTuning ?? 'off'),
+          automated_run_stopping_point: preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause'),
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
@@ -215,8 +293,13 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 }
 
-function ProjectSeer({project}: ProjectSeerProps) {
-  const organization = useOrganization();
+function ProjectSeer({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
   const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
@@ -273,6 +356,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
         })}
       />
       <ProjectSeerGeneralForm project={project} />
+      <CursorIntegrationCta project={project} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton
@@ -286,8 +370,9 @@ function ProjectSeer({project}: ProjectSeerProps) {
   );
 }
 
-export default function ProjectSeerContainer({project}: ProjectSeerProps) {
+export default function ProjectSeerContainer() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
@@ -300,7 +385,7 @@ export default function ProjectSeerContainer({project}: ProjectSeerProps) {
     );
   }
 
-  return <ProjectSeer project={project} />;
+  return <ProjectSeer organization={organization} project={project} />;
 }
 
 const Subheading = styled('div')`

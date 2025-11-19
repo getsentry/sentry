@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -282,18 +283,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </ButtonWrapper>
           </Fragment>
         )}
-        {!orgHasAcknowledged && (
-          <LegalText>
-            {tct(
-              'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-              {
-                dataLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-                ),
-              }
-            )}
-          </LegalText>
-        )}
+        <LegalText>
+          <AiPrivacyNotice />
+        </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
         <Alert type="warning" showIcon={false}>

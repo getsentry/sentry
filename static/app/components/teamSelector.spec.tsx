@@ -46,12 +46,13 @@ act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>> = {}) {
   return render(
     <TeamSelector
-      organization={organization}
+      organization={props.organization ?? organization}
       name="teamSelector"
       aria-label="Select a team"
       onChange={() => {}}
       {...props}
-    />
+    />,
+    {organization: props.organization ?? organization}
   );
 }
 

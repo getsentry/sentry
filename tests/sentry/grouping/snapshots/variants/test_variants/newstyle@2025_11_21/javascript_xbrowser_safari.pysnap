@@ -1,0 +1,130 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "Error"
+        value*
+          "bad"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "testMethod"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame (marked out of app by the client)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "eval"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame (marked out of app by the client)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "map"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame (marked out of app by the client)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "aha"
+          frame (marked out of app by the client)
+            filename*
+              "test.html"
+            function*
+              "aha"
+--------------------------------------------------------------------------
+system:
+  hash: "811a408067f03b8eff2437a8e7515966"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "testMethod"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame (ignored low quality javascript frame)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "eval"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame (ignored low quality javascript frame)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "map"
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame (ignored low quality javascript frame)
+            filename (ignored because filename suggests native code)
+              "[native code]"
+            function*
+              "aha"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"

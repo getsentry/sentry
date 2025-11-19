@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator, Iterator
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -12,11 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import (
-    get_replay_range,
-    query_replay_instance,
-    query_trace_connected_events,
-)
+from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
@@ -251,10 +247,19 @@ def get_summary_logs(
     error_events: list[EventDict],
     project_id: int,
     is_mobile_replay: bool = False,
+    replay_start: str | None = None,
 ) -> list[str]:
     # Sort error events by timestamp. This list includes all feedback events still.
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(generate_summary_logs(segment_data, error_events, project_id, is_mobile_replay))
+    return list(
+        generate_summary_logs(
+            segment_data,
+            error_events,
+            project_id,
+            is_mobile_replay=is_mobile_replay,
+            replay_start=replay_start,
+        )
+    )
 
 
 def generate_summary_logs(
@@ -262,6 +267,7 @@ def generate_summary_logs(
     error_events: list[EventDict],
     project_id,
     is_mobile_replay: bool = False,
+    replay_start: str | None = None,
 ) -> Generator[str]:
     """
     Generate log messages from events and errors in chronological order.
@@ -269,6 +275,11 @@ def generate_summary_logs(
     """
     error_idx = 0
     seen_feedback_ids = {error["id"] for error in error_events if error["category"] == "feedback"}
+    replay_start_ms = _parse_iso_timestamp_to_ms(replay_start) if replay_start else 0.0
+
+    # Skip errors that occurred before replay start
+    while error_idx < len(error_events) and error_events[error_idx]["timestamp"] < replay_start_ms:
+        error_idx += 1
 
     # Process segments
     for _, segment in segment_data:
@@ -276,13 +287,14 @@ def generate_summary_logs(
         for event in events:
             event_type = which(event)
             timestamp = get_replay_event_timestamp_ms(event, event_type)
+            if timestamp < replay_start_ms:
+                continue
 
             # Check if we need to yield any error messages that occurred before this event
             while (
                 error_idx < len(error_events) and error_events[error_idx]["timestamp"] < timestamp
             ):
                 error = error_events[error_idx]
-
                 if error["category"] == "error":
                     yield generate_error_log_message(error)
                 elif error["category"] == "feedback":
@@ -306,7 +318,6 @@ def generate_summary_logs(
     # Yield any remaining error messages
     while error_idx < len(error_events):
         error = error_events[error_idx]
-
         if error["category"] == "error":
             yield generate_error_log_message(error)
         elif error["category"] == "feedback":
@@ -501,7 +512,9 @@ def _parse_url(s: str, trunc_length: int) -> str:
 
 @sentry_sdk.trace
 def rpc_get_replay_summary_logs(
-    project_id: int, replay_id: str, num_segments: int
+    project_id: int,
+    replay_id: str,
+    num_segments: int,
 ) -> dict[str, Any]:
     """
     RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
@@ -509,10 +522,10 @@ def rpc_get_replay_summary_logs(
 
     project = Project.objects.get(id=project_id)
 
-    # Last 90 days. We don't support date filters in /summarize/.
+    # Look for the replay in the last 90 days.
     start, end = default_start_end_dates()
 
-    # Fetch the replay's error and trace IDs from the replay_id.
+    # Fetch the replay's error and trace IDs from the replay_id, as well as the start and end times.
     snuba_response = query_replay_instance(
         project_id=project.id,
         replay_id=replay_id,
@@ -536,11 +549,16 @@ def rpc_get_replay_summary_logs(
     platform = processed_response[0].get("platform")
     is_mobile_replay = platform in MOBILE if platform else False
 
-    result = get_replay_range(
-        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
-    )
-    if result:
-        start, end = result
+    # Use the replay's start and end times to clamp the error queries. Fuzz 10s for clockskew.
+    replay_start = processed_response[0].get("started_at")
+    replay_end = processed_response[0].get("finished_at")
+    if replay_start:
+        start = max(
+            datetime.fromisoformat(replay_start) - timedelta(seconds=10),
+            datetime.now(UTC) - timedelta(days=90),
+        )
+    if replay_end:
+        end = min(datetime.fromisoformat(replay_end) + timedelta(seconds=10), datetime.now(UTC))
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
@@ -579,6 +597,11 @@ def rpc_get_replay_summary_logs(
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.
-    logs = get_summary_logs(segment_data, error_events, project.id, is_mobile_replay)
-
+    logs = get_summary_logs(
+        segment_data,
+        error_events,
+        project.id,
+        is_mobile_replay=is_mobile_replay,
+        replay_start=replay_start,
+    )
     return {"logs": logs}

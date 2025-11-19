@@ -16,7 +16,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -344,7 +344,7 @@ class Project(Model):
         # This Project has sent insight queues spans
         has_insights_queues: bool
 
-        # This Project has sent insight llm monitoring spans
+        # No longer used, use has_insights_agent_monitoring instead
         has_insights_llm_monitoring: bool
 
         # This Project has sent feature flags
@@ -787,6 +787,14 @@ class Project(Model):
             self.pk = old_pk
 
         return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
+        with disable_default_detector_creation():
+            return super().write_relocation_import(scope, flags)
 
     # pending deletion implementation
     _pending_fields = ("slug",)

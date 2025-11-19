@@ -3,8 +3,59 @@ from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.seer.fetch_issues.by_text_query import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
-from sentry.testutils.cases import IntegrationTestCase
-from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
+
+
+class CreateEventTestCase(TestCase):
+    def _create_event(
+        self,
+        culprit=None,
+        timestamp=None,
+        filenames=None,
+        function_names=None,
+        project_id=None,
+        user_id=None,
+        handled=False,
+    ):
+        if culprit is None:
+            culprit = "issue0"
+        if timestamp is None:
+            timestamp = before_now(seconds=5).isoformat()
+        if filenames is None:
+            filenames = ["foo.py", "baz.py"]
+        if function_names is None:
+            function_names = ["hello", "world"]
+        if project_id is None:
+            project_id = self.project.id
+
+        assert len(function_names) == len(filenames)
+
+        frames = []
+        for i, filename in enumerate(filenames):
+            frames.append({"filename": filename, "function": function_names[i]})
+
+        return self.store_event(
+            data={
+                "message": "hello!",
+                "culprit": culprit,
+                "platform": "python",
+                "timestamp": timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": frames,
+                            },
+                            "mechanism": {"handled": handled, "type": "generic"},
+                        },
+                    ]
+                },
+                "user": {"id": user_id},
+            },
+            project_id=project_id,
+        )
 
 
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
@@ -45,6 +96,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             external_id=self.gh_repo.external_id,
             query="hello",
         )
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0, "Should find issue with 'hello' substring"
         assert group.id in seer_response["issues"]
 
@@ -56,6 +108,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             external_id=self.gh_repo.external_id,
             query="auth",
         )
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0, "Should find issue with 'auth' substring"
         assert group.id in seer_response["issues"]
 
@@ -115,6 +168,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             query="database conn",
         )
 
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0
         assert group.id in seer_response["issues"]
 
@@ -139,6 +193,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             limit=limit,
         )
 
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) <= limit
 
     def test_fetch_issues_from_repo_projects_returns_groups(self):

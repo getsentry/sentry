@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import types from '!!type-loader!sentry/components/core/radio';
+import documentation from '!!type-loader!sentry/components/core/radio';
 import styled from '@emotion/styled';
 
 import {Radio, type RadioProps} from 'sentry/components/core/radio';
@@ -7,7 +7,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Radio', (story, APIReference) => {
-  APIReference(types.Radio);
+  APIReference(documentation.props.Radio);
 
   story('Default', () => {
     return (

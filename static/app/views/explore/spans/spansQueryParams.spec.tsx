@@ -119,11 +119,11 @@ describe('getReadableQueryParamsFromLocation', () => {
   });
 
   it('decodes custom cursor parameter correctly', () => {
-    const location = locationFixture({cursor: '0:0:1'});
+    const location = locationFixture({cursor: '0:0:1', aggregateCursor: '50:0:1'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({cursor: '0:0:1', aggregateCursor: '0:0:1'})
+        readableQueryParamOptions({cursor: '0:0:1', aggregateCursor: '50:0:1'})
       )
     );
   });

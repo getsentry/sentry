@@ -223,7 +223,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   }, []);
 };
 
-export const decodeQuery = (location: Location): string => {
+const decodeQuery = (location: Location): string => {
   if (!location.query?.query) {
     return '';
   }

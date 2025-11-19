@@ -106,8 +106,8 @@ class IncidentOccurrenceTestCase(TestCase):
             **{
                 "project_id": self.project.id,
                 "fingerprint": [self.incident.grouphash],
-                "issue_title": f"Monitor failure: {self.monitor.name}",
-                "subtitle": "Your monitor has reached its failure threshold.",
+                "issue_title": f"Cron failure: {self.monitor.name}",
+                "subtitle": "Your monitor is failing: 1 timeout and 1 error check-ins detected.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -191,8 +191,8 @@ class IncidentOccurrenceTestCase(TestCase):
             **{
                 "project_id": self.project.id,
                 "fingerprint": [self.incident.grouphash],
-                "issue_title": f"Monitor failure: {self.monitor.name}",
-                "subtitle": "Your monitor has reached its failure threshold.",
+                "issue_title": f"Cron failure: {self.monitor.name}",
+                "subtitle": "Your monitor is failing: 1 timeout and 1 error check-ins detected.",
                 "resource_id": None,
                 "evidence_data": {"detector_id": detector.id},
                 "evidence_display": [

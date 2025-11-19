@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
@@ -39,13 +39,13 @@ export function useGroupByFields({
         .map(([_, tag]) => optionFromTag(tag, traceItemType)),
       ...groupBys
         .filter(
-          groupBy =>
-            groupBy &&
-            !numberTags.hasOwnProperty(groupBy) &&
-            !stringTags.hasOwnProperty(groupBy)
+          groupBy => groupBy && !(groupBy in numberTags) && !(groupBy in stringTags)
         )
         .map(groupBy =>
-          optionFromTag({key: groupBy, name: groupBy, kind: FieldKind.TAG}, traceItemType)
+          optionFromTag(
+            {key: groupBy, name: prettifyTagKey(groupBy), kind: FieldKind.TAG},
+            traceItemType
+          )
         ),
     ];
 

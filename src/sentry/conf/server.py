@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, Union, cast, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -20,6 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
+from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -191,6 +192,9 @@ SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
+SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
+SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -791,17 +795,13 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
-# Fernet keys for database encryption.
-# First key in the dict is used as a primary key, and if
-# encryption method options is "fernet", the first key will be
-# used to decrypt the data.
-#
-# Other keys are used only for data decryption. This structure
-# is used to allow easier key rotation when "fernet" is used
-# as an encryption method.
-DATABASE_ENCRYPTION_FERNET_KEYS = {
-    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+# Settings for encrypted database fields.
+DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
+    "method": "plaintext",
+    "fernet_primary_key_id": os.getenv("DATABASE_ENCRYPTION_FERNET_PRIMARY_KEY_ID"),
+    "fernet_keys_location": os.getenv("DATABASE_ENCRYPTION_FERNET_KEYS_LOCATION"),
 }
+
 
 #######################
 # Taskworker settings #
@@ -825,6 +825,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -841,7 +842,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
-    "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -867,7 +867,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -897,7 +896,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
@@ -919,6 +917,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.user_report",
+    "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.tasks",
@@ -1115,6 +1114,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
+    "web-vitals-issue-detection": {
+        "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
+    },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
@@ -1252,6 +1255,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 
@@ -1781,6 +1785,15 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "email": {"email"},
 }
 
+# Specialized scopes that can be granted to integration tokens even if the
+# user doesn't have them in their role. These are token-only scopes not intended
+# for user roles.
+SENTRY_TOKEN_ONLY_SCOPES = frozenset(
+    [
+        "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
@@ -1810,6 +1823,7 @@ SENTRY_SCOPE_SETS = (
         ("project:read", "Read access to projects."),
     ),
     (("project:releases", "Read, write, and admin access to project releases."),),
+    (("project:distribution", "Access to app distribution and preprod artifacts."),),
     (
         ("event:admin", "Read, write, and admin access to events."),
         ("event:write", "Read and write access to events."),
@@ -2107,7 +2121,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.10.0"
+SELF_HOSTED_STABLE_VERSION = "25.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2691,7 +2705,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
+FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
+DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
@@ -3126,6 +3142,12 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
+OVERWATCH_REGION_URLS: dict[str, str] = cast(
+    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
+)
+OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
+OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
+
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
@@ -3196,7 +3218,12 @@ if ngrok_host and SILO_DEVSERVER:
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
 
-CONDUIT_PRIVATE_KEY: str | None = os.getenv("CONDUIT_PRIVATE_KEY")
-CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "https://conduit.sentry.io")
-CONDUIT_JWT_ISSUER: str = os.getenv("CONDUIT_JWT_ISSUER", "sentry")
-CONDUIT_JWT_AUDIENCE: str = os.getenv("CONDUIT_JWT_AUDIENCE", "conduit")
+CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "http://127.0.0.1:9096")
+CONDUIT_GATEWAY_JWT_ISSUER: str = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "sentry.io")
+CONDUIT_GATEWAY_JWT_AUDIENCE: str = os.getenv("CONDUIT_GATEWAY_JWT_AUDIENCE", "conduit")
+
+CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
+CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
+CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
+CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")

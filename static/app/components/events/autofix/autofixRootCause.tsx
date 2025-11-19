@@ -35,6 +35,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -228,16 +229,13 @@ function CopyRootCauseButton({
   event?: Event;
 }) {
   const text = formatRootCauseWithEvent(cause, customRootCause, event);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy analysis as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
       icon={<IconCopy />}
@@ -275,6 +273,10 @@ function AutofixRootCauseDisplay({
     runId
   );
 
+  const [preferredAction, setPreferredAction] = useLocalStorageState<
+    'seer_solution' | 'cursor_background_agent'
+  >('autofix:rootCauseActionPreference', 'seer_solution');
+
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
       // Simulate a click on the description to trigger the text selection
@@ -293,7 +295,11 @@ function AutofixRootCauseDisplay({
       return;
     }
 
+    // Save user preference
+    setPreferredAction('seer_solution');
+
     const instruction = solutionText.trim();
+
     if (instruction) {
       selectRootCause({
         cause_id: cause.id,
@@ -306,6 +312,12 @@ function AutofixRootCauseDisplay({
     }
 
     setSolutionText('');
+
+    trackAnalytics('autofix.root_cause.find_solution', {
+      organization,
+      group_id: groupId,
+      instruction_provided: instruction.length > 0,
+    });
   };
 
   // Find Cursor integration specifically
@@ -318,8 +330,11 @@ function AutofixRootCauseDisplay({
       return;
     }
 
+    // Save user preference
+    setPreferredAction('cursor_background_agent');
+
     // Show immediate loading toast
-    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name), {duration: 60000});
 
     launchCodingAgent({
       integrationId: cursorIntegration.id,
@@ -333,11 +348,11 @@ function AutofixRootCauseDisplay({
     });
   };
 
-  // Shared UI state for "Find Solution" controls
+  // Shared UI state for solution action controls
   const isRootCauseAlreadySelected = Boolean(
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
-  const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
+  const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
     isRootCauseAlreadySelected ? 'default' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
@@ -456,53 +471,98 @@ function AutofixRootCauseDisplay({
           <CopyRootCauseButton cause={cause} event={event} />
           {cursorIntegration ? (
             <ButtonBar merged gap="0">
-              <Button
-                size="sm"
-                priority={findSolutionPriority}
-                busy={isSelectingRootCause}
-                disabled={isLoadingAgents}
-                onClick={submitFindSolution}
-                title={findSolutionTitle}
-              >
-                {t('Find Solution')}
-              </Button>
-              <DropdownMenu
-                items={[
-                  {
-                    key: 'cursor-agent',
-                    label: (
-                      <Flex gap="md" align="center">
-                        <PluginIcon pluginId="cursor" size={20} />
-                        <div>{t('Send to Cursor Background Agent')}</div>
-                      </Flex>
-                    ),
-                    onAction: handleLaunchCodingAgent,
-                    disabled: isLoadingAgents || isLaunchingAgent,
-                  },
-                ]}
-                trigger={(triggerProps, isOpen) => (
-                  <DropdownTrigger
-                    {...triggerProps}
+              {preferredAction === 'cursor_background_agent' ? (
+                <Fragment>
+                  <Button
                     size="sm"
-                    priority={findSolutionPriority}
+                    priority={primaryButtonPriority}
                     busy={isLaunchingAgent}
                     disabled={isLoadingAgents}
-                    aria-label={t('More solution options')}
-                    icon={
-                      isLaunchingAgent ? (
-                        <LoadingIndicator size={12} />
-                      ) : (
-                        <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                      )
-                    }
+                    onClick={handleLaunchCodingAgent}
+                    title={t('Send to Cursor Cloud Agent')}
+                    icon={<PluginIcon pluginId="cursor" size={16} />}
+                  >
+                    {t('Send to Cursor Cloud Agent')}
+                  </Button>
+                  <DropdownMenu
+                    items={[
+                      {
+                        key: 'seer-solution',
+                        label: t('Find Solution with Seer'),
+                        onAction: submitFindSolution,
+                        disabled: isSelectingRootCause,
+                      },
+                    ]}
+                    trigger={(triggerProps, isOpen) => (
+                      <DropdownTrigger
+                        {...triggerProps}
+                        size="sm"
+                        priority={primaryButtonPriority}
+                        busy={isSelectingRootCause}
+                        disabled={isLoadingAgents}
+                        aria-label={t('More solution options')}
+                        icon={
+                          isSelectingRootCause ? (
+                            <LoadingIndicator size={12} />
+                          ) : (
+                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                          )
+                        }
+                      />
+                    )}
                   />
-                )}
-              />
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Button
+                    size="sm"
+                    priority={primaryButtonPriority}
+                    busy={isSelectingRootCause}
+                    disabled={isLoadingAgents}
+                    onClick={submitFindSolution}
+                    title={findSolutionTitle}
+                  >
+                    {t('Find Solution with Seer')}
+                  </Button>
+                  <DropdownMenu
+                    items={[
+                      {
+                        key: 'cursor-agent',
+                        label: (
+                          <Flex gap="md" align="center">
+                            <PluginIcon pluginId="cursor" size={20} />
+                            <div>{t('Send to Cursor Cloud Agent')}</div>
+                          </Flex>
+                        ),
+                        onAction: handleLaunchCodingAgent,
+                        disabled: isLoadingAgents || isLaunchingAgent,
+                      },
+                    ]}
+                    trigger={(triggerProps, isOpen) => (
+                      <DropdownTrigger
+                        {...triggerProps}
+                        size="sm"
+                        priority={primaryButtonPriority}
+                        busy={isLaunchingAgent}
+                        disabled={isLoadingAgents}
+                        aria-label={t('More solution options')}
+                        icon={
+                          isLaunchingAgent ? (
+                            <LoadingIndicator size={12} />
+                          ) : (
+                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                          )
+                        }
+                      />
+                    )}
+                  />
+                </Fragment>
+              )}
             </ButtonBar>
           ) : (
             <Button
               size="sm"
-              priority={findSolutionPriority}
+              priority={primaryButtonPriority}
               busy={isSelectingRootCause}
               onClick={submitFindSolution}
               title={findSolutionTitle}

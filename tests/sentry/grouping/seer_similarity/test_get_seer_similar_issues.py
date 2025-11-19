@@ -10,7 +10,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.types import GroupingVersion, SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -108,8 +108,15 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
                 "use_reranking": True,
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             },
-            {"platform": "python", "hybrid_fingerprint": False},
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -143,7 +150,10 @@ class GetSeerSimilarIssuesTest(TestCase):
             get_seer_similar_issues(new_event, new_grouphash, new_variants)
 
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
 
             base_request_params = {
@@ -152,6 +162,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": self.project.id,
                 "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             }
 
             assert mock_get_similarity_data.call_count == 2
@@ -164,7 +176,12 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest",
                         "use_reranking": True,
                     },
-                    {"platform": "python", "hybrid_fingerprint": False},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                        "hybrid_fingerprint": False,
+                    },
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -175,9 +192,43 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest_follow_up",
                         "use_reranking": False,
                     },
-                    {"platform": "python"},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                    },
                 ),
             ]
+
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    def test_training_mode_metrics(
+        self,
+        mock_get_similarity_data: MagicMock,
+        mock_incr: MagicMock,
+        mock_distribution: MagicMock,
+    ) -> None:
+        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
+            self.project
+        )
+
+        get_seer_similar_issues(new_event, new_grouphash, new_variants, training_mode=True)
+
+        # Verify metrics are recorded with training_mode=True
+        assert_metrics_call(
+            mock_incr,
+            "get_seer_similar_issues",
+            "no_seer_matches",
+            {"is_hybrid": False, "training_mode": True},
+        )
+        assert_metrics_call(
+            mock_distribution,
+            "seer_results_returned",
+            "no_seer_matches",
+            {"is_hybrid": False, "training_mode": True},
+            value=0,
+        )
 
 
 class ParentGroupFoundTest(TestCase):
@@ -212,13 +263,16 @@ class ParentGroupFoundTest(TestCase):
             )
 
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": False, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": False},
+                {"is_hybrid": False, "training_mode": False},
                 value=1,
             )
 
@@ -275,13 +329,16 @@ class ParentGroupFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=1,
             )
             assert_metrics_call(
@@ -324,13 +381,16 @@ class ParentGroupFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=1,
             )
             assert_metrics_call(
@@ -376,13 +436,16 @@ class ParentGroupFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=1,
             )
             assert_metrics_call(
@@ -425,13 +488,16 @@ class ParentGroupFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=1,
             )
             assert_metrics_call(
@@ -490,13 +556,16 @@ class ParentGroupFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=1,
             )
             assert_metrics_call(
@@ -550,13 +619,16 @@ class MultipleParentGroupsFoundTest(TestCase):
             )
 
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": False, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": False},
+                {"is_hybrid": False, "training_mode": False},
                 value=2,
             )
 
@@ -627,13 +699,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -702,13 +777,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -766,13 +844,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -830,13 +911,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -891,13 +975,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_matches_usable",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_matches_usable",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -959,13 +1046,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -1041,13 +1131,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=2,
             )
             assert_metrics_call(
@@ -1129,13 +1222,16 @@ class MultipleParentGroupsFoundTest(TestCase):
 
             # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=3,
             )
             # It only does two checks because the second result is a match
@@ -1191,13 +1287,16 @@ class MultipleParentGroupsFoundTest(TestCase):
             # It doesn't consider this a hybrid fingerprint case because neither the incoming event
             # nor the chosen parent issue is hybrid
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
+                mock_incr,
+                "get_seer_similar_issues",
+                "match_found",
+                {"is_hybrid": False, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "match_found",
-                {"is_hybrid": False},
+                {"is_hybrid": False, "training_mode": False},
                 value=2,
             )
 
@@ -1225,13 +1324,16 @@ class NoParentGroupFoundTest(TestCase):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_seer_matches", {"is_hybrid": False}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_seer_matches",
+                {"is_hybrid": False, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_seer_matches",
-                {"is_hybrid": False},
+                {"is_hybrid": False, "training_mode": False},
                 value=0,
             )
 
@@ -1260,13 +1362,16 @@ class NoParentGroupFoundTest(TestCase):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_seer_matches", {"is_hybrid": True}
+                mock_incr,
+                "get_seer_similar_issues",
+                "no_seer_matches",
+                {"is_hybrid": True, "training_mode": False},
             )
             assert_metrics_call(
                 mock_distribution,
                 "seer_results_returned",
                 "no_seer_matches",
-                {"is_hybrid": True},
+                {"is_hybrid": True, "training_mode": False},
                 value=0,
             )
 

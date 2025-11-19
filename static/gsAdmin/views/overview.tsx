@@ -2,7 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';

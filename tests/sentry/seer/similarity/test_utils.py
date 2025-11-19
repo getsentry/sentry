@@ -14,7 +14,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_token_count,
-    has_too_many_contributing_frames,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -39,6 +39,20 @@ class GetStacktraceStringTest(TestCase):
                         "contributes": True,
                         "hint": None,
                         "values": [
+                            {
+                                "id": "type",
+                                "name": None,
+                                "contributes": True,
+                                "hint": None,
+                                "values": ["ZeroDivisionError"],
+                            },
+                            {
+                                "id": "value",
+                                "name": None,
+                                "contributes": False,
+                                "hint": None,
+                                "values": ["division by zero"],
+                            },
                             {
                                 "id": "stacktrace",
                                 "name": "stacktrace",
@@ -83,20 +97,6 @@ class GetStacktraceStringTest(TestCase):
                                     }
                                 ],
                             },
-                            {
-                                "id": "type",
-                                "name": None,
-                                "contributes": True,
-                                "hint": None,
-                                "values": ["ZeroDivisionError"],
-                            },
-                            {
-                                "id": "value",
-                                "name": None,
-                                "contributes": False,
-                                "hint": None,
-                                "values": ["division by zero"],
-                            },
                         ],
                     }
                 ],
@@ -127,6 +127,20 @@ class GetStacktraceStringTest(TestCase):
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
+                                    {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["ZeroDivisionError"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["division by zero"],
+                                    },
                                     {
                                         "id": "stacktrace",
                                         "name": "stacktrace",
@@ -171,20 +185,6 @@ class GetStacktraceStringTest(TestCase):
                                             }
                                         ],
                                     },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["ZeroDivisionError"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["division by zero"],
-                                    },
                                 ],
                             },
                             {
@@ -193,6 +193,20 @@ class GetStacktraceStringTest(TestCase):
                                 "contributes": True,
                                 "hint": None,
                                 "values": [
+                                    {
+                                        "id": "type",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["Exception"],
+                                    },
+                                    {
+                                        "id": "value",
+                                        "name": None,
+                                        "contributes": False,
+                                        "hint": None,
+                                        "values": ["Catch divide by zero error"],
+                                    },
                                     {
                                         "id": "stacktrace",
                                         "name": "stacktrace",
@@ -274,20 +288,6 @@ class GetStacktraceStringTest(TestCase):
                                                 ],
                                             },
                                         ],
-                                    },
-                                    {
-                                        "id": "type",
-                                        "name": None,
-                                        "contributes": True,
-                                        "hint": None,
-                                        "values": ["Exception"],
-                                    },
-                                    {
-                                        "id": "value",
-                                        "name": None,
-                                        "contributes": False,
-                                        "hint": None,
-                                        "values": ["Catch divide by zero error"],
                                     },
                                 ],
                             },
@@ -407,6 +407,13 @@ class GetStacktraceStringTest(TestCase):
             "hint": None,
             "values": [
                 {
+                    "id": "value",
+                    "name": None,
+                    "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+                {
                     "id": "stacktrace",
                     "name": "stacktrace",
                     "contributes": True,
@@ -419,13 +426,6 @@ class GetStacktraceStringTest(TestCase):
                     "contributes": True,
                     "hint": None,
                     "values": [exception_type_str],
-                },
-                {
-                    "id": "value",
-                    "name": None,
-                    "contributes": False,
-                    "hint": None,
-                    "values": [exception_value],
                 },
             ],
         }
@@ -494,13 +494,13 @@ class GetStacktraceStringTest(TestCase):
 
     def test_contributing_exception_no_frames(self) -> None:
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = []
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_contributing_exception_no_contributing_frames(self) -> None:
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][2]["values"] = (
             self.create_frames(1, False)
         )
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
@@ -722,15 +722,15 @@ class GetStacktraceStringTest(TestCase):
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] = self.create_frames(
             20, True
         )
         # Create 20 non-contributing frames, 21-40 -> none should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, False, 21
         )
         # Create 20 contributing frames, 41-60 -> all should be included
-        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+        data_frames["app"]["component"]["values"][0]["values"][2]["values"] += self.create_frames(
             20, True, 41
         )
         stacktrace_str = get_stacktrace_string(data_frames)
@@ -781,7 +781,7 @@ class GetStacktraceStringTest(TestCase):
         for base64_prefix in BASE64_ENCODED_PREFIXES:
             base64_filename = f"{base64_prefix} extra content that could be long and useless"
             data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
-            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][2]["values"][0][
                 "values"
             ][1]["values"][0] = base64_filename
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
@@ -794,7 +794,7 @@ class GetStacktraceStringTest(TestCase):
     def test_replace_file_with_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][1]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -804,9 +804,9 @@ class GetStacktraceStringTest(TestCase):
     def test_no_filename_or_module(self) -> None:
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete module from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         # delete filename from the exception
-        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
         stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
@@ -817,9 +817,9 @@ class GetStacktraceStringTest(TestCase):
         for ignored_filename in IGNORED_FILENAMES:
             exception = copy.deepcopy(self.BASE_APP_DATA)
             # delete module from the exception so we don't fall back to that
-            del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+            del exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0]
             # replace filename with ignored value
-            exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0][
+            exception["app"]["component"]["values"][0]["values"][2]["values"][0]["values"][0][
                 "values"
             ][0] = ignored_filename
             stacktrace_string = get_stacktrace_string(exception)
@@ -906,7 +906,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -925,7 +925,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -950,7 +950,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -976,7 +976,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -994,7 +994,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only contributing frames are counted
         )
 
@@ -1011,7 +1011,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only in-app frames are counted
         )
 
@@ -1031,10 +1031,7 @@ class HasTooManyFramesTest(TestCase):
             contributing_variant, _ = get_contributing_variant_and_component(variants)
             assert contributing_variant.variant_name == expected_variant_name
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is True
-            )
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         self.event.data["platform"] = "java"
@@ -1049,7 +1046,7 @@ class HasTooManyFramesTest(TestCase):
         assert isinstance(contributing_variant, CustomFingerprintVariant)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because it's grouped by fingerprint
         )
 

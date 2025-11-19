@@ -211,6 +211,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
       items={items}
       position="bottom-end"
       size="sm"
+      strategy="fixed"
     />
   );
 };

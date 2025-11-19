@@ -31,7 +31,6 @@ class CompatibleSpan(SpanEvent, total=True):
     exclusive_time: float
     op: str
     sentry_tags: dict[str, str]
-    is_segment: bool
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]

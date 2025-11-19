@@ -13,6 +13,7 @@ from sentry.grouping.component import (
     ErrorTypeGroupingComponent,
     ErrorValueGroupingComponent,
     ExceptionGroupingComponent,
+    ExceptionGroupingComponentChildren,
     FilenameGroupingComponent,
     FrameGroupingComponent,
     FunctionGroupingComponent,
@@ -415,7 +416,7 @@ def stacktrace(
 ) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
-    return call_with_variants(
+    stacktrace_components_by_variant = call_with_variants(
         _single_stacktrace_variant,
         ["!app", "system"],
         interface,
@@ -423,6 +424,58 @@ def stacktrace(
         context=context,
         kwargs=kwargs,
     )
+
+    # Tally the number of each type of frame in the stacktrace. This will help with getting the hint
+    # now, and later on, this will allow us to both collect metrics and use the information in
+    # decisions about whether to send the event to Seer. Only the system variant can see system
+    # frames as contributing, so we use it to get the counts.
+    app_stacktrace_component = stacktrace_components_by_variant.get("!app")
+    system_stacktrace_component = stacktrace_components_by_variant.get("system")
+    frame_counts: Counter[str] = Counter()
+    total_in_app_frames = 0
+    total_contributing_frames = 0
+
+    if app_stacktrace_component and system_stacktrace_component:  # Mypy appeasement; always true
+        # Do the tallying
+        for frame_component in system_stacktrace_component.values:
+            if frame_component.in_app:
+                frame_type = "in_app"
+                total_in_app_frames += 1
+            else:
+                frame_type = "system"
+
+            if frame_component.contributes:
+                contribution_descriptor = "contributing"
+                total_contributing_frames += 1
+            else:
+                contribution_descriptor = "non_contributing"
+
+            key = f"{frame_type}_{contribution_descriptor}_frames"
+            frame_counts[key] += 1
+
+        app_stacktrace_component.frame_counts = frame_counts
+        system_stacktrace_component.frame_counts = frame_counts
+
+        # Find all the cases where we might ignore the stacktrace, and set appropriate hints
+        no_frames_hint = "ignored because it contains no frames"
+        no_in_app_frames_hint = "ignored because it contains no in-app frames"
+        no_contributing_frames_hint = "ignored because it contains no contributing frames"
+
+        if not system_stacktrace_component.values:  # No frames at all
+            system_stacktrace_component.update(contributes=False, hint=no_frames_hint)
+            app_stacktrace_component.update(contributes=False, hint=no_frames_hint)
+        else:
+            if total_contributing_frames == 0:
+                system_stacktrace_component.update(
+                    contributes=False, hint=no_contributing_frames_hint
+                )
+
+            if total_in_app_frames == 0:
+                app_stacktrace_component.update(contributes=False, hint=no_in_app_frames_hint)
+            elif frame_counts["in_app_contributing_frames"] == 0:
+                app_stacktrace_component.update(contributes=False, hint=no_contributing_frames_hint)
+
+    return stacktrace_components_by_variant
 
 
 def _single_stacktrace_variant(
@@ -436,18 +489,14 @@ def _single_stacktrace_variant(
     frame_components = []
     prev_frame = None
     raw_frames = []
-    found_in_app_frame = False
 
     for frame in frames:
         frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
         if _is_recursive_frame(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
 
-        if variant_name == "app":
-            if frame.in_app:
-                found_in_app_frame = True
-            else:
-                frame_component.update(contributes=False)
+        if variant_name == "app" and not frame.in_app:
+            frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         raw_frames.append(frame.get_raw_data())
@@ -461,11 +510,12 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and frames[0].is_url()
     ):
-        frame_components[0].update(
-            contributes=False, hint="ignored single non-URL JavaScript frame"
-        )
+        should_ignore_frame = has_url_origin(frames[0].abs_path, files_count_as_urls=True)
+        if should_ignore_frame:
+            frame_components[0].update(
+                contributes=False, hint="ignored single non-URL JavaScript frame"
+            )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
@@ -480,26 +530,6 @@ def _single_stacktrace_variant(
     # of the main stacktraces on the page.
     if context.get("reverse_stacktraces"):
         stacktrace_component.reverse_when_serializing = True
-
-    # TODO: Ideally this hint would get set by the rust enhancer. Right now the only stacktrace
-    # component hint it sets is one about ignoring stacktraces with contributing frames because the
-    # number of contributing frames isn't big enough. In that case it also sets `contributes` to
-    # false, as it does when there are no contributing frames. In this latter case it doesn't set a
-    # hint, though, so we do it here.
-    if not stacktrace_component.hint and not stacktrace_component.contributes:
-        if len(frames) == 0:
-            frames_description = "frames"
-        elif variant_name == "system":
-            frames_description = "contributing frames"
-        elif variant_name == "app":
-            # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
-            # be because all of the frames got marked as non-contributing in the enhancer
-            if found_in_app_frame:
-                frames_description = "contributing frames"
-            else:
-                frames_description = "in-app frames"
-
-        stacktrace_component.hint = f"ignored because it contains no {frames_description}"
 
     return {variant_name: stacktrace_component}
 
@@ -558,16 +588,6 @@ def single_exception(
     exception_components_by_variant = {}
 
     for variant_name, stacktrace_component in stacktrace_components_by_variant.items():
-        values: list[
-            ErrorTypeGroupingComponent
-            | ErrorValueGroupingComponent
-            | NSErrorGroupingComponent
-            | StacktraceGroupingComponent
-        ] = [stacktrace_component, type_component]
-
-        if ns_error_component is not None:
-            values.append(ns_error_component)
-
         value_component = ErrorValueGroupingComponent()
 
         raw = exception.value
@@ -593,7 +613,20 @@ def single_exception(
                 hint="ignored because ns-error info takes precedence",
             )
 
-        values.append(value_component)
+        values: list[ExceptionGroupingComponentChildren] = []
+
+        if ns_error_component is not None:
+            values = [type_component, value_component, ns_error_component, stacktrace_component]
+        else:
+            values = [type_component, value_component, stacktrace_component]
+
+        # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, the code here
+        # (and the option controlling it) can be deleted
+        if context.get("use_legacy_exception_subcomponent_order"):
+            if ns_error_component is not None:
+                values = [stacktrace_component, type_component, ns_error_component, value_component]
+            else:
+                values = [stacktrace_component, type_component, value_component]
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts

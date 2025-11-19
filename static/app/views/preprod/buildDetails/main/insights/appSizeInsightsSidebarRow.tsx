@@ -1,11 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -13,8 +15,13 @@ import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
-import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
+import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
+import type {
+  FileSavingsResultGroup,
+  OptimizableImageFile,
+} from 'sentry/views/preprod/types/appSizeTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {
   ProcessedInsight,
@@ -35,29 +42,56 @@ export function formatUpside(percentage: number): string {
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
   'alternate_icons_optimization',
+  'localized_strings_minify',
+  'strip_binary',
 ];
+
+const DEFAULT_ITEMS_PER_PAGE = 20;
 
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
   onToggleExpanded,
   platform,
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  itemsPerPage?: number;
   platform?: Platform;
 }) {
   const theme = useTheme();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const totalPages = Math.ceil(insight.files.length / itemsPerPage);
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFiles = insight.files.slice(startIndex, endIndex);
+  const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
     } else if (insight.key === 'image_optimization') {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'localized_strings_minify') {
+      openMinifyLocalizedStringsModal();
+    } else if (insight.key === 'strip_binary') {
+      openStripDebugSymbolsModal();
     }
   };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  useEffect(() => {
+    if (!isExpanded) {
+      setCurrentPage(0);
+    }
+  }, [isExpanded]);
 
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
@@ -65,13 +99,7 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex
-          align="center"
-          gap="sm"
-          style={{
-            flexShrink: 0,
-          }}
-        >
+        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
@@ -116,21 +144,47 @@ export function AppSizeInsightsSidebarRow({
           </Button>
 
           {isExpanded && (
-            <Container
-              display="flex"
-              css={() => ({
-                flexDirection: 'column',
-                width: '100%',
-                overflow: 'hidden',
-                '& > :nth-child(odd)': {
-                  backgroundColor: theme.backgroundSecondary,
-                },
-              })}
-            >
-              {insight.files.map((file, fileIndex) => (
-                <FileRow key={`${file.path}-${fileIndex}`} file={file} />
-              ))}
-            </Container>
+            <Fragment>
+              <Container
+                display="flex"
+                css={() => ({
+                  flexDirection: 'column',
+                  width: '100%',
+                  overflow: 'hidden',
+                  '& > :nth-child(odd)': {
+                    backgroundColor: theme.backgroundSecondary,
+                  },
+                })}
+              >
+                {currentFiles.map((file, fileIndex) => (
+                  <FileRow key={`${file.path}-${startIndex + fileIndex}`} file={file} />
+                ))}
+              </Container>
+
+              {showPagination && (
+                <Flex align="center" justify="end" gap="md" paddingTop="md">
+                  <Text size="sm" variant="muted">
+                    {t('Page %s of %s', currentPage + 1, totalPages)}
+                  </Text>
+                  <ButtonBar merged gap="0">
+                    <Button
+                      icon={<IconChevron direction="left" />}
+                      aria-label={t('Previous')}
+                      size="xs"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 0}
+                    />
+                    <Button
+                      icon={<IconChevron direction="right" />}
+                      aria-label={t('Next')}
+                      size="xs"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages - 1}
+                    />
+                  </ButtonBar>
+                </Flex>
+              )}
+            </Fragment>
           )}
         </Container>
       )}
@@ -143,31 +197,78 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
     return <OptimizableImageFileRow file={file} originalFile={file.data.originalFile} />;
   }
 
+  if (file.data.fileType === 'duplicate_files') {
+    return <DuplicateGroupFileRow file={file} group={file.data.originalGroup} />;
+  }
+
   return (
     <Flex
       align="center"
       justify="between"
       gap="lg"
       padding="xs sm"
+      radius="sm"
+      overflow="hidden"
       style={{
-        borderRadius: '4px',
         minWidth: 0,
-        maxWidth: '100%',
-        overflow: 'hidden',
       }}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
-      <Flex align="center" gap="sm">
+      <Text variant="primary" bold size="sm" tabular>
+        -{formatBytesBase10(file.savings)}
+      </Text>
+    </Flex>
+  );
+}
+
+function DuplicateGroupFileRow({
+  file,
+  group,
+}: {
+  file: ProcessedInsightFile;
+  group: FileSavingsResultGroup;
+}) {
+  return (
+    <Fragment key={file.path}>
+      <Flex
+        align="center"
+        justify="between"
+        gap="lg"
+        padding="xs sm"
+        radius="sm"
+        overflow="hidden"
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <Text size="sm" ellipsis style={{flex: 1}} bold>
+          {group.name}
+        </Text>
         <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
-        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          ({formatUpside(file.percentage / 100)})
-        </Text>
       </Flex>
-    </Flex>
+      <Flex direction="column" gap="xs" padding="xs sm">
+        {group.files.map((duplicateFile, index) => (
+          <Flex key={`${duplicateFile.file_path}-${index}`} align="center" gap="sm">
+            <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
+              {duplicateFile.file_path}
+            </Text>
+            <Text
+              size="xs"
+              variant="muted"
+              tabular
+              align="right"
+              style={{minWidth: '80px'}}
+            >
+              {formatBytesBase10(duplicateFile.total_savings)}
+            </Text>
+          </Flex>
+        ))}
+      </Flex>
+    </Fragment>
   );
 }
 
@@ -226,14 +327,13 @@ function OptimizableImageFileRow({
         justify="between"
         gap="lg"
         padding="xs sm"
+        radius="sm"
+        overflow="hidden"
         style={{
-          borderRadius: '4px',
           minWidth: 0,
-          maxWidth: '100%',
-          overflow: 'hidden',
         }}
       >
-        <Flex align="center" gap="xs" style={{minWidth: 0, overflow: 'hidden'}}>
+        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
@@ -249,9 +349,6 @@ function OptimizableImageFileRow({
           <Text variant="primary" bold size="sm" tabular>
             -{formatBytesBase10(maxSavings)}
           </Text>
-          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(file.percentage / 100)})
-          </Text>
         </Flex>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
@@ -264,17 +361,10 @@ function OptimizableImageFileRow({
               size="xs"
               variant="primary"
               tabular
-              style={{minWidth: '80px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.minify_savings)}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              style={{minWidth: '64px', textAlign: 'right'}}
-            >
-              ({formatUpside(file.data.minifyPercentage / 100)})
             </Text>
           </Flex>
         )}
@@ -287,17 +377,10 @@ function OptimizableImageFileRow({
               size="xs"
               variant="primary"
               tabular
-              style={{minWidth: '80px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.conversion_savings)}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              style={{minWidth: '64px', textAlign: 'right'}}
-            >
-              ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
           </Flex>
         )}

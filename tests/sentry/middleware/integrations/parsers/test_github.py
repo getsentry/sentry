@@ -1,3 +1,4 @@
+import orjson
 import pytest
 import responses
 from django.db import router, transaction
@@ -8,6 +9,7 @@ from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.models.webhookpayload import DestinationType
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
@@ -16,7 +18,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.types.region import Region, RegionCategory
 
 region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
@@ -46,7 +48,10 @@ class GithubRequestParserTest(TestCase):
 
         self.get_integration()
         request = self.factory.post(
-            self.path, data=b"invalid-data", content_type="application/x-www-form-urlencoded"
+            self.path,
+            data=b"invalid-data",
+            content_type="application/x-www-form-urlencoded",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
@@ -62,7 +67,10 @@ class GithubRequestParserTest(TestCase):
             OrganizationIntegration.objects.filter(integration=integration).delete()
 
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -77,7 +85,12 @@ class GithubRequestParserTest(TestCase):
     @responses.activate
     def test_routing_no_integration_found(self) -> None:
         self.get_integration()
-        request = self.factory.post(self.path, data={}, content_type="application/json")
+        request = self.factory.post(
+            self.path,
+            data={},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
+        )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
         response = parser.get_response()
@@ -98,7 +111,10 @@ class GithubRequestParserTest(TestCase):
             },
         )
         request = self.factory.post(
-            path, data={"installation": {"id": "1"}}, content_type="application/json"
+            path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -113,7 +129,10 @@ class GithubRequestParserTest(TestCase):
     def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
@@ -124,7 +143,10 @@ class GithubRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
-            self.path, data={"installation": {"id": "1"}}, content_type="application/json"
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -149,6 +171,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -180,6 +203,7 @@ class GithubRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": "1"}},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -213,6 +237,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "created"},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -228,6 +253,7 @@ class GithubRequestParserTest(TestCase):
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "1"}, "action": "deleted"},
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -252,6 +278,7 @@ class GithubRequestParserTest(TestCase):
                 "repository": {"id": "1"},
             },
             content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -266,3 +293,127 @@ class GithubRequestParserTest(TestCase):
             region_names=[region.name],
             destination_types={DestinationType.SENTRY_REGION: 1},
         )
+
+
+@control_silo_test
+class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
+    """
+    Test fixture that runs the routing tests with header-based routing enabled.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        with override_options({"github.webhook-type-routing.enabled": True}):
+            yield
+
+
+@control_silo_test(regions=create_test_regions("us"))
+class GithubRequestParserOverwatchForwarderTest(TestCase):
+    factory = RequestFactory()
+    path = reverse("sentry-integration-github-webhook")
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        with override_options({"github.webhook-type-routing.enabled": True}):
+            yield
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(
+            name="Test Org",
+            slug="test-org",
+            region="us",
+            owner=self.create_user(email="test@example.com"),
+        )
+        self.integration = self.create_integration(
+            provider="github",
+            external_id="1",
+            name="Test Integration",
+            organization=self.organization,
+        )
+
+    @responses.activate
+    def test_overwatch_forwarder(self) -> None:
+        with (
+            override_options({"overwatch.enabled-regions": ["us"]}),
+            override_settings(
+                OVERWATCH_REGION_URLS={"us": "https://us.example.com/api"},
+                OVERWATCH_WEBHOOK_SECRET="test-secret",
+            ),
+        ):
+            responses.add(
+                responses.POST,
+                "https://us.example.com/api/webhooks/sentry",
+                status=200,
+            )
+
+            request = self.factory.post(
+                self.path,
+                data={"installation": {"id": "1"}, "action": "created"},
+                content_type="application/json",
+                headers={
+                    "x-github-event": GithubWebhookType.PULL_REQUEST.value,
+                    "x-github-hook-installation-target-id": "123",
+                },
+            )
+            parser = GithubRequestParser(
+                request=request,
+                response_handler=lambda _: HttpResponse(status=200, content="passthrough"),
+            )
+
+            response = parser.get_response()
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == status.HTTP_202_ACCEPTED
+            assert response.content == b""
+
+            assert len(responses.calls) == 1
+            assert responses.calls[0].request.url == "https://us.example.com/api/webhooks/sentry"
+            assert responses.calls[0].request.method == "POST"
+            json_body = orjson.loads(responses.calls[0].request.body)
+
+            assert json_body["organizations"] == [
+                {
+                    "name": "Test Org",
+                    "slug": "test-org",
+                    "id": self.organization.id,
+                    "region": "us",
+                    "github_integration_id": self.integration.id,
+                    "organization_integration_id": self.organization_integration.id,
+                }
+            ]
+            assert json_body["webhook_body"] == {"installation": {"id": "1"}, "action": "created"}
+            assert json_body["app_id"] == 123
+            assert json_body["webhook_headers"]["X-Github-Event"] == "pull_request"
+            assert json_body["integration_provider"] == "github"
+            assert json_body["region"] == "us"
+            assert json_body["event_type"] == "github"
+
+    @responses.activate
+    def test_overwatch_forwarder_missing_region_config(self) -> None:
+        with (
+            override_options({"overwatch.enabled-regions": ["us"]}),
+            override_settings(
+                OVERWATCH_REGION_URLS={"de": "https://de.example.com/api"},
+                OVERWATCH_WEBHOOK_SECRET="test-secret",
+            ),
+        ):
+            request = self.factory.post(
+                self.path,
+                data={"installation": {"id": "1"}, "action": "created"},
+                content_type="application/json",
+                headers={
+                    "x-github-event": GithubWebhookType.PULL_REQUEST.value,
+                    "x-github-hook-installation-target-id": "1",
+                },
+            )
+            parser = GithubRequestParser(
+                request=request,
+                response_handler=lambda _: HttpResponse(status=200, content="passthrough"),
+            )
+
+            response = parser.get_response()
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == status.HTTP_202_ACCEPTED
+            assert response.content == b""
+
+            assert len(responses.calls) == 0

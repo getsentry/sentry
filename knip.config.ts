@@ -17,6 +17,8 @@ const productionEntryPoints = [
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
   // --- we should be able to get rid of those: ---
+  // Only used in stories (so far)
+  'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
@@ -59,8 +61,6 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
     '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
-    // TODO(malwilley): Remove this when the command palette is imported in a subsequent PR.
-    '!static/app/components/commandPalette/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

@@ -4,17 +4,13 @@ import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 
 const timeFormat = 'HH:mm:ss';
-const timeDateFormat = `ll ${timeFormat}`;
 
 const getRelativeTime = (
   parsedTime: ReturnType<typeof moment>,
   parsedTimeToCompareWith: ReturnType<typeof moment>,
   displayRelativeTime?: boolean
 ) => {
-  // ll is necessary here, otherwise moment(x).from will throw an error
-  const formattedTime = moment(parsedTime.format(timeDateFormat));
-  const formattedTimeToCompareWith = parsedTimeToCompareWith.format(timeDateFormat);
-  const timeDiff = Math.abs(formattedTime.diff(formattedTimeToCompareWith));
+  const timeDiff = Math.abs(parsedTime.diff(parsedTimeToCompareWith));
 
   const shortRelativeTime = getDuration(Math.round(timeDiff / 1000), 0, true).replace(
     /\s/g,

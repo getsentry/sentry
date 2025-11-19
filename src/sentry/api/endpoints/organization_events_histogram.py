@@ -48,7 +48,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)

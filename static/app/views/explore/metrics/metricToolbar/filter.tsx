@@ -10,7 +10,7 @@ import {
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
@@ -28,19 +28,19 @@ export function Filter({traceMetric}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
-  const metricNameFilter = createMetricNameFilter(traceMetric.name);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
 
   const visibleNumberTags = useMemo(() => {

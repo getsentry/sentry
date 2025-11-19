@@ -22,13 +22,13 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -318,7 +318,7 @@ function useAvgSpanDuration(
   span: TraceTree.EAPSpan,
   location: Location
 ): number | undefined {
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
 
   const eventView = useMemo(() => {
     const search = new MutableSearch('');
@@ -427,6 +427,7 @@ function EAPSpanNodeDetailsContent({
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
+  const attributesMeta = traceItemData.meta;
   const links = traceItemData.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
 
@@ -487,7 +488,11 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} attributes={attributes} />
-        <AIInputSection node={node} attributes={attributes} />
+        <AIInputSection
+          node={node}
+          attributes={attributes}
+          attributesMeta={attributesMeta}
+        />
         <AIOutputSection node={node} attributes={attributes} />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />

@@ -116,6 +116,7 @@ function HoverHeader({
         {!hideCopy && copyContent && (
           <CopyToClipboardButton
             borderless
+            aria-label={t('Copy to clipboard')}
             data-test-id="quick-context-hover-header-copy-button"
             onCopy={() => {
               trackAnalytics('discover_v2.quick_context_header_copy', {

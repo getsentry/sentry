@@ -50,9 +50,9 @@ describe('useMetricOptions', () => {
   it('fetches metric options from tracemetrics dataset', async () => {
     const mockData = {
       data: [
+        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
         {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
         {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
       ],
     };
 
@@ -65,7 +65,6 @@ describe('useMetricOptions', () => {
           dataset: DiscoverDatasets.TRACEMETRICS,
           field: ['metric.name', 'metric.type', 'count(metric.name)'],
           referrer: 'api.explore.metric-options',
-          orderby: 'metric.name',
         }),
       ],
     });
@@ -86,9 +85,13 @@ describe('useMetricOptions', () => {
     );
   });
 
-  it('sorts metrics alphabetically by name', () => {
+  it('sorts metrics alphabetically by name', async () => {
     const mockData = {
-      data: [],
+      data: [
+        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
+        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
+      ],
     };
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -97,18 +100,31 @@ describe('useMetricOptions', () => {
       body: mockData,
     });
 
-    renderHookWithProviders(useMetricOptions, {
+    const {result} = renderHookWithProviders(useMetricOptions, {
       ...context,
     });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockRequest).toHaveBeenCalledTimes(1);
     expect(mockRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          orderby: 'metric.name',
+          dataset: 'tracemetrics',
+          field: ['metric.name', 'metric.type', 'count(metric.name)'],
+          referrer: 'api.explore.metric-options',
+          statsPeriod: '3d',
         }),
       })
+    );
+
+    await waitFor(() =>
+      expect(result.current.data?.data).toEqual([
+        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
+        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
+        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
+      ])
     );
   });
 

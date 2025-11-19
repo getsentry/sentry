@@ -1,5 +1,6 @@
-from collections.abc import Sequence
+from collections.abc import Iterable
 
+import sentry_sdk
 from django.db.models import Q, QuerySet
 
 from sentry.models.groupredirect import GroupRedirect
@@ -24,14 +25,32 @@ def _get_all_related_redirects_query(
         # the oldest redirects if we have >THRESHOLD. We choose to drop the oldest
         # because they're least likely to have data in retention
         .order_by("-date_added")
-    )[:SIZE_THRESHOLD_FOR_CLICKHOUSE]
+    )
 
 
-def get_all_merged_group_ids(group_ids: Sequence[str | int]) -> set[str | int]:
-    group_id_set = set(group_ids)
-    all_related_rows = _get_all_related_redirects_query(group_id_set)
-    for r in all_related_rows:
-        group_id_set.update(r)
-        if len(group_id_set) > SIZE_THRESHOLD_FOR_CLICKHOUSE:
-            return set(group_ids)
-    return group_id_set
+def get_all_merged_group_ids(
+    group_ids: Iterable[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
+) -> set[str | int]:
+    with sentry_sdk.start_span(op="get_all_merged_group_ids") as span:
+        group_id_set = set(group_ids)
+        all_related_rows = _get_all_related_redirects_query(group_id_set)
+
+        threshold_breaker_set = None
+
+        for r in all_related_rows:
+            group_id_set.update(r)
+
+            # We only want to set the threshold_breaker the first time that we cross
+            # the threshold.
+            if threshold_breaker_set is None and len(group_id_set) >= threshold:
+                # Because we're incrementing the size of group_id_set by either one or two
+                # each iteration, it's fine if we're a bit over. That's negligible compared
+                # to the scale-of-thousands Clickhouse threshold.
+                threshold_breaker_set = group_id_set.copy()
+
+        out = group_id_set if threshold_breaker_set is None else threshold_breaker_set
+
+        span.set_data("true_group_id_len", len(group_id_set))
+        span.set_data("returned_group_id_len", len(out))
+
+    return out

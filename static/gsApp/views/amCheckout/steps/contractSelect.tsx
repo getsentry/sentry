@@ -11,8 +11,8 @@ import {space} from 'sentry/styles/space';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {InvoiceItemType, type Plan} from 'getsentry/types';
-import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import PlanSelectRow from 'getsentry/views/amCheckout/components/planSelectRow';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getReservedPriceCents} from 'getsentry/views/amCheckout/utils';
 

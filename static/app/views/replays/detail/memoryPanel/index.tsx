@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
@@ -9,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 
 export default function MemoryPanel() {
   const replay = useReplayReader();
@@ -17,19 +17,34 @@ export default function MemoryPanel() {
 
   const memoryFrames = replay?.getMemoryFrames();
 
-  const memoryChart =
-    !replay || isFetching ? (
-      <Placeholder height="100%" />
-    ) : !replay || !memoryFrames?.length ? (
-      <EmptyMessage
-        data-test-id="replay-details-memory-tab"
-        title={t('No memory metrics found')}
-        description={t(
-          'Memory metrics are only captured within Chromium based browser sessions.'
-        )}
-      />
-    ) : (
-      <Fragment>
+  if (!replay || isFetching) {
+    return (
+      <ChartWrapper>
+        <Placeholder height="100%" />
+      </ChartWrapper>
+    );
+  }
+
+  if (!memoryFrames?.length) {
+    return (
+      <ChartWrapper data-test-id="replay-details-memory-tab">
+        <NoRowRenderer unfilteredItems={[]} clearSearchTerm={() => {}}>
+          <Fragment>
+            <p>{t('No memory metrics found')}</p>
+            <Description>
+              {t(
+                'Memory metrics are only captured within Chromium based browser sessions.'
+              )}
+            </Description>
+          </Fragment>
+        </NoRowRenderer>
+      </ChartWrapper>
+    );
+  }
+
+  return (
+    <Grid>
+      <ChartWrapper>
         <ChartTitle>{t('Heap Size')}</ChartTitle>
         <MemoryChart
           currentHoverTime={currentHoverTime}
@@ -40,12 +55,7 @@ export default function MemoryPanel() {
           setCurrentTime={setCurrentTime}
           startTimestampMs={replay.getStartTimestampMs()}
         />
-      </Fragment>
-    );
-
-  return (
-    <Grid>
-      <ChartWrapper>{memoryChart}</ChartWrapper>
+      </ChartWrapper>
     </Grid>
   );
 }
@@ -77,4 +87,9 @@ const ChartTitle = styled('h5')`
   color: ${p => p.theme.subText};
   flex: 0 1 auto;
   margin: 0;
+`;
+
+const Description = styled('p')`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
 `;
