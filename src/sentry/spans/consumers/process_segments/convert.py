@@ -135,7 +135,9 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
     elif isinstance(value, dict):
         return AnyValue(
-            kvlist_value=KeyValueList(values=[KeyValue(key=k, value=v) for k, v in value.items()])
+            kvlist_value=KeyValueList(
+                values=[KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+            )
         )
 
     raise ValueError(f"Unknown value type: {type(value)}")
