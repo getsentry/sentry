@@ -237,9 +237,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
-        if query:
-            dashboards = dashboards.filter(title__icontains=query)
-        if (
+        should_filter_by_prebuilt_ids = (
             prebuilt_ids
             and len(prebuilt_ids) > 0
             and features.has(
@@ -247,7 +245,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 organization,
                 actor=request.user,
             )
-        ):
+        )
+        if query:
+            dashboards = dashboards.filter(title__icontains=query)
+        if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
@@ -396,7 +397,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by in {"onlyFavorites", "owned"}:
+        if filter_by and filter_by in {"onlyFavorites", "owned"} or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
