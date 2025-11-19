@@ -60,7 +60,6 @@ export function CompactSelect<Value extends SelectKey>({
   // List props
   options,
   value,
-  defaultValue,
   onChange,
   onSectionToggle,
   multiple,
@@ -87,7 +86,6 @@ export function CompactSelect<Value extends SelectKey>({
       return {
         multiple,
         value,
-        defaultValue,
         onChange,
         closeOnSelect,
         grid,
@@ -96,12 +94,11 @@ export function CompactSelect<Value extends SelectKey>({
     return {
       multiple,
       value,
-      defaultValue,
       onChange,
       closeOnSelect,
       grid,
     };
-  }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
+  }, [multiple, value, onChange, closeOnSelect, grid]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 

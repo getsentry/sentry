@@ -88,10 +88,11 @@ export interface ControlProps
   extends Omit<
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
-      keyof Omit<
-        SingleListProps<SelectKey>,
-        'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-      >
+      | keyof Omit<
+          SingleListProps<SelectKey>,
+          'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+        >
+      | 'defaultValue'
     >,
     Pick<
       UseOverlayProps,
