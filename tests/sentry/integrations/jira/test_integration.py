@@ -1043,6 +1043,29 @@ class RegionJiraIntegrationTest(APITestCase):
         assert str(excinfo.value) == "There was an error assigning the issue."
         assert len(responses.calls) == 2
 
+    @responses.activate
+    def test_sync_assignee_outbound_unassign_required_issue(self) -> None:
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+
+        responses.add(
+            responses.PUT,
+            assign_issue_url,
+            status=400,
+            json={"errorMessages": [], "errors": {"assignee": "Issues must be assigned."}},
+        )
+
+        # Should not raise when Jira requires issues to stay assigned
+        installation.sync_assignee_outbound(external_issue, None, assign=False)
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0][1].request.body == b'{"accountId": null}'
+
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
