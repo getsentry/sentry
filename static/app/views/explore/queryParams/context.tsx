@@ -462,3 +462,20 @@ export function useSetQueryParamsSavedQuery() {
     [location, navigate]
   );
 }
+
+export function useQueryParamsCrossEvents() {
+  const queryParams = useQueryParams();
+  return queryParams.crossEvents;
+}
+
+export function useSetQueryParamsCrossEvents() {
+  const queryParams = useQueryParams();
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    () => (crossEvent: string) => {
+      setQueryParams({crossEvents: [...queryParams.crossEvents, {crossEvent}]});
+    },
+    [queryParams, setQueryParams]
+  );
+}
