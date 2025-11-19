@@ -95,7 +95,7 @@ x-sentry-service-config:
       description: Storage for files and blobs
       remote:
         repo_name: objectstore
-        branch: lcian/host-docker-internal
+        branch: main
         repo_link: https://github.com/getsentry/objectstore.git
         mode: containerized
     #########################################################

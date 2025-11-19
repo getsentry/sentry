@@ -186,7 +186,7 @@ class Symbolicator:
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(minidump.stored_id)
-            # storage_url = storage_url.replace("127.0.0.1", "host.docker.internal")
+            storage_url = storage_url.replace("127.0.0.1", "host.docker.internal")
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -232,7 +232,7 @@ class Symbolicator:
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(report.stored_id)
-            # storage_url = storage_url.replace("127.0.0.1", "host.docker.internal")
+            storage_url = storage_url.replace("127.0.0.1", "host.docker.internal")
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
