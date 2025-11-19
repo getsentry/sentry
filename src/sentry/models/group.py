@@ -802,9 +802,9 @@ class Group(Model):
             return cached_has_replays
 
         data_source = (
-            Dataset.IssuePlatform
-            if self.issue_category == GroupCategory.PERFORMANCE
-            else Dataset.Discover
+            Dataset.Discover
+            if self.issue_category == GroupCategory.ERROR
+            else Dataset.IssuePlatform
         )
 
         counts = get_replay_counts(
