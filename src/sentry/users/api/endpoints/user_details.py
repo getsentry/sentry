@@ -66,8 +66,8 @@ def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None
         actor=actor,
         ip_address=ip_address,
         context={
-            "deactivation_datetime": deactivation_datetime.isoformat(),
-            "scheduled_deletion_datetime": scheduled_deletion_datetime.isoformat(),
+            "deactivation_datetime": deactivation_datetime,
+            "scheduled_deletion_datetime": scheduled_deletion_datetime,
         },
         send_email=True,
         current_datetime=deactivation_datetime,
@@ -100,7 +100,7 @@ def record_hard_user_deletion(
         type="user.removed",
         actor=actor,
         ip_address=ip_address,
-        context={"deletion_datetime": deletion_datetime.isoformat()},
+        context={"deletion_datetime": deletion_datetime},
         send_email=True,
         current_datetime=deletion_datetime,
     )
