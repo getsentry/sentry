@@ -3114,11 +3114,12 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        # Set event count >= 10
-        from sentry import buffer
-
+        # Update group times_seen to simulate >= 10 events
         group = event.group
-        buffer.backend.incr(Group, ["times_seen"], {"id": group.id}, count=10)
+        group.times_seen = 10
+        group.save()
+        # Also update the event's cached group reference
+        event.group.times_seen = 10
 
         # Cache a summary for this group
         from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
@@ -3152,11 +3153,12 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        # Set event count >= 10
-        from sentry import buffer
-
+        # Update group times_seen to simulate >= 10 events
         group = event.group
-        buffer.backend.incr(Group, ["times_seen"], {"id": group.id}, count=10)
+        group.times_seen = 10
+        group.save()
+        # Also update the event's cached group reference
+        event.group.times_seen = 10
 
         self.call_post_process_group(
             is_new=False,
@@ -3177,20 +3179,21 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
     def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
         self, mock_run_automation, mock_get_seer_org_acknowledgement
     ):
-        """Test that with event count >= 10 and seer_last_triggered set, we skip automation."""
+        """Test that with event count >= 10 and seer_autofix_last_triggered set, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
         )
 
-        # Set event count >= 10 and seer_last_triggered
-        from sentry import buffer
-
+        # Update group times_seen and seer_autofix_last_triggered
         group = event.group
-        buffer.backend.incr(Group, ["times_seen"], {"id": group.id}, count=10)
-        group.seer_last_triggered = timezone.now()
+        group.times_seen = 10
+        group.seer_autofix_last_triggered = timezone.now()
         group.save()
+        # Also update the event's cached group reference
+        event.group.times_seen = 10
+        event.group.seer_autofix_last_triggered = group.seer_autofix_last_triggered
 
         # Cache a summary for this group
         from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
@@ -3205,7 +3208,7 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        # Should not call automation since seer_last_triggered is set
+        # Should not call automation since seer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
 
 
@@ -3282,6 +3285,7 @@ class PostProcessGroupErrorTest(
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,
+    TriageSignalsV0TestMixin,
     SeerAutomationHelperFunctionsTestMixin,
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
@@ -3371,6 +3375,7 @@ class PostProcessGroupPerformanceTest(
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
     KickOffSeerAutomationTestMixin,
+    TriageSignalsV0TestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
@@ -3490,6 +3495,7 @@ class PostProcessGroupGenericTest(
     RuleProcessorTestMixin,
     SnoozeTestMixin,
     KickOffSeerAutomationTestMixin,
+    TriageSignalsV0TestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         data["type"] = "generic"
