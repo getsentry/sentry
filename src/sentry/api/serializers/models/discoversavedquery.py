@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.models.exploresavedquery import ExploreSavedQueryResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -29,7 +28,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     display: str
     topEvents: int
     interval: str
-    exploreQuery: ExploreSavedQueryResponse
+    exploreQuery: dict
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
@@ -47,9 +46,7 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQueryModelSerializer(Serializer):
-    def partial_serialize_explore_query(
-        self, query: ExploreSavedQuery
-    ) -> ExploreSavedQueryResponse:
+    def partial_serialize_explore_query(self, query: ExploreSavedQuery) -> dict:
         query_keys = [
             "environment",
             "query",
@@ -58,7 +55,7 @@ class DiscoverSavedQueryModelSerializer(Serializer):
             "end",
             "interval",
         ]
-        data: ExploreSavedQueryResponse = {
+        data = {
             "id": str(query.id),
             "name": query.name,
             "projects": [project.id for project in query.projects.all()],
