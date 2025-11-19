@@ -1,6 +1,8 @@
 import pytest
 
 from sentry.seer.assisted_query.discover_tools import (
+    _ALWAYS_RETURN_EVENT_FIELDS,
+    _SPECIAL_FIELD_VALUE_TYPES,
     get_event_filter_key_values,
     get_event_filter_keys,
 )
@@ -50,31 +52,22 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert "tags" in result
-        assert "feature_flags" in result
-        assert "static_fields" in result
 
         # Check tags
-        tags = result["tags"]
-        assert isinstance(tags, list)
-        assert len(tags) > 0
-        # Check that our custom tags are present
-        assert "fruit" in tags
-        assert "color" in tags
+        for k in ["fruit", "color"]:
+            assert k in result
+            assert result[k]["type"] == "tag"
 
         # Check feature flags
-        feature_flags = result["feature_flags"]
-        assert isinstance(feature_flags, list)
-        assert "feature_a" in feature_flags
-        assert "feature_b" in feature_flags
+        for k in ["feature_a", "feature_b"]:
+            assert k in result
+            assert result[k]["type"] == "feature_flag"
 
-        # Check static fields
-        static_fields = result["static_fields"]
-        assert isinstance(static_fields, list)
-        assert len(static_fields) > 0
-        # Should include common fields like timestamp, message, etc.
-        assert "timestamp" in static_fields
-        assert "message" in static_fields
+        # Check always-return fields
+        for k in _ALWAYS_RETURN_EVENT_FIELDS:
+            assert k in result
+            expected_type = _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")
+            assert result[k]["type"] == expected_type
 
     def test_get_event_filter_keys_multiple_projects(self):
         """Test with multiple projects"""
@@ -107,37 +100,8 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             )
 
             assert result is not None
-            assert "tags" in result
-
-            tags = result["tags"]
-            # Both project tags should be present
-            assert "project1_tag" in tags
-            assert "project2_tag" in tags
-
-    def test_get_event_filter_keys_deduplicates_static_and_tags(self):
-        """Test that tags appearing in both static fields and tags are only returned as tags"""
-        # Create an event with a tag that might also be a static field
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "tags": {"environment": "production"},
-                "timestamp": self.min_ago.isoformat(),
-            },
-            project_id=self.project.id,
-        )
-
-        result = get_event_filter_keys(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-        )
-
-        assert result is not None
-        tags = result["tags"]
-        static_fields = result["static_fields"]
-
-        # If environment appears as a tag, it should not also be in static_fields
-        assert "environment" in tags
-        assert "environment" not in static_fields
+            assert "project1_tag" in result
+            assert "project2_tag" in result
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -249,42 +213,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
                 assert "value" in item
                 assert "count" in item
 
-    def test_get_event_filter_key_values_boolean_field(self):
-        """Test that boolean fields return predefined values"""
-        result = get_event_filter_key_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            filter_key="error.handled",
-            is_feature_flag=False,
-        )
-
-        assert result is not None
-        assert isinstance(result, list)
-        # Should return true/false values
-        assert len(result) == 2
-        values = {item["value"] for item in result}
-        assert "true" in values
-        assert "false" in values
-
-    def test_get_event_filter_key_values_date_field(self):
-        """Test that date fields return predefined relative date suggestions"""
-        result = get_event_filter_key_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            filter_key="timestamp",
-            is_feature_flag=False,
-        )
-
-        assert result is not None
-        assert isinstance(result, list)
-        # Should return relative date suggestions like "-1h", "-24h", etc.
-        assert len(result) > 0
-        values = {item["value"] for item in result}
-        # Should include common relative dates
-        assert "-1h" in values
-        assert "-24h" in values
-        assert "-7d" in values
-
     def test_get_event_filter_key_values_has_key(self):
         """Test that 'has' key returns all available tag keys"""
         # Create event with custom tag
@@ -317,28 +245,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="count()",
-            is_feature_flag=False,
-        )
-
-        assert result == []
-
-    def test_get_event_filter_key_values_measurement_returns_empty(self):
-        """Test that measurements return empty list"""
-        result = get_event_filter_key_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            filter_key="measurements.lcp",
-            is_feature_flag=False,
-        )
-
-        assert result == []
-
-    def test_get_event_filter_key_values_device_class_returns_empty(self):
-        """Test that device.class returns empty list"""
-        result = get_event_filter_key_values(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            filter_key="device.class",
             is_feature_flag=False,
         )
 

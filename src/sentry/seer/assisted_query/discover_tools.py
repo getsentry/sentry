@@ -48,15 +48,25 @@ _ALWAYS_RETURN_EVENT_FIELDS = frozenset(
     }
 )
 
-
-def _is_agg_function(key: str) -> bool:
-    """
-    Check if a key is an aggregate function (e.g., count(), avg(duration), p95(transaction.duration)).
-
-    Aggregate functions follow the pattern: `function_name(optional_args)`.
-    """
-    match = re.match(r"^(\w+)\((.*?)?\)$", key)
-    return bool(match and len(match.groups()) == 2)
+_SPECIAL_FIELD_VALUE_TYPES = {
+    "id": "uuid",
+    "issue": "issue_short_id",
+    "timestamp": "datetime",
+    "timestamp.to_hour": "datetime",
+    "timestamp.to_day": "datetime",
+    "message": "text",
+    "title": "text",
+    # Boolean fields - non-exhaustive
+    "error.handled": "boolean",
+    "error.unhandled": "boolean",
+    "error.main_thread": "boolean",
+    "stack.in_app": "boolean",
+    "symbolicated_in_app": "boolean",
+    "app.in_foreground": "boolean",
+    "device.charging": "boolean",
+    "device.online": "boolean",
+    "device.simulator": "boolean",
+}
 
 
 def _get_tag_and_feature_flag_keys(
@@ -103,27 +113,32 @@ def _get_tag_and_feature_flag_keys(
     return event_tag_keys, flag_keys
 
 
+def _is_agg_function(key: str) -> bool:
+    """
+    Check if a key is an aggregate function (e.g., count(), avg(duration), p95(transaction.duration)).
+
+    Aggregate functions follow the pattern: `function_name(optional_args)`.
+    """
+    match = re.match(r"^(\w+)\((.*?)?\)$", key)
+    return bool(match and len(match.groups()) == 2)
+
+
 def _get_static_values(key: str) -> list[dict[str, Any]] | None:
     """
     Get values for keys with a static set of values. Returns None if the key's
     values are dynamic and should be queried.
     """
+    value_type = _SPECIAL_FIELD_VALUE_TYPES.get(key, "")
+
     if (
-        key == "id"
-        or key == "timestamp"
-        or key.startswith("timestamp.")
+        value_type in ["uuid", "issue_short_id", "datetime"]
         or key.startswith("measurements.")
         or key == "device.class"
         or _is_agg_function(key)
     ):
         return []
 
-    # Boolean always-return fields
-    if key in [
-        "error.handled",
-        "error.unhandled",
-        "error.main_thread",
-    ]:
+    if value_type == "boolean":
         return [{"value": "true"}, {"value": "false"}]
 
     return None
@@ -134,10 +149,16 @@ def get_event_filter_keys(
     org_id: int,
     project_ids: list[int] | None = None,
     stats_period: str = "7d",
-) -> dict[str, list[str]] | None:
+) -> dict[str, dict[str, Any]] | None:
     """
-    Get available event filter keys for the "errors" dataset (tags, feature flags, and static fields).
-    This mirrors the behavior of Discover search bar suggestions in the frontend.
+    Get available event filter keys for the "errors" dataset (tags, feature flags, and static fields). This mirrors the
+    behavior of Discover search bar suggestions in the frontend.
+
+    Returns a dictionary where the keys are the filter keys and the values are metadata dictionaries, with the
+    following keys:
+
+    - type: A descriptor for the filter value, e.g. "uuid", "issue_short_id", "datetime". The agent uses this to make
+      decisions on how to / whether to query the values for this key.
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -149,21 +170,19 @@ def get_event_filter_keys(
     if not project_ids:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
-    static_fields = {*_ALWAYS_RETURN_EVENT_FIELDS}
+    always_fields = {*_ALWAYS_RETURN_EVENT_FIELDS}
     tag_keys, flag_keys = _get_tag_and_feature_flag_keys(
         organization.id, organization.slug, project_ids, stats_period
     )
 
-    # Return duplicated keys as tags. They could be returned as static_fields
-    # too, since we don't treat these differently when fetching values. We just
-    # want to keep the sets disjoint.
-    static_fields -= tag_keys
+    result = {}
+    for k in tag_keys | always_fields:  # deduplicate
+        result[k] = {"type": _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")}
 
-    return {
-        "tags": list(tag_keys),
-        "feature_flags": list(flag_keys),
-        "static_fields": list(static_fields),
-    }
+    for k in flag_keys:
+        result[k] = {"type": "feature_flag"}
+
+    return result
 
 
 def get_event_filter_key_values(
@@ -195,9 +214,9 @@ def get_event_filter_key_values(
     Returns:
         List of dicts containing:
         - value: The actual value
-        - count: Number of occurrences (excluded for `has` key)
-        - lastSeen: ISO timestamp of last occurrence (excluded for `has` key)
-        - firstSeen: ISO timestamp of first occurrence (excluded for `has` key)
+        - count: Number of occurrences (optional)
+        - lastSeen: ISO timestamp of last occurrence (optional)
+        - firstSeen: ISO timestamp of first occurrence (optional)
         Returns None if organization doesn't exist, empty list if key was not found in any data source.
     """
     try:
@@ -215,11 +234,10 @@ def get_event_filter_key_values(
         return predefined_values
 
     if filter_key == "has":
-        keys_response = (
-            get_event_filter_keys(org_id=org_id, project_ids=project_ids, stats_period=stats_period)
-            or {}
+        tag_keys, _ = _get_tag_and_feature_flag_keys(
+            organization.id, organization.slug, project_ids, stats_period
         )
-        return [{"value": tag} for tag in keys_response.get("tags", [])]
+        return [{"value": t} for t in tag_keys]
 
     api_key = ApiKey(
         organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
