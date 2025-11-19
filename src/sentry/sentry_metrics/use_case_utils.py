@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
@@ -11,7 +13,18 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 
 
+USE_CASE_NAMESPACE_ALIASES: Mapping[str, UseCaseID] = {
+    # Custom metrics share the same storage/behavior as the transactions use case.
+    "custom": UseCaseID.TRANSACTIONS,
+    # Span-light metrics still live in the spans use case.
+    "spans_light": UseCaseID.SPANS,
+}
+
+
 def string_to_use_case_id(value: str) -> UseCaseID:
+    if value in USE_CASE_NAMESPACE_ALIASES:
+        return USE_CASE_NAMESPACE_ALIASES[value]
+
     try:
         return UseCaseID(value)
     except ValueError:

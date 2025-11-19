@@ -26,6 +26,7 @@ from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
@@ -381,9 +382,11 @@ def extract_use_case_id(mri: str) -> UseCaseID:
     """
     parsed_mri = parse_mri(mri)
     if parsed_mri is not None:
-        if parsed_mri.namespace in {id.value for id in UseCaseID}:
-            return UseCaseID(parsed_mri.namespace)
-
-        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
+        try:
+            return string_to_use_case_id(parsed_mri.namespace)
+        except ValueError as exc:
+            raise ValidationError(
+                f"The use case of the MRI {parsed_mri.namespace} does not exist"
+            ) from exc
 
     raise ValidationError(f"The MRI {mri} is not valid")
