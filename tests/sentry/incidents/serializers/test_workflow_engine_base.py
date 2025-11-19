@@ -62,6 +62,7 @@ class TestWorkflowEngineSerializer(TestCase):
             self.alert_rule
         )
 
+        self.create_detector_group(detector=self.detector, group=self.group)
         self.expected_critical_action = [
             {
                 "id": str(self.critical_trigger_action.id),
