@@ -10,7 +10,7 @@ export function EditableAutomationName() {
     <FormField name="name" inline={false} flexibleControlStateSize stacked>
       {({onChange, value}) => (
         <EditableText
-          isDisabled={false}
+          allowEmpty
           value={value || ''}
           onChange={newValue => {
             // Mark that the user has manually set the automation name
@@ -21,7 +21,6 @@ export function EditableAutomationName() {
               },
             });
           }}
-          errorMessage={t('Please set a name for your alert.')}
           placeholder={t('New Alert')}
         />
       )}

@@ -72,6 +72,10 @@ backend_src: &backend_src
   - 'migrations_lockfile.txt'
   - 'config/**/!(tsconfig)*'
   - 'fixtures/search-syntax/**/*'
+  # There is a dependency between CODEOWNERS and sentry.api.api_owners in
+  # tests/sentry/api/test_api_owners.py. As a result, any change to CODEOWNERS
+  # needs to trigger the backend tests.
+  - '.github/CODEOWNERS'
 
 backend_all: &backend_all
   - *backend_src

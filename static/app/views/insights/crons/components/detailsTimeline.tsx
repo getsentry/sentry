@@ -31,12 +31,16 @@ import {CronServiceIncidents} from './serviceIncidents';
 interface Props {
   monitor: Monitor;
   /**
+   * Called when an environment is updated (muted/unmuted/deleted).
+   */
+  onEnvironmentUpdated?: () => void;
+  /**
    * Called when monitor stats have been loaded for this timeline.
    */
   onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
-export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
+export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
@@ -89,6 +93,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
           }
         : undefined;
     });
+
+    onEnvironmentUpdated?.();
   };
 
   const handleToggleMuteEnvironment = async (env: string, isMuted: boolean) => {
@@ -119,6 +125,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
           }
         : undefined;
     });
+
+    onEnvironmentUpdated?.();
   };
 
   return (

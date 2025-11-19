@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -284,6 +285,54 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
             category=DataCategory.SEER_SCANNER,
         )
     return is_rate_limited
+
+
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
+    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
+    from sentry import quotas
+    from sentry.issues.grouptype import GroupCategory
+
+    # check currently supported issue categories for Seer
+    if group.issue_category not in [
+        GroupCategory.ERROR,
+        GroupCategory.PERFORMANCE,
+        GroupCategory.MOBILE,
+        GroupCategory.FRONTEND,
+        GroupCategory.DB_QUERY,
+        GroupCategory.HTTP_CLIENT,
+    ] or group.issue_category in [
+        GroupCategory.REPLAY,
+        GroupCategory.FEEDBACK,
+    ]:
+        return False
+
+    if not features.has("organizations:gen-ai-features", group.organization):
+        return False
+
+    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
+    if not gen_ai_allowed:
+        return False
+
+    project = group.project
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
+        return False
+
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
+
+    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
+    if not seer_enabled:
+        return False
+
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+    if not has_budget:
+        return False
+
+    return True
 
 
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {

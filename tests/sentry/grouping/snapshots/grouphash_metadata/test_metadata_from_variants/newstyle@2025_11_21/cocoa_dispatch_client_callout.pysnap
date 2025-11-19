@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:19:55.495070+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -31,16 +29,16 @@ contributing variants:
       app*
         threads*
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "unicorn"
             frame* (marked in-app by the client)
               function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "FudgeLogTaggedError"
-            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "SentrySetupInteractor.setupSentry"
   system*

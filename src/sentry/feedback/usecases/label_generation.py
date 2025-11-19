@@ -46,7 +46,6 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )
-        response_data = response.json()
     except Exception:
         logger.exception("Seer failed to generate user feedback labels")
         raise
@@ -58,7 +57,5 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
         )
         raise Exception("Seer returned non-200 response")
 
-    labels = response_data["data"]["labels"]
-
     # Guaranteed to be a list of strings (validated in Seer)
-    return labels
+    return response.json()["data"]["labels"]

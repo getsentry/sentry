@@ -66,7 +66,7 @@ def fix_event_data(data):
 
 @region_silo_endpoint
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

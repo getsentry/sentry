@@ -79,7 +79,13 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -101,7 +107,13 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -137,7 +149,13 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -221,7 +239,13 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",

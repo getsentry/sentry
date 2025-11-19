@@ -16,7 +16,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -31,7 +31,6 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 )
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
-    DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
@@ -88,12 +87,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     def test_error_event(self) -> None:
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     @patch("sentry.workflow_engine.processors.action.fire_actions")
     def test_process_workflows_event(self, mock_fire_actions: MagicMock) -> None:
@@ -161,9 +160,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert self.event_data.group_state
         self.event_data.group_state["is_new"] = True
 
-        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_filter.assert_called_with({workflow_filters}, self.event_data)
+        assert result.tainted is False
 
     def test_same_environment_only(self) -> None:
         env = self.create_environment(project=self.project)
@@ -208,15 +207,15 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=mismatched_env_workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow, matching_env_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow, matching_env_workflow}
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.workflow}
 
     def test_regressed_event(self) -> None:
         dcg = self.create_data_condition_group()
@@ -233,17 +232,16 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow, workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow, workflow}
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-
-        assert not triggered_workflows
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.msg == "No Detectors associated with the issue were found"
 
         mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
@@ -260,9 +258,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
         cache.clear()
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        assert not triggered_workflows
+        assert not result.data.triggered_workflows
+        assert result.msg == "Environment for event not found"
 
         mock_incr.assert_called_once_with(
             "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
@@ -301,6 +300,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
@@ -338,8 +338,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group_event.occurrence = issue_occurrence
         self.group.update(type=issue_occurrence.type.type_id)
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        assert result.tainted is True
+        assert result.data.triggered_workflows == {self.error_workflow}
+        assert result.data.triggered_actions is not None
+        assert len(result.data.triggered_actions) == 0
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):

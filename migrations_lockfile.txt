@@ -17,7 +17,7 @@ hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0010_delete_orphaned_detectors
+monitors: 0012_remove_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -31,12 +31,12 @@ releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1003_group_history_prev_history_safe_removal
+sentry: 1005_add_groupemailthread_project_date_index
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0001_squashed_0002_make_message_type_nullable
+tempest: 0003_use_encrypted_char_field
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0095_unique_detectorgroup_group
+workflow_engine: 0100_move_is_single_written_to_pending

@@ -68,6 +68,10 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
+from sentry.seer.assisted_query.discover_tools import (
+    get_event_filter_key_values,
+    get_event_filter_keys,
+)
 from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
@@ -78,6 +82,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -85,11 +90,13 @@ from sentry.seer.explorer.index_data import (
     rpc_get_transactions_for_project,
 )
 from sentry.seer.explorer.tools import (
-    execute_trace_query_chart,
-    execute_trace_query_table,
+    execute_table_query,
+    execute_timeseries_query,
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
@@ -255,7 +262,7 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_organization_project_ids(*, org_id: int) -> dict:
-    """Get all projects (IDs and slugs) for an organization"""
+    """Get all active projects (IDs and slugs) for an organization"""
     from sentry.models.project import Project
 
     try:
@@ -263,12 +270,19 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     except Organization.DoesNotExist:
         return {"projects": []}
 
-    projects = list(Project.objects.filter(organization=organization).values("id", "slug"))
+    projects = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values(
+            "id", "slug"
+        )
+    )
 
     return {"projects": projects}
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
+    if not features.has("organizations:gen-ai-features", org):
+        return False
+
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(
@@ -1185,6 +1199,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_filter_key_values": get_filter_key_values,
     "execute_issues_query": execute_issues_query,
     "get_issues_stats": get_issues_stats,
+    "get_event_filter_keys": get_event_filter_keys,
+    "get_event_filter_key_values": get_event_filter_key_values,
     #
     # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
@@ -1193,9 +1209,12 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_details": get_issue_details,
-    "execute_trace_query_chart": execute_trace_query_chart,
-    "execute_trace_query_table": execute_trace_query_table,
+    "get_profile_flamegraph": rpc_get_profile_flamegraph,
+    "execute_table_query": execute_table_query,
+    "execute_timeseries_query": execute_timeseries_query,
+    "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
+    "call_custom_tool": call_custom_tool,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
