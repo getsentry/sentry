@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 from functools import cached_property
 from unittest import TestCase
@@ -5,11 +6,12 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -156,6 +158,93 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    @patch("sentry.integrations.utils.metrics.IntegrationEventLifecycle.record_failure")
+    def test_state_mismatch_sanitizes_logged_value(
+        self,
+        mock_record_failure: MagicMock,
+        mock_record_event: MagicMock,
+    ) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.bind_state("state", "59bd69f591011a0cb6b64e0c0d271731")
+
+        malicious_state = "1-1); waitfor delay '0:0:15' --"
+        request = RequestFactory().get("/", {"state": malicious_state, "code": "auth-code"})
+        request.subdomain = None
+
+        with patch.object(
+            IdentityPipeline, "error", return_value=HttpResponse("error")
+        ) as mock_error:
+            self.view.dispatch(request, pipeline)
+
+        mock_error.assert_called_once()
+        _, message = mock_error.call_args.args
+        assert message == ERR_INVALID_STATE
+
+        mock_record_failure.assert_called_once()
+        extra = mock_record_failure.call_args.kwargs["extra"]
+        assert extra["error"] == "invalid_state"
+        serialized_extra = json.dumps(extra)
+        assert "waitfor delay" not in serialized_extra
+        assert "auth-code" not in serialized_extra
+        assert extra["provided_state_present"] is True
+        assert extra["expected_state_present"] is True
+        assert extra["provided_state_matches_expected_format"] is False
+        assert extra["expected_state_matches_expected_format"] is True
+        assert "provided_state_sha256" in extra
+        assert "expected_state_sha256" in extra
+
+    @patch("sentry.integrations.utils.metrics.IntegrationEventLifecycle.record_failure")
+    def test_provider_error_is_redacted_when_invalid(
+        self,
+        mock_record_failure: MagicMock,
+        mock_record_event: MagicMock,
+    ) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        request = RequestFactory().get("/", {"error": "1-1); waitfor delay '0:0:15' --"})
+        request.subdomain = None
+
+        with patch.object(
+            IdentityPipeline, "error", return_value=HttpResponse("error")
+        ) as mock_error:
+            self.view.dispatch(request, pipeline)
+
+        mock_error.assert_called_once()
+        _, message = mock_error.call_args.args
+        assert message == ERR_INVALID_STATE
+
+        mock_record_failure.assert_called_once()
+        extra = mock_record_failure.call_args.kwargs["extra"]
+        assert extra["error"] == "provider_error_redacted"
+        serialized_extra = json.dumps(extra)
+        assert "waitfor delay" not in serialized_extra
+        assert extra["provider_error_present"] is True
+        assert "provider_error_sha256" in extra
+
+    @patch("sentry.integrations.utils.metrics.IntegrationEventLifecycle.record_failure")
+    def test_provider_error_keeps_safe_message(
+        self,
+        mock_record_failure: MagicMock,
+        mock_record_event: MagicMock,
+    ) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        request = RequestFactory().get("/", {"error": "access_denied"})
+        request.subdomain = None
+
+        with patch.object(
+            IdentityPipeline, "error", return_value=HttpResponse("error")
+        ) as mock_error:
+            self.view.dispatch(request, pipeline)
+
+        mock_error.assert_called_once()
+        _, message = mock_error.call_args.args
+        assert message == f"{ERR_INVALID_STATE}\nError: access_denied"
+
+        mock_record_failure.assert_called_once()
+        extra = mock_record_failure.call_args.kwargs["extra"]
+        assert extra["error"] == "access_denied"
+        assert extra["provider_error_present"] is True
+        assert "provider_error_sha256" in extra
 
 
 @control_silo_test

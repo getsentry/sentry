@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 import secrets
+import string
 from time import time
 from typing import Any
 from urllib.parse import parse_qsl, urlencode
@@ -42,6 +45,38 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+_STATE_VALUE_PATTERN = re.compile(r"^[a-f0-9]{8,128}$")
+_SAFE_PROVIDER_ERROR_CHARS = frozenset(string.ascii_letters + string.digits + " ._-/:" )
+
+
+def _summarize_sensitive_value(
+    value: str | None, *, prefix: str, pattern: re.Pattern[str] | None = None
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {f"{prefix}_present": value is not None}
+    if value is None:
+        return summary
+
+    summary[f"{prefix}_length"] = len(value)
+    summary[f"{prefix}_sha256"] = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    if pattern is not None:
+        summary[f"{prefix}_matches_expected_format"] = bool(pattern.fullmatch(value))
+
+    return summary
+
+
+def _sanitize_provider_error(error: str | None) -> str | None:
+    if not error:
+        return None
+
+    trimmed = error.strip()
+    if (
+        trimmed
+        and len(trimmed) <= 128
+        and all(ch in _SAFE_PROVIDER_ERROR_CHARS for ch in trimmed)
+    ):
+        return trimmed
+
+    return None
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,19 +394,37 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = _sanitize_provider_error(error)
+                extra = {
+                    "error": sanitized_error or "provider_error_redacted",
+                }
+                extra.update(_summarize_sensitive_value(error, prefix="provider_error"))
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra=extra,
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                message = ERR_INVALID_STATE
+                if sanitized_error:
+                    message = f"{ERR_INVALID_STATE}\nError: {sanitized_error}"
+                return pipeline.error(message)
 
-            if state != pipeline.fetch_state("state"):
+            expected_state = pipeline.fetch_state("state")
+            if state != expected_state:
                 extra = {
                     "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
                 }
+                extra.update(
+                    _summarize_sensitive_value(
+                        state, prefix="provided_state", pattern=_STATE_VALUE_PATTERN
+                    )
+                )
+                extra.update(
+                    _summarize_sensitive_value(
+                        expected_state, prefix="expected_state", pattern=_STATE_VALUE_PATTERN
+                    )
+                )
+                if code:
+                    extra.update(_summarize_sensitive_value(code, prefix="code"))
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
