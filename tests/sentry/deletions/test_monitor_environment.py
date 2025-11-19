@@ -8,6 +8,8 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorIncident,
+    MonitorEnvBrokenDetection,
     ScheduleType,
 )
 from sentry.testutils.cases import APITestCase, TransactionTestCase
@@ -40,6 +42,15 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloud
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=checkin,
+            resolving_checkin=checkin,
+            starting_timestamp=monitor.date_added,
+            resolving_timestamp=monitor.date_added,
+        )
+        detection = MonitorEnvBrokenDetection.objects.create(monitor_incident=incident)
         checkin_2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env_2,
@@ -55,6 +66,8 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloud
 
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+        assert not MonitorIncident.objects.filter(id=incident.id).exists()
+        assert not MonitorEnvBrokenDetection.objects.filter(id=detection.id).exists()
 
         # Shared objects should continue to exist.
         assert Monitor.objects.filter(id=monitor.id).exists()
