@@ -121,12 +121,13 @@ function SpansTabHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
 
-  const isSavedQuery = defined(id) && defined(savedQuery);
+  const showCustomTitle =
+    defined(title) && title.length > 0 && defined(id) && defined(savedQuery);
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
-        {isSavedQuery ? (
+        {showCustomTitle ? (
           <SentryDocumentTitle title={title} orgSlug={organization?.slug} />
         ) : null}
         {title && defined(id) ? (
