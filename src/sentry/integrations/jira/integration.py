@@ -1170,9 +1170,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         self.sync_assignee_outbound(external_issue, assignee)
 
-    def _get_group_assignee(
-        self, external_issue: ExternalIssue, project_id: int
-    ) -> RpcUser | None:
+    def _get_group_assignee(self, external_issue: ExternalIssue, project_id: int) -> RpcUser | None:
         group_id = (
             GroupLink.objects.filter(
                 project_id=project_id,

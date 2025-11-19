@@ -956,7 +956,9 @@ class RegionJiraIntegrationTest(APITestCase):
             StubJiraApiClient, "transition_issue", side_effect=transition_side_effect
         ) as mock_transition_issue:
             with mock.patch.object(installation, "get_client", get_client):
-                with mock.patch.object(installation, "sync_assignee_outbound") as mock_sync_assignee:
+                with mock.patch.object(
+                    installation, "sync_assignee_outbound"
+                ) as mock_sync_assignee:
                     installation.sync_status_outbound(external_issue, True, group.project_id)
 
         assert mock_transition_issue.call_count == 2
@@ -999,7 +1001,9 @@ class RegionJiraIntegrationTest(APITestCase):
             ),
         ) as mock_transition_issue:
             with mock.patch.object(installation, "get_client", get_client):
-                with mock.patch.object(installation, "sync_assignee_outbound") as mock_sync_assignee:
+                with mock.patch.object(
+                    installation, "sync_assignee_outbound"
+                ) as mock_sync_assignee:
                     with pytest.raises(IntegrationConfigurationError) as excinfo:
                         installation.sync_status_outbound(external_issue, True, group.project_id)
 
