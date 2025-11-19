@@ -318,8 +318,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         )
 
 
-# Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
-# like these when we're sending issues as alerts
 @dataclass(frozen=True)
 class MetricIssue(GroupType):
     type_id = 8001
@@ -339,7 +337,7 @@ class MetricIssue(GroupType):
         validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric alert firing",
+            "description": "A representation of a metric detector config dict",
             "type": "object",
             "required": ["detection_type"],
             "properties": {
@@ -354,3 +352,15 @@ class MetricIssue(GroupType):
             },
         },
     )
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def build_visible_feature_name(cls) -> str:
+        return "organizations:workflow-engine-ui"

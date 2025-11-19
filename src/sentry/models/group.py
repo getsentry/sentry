@@ -563,7 +563,7 @@ class GroupManager(BaseManager["Group"]):
                         extra={"group_id": group.id},
                     )
                     continue
-                update_incident_based_on_open_period_status_change(group, status, detector_id)
+                update_incident_based_on_open_period_status_change(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -802,9 +802,9 @@ class Group(Model):
             return cached_has_replays
 
         data_source = (
-            Dataset.IssuePlatform
-            if self.issue_category == GroupCategory.PERFORMANCE
-            else Dataset.Discover
+            Dataset.Discover
+            if self.issue_category == GroupCategory.ERROR
+            else Dataset.IssuePlatform
         )
 
         counts = get_replay_counts(

@@ -522,7 +522,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK
@@ -554,7 +554,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"download_size": 1000, "install_size": 2000}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
         )
 
         assert status == ChunkFileState.OK

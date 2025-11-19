@@ -583,6 +583,8 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with default trigger_source
             mock_get_prompt.assert_called_with(123, "solution")
@@ -720,6 +722,8 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -800,6 +804,14 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             # Should succeed because at least one repo launched successfully
             assert response.data["success"] is True
+            assert response.data["launched_count"] == 1
+            assert response.data["failed_count"] == 1
+            # Should have failure details
+            assert "failures" in response.data
+            assert len(response.data["failures"]) == 1
+            # One of the two repos should have failed
+            assert response.data["failures"][0]["repo_name"] in ["owner1/repo1", "owner2/repo2"]
+            assert "error_message" in response.data["failures"][0]
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -808,7 +820,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
-    def test_all_repos_fail_returns_error(
+    def test_all_repos_fail_returns_failures(
         self,
         mock_get_integration,
         mock_get_org_integration,
@@ -816,7 +828,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         mock_get_autofix_state,
         mock_get_providers,
     ):
-        """Test POST endpoint returns error when all repos fail to launch."""
+        """Test POST endpoint returns failures when all repos fail to launch."""
         mock_get_providers.return_value = ["github"]
 
         # Create mock installation that always fails
@@ -864,10 +876,21 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         data = {"integration_id": str(self.integration.id), "run_id": 123}
 
         with self.feature("organizations:seer-coding-agent-integrations"):
-            response = self.get_error_response(
-                self.organization.slug, method="post", status_code=500, **data
-            )
-            assert response.data["detail"] == "No agents were launched"
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            # Should succeed but with all failures
+            assert response.data["success"] is True
+            assert response.data["launched_count"] == 0
+            assert response.data["failed_count"] == 2
+            # Should have failure details
+            assert "failures" in response.data
+            assert len(response.data["failures"]) == 2
+            # Check both repos failed
+            failed_repos = {f["repo_name"] for f in response.data["failures"]}
+            assert failed_repos == {"owner1/repo1", "owner2/repo2"}
+            # Each failure should have an error message
+            for failure in response.data["failures"]:
+                assert "error_message" in failure
+                assert failure["error_message"] != ""
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -902,6 +925,8 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             # Should still succeed even if Seer storage fails
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
             # Verify Seer storage was attempted once in batch
             mock_store_to_seer.assert_called_once()
 
@@ -947,6 +972,8 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with root_cause trigger_source
             mock_get_prompt.assert_called_with(123, "root_cause")
@@ -1087,6 +1114,8 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
             mock_get_prompt.assert_called_with(123, "root_cause")
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
@@ -1127,6 +1156,8 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+            assert response.data["launched_count"] >= 0
+            assert response.data["failed_count"] >= 0
 
             # Verify prompt was called with solution trigger_source
             mock_get_prompt.assert_called_with(123, "solution")
@@ -1205,4 +1236,4 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
-            assert response.data["detail"] == "No prompt to send to agents."
+            assert response.data["detail"] == "Issue fetching prompt to send to coding agents."

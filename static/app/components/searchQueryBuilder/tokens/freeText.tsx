@@ -440,6 +440,18 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
+          if (option.type === 'logic-filter') {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
+            return;
+          }
+
           if (option.type === 'raw-search') {
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_SELECT',
