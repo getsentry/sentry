@@ -60,6 +60,8 @@ def generate_issue_summary_only(group_id: int) -> None:
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
+    # TODO: Generate fixability score here and check for in run_automation for triage signals V0
+    # Currently fixability will only be generated after 10 when run_automation is called
 
 
 @instrumented_task(

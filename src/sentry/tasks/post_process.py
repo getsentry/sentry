@@ -1595,7 +1595,10 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
     from sentry.seer.autofix.utils import (
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
@@ -1631,10 +1634,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     else:
         # Triage signals V0 behaviour
 
-        # If event count < 10, only generate summary + fixability (no automation)
+        # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
-            # Check if fixability already exists (which means summary exists too)
-            if group.seer_fixability_score is not None:
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                # Summary already exists, nothing to do
                 return
 
             # Check if we're already processing this issue
@@ -1643,13 +1648,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if lock.locked():
                 return
 
-            # Generate summary + fixability (no automation)
+            # Generate summary (no automation)
             if is_issue_eligible_for_seer_automation(group):
                 if not is_seer_scanner_rate_limited(group.project, group.organization):
                     generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
-
             # Check seer_last_triggered first (long-term check to avoid re-running)
             if group.seer_last_triggered is not None:
                 return
@@ -1667,12 +1671,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
 
-            # Check if fixability already exists (which means summary exists too)
-            if group.seer_fixability_score is not None:
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
                 run_automation_for_group.delay(group.id)
             else:
-                # No summary yet, generate summary + fixability + run automation in one go
+                # No summary yet, generate summary + run automation in one go
                 start_seer_automation.delay(group.id)
 
 
