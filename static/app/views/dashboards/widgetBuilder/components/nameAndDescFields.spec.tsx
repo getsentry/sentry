@@ -1,44 +1,24 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
-
 describe('WidgetBuilder', () => {
-  let router!: ReturnType<typeof RouterFixture>;
-  let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(() => {
-    router = RouterFixture({
-      location: {
-        pathname: '/organizations/org-slug/dashboard/1/',
-        query: {project: '-1'},
-      },
-      params: {},
-    });
-    organization = OrganizationFixture();
-  });
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/dashboard/:dashboardId/',
+    location: {
+      pathname: '/organizations/org-slug/dashboard/1/',
+      query: {project: '-1'},
+    },
+  };
 
   it('edits name and description', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <WidgetBuilderNameAndDescription />
       </WidgetBuilderProvider>,
       {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -46,12 +26,11 @@ describe('WidgetBuilder', () => {
 
     // trigger blur
     await userEvent.tab();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
-        ...router.location,
+        ...initialRouterConfig.location,
         query: expect.objectContaining({title: 'some name'}),
-      }),
-      expect.anything()
+      })
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));
@@ -63,12 +42,11 @@ describe('WidgetBuilder', () => {
 
     // trigger blur
     await userEvent.tab();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
-        ...router.location,
+        ...initialRouterConfig.location,
         query: expect.objectContaining({description: 'some description'}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -80,9 +58,7 @@ describe('WidgetBuilder', () => {
         />
       </WidgetBuilderProvider>,
       {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 

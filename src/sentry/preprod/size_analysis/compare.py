@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 
+from packaging.version import InvalidVersion
+from packaging.version import parse as parse_version
+
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.models import (
     ComparisonResults,
@@ -21,7 +24,9 @@ def compare_size_analysis(
     base_size_analysis: PreprodArtifactSizeMetrics,
     base_size_analysis_results: SizeAnalysisResults,
 ) -> ComparisonResults:
-    diff_items = []
+    skip_diff_item_comparison = _should_skip_diff_item_comparison(
+        head_size_analysis_results, base_size_analysis_results
+    )
 
     head_treemap = (
         head_size_analysis_results.treemap.root if head_size_analysis_results.treemap else None
@@ -35,70 +40,82 @@ def compare_size_analysis(
 
     all_paths = set(head_files.keys()) | set(base_files.keys())
 
-    for path in sorted(all_paths):
-        head_elements = head_files.get(path, [])
-        base_elements = base_files.get(path, [])
+    diff_items = []
 
-        matched_pairs, unmatched_head, unmatched_base = _match_elements(
-            head_elements, base_elements
+    if not skip_diff_item_comparison:
+        for path in sorted(all_paths):
+            head_elements = head_files.get(path, [])
+            base_elements = base_files.get(path, [])
+
+            matched_pairs, unmatched_head, unmatched_base = _match_elements(
+                head_elements, base_elements
+            )
+
+            # Process matched pairs (modified or unchanged)
+            for head_element, base_element in matched_pairs:
+                head_size = head_element.size
+                base_size = base_element.size
+                size_diff = head_size - base_size
+
+                if size_diff == 0:
+                    continue  # Skip items with no size change
+
+                item_type = head_element.type
+                diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
+
+                diff_items.append(
+                    DiffItem(
+                        size_diff=size_diff,
+                        head_size=head_size,
+                        base_size=base_size,
+                        path=path,
+                        item_type=item_type,
+                        type=diff_type,
+                    )
+                )
+
+            # Process unmatched head elements (added)
+            for head_element in unmatched_head:
+                head_size = head_element.size
+                if head_size == 0:
+                    continue
+
+                diff_items.append(
+                    DiffItem(
+                        size_diff=head_size,
+                        head_size=head_size,
+                        base_size=None,
+                        path=path,
+                        item_type=head_element.type,
+                        type=DiffType.ADDED,
+                    )
+                )
+
+            # Process unmatched base elements (removed)
+            for base_element in unmatched_base:
+                base_size = base_element.size
+                if base_size == 0:
+                    continue
+
+                diff_items.append(
+                    DiffItem(
+                        size_diff=-base_size,
+                        head_size=None,
+                        base_size=base_size,
+                        path=path,
+                        item_type=base_element.type,
+                        type=DiffType.REMOVED,
+                    )
+                )
+    else:
+        logger.info(
+            "preprod.size_analysis.compare.skipped_diff_item_comparison",
+            extra={
+                "head_analysis_version": head_size_analysis_results.analysis_version,
+                "base_analysis_version": base_size_analysis_results.analysis_version,
+                "preprod_artifact_id": head_size_analysis.preprod_artifact_id,
+            },
         )
-
-        # Process matched pairs (modified or unchanged)
-        for head_element, base_element in matched_pairs:
-            head_size = head_element.size
-            base_size = base_element.size
-            size_diff = head_size - base_size
-
-            if size_diff == 0:
-                continue  # Skip items with no size change
-
-            item_type = head_element.type
-            diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
-
-            diff_items.append(
-                DiffItem(
-                    size_diff=size_diff,
-                    head_size=head_size,
-                    base_size=base_size,
-                    path=path,
-                    item_type=item_type,
-                    type=diff_type,
-                )
-            )
-
-        # Process unmatched head elements (added)
-        for head_element in unmatched_head:
-            head_size = head_element.size
-            if head_size == 0:
-                continue
-
-            diff_items.append(
-                DiffItem(
-                    size_diff=head_size,
-                    head_size=head_size,
-                    base_size=None,
-                    path=path,
-                    item_type=head_element.type,
-                    type=DiffType.ADDED,
-                )
-            )
-
-        # Process unmatched base elements (removed)
-        for base_element in unmatched_base:
-            base_size = base_element.size
-            if base_size == 0:
-                continue
-
-            diff_items.append(
-                DiffItem(
-                    size_diff=-base_size,
-                    head_size=None,
-                    base_size=base_size,
-                    path=path,
-                    item_type=base_element.type,
-                    type=DiffType.REMOVED,
-                )
-            )
 
     size_metric_diff_item = SizeMetricDiffItem(
         metrics_artifact_type=head_size_analysis.metrics_artifact_type,
@@ -112,7 +129,48 @@ def compare_size_analysis(
     return ComparisonResults(
         diff_items=diff_items,
         size_metric_diff_item=size_metric_diff_item,
+        skipped_diff_item_comparison=skip_diff_item_comparison,
+        head_analysis_version=head_size_analysis_results.analysis_version,
+        base_analysis_version=base_size_analysis_results.analysis_version,
     )
+
+
+def _should_skip_diff_item_comparison(
+    head_size_analysis_results: SizeAnalysisResults,
+    base_size_analysis_results: SizeAnalysisResults,
+) -> bool:
+    head_version = None
+    base_version = None
+
+    if head_size_analysis_results.analysis_version:
+        try:
+            head_version = parse_version(head_size_analysis_results.analysis_version)
+        except InvalidVersion:
+            logger.warning(
+                "preprod.size_analysis.compare.invalid_version_format",
+                extra={
+                    "analysis_version": head_size_analysis_results.analysis_version,
+                },
+            )
+
+    if base_size_analysis_results.analysis_version:
+        try:
+            base_version = parse_version(base_size_analysis_results.analysis_version)
+        except InvalidVersion:
+            logger.warning(
+                "preprod.size_analysis.compare.invalid_version_format",
+                extra={
+                    "analysis_version": base_size_analysis_results.analysis_version,
+                },
+            )
+
+    if not head_version or not base_version:
+        return False
+
+    has_mismatched_major = head_version.major != base_version.major
+    has_mismatched_minor = head_version.minor != base_version.minor
+
+    return has_mismatched_major or has_mismatched_minor
 
 
 def _match_elements(

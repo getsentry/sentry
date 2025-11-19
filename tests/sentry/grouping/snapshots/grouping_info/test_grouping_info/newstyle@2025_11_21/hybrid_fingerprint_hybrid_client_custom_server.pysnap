@@ -1,1660 +1,1621 @@
 ---
-created: '2025-10-29T21:19:28.082416+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_exception_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2025-11-21",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because custom server fingerprint takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "SoftTimeLimitExceeded"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "SoftTimeLimitExceeded()"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_wrapped"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "result = func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.store"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "store.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "process_event"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return _do_process_event(cache_key, start_time, event_id, process_event)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.store"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "store.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_do_process_event"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "new_data = process_stacktraces(data)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.stacktraces"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "stacktraces.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "process_stacktraces"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "if processor.preprocess_step(processing_task):"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.lang.native.plugin"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "plugin.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "preprocess_step"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "referenced_images=referenced_images,"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.lang.native.symbolizer"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "symbolizer.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__init__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "with_conversion_errors=True)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.debugfile"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "debugfile.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "get_symcaches"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.debugfile"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "debugfile.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_load_cachefiles_via_fs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "model.cache_file.save_to(cachefile_path)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "save_to"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "delete=False).detach_tempfile()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_get_chunked_blob"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "delete=delete"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__init__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._prefetch(prefetch_to, delete)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_prefetch"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "concurrent.futures._base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "_base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__exit__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.shutdown(wait=True)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "concurrent.futures.thread"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "thread.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "shutdown"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "t.join(sys.maxint)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "threading"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "threading.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "join"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.__block.wait(delay)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "threading"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "threading.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "wait"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_sleep(delay)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "billiard.pool"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "pool.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "soft_timeout_sighandler"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "raise SoftTimeLimitExceeded()"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because custom server fingerprint takes precedence",
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.base"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "base.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_wrapped"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "result = func(*args, **kwargs)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.store"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "store.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "process_event"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return _do_process_event(cache_key, start_time, event_id, process_event)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.store"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "store.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_do_process_event"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "new_data = process_stacktraces(data)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.stacktraces"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "stacktraces.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "process_stacktraces"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "if processor.preprocess_step(processing_task):"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.lang.native.plugin"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "plugin.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "preprocess_step"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "referenced_images=referenced_images,"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.lang.native.symbolizer"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "symbolizer.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__init__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "with_conversion_errors=True)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.debugfile"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "debugfile.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "get_symcaches"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.debugfile"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "debugfile.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_load_cachefiles_via_fs"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "model.cache_file.save_to(cachefile_path)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "save_to"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "delete=False).detach_tempfile()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_get_chunked_blob"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "delete=delete"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__init__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self._prefetch(prefetch_to, delete)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "marked in-app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_prefetch"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "concurrent.futures._base"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "_base.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__exit__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self.shutdown(wait=True)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "concurrent.futures.thread"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "thread.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "shutdown"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "t.join(sys.maxint)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "threading"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "threading.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "join"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self.__block.wait(delay)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "threading"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "threading.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "wait"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "_sleep(delay)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "marked out of app by the client",
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "billiard.pool"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "pool.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "soft_timeout_sighandler"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "raise SoftTimeLimitExceeded()"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_exception_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
+    "custom_fingerprint": {
+      "client_values": [
+        "{{ default }}",
+        "SoftTimeLimitExceeded",
+        "sentry.tasks.store.process_event"
       ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
+      "contributes": true,
+      "description": "custom fingerprint",
+      "hash": "554e214208f0372603dc9fa6c1c0965f",
+      "hint": null,
+      "key": "custom_fingerprint",
+      "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\"",
+      "type": "custom_fingerprint",
+      "values": [
+        "soft-timelimit-exceeded"
       ]
     },
-    "contributes": false,
-    "description": "exception stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "app_exception_stacktrace",
-    "type": "component"
-  },
-  "custom_fingerprint": {
-    "client_values": [
-      "{{ default }}",
-      "SoftTimeLimitExceeded",
-      "sentry.tasks.store.process_event"
-    ],
-    "contributes": true,
-    "description": "custom fingerprint",
-    "hash": "554e214208f0372603dc9fa6c1c0965f",
-    "hint": null,
-    "key": "custom_fingerprint",
-    "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\"",
-    "type": "custom_fingerprint",
-    "values": [
-      "soft-timelimit-exceeded"
-    ]
-  },
-  "system_exception_stacktrace": {
-    "component": {
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because custom server fingerprint takes precedence",
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "SoftTimeLimitExceeded"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "SoftTimeLimitExceeded()"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_wrapped"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "result = func(*args, **kwargs)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.store"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "store.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "process_event"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return _do_process_event(cache_key, start_time, event_id, process_event)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.tasks.store"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "store.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_do_process_event"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "new_data = process_stacktraces(data)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.stacktraces"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "stacktraces.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "process_stacktraces"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "if processor.preprocess_step(processing_task):"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.lang.native.plugin"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "plugin.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "preprocess_step"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "referenced_images=referenced_images,"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.lang.native.symbolizer"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "symbolizer.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__init__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "with_conversion_errors=True)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.debugfile"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "debugfile.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "get_symcaches"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.debugfile"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "debugfile.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_load_cachefiles_via_fs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "model.cache_file.save_to(cachefile_path)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "save_to"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "delete=False).detach_tempfile()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_get_chunked_blob"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "delete=delete"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__init__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._prefetch(prefetch_to, delete)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "sentry.models.file"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "file.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_prefetch"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "concurrent.futures._base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "_base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__exit__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.shutdown(wait=True)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "concurrent.futures.thread"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "thread.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "shutdown"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "t.join(sys.maxint)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "threading"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "threading.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "join"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.__block.wait(delay)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "threading"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "threading.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "wait"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "_sleep(delay)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "billiard.pool"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "pool.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "soft_timeout_sighandler"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "raise SoftTimeLimitExceeded()"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "exception stacktrace — all frames",
+      "hash": null,
       "hint": "ignored because custom server fingerprint takes precedence",
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "exception",
-          "name": "exception",
-          "values": [
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": [
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.base"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "base.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_wrapped"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "result = func(*args, **kwargs)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.store"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "store.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "process_event"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "return _do_process_event(cache_key, start_time, event_id, process_event)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.tasks.store"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "store.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_do_process_event"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "new_data = process_stacktraces(data)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.stacktraces"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "stacktraces.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "process_stacktraces"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "if processor.preprocess_step(processing_task):"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.lang.native.plugin"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "plugin.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "preprocess_step"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "referenced_images=referenced_images,"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.lang.native.symbolizer"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "symbolizer.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__init__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "with_conversion_errors=True)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.debugfile"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "debugfile.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "get_symcaches"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.debugfile"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "debugfile.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_load_cachefiles_via_fs"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "model.cache_file.save_to(cachefile_path)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "save_to"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "delete=False).detach_tempfile()"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_get_chunked_blob"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "delete=delete"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__init__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self._prefetch(prefetch_to, delete)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "sentry.models.file"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "file.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "_prefetch"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "concurrent.futures._base"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "_base.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "__exit__"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self.shutdown(wait=True)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "concurrent.futures.thread"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "thread.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "shutdown"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "t.join(sys.maxint)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "threading"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "threading.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "join"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "self.__block.wait(delay)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "threading"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "threading.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "wait"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "_sleep(delay)"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "frame",
-                  "name": null,
-                  "values": [
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "module",
-                      "name": null,
-                      "values": [
-                        "billiard.pool"
-                      ]
-                    },
-                    {
-                      "contributes": false,
-                      "hint": "ignored because module takes precedence",
-                      "id": "filename",
-                      "name": null,
-                      "values": [
-                        "pool.py"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "function",
-                      "name": null,
-                      "values": [
-                        "soft_timeout_sighandler"
-                      ]
-                    },
-                    {
-                      "contributes": true,
-                      "hint": null,
-                      "id": "context_line",
-                      "name": null,
-                      "values": [
-                        "raise SoftTimeLimitExceeded()"
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "newstyle:2023-01-11",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2025-11-21",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "exception stacktrace — all frames",
-    "hash": null,
-    "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "system_exception_stacktrace",
-    "type": "component"
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
   }
 }

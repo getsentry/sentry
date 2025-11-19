@@ -3,6 +3,7 @@ from typing import Literal, cast
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     StrArray,
 )
@@ -209,6 +210,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "string",
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     "currency",
                     "boolean",
@@ -451,7 +453,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
 }
 
@@ -508,7 +510,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -549,7 +551,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -585,7 +587,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,

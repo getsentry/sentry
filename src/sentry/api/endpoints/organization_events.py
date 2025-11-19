@@ -44,6 +44,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -516,18 +517,22 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request.GET.get("disableAggregateExtrapolation", "0") == "1"
                 )
 
+                extrapolation_mode = self.get_extrapolation_mode(request)
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -540,17 +545,28 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
+                    )
+                elif scoped_dataset == ProfileFunctions:
+                    # profile_functions uses aggregate conditions
+                    return SearchResolverConfig(
+                        use_aggregate_conditions=use_aggregate_conditions,
+                        auto_fields=True,
+                        disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                        extrapolation_mode=extrapolation_mode,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

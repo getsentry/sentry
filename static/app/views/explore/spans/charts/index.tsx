@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {AttributeComparisonCTA} from 'sentry/views/explore/components/attributeBreakdowns/attributeComparisonCTA';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -27,6 +28,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -41,6 +43,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   extrapolate: boolean;
   query: string;
+  rawSpanCounts: RawCounts;
   setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -68,6 +71,7 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   query,
   extrapolate,
+  rawSpanCounts,
   timeseriesResult,
   visualizes,
   setVisualizes,
@@ -121,6 +125,7 @@ export function ExploreCharts({
               visualize={visualize}
               samplingMode={samplingMode}
               topEvents={topEvents}
+              rawSpanCounts={rawSpanCounts}
             />
           );
         })}
@@ -135,6 +140,7 @@ interface ChartProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
+  rawSpanCounts: RawCounts;
   setTab: (tab: Mode | Tab) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
@@ -148,6 +154,7 @@ function Chart({
   onChartTypeChange,
   onChartVisibilityChange,
   query,
+  rawSpanCounts,
   visualize,
   timeseriesResult,
   samplingMode,
@@ -259,39 +266,43 @@ function Chart({
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
-      <Widget
-        Title={Title}
-        Actions={Actions}
-        Visualization={
-          visualize.visible && (
-            <ChartVisualization
-              chartInfo={chartInfo}
-              chartRef={chartRef}
-              brush={boxSelectOptions.brush}
-              onBrushEnd={boxSelectOptions.onBrushEnd}
-              onBrushStart={boxSelectOptions.onBrushStart}
-              toolBox={boxSelectOptions.toolBox}
-            />
-          )
-        }
-        Footer={
-          visualize.visible && (
-            <ConfidenceFooter
-              extrapolate={extrapolate}
-              sampleCount={chartInfo.sampleCount}
-              isLoading={chartInfo.timeseriesResult?.isPending || false}
-              isSampled={chartInfo.isSampled}
-              confidence={chartInfo.confidence}
-              topEvents={
-                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-              }
-              dataScanned={chartInfo.dataScanned}
-            />
-          )
-        }
-        height={chartHeight}
-        revealActions="always"
-      />
+      <AttributeComparisonCTA>
+        <Widget
+          Title={Title}
+          Actions={Actions}
+          Visualization={
+            visualize.visible && (
+              <ChartVisualization
+                chartInfo={chartInfo}
+                chartRef={chartRef}
+                brush={boxSelectOptions.brush}
+                onBrushEnd={boxSelectOptions.onBrushEnd}
+                onBrushStart={boxSelectOptions.onBrushStart}
+                toolBox={boxSelectOptions.toolBox}
+              />
+            )
+          }
+          Footer={
+            visualize.visible && (
+              <ConfidenceFooter
+                extrapolate={extrapolate}
+                sampleCount={chartInfo.sampleCount}
+                isLoading={chartInfo.timeseriesResult?.isPending || false}
+                isSampled={chartInfo.isSampled}
+                confidence={chartInfo.confidence}
+                topEvents={
+                  topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+                }
+                dataScanned={chartInfo.dataScanned}
+                rawSpanCounts={rawSpanCounts}
+                userQuery={query.trim()}
+              />
+            )
+          }
+          height={chartHeight}
+          revealActions="always"
+        />
+      </AttributeComparisonCTA>
       <FloatingTrigger
         chartInfo={chartInfo}
         setTab={setTab}

@@ -66,6 +66,8 @@ class GroupCategory(IntEnum):
     FRONTEND = 14
     MOBILE = 15
 
+    AI_DETECTED = 16
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -219,7 +221,7 @@ class GroupType:
     enable_workflow_notifications = True
 
     # Controls whether users are able to manually update the group's priority.
-    enable_user_priority_changes = True
+    enable_user_status_and_priority_changes = True
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
@@ -622,8 +624,8 @@ class LLMDetectedExperimentalGroupType(GroupType):
     type_id = 3501
     slug = "llm_detected_experimental"
     description = "LLM Detected Issue"
-    category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.METRIC.value
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False
@@ -668,20 +670,6 @@ class FeedbackGroup(GroupType):
     released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
-class MetricIssuePOC(GroupType):
-    # DEPRECATED, use metric_issue (8001) instead
-    type_id = 8002
-    slug = "metric_issue_poc"
-    description = "DEPRECATED Metric Issue POC"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
 
 
 @dataclass(frozen=True)

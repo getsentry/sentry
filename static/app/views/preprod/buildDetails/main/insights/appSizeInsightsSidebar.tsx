@@ -2,11 +2,12 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+import {Heading} from '@sentry/scraps/text/heading';
+
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';

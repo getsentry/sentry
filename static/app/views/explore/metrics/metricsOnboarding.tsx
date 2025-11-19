@@ -98,7 +98,7 @@ function OnboardingPanel({
 const STEP_TITLES: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install Sentry'),
   [StepType.CONFIGURE]: t('Configure Sentry'),
-  [StepType.VERIFY]: t('Verify Sentry'),
+  [StepType.VERIFY]: t('Send Metrics and Verify'),
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
@@ -186,13 +186,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     // This currently covers all non-supported platforms as `doesNotSupportMetrics` is empty.
     return (
       <OnboardingPanel project={project} isUnsupportedPlatform>
-        <div>
-          {tct(
-            "We're working to bring Metrics support to [platform]. Stay updated by joining the discussion!",
-
-            {platform: <strong>{currentPlatform?.name || project.slug}</strong>}
-          )}
-        </div>
+        <div>{t('Stay updated by joining the discussion!')}</div>
         <br />
         <div>
           <LinkButton

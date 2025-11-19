@@ -307,21 +307,21 @@ function Visualize({error, setError}: VisualizeProps) {
           return {
             label: prettifyTagKey(column),
             value: column,
-            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+            trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
       ...Object.values(stringSpanTags).map(tag => {
         return {
           label: tag.name,
           value: tag.key,
-          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          trailingItems: () => <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numericSpanTags).map(tag => {
         return {
           label: prettifyTagKey(tag.name),
           value: tag.key,
-          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          trailingItems: () => <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
@@ -482,7 +482,7 @@ function Visualize({error, setError}: VisualizeProps) {
                       ? getAggregateValueKey(option.value.meta.name)
                       : option.value.meta.name,
                   label: option.value.meta.name,
-                  trailingItems:
+                  trailingItems: () =>
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
                 }));
 
@@ -508,10 +508,8 @@ function Visualize({error, setError}: VisualizeProps) {
                           label: option.value.meta.name,
                           value: option.value.meta.name,
                           textValue: option.value.meta.name,
-                          trailingItems: renderTag(
-                            option.value.kind,
-                            option.value.meta.name
-                          ),
+                          trailingItems: () =>
+                            renderTag(option.value.kind, option.value.meta.name),
                         }))
                         .sort(_sortFn),
                     ];
@@ -528,14 +526,15 @@ function Visualize({error, setError}: VisualizeProps) {
                           label: option.value.meta.name,
                           value: option.value.meta.name,
                           textValue: option.value.meta.name,
-                          trailingItems: renderTag(
-                            option.value.kind,
-                            option.value.meta.name,
-                            option.value.kind !== FieldValueKind.FUNCTION &&
-                              option.value.kind !== FieldValueKind.EQUATION
-                              ? option.value.meta.dataType
-                              : undefined
-                          ),
+                          trailingItems: () =>
+                            renderTag(
+                              option.value.kind,
+                              option.value.meta.name,
+                              option.value.kind !== FieldValueKind.FUNCTION &&
+                                option.value.kind !== FieldValueKind.EQUATION
+                                ? option.value.meta.dataType
+                                : undefined
+                            ),
                         }))
                         .sort(_sortFn),
                     ];

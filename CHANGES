@@ -1,3 +1,35 @@
+25.11.0
+-------
+
+### Various fixes & improvements
+
+- feat(explorer): custom copy and navigation for get_profile_flamegraph tool (#103314) by @roaga
+- feat(explorer): add rpc for profile flamegraph tool (#103293) by @roaga
+- feat(explorer): support generic table and timeseries rpcs and migrate existing tools to them (#103413) by @aliu39
+- fix(aci): Make associate_new_group_with_detector more robust (#103418) by @kcons
+- feat(aci): redirect alerts nav to monitors (#103325) by @ameliahsu
+- fix(aci): Display correct resolution threshold (#103409) by @scttcper
+- Wire up frontend for new multiple architectures insight (#103415) by @rbro112
+- chore(performance): remove trace-view-load-more (#103011) by @cvxluo
+- fix(preprod): update dyld label (#103408) by @trevor-e
+- fix(ui2): dropdown button overlap (#103404) by @natemoo-re
+- fix(typing): add some types to tagstore (#103405) by @thetruecpaul
+- chore(events): Clean up preprocess option (3/3) (#103194) by @thetruecpaul
+- chore(aci): set DetectorGroup detector to null when it's deleted (#103348) by @cathteng
+- fix(replay): Add fallback ordering to replay index page (#103328) by @srest2021
+- feat(ai): Check gen-ai feature flag before org-level flags in Prevent AI (#103386) by @JoshFerge
+- fix(insights): Fix issues table link (#103401) by @scttcper
+- chore(preprod): Use nonblocked project_id tag for e2e metric (#103390) by @NicoHinderling
+- chore(tracemetrics): Remove unneeded trace metric from queries (#103391) by @Zylphrex
+- feat(performance): Updates Web Vitals issue detection to consolidate lcp, fcp, and ttfb into a single issue (#103272) by @edwardgou-sentry
+- fix(aci): Fix QuerySubscription deletion (#103398) by @kcons
+- feat(ACI): Send updated data to Seer on all snuba query changes (#103332) by @ceorourke
+- perf(dashboards): Fix slow re-render of ECharts objects (#103375) by @gggritso
+- fix(ui2): check `organization is not None` (#103372) by @natemoo-re
+- test(tracemetrics): Re-enable skipped trace metrics tests (#103396) by @Zylphrex
+
+_Plus 1563 more_
+
 25.10.0
 -------
 

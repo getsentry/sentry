@@ -37,6 +37,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -196,6 +197,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        ProfileFunctions,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -241,6 +243,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
+                extrapolation_mode = self.get_extrapolation_mode(request)
+
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
                     metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
@@ -255,6 +259,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             "disableAggregateExtrapolation", "0"
                         )
                         == "1",
+                        extrapolation_mode=extrapolation_mode,
                     )
 
                 return SearchResolverConfig(
@@ -264,6 +269,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         "disableAggregateExtrapolation", "0"
                     )
                     == "1",
+                    extrapolation_mode=extrapolation_mode,
                 )
 
             if top_events > 0:

@@ -12,8 +12,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,6 +30,8 @@ import {
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
@@ -60,7 +62,7 @@ function AutomationBreadcrumbs() {
 }
 
 const initialData = {
-  name: 'New Alert',
+  name: '',
   environment: null,
   frequency: 1440,
   enabled: true,
@@ -70,7 +72,6 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
@@ -111,10 +112,14 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
+        trackAnalytics('automation.created', {
+          organization,
+          ...getAutomationAnalyticsPayload(automation),
+        });
         navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
       }
     },
-    [createAutomation, state, navigate, organization.slug]
+    [createAutomation, state, navigate, organization]
   );
 
   return (
@@ -124,51 +129,53 @@ export default function AutomationNewSettings() {
       onSubmit={handleSubmit}
       model={model}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
-        <StyledLayoutHeader>
-          <HeaderInner maxWidth={maxWidth}>
-            <Layout.HeaderContent>
-              <AutomationBreadcrumbs />
-              <Layout.Title>
-                <EditableAutomationName />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <div>
-              <AutomationFeedbackButton />
-            </div>
-          </HeaderInner>
-        </StyledLayoutHeader>
-        <StyledBody maxWidth={maxWidth}>
-          <Layout.Main width="full">
-            <AutomationBuilderErrorContext.Provider
-              value={{
-                errors: automationBuilderErrors,
-                setErrors: setAutomationBuilderErrors,
-                removeError,
-                mutationErrors: error?.responseJSON,
-              }}
-            >
-              <AutomationBuilderContext.Provider
+      <AutomationFormProvider>
+        <AutomationDocumentTitle />
+        <Layout.Page>
+          <StyledLayoutHeader>
+            <HeaderInner maxWidth={maxWidth}>
+              <Layout.HeaderContent>
+                <AutomationBreadcrumbs />
+                <Layout.Title>
+                  <EditableAutomationName />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <div>
+                <AutomationFeedbackButton />
+              </div>
+            </HeaderInner>
+          </StyledLayoutHeader>
+          <StyledBody maxWidth={maxWidth}>
+            <Layout.Main width="full">
+              <AutomationBuilderErrorContext.Provider
                 value={{
-                  state,
-                  actions,
-                  showTriggerLogicTypeSelector: false,
+                  errors: automationBuilderErrors,
+                  setErrors: setAutomationBuilderErrors,
+                  removeError,
+                  mutationErrors: error?.responseJSON,
                 }}
               >
-                <AutomationForm model={model} />
-              </AutomationBuilderContext.Provider>
-            </AutomationBuilderErrorContext.Provider>
-          </Layout.Main>
-        </StyledBody>
-      </Layout.Page>
-      <StickyFooter>
-        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-          <Button priority="primary" type="submit">
-            {t('Create Alert')}
-          </Button>
-        </Flex>
-      </StickyFooter>
+                <AutomationBuilderContext.Provider
+                  value={{
+                    state,
+                    actions,
+                    showTriggerLogicTypeSelector: false,
+                  }}
+                >
+                  <AutomationForm model={model} />
+                </AutomationBuilderContext.Provider>
+              </AutomationBuilderErrorContext.Provider>
+            </Layout.Main>
+          </StyledBody>
+        </Layout.Page>
+        <StickyFooter>
+          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+            <Button priority="primary" type="submit">
+              {t('Create Alert')}
+            </Button>
+          </Flex>
+        </StickyFooter>
+      </AutomationFormProvider>
     </FullHeightForm>
   );
 }
