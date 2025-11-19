@@ -413,3 +413,69 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
         tags={"group_type": group.type, "result": "success"},
     )
     return True
+
+
+def ensure_association_with_detector(group: Group, detector_id: int | None = None) -> bool:
+    """
+    Ensure a Group has a DetectorGroup association, creating it if missing.
+    Backdates date_added to group.first_seen for gradual backfill of existing groups.
+    """
+    if not options.get("workflow_engine.ensure_detector_association"):
+        return False
+
+    # Common case: it exists, we verify and move on.
+    if DetectorGroup.objects.filter(group_id=group.id).exists():
+        return True
+
+    # Association is missing, determine the detector_id if not provided
+    if detector_id is None:
+        # For error Groups, we know there is a Detector and we can find it by project.
+        if group.type == ErrorGroupType.type_id:
+            try:
+                detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            except Detector.DoesNotExist:
+                logger.warning(
+                    "ensure_association_with_detector_detector_not_found",
+                    extra={
+                        "group_id": group.id,
+                        "group_type": group.type,
+                        "project_id": group.project.id,
+                    },
+                )
+                return False
+        else:
+            return False
+    else:
+        # Check if the explicitly provided detector exists. If not, create DetectorGroup
+        # with null detector_id to make it clear that we were associated with a detector
+        # that no longer exists.
+        if not Detector.objects.filter(id=detector_id).exists():
+            detector_group, created = DetectorGroup.objects.get_or_create(
+                group_id=group.id,
+                defaults={"detector_id": None},
+            )
+            if created:
+                # Backdate the date_added to match the group's first_seen
+                DetectorGroup.objects.filter(id=detector_group.id).update(
+                    date_added=group.first_seen
+                )
+                metrics.incr(
+                    "workflow_engine.ensure_association_with_detector.created",
+                    tags={"group_type": group.type},
+                )
+            return True
+
+    detector_group, created = DetectorGroup.objects.get_or_create(
+        group_id=group.id,
+        defaults={"detector_id": detector_id},
+    )
+
+    if created:
+        # Backdate the date_added to match the group's first_seen
+        DetectorGroup.objects.filter(id=detector_group.id).update(date_added=group.first_seen)
+        metrics.incr(
+            "workflow_engine.ensure_association_with_detector.created",
+            tags={"group_type": group.type},
+        )
+
+    return True

@@ -13,6 +13,7 @@ import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightFo
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,6 +30,7 @@ import {
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {
@@ -110,10 +112,14 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
+        trackAnalytics('automation.created', {
+          organization,
+          ...getAutomationAnalyticsPayload(automation),
+        });
         navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
       }
     },
-    [createAutomation, state, navigate, organization.slug]
+    [createAutomation, state, navigate, organization]
   );
 
   return (

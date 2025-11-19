@@ -760,7 +760,10 @@ class TestGetStoppingPointFromFixability:
             (0.40, AutofixStoppingPoint.SOLUTION),
             (0.65, AutofixStoppingPoint.SOLUTION),
             (0.66, AutofixStoppingPoint.CODE_CHANGES),
-            (1.0, AutofixStoppingPoint.CODE_CHANGES),
+            (0.77, AutofixStoppingPoint.CODE_CHANGES),
+            (0.78, AutofixStoppingPoint.OPEN_PR),
+            (0.79, AutofixStoppingPoint.OPEN_PR),
+            (1.0, AutofixStoppingPoint.OPEN_PR),
         ],
     )
     def test_stopping_point_mapping(self, score, expected):
@@ -793,7 +796,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),
+            scores=SummarizeIssueScores(fixability_score=0.70),
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
@@ -906,10 +909,12 @@ class TestApplyUserPreferenceUpperBound:
     @pytest.mark.parametrize(
         "fixability,user_pref,expected",
         [
-            # Fixability is None - always return None
-            (None, "open_pr", None),
-            (None, "solution", None),
-            (None, None, None),
+            # Fixability is None - return user preference if available, otherwise ROOT_CAUSE
+            (None, "open_pr", AutofixStoppingPoint.OPEN_PR),
+            (None, "code_changes", AutofixStoppingPoint.CODE_CHANGES),
+            (None, "solution", AutofixStoppingPoint.SOLUTION),
+            (None, "root_cause", AutofixStoppingPoint.ROOT_CAUSE),
+            (None, None, AutofixStoppingPoint.ROOT_CAUSE),
             # User preference is None - return fixability suggestion
             (AutofixStoppingPoint.OPEN_PR, None, AutofixStoppingPoint.OPEN_PR),
             (AutofixStoppingPoint.CODE_CHANGES, None, AutofixStoppingPoint.CODE_CHANGES),
@@ -984,7 +989,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def test_user_preference_limits_high_fixability(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
-        """High fixability (CODE_CHANGES) limited by user preference (SOLUTION)"""
+        """High fixability (OPEN_PR) limited by user preference (SOLUTION)"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -992,7 +997,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),  # High = CODE_CHANGES
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = "solution"
 
@@ -1052,12 +1057,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),  # High = CODE_CHANGES
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = None
 
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
-        # Should use CODE_CHANGES from fixability
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
+        # Should use OPEN_PR from fixability
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR

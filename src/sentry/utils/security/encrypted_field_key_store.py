@@ -100,3 +100,8 @@ class FernetKeyStore:
             raise ValueError("Fernet primary key ID is not configured.")
 
         return primary_key_id, cls.get_fernet_for_key_id(primary_key_id)
+
+
+def initialize_encrypted_field_key_store() -> None:
+    # FernetKeyStore load keys from the mounted file system
+    FernetKeyStore.load_keys()
