@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
@@ -7,6 +8,8 @@ from sentry.utils import redis
 from sentry.utils.json import dumps, loads
 
 EXPIRATION_TTL = 10 * 60
+# Allow a few retries to account for replica lag immediately after writing the session.
+_PERSISTENCE_RECHECK_ATTEMPTS = 3
 
 
 class RedisSessionStore:
@@ -55,6 +58,8 @@ class RedisSessionStore:
         self.request = request
         self.prefix = prefix
         self.ttl = ttl
+        self._state_cache: dict[str, Any] | None = None
+        self._pending_writes = 0
 
     @property
     def _client(self):
@@ -83,6 +88,8 @@ class RedisSessionStore:
 
         value = dumps(initial_state)
         self._client.setex(redis_key, self.ttl, value)
+        self._state_cache = loads(value)
+        self._pending_writes = _PERSISTENCE_RECHECK_ATTEMPTS
 
     def clear(self):
         if not self.redis_key:
@@ -93,6 +100,8 @@ class RedisSessionStore:
         session = self.request.session
         del session[self.session_key]
         self.mark_session()
+        self._state_cache = None
+        self._pending_writes = 0
 
     def is_valid(self):
         return bool(self.redis_key and self.get_state() is not None)
@@ -103,13 +112,20 @@ class RedisSessionStore:
 
         state_json = self._client.get(self.redis_key)
         if not state_json:
+            if self._pending_writes > 0 and self._state_cache is not None:
+                self._pending_writes -= 1
+                return self._state_cache
             return None
 
         try:
-            return loads(state_json)
+            state = loads(state_json)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-        return None
+            return None
+
+        self._state_cache = state
+        self._pending_writes = 0
+        return state
 
 
 def redis_property(key: str):
@@ -130,6 +146,8 @@ def redis_property(key: str):
             return
 
         state[key] = value
+        store._state_cache = state
+        store._pending_writes = _PERSISTENCE_RECHECK_ATTEMPTS
         store._client.setex(store.redis_key, store.ttl, dumps(state))
 
     return property(getter, setter)
