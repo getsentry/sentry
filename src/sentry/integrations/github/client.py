@@ -64,6 +64,7 @@ def _is_secondary_rate_limit_error(error: ApiForbiddenError) -> bool:
     combined = " ".join(candidates).lower()
     return _SECONDARY_RATE_LIMIT_PHRASE in combined
 
+
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
