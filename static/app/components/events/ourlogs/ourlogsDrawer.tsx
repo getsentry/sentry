@@ -1,7 +1,11 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -17,18 +21,23 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsSearch,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getEventEnvironment} from 'sentry/views/issueDetails/utils';
 
 interface LogIssueDrawerProps {
   event: Event;
@@ -45,6 +54,7 @@ export function OurlogsDrawer({
   group,
   embeddedOptions,
 }: LogIssueDrawerProps) {
+  const organization = useOrganization();
   const setLogsQuery = useSetQueryParamsQuery();
   const logsSearch = useQueryParamsSearch();
 
@@ -68,6 +78,45 @@ export function OurlogsDrawer({
   );
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const additionalData = useMemo(
+    () => ({
+      event,
+    }),
+    [event]
+  );
+
+  const exploreUrl = useMemo(() => {
+    const traceId = event.contexts.trace?.trace_id;
+    if (!traceId) {
+      return null;
+    }
+
+    const eventTimestamp = event.dateCreated || event.dateReceived;
+    if (!eventTimestamp) {
+      return null;
+    }
+
+    const eventMoment = moment(eventTimestamp);
+    const start = getUtcDateString(eventMoment.clone().subtract(1, 'day'));
+    const end = getUtcDateString(eventMoment.clone().add(1, 'day'));
+    const environment = getEventEnvironment(event);
+
+    return getLogsUrl({
+      organization,
+      selection: {
+        projects: [parseInt(project.id, 10)],
+        environments: environment ? [environment] : [],
+        datetime: {
+          start,
+          end,
+          period: null,
+          utc: null,
+        },
+      },
+      query: `${OurLogKnownFieldKey.TRACE_ID}:${traceId}`,
+    });
+  }, [event, organization, project.id]);
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <EventDrawerContainer>
@@ -88,7 +137,16 @@ export function OurlogsDrawer({
           />
         </EventDrawerHeader>
         <EventNavigator>
-          <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+          <Flex align="center" gap="sm">
+            <Flex flex="1">
+              <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+            </Flex>
+            {exploreUrl && (
+              <LinkButton size="sm" href={exploreUrl} target="_blank">
+                {t('Open in explore')}
+              </LinkButton>
+            )}
+          </Flex>
         </EventNavigator>
         <EventDrawerBody ref={containerRef}>
           <LogsTableContainer>
@@ -96,6 +154,7 @@ export function OurlogsDrawer({
               embedded
               scrollContainer={containerRef}
               embeddedOptions={embeddedOptions}
+              additionalData={additionalData}
             />
           </LogsTableContainer>
         </EventDrawerBody>

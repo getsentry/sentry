@@ -17,6 +17,7 @@ import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
@@ -51,12 +52,15 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {
+  createPseudoLogResponseItem,
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
   getTableHeaderLabel,
+  isRegularLogResponseItem,
   logsFieldAlignment,
   quantizeTimestampToMinutes,
+  type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -68,6 +72,9 @@ import {
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
+  additionalData?: {
+    event?: Event;
+  };
   allowPagination?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
@@ -100,6 +107,7 @@ export function LogsInfiniteTable({
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
+  additionalData,
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useQueryParamsFields();
@@ -123,16 +131,58 @@ export function LogsInfiniteTable({
     resumeAutoFetch,
   } = useLogsPageDataQueryResult();
 
-  // Use filtered items if provided, otherwise use original data
-  const data = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
+
+  const pseudoRowIndex = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError
+    ) {
+      return -1;
+    }
+    const event = additionalData.event;
+    const eventTimestamp = new Date(event.dateCreated || new Date()).getTime();
+    const index = baseData.findIndex(
+      row =>
+        isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
+    );
+    return index === -1 ? baseData.length : index; // If the event is older than all the data, add it to the end.
+  }, [additionalData, baseData, isPending, isError]);
+
+  const data: LogTableRowItem[] = useMemo(() => {
+    if (
+      !additionalData?.event ||
+      !baseData ||
+      baseData.length === 0 ||
+      isPending ||
+      isError ||
+      pseudoRowIndex === -1
+    ) {
+      return baseData || [];
+    }
+
+    const newData: LogTableRowItem[] = [...baseData];
+    newData.splice(
+      pseudoRowIndex,
+      0,
+      createPseudoLogResponseItem(
+        additionalData.event,
+        additionalData.event.projectID || ''
+      )
+    );
+    return newData;
+  }, [baseData, additionalData, isPending, isError, pseudoRowIndex]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!baseData || baseData.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
 
-    const timestamps = data.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
+    const timestamps = baseData.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
     if (timestamps.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
@@ -150,7 +200,7 @@ export function LogsInfiniteTable({
       logStart: new Date(quantizedStart).toISOString(),
       logEnd: new Date(quantizedEnd).toISOString(),
     };
-  }, [data]);
+  }, [baseData]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -228,6 +278,17 @@ export function LogsInfiniteTable({
     },
     [virtualizer]
   );
+
+  useEffect(() => {
+    if (pseudoRowIndex !== -1 && scrollContainer?.current) {
+      setTimeout(() => {
+        containerVirtualizer.scrollToIndex(pseudoRowIndex, {
+          behavior: 'smooth',
+          align: 'center',
+        });
+      }, 100);
+    }
+  }, [pseudoRowIndex, containerVirtualizer, scrollContainer]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
