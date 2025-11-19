@@ -545,6 +545,23 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
 
+    def test_assemble_preprod_artifact_size_analysis_allows_null_duration(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": null, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.extras is None
+
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+
     def test_assemble_preprod_artifact_size_analysis_update_existing(self) -> None:
         # Create an existing size metrics record
         existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
