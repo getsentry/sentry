@@ -152,8 +152,6 @@ export function OverviewRow({
                 ? t('Unmute Environment')
                 : t('Mute Environment'),
             key: 'mute',
-            details: monitor.isMuted ? t('Monitor is muted') : undefined,
-            disabled: monitor.isMuted,
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
         ]
