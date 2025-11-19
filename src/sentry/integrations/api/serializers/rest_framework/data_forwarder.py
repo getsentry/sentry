@@ -210,12 +210,16 @@ class DataForwarderSerializer(Serializer):
 
             # Enroll specified projects
             if project_ids:
-                for project_id in project_ids:
-                    DataForwarderProject.objects.create(
-                        data_forwarder=data_forwarder,
-                        project_id=project_id,
-                        is_enabled=False,
-                    )
+                DataForwarderProject.objects.bulk_create(
+                    [
+                        DataForwarderProject(
+                            data_forwarder=data_forwarder,
+                            project_id=project_id,
+                            is_enabled=True,
+                        )
+                        for project_id in project_ids
+                    ]
+                )
         return data_forwarder
 
     def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
