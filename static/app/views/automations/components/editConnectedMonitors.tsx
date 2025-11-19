@@ -16,6 +16,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
@@ -64,6 +65,7 @@ function AllMonitors({
     setSearchQuery(query);
     setCursor(undefined);
   }, []);
+  const {selection} = usePageFilters();
 
   return (
     <PageFiltersContainer>
@@ -83,6 +85,7 @@ function AllMonitors({
           cursor={cursor}
           onCursor={setCursor}
           query={searchQuery}
+          projectIds={selection.projects}
           openInNewTab
         />
       </Section>

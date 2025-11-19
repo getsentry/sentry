@@ -30,6 +30,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   emptyMessage?: string;
   limit?: number | null;
   openInNewTab?: boolean;
+  projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
 };
@@ -75,6 +76,7 @@ export default function ConnectedMonitorsList({
   limit = DEFAULT_DETECTORS_PER_PAGE,
   query,
   openInNewTab,
+  projectIds,
   ...props
 }: Props) {
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
@@ -92,6 +94,7 @@ export default function ConnectedMonitorsList({
       cursor,
       query,
       includeIssueStreamDetectors: true,
+      projects: projectIds,
     },
     {enabled: detectorIds === null || detectorIds.length > 0}
   );
