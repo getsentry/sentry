@@ -1,12 +1,33 @@
 from uuid import uuid4
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
+from redis.exceptions import RedisError
 
 from sentry.utils import redis
 from sentry.utils.json import dumps, loads
 
 EXPIRATION_TTL = 10 * 60
+
+_SET_STATE_FIELD_LUA = """
+local current = redis.call('GET', KEYS[1])
+if not current then
+    return 0
+end
+
+local state = cjson.decode(current)
+state[ARGV[1]] = cjson.decode(ARGV[2])
+
+local ttl = tonumber(ARGV[3]) or 0
+if ttl > 0 then
+    redis.call('SETEX', KEYS[1], ttl, cjson.encode(state))
+else
+    redis.call('SET', KEYS[1], cjson.encode(state))
+end
+
+return 1
+"""
 
 
 class RedisSessionStore:
@@ -28,8 +49,9 @@ class RedisSessionStore:
           redis key assigned for this store. Be aware of the multiple
           round-trips implication of this.
 
-    NOTE: This object is subject to race conditions on updating valeus as the
-          entire object value is stored in one redis key.
+    NOTE: This object stores the state in a single redis key. Updates are applied atomically to
+    avoid clobbering other in-flight changes, but callers should still prefer coarse-grained writes
+    when practical.
 
     >>> store = RedisSessionStore(request, 'store-name')
     >>> store.regenerate()
@@ -50,6 +72,7 @@ class RedisSessionStore:
     """
 
     redis_namespace = "session-cache"
+    _supports_atomic_update = True
 
     def __init__(self, request, prefix, ttl=EXPIRATION_TTL):
         self.request = request
@@ -111,6 +134,39 @@ class RedisSessionStore:
             sentry_sdk.capture_exception(e)
         return None
 
+    def _set_state_value(self, field: str, value: Any) -> None:
+        redis_key = self.redis_key
+        if not redis_key:
+            return
+
+        ttl = str(self.ttl or 0)
+        encoded_value = dumps(value)
+
+        if type(self)._supports_atomic_update:
+            try:
+                updated = self._client.eval(
+                    _SET_STATE_FIELD_LUA,
+                    1,
+                    redis_key,
+                    field,
+                    encoded_value,
+                    ttl,
+                )
+            except RedisError:
+                type(self)._supports_atomic_update = False
+            else:
+                if updated:
+                    return
+                # If the key no longer exists we can exit early just like the legacy behavior.
+                return
+
+        state = self.get_state()
+        if state is None:
+            return
+
+        state[field] = value
+        self._client.setex(redis_key, self.ttl, dumps(state))
+
 
 def redis_property(key: str):
     """Declare a property backed by Redis on a RedisSessionStore class."""
@@ -124,12 +180,6 @@ def redis_property(key: str):
             raise AttributeError(e)
 
     def setter(store: "RedisSessionStore", value):
-        state = store.get_state()
-
-        if state is None:
-            return
-
-        state[key] = value
-        store._client.setex(store.redis_key, store.ttl, dumps(state))
+        store._set_state_value(key, value)
 
     return property(getter, setter)
