@@ -8,7 +8,7 @@ import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetect
 
 const TITLE = t('My Monitors');
 const DESCRIPTION = t('View monitors assigned to you or your teams.');
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/';
 
 export default function MyMonitorsList() {
   const detectorListQuery = useDetectorListQuery({

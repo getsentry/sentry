@@ -11,7 +11,7 @@ const TITLE = t('Monitors');
 const DESCRIPTION = t(
   'Monitors are used to transform errors, performance problems, and other events into issues.'
 );
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/';
 
 export default function AllMonitors() {
   const detectorListQuery = useDetectorListQuery();
