@@ -31,7 +31,7 @@ releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1005_add_groupemailthread_project_date_index
+sentry: 1006_drop_legacy_incidentseen_incidentsubscription
 
 social_auth: 0003_social_auth_json_field
 
