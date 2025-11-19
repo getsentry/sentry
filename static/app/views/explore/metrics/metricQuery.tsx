@@ -20,7 +20,7 @@ export interface TraceMetric {
 }
 
 function isTraceMetric(value: any): value is TraceMetric {
-  if (typeof value !== 'object') {
+  if (!defined(value) || typeof value !== 'object') {
     return false;
   }
 
