@@ -248,7 +248,9 @@ class OAuth2LoginView:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
             pipeline_state = pipeline.fetch_state("state")
             request_state = request.GET.get("state")
-            callback_params_present = any(param in request.GET for param in ("code", "error", "state"))
+            callback_params_present = any(
+                param in request.GET for param in ("code", "error", "state")
+            )
 
             if callback_params_present:
                 if not pipeline_state or not request_state:

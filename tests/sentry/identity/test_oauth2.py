@@ -213,6 +213,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert error_message.startswith(oauth2_module.ERR_INVALID_STATE)
         pipeline.next_step.assert_not_called()
 
+
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
     def setUp(self) -> None:
