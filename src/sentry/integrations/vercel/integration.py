@@ -341,7 +341,7 @@ class VercelIntegration(IntegrationInstallation):
 
         key = data["key"]
         raise IntegrationError(
-            f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
+            f"Could not update environment variable {key} in Vercel project {vercel_project_id}. Please make sure that the environment variable does not already exist."
         )
 
     def uninstall(self):
