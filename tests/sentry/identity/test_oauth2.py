@@ -217,9 +217,11 @@ class OAuth2LoginViewTest(TestCase):
         request.subdomain = None
         pipeline = IdentityPipeline(request=request, provider_key="dummy")
 
-        with patch.object(pipeline, "fetch_state", return_value=None), patch.object(
-            pipeline, "next_step"
-        ) as mock_next_step, patch.object(pipeline, "bind_state") as mock_bind_state:
+        with (
+            patch.object(pipeline, "fetch_state", return_value=None),
+            patch.object(pipeline, "next_step") as mock_next_step,
+            patch.object(pipeline, "bind_state") as mock_bind_state,
+        ):
             response = self.view.dispatch(request, pipeline)
 
         assert response.status_code == 302
@@ -234,9 +236,10 @@ class OAuth2LoginViewTest(TestCase):
         pipeline = IdentityPipeline(request=request, provider_key="dummy")
         expected_response = HttpResponse("ok")
 
-        with patch.object(pipeline, "fetch_state", return_value="stored-state"), patch.object(
-            pipeline, "next_step", return_value=expected_response
-        ) as mock_next_step:
+        with (
+            patch.object(pipeline, "fetch_state", return_value="stored-state"),
+            patch.object(pipeline, "next_step", return_value=expected_response) as mock_next_step,
+        ):
             response = self.view.dispatch(request, pipeline)
 
         assert response is expected_response
