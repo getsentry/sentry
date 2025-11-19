@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.urls import reverse
+
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
@@ -30,6 +32,17 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         assert self.mock_webhook.call_count == 1
         text = self.mock_webhook.call_args.kwargs["text"]
         assert text == SUCCESS_LINKED_MESSAGE
+
+    def test_link_user_identity_requires_auth(self) -> None:
+        linking_url = build_linking_url(
+            self.integration, self.external_id, self.channel_id, self.response_url
+        )
+
+        self.client.logout()
+        response = self.client.get(linking_url)
+
+        assert response.status_code == 302
+        assert reverse("sentry-login") in response["Location"]
 
 
 class SlackCommandsLinkUserTest(SlackCommandsTest):
