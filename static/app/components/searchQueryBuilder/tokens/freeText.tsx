@@ -309,7 +309,6 @@ function SearchQueryBuilderInputInternal({
     filterValue,
     inputValue,
     includeSuggestions: true,
-    item,
   });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;

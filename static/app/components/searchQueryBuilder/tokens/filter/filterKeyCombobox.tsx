@@ -39,7 +39,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     filterValue: inputValue,
     inputValue,
     includeSuggestions: false,
-    item,
   });
   const {
     dispatch,

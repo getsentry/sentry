@@ -1,5 +1,4 @@
 import {useMemo, type ReactNode} from 'react';
-import type {Node} from '@react-types/shared';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -18,7 +17,6 @@ import {
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
@@ -159,12 +157,10 @@ export function useSortedFilterKeyItems({
   inputValue,
   filterValue,
   includeSuggestions,
-  item,
 }: {
   filterValue: string;
   includeSuggestions: boolean;
   inputValue: string;
-  item: Node<ParseResultToken>;
 }): SearchKeyItem[] {
   const {
     filterKeys,
@@ -191,7 +187,6 @@ export function useSortedFilterKeyItems({
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
-    const isFirstItem = item.key.toString().endsWith(':0');
     const searchKeyItems: FilterKeySearchItem[] = flatKeys.map(key => {
       const fieldDef = getFieldDefinition(key.key);
 
@@ -208,22 +203,12 @@ export function useSortedFilterKeyItems({
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        // only show the logic items if not the first item, as they're not allowed to be the first item
-        ...(!isFirstItem && hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
+        ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
       ];
     }
 
-    return [
-      ...searchKeyItems,
-      ...(!isFirstItem && hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
-    ];
-  }, [
-    flatKeys,
-    getFieldDefinition,
-    hasConditionalsInCombobox,
-    includeSuggestions,
-    item.key,
-  ]);
+    return [...searchKeyItems, ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : [])];
+  }, [flatKeys, getFieldDefinition, hasConditionalsInCombobox, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
