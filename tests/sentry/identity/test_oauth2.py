@@ -159,9 +159,7 @@ class OAuth2CallbackViewTest(TestCase):
 
     def test_callback_error_parameter_is_sanitized(self, mock_record: MagicMock) -> None:
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
-        request = RequestFactory().get(
-            "/", {"error": '<svg><script>alert("xss")</script></svg>'}
-        )
+        request = RequestFactory().get("/", {"error": '<svg><script>alert("xss")</script></svg>'})
 
         with patch.object(pipeline, "error") as mock_error:
             self.view.dispatch(request, pipeline)
@@ -178,9 +176,10 @@ class OAuth2CallbackViewTest(TestCase):
         request = RequestFactory().get("/", {"state": "expected", "code": "oauth-code"})
         pipeline.fetch_state = MagicMock(return_value="expected")
 
-        with patch.object(self.view, "exchange_token") as mock_exchange, patch.object(
-            pipeline, "error"
-        ) as mock_error:
+        with (
+            patch.object(self.view, "exchange_token") as mock_exchange,
+            patch.object(pipeline, "error") as mock_error,
+        ):
             mock_exchange.return_value = {"error_description": "<img src=x onerror=alert(1)>"}
             self.view.dispatch(request, pipeline)
 
@@ -191,9 +190,11 @@ class OAuth2CallbackViewTest(TestCase):
         request = RequestFactory().get("/", {"state": "expected", "code": "oauth-code"})
         pipeline.fetch_state = MagicMock(return_value="expected")
 
-        with patch.object(self.view, "exchange_token") as mock_exchange, patch.object(
-            pipeline, "error"
-        ) as mock_error, patch("sentry.identity.oauth2.logger") as mock_logger:
+        with (
+            patch.object(self.view, "exchange_token") as mock_exchange,
+            patch.object(pipeline, "error") as mock_error,
+            patch("sentry.identity.oauth2.logger") as mock_logger,
+        ):
             mock_exchange.return_value = {"error": "<script>alert(1)</script>"}
             self.view.dispatch(request, pipeline)
 
@@ -203,6 +204,7 @@ class OAuth2CallbackViewTest(TestCase):
         mock_logger.info.assert_called_once()
         logged_extra = mock_logger.info.call_args[1]["extra"]
         assert logged_extra["error"] == "<script>alert(1)</script>"
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
