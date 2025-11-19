@@ -14,7 +14,7 @@ describe('utils', () => {
   const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
   const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
   const DEFAULT_ADDONS = {
-    [AddOnCategory.SEER]: {
+    [AddOnCategory.LEGACY_SEER]: {
       enabled: false,
     },
   };
@@ -95,7 +95,7 @@ describe('utils', () => {
           attachments: 1,
         },
         addOns: {
-          [AddOnCategory.SEER]: {
+          [AddOnCategory.LEGACY_SEER]: {
             enabled: true,
           },
         },
@@ -113,7 +113,7 @@ describe('utils', () => {
           attachments: 1,
         },
         addOns: {
-          [AddOnCategory.SEER]: {
+          [AddOnCategory.LEGACY_SEER]: {
             enabled: true,
           },
         },

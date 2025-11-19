@@ -516,7 +516,7 @@ function CheckoutSuccess({
   const reservedVolume = invoiceItems.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  // TODO(prevent): This needs to be updated once we determine how to display Prevent enablement and PAYG changes on this page
+  // TODO(seer): This needs to be updated once we determine how to display Seer enablement and PAYG changes on this page
   const products = invoiceItems.filter(
     item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
   );

@@ -62,7 +62,8 @@ export function getProductCheckoutDescription({
   withPunctuation: boolean;
   includedBudget?: string;
 }) {
-  if (product === AddOnCategory.SEER) {
+  if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
+    // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER should be removed from here
     if (isNewCheckout) {
       return tct('Detect and fix issues faster with our AI agent[punctuation]', {
         punctuation: withPunctuation ? '.' : '',
@@ -96,51 +97,35 @@ function ProductSelect({
   );
 
   const theme = useTheme();
+  const SEER_CHECKOUT_INFO = {
+    color: theme.pink400 as Color,
+    gradientEndColor: theme.pink100 as Color,
+    buttonBorderColor: theme.pink200 as Color,
+    getProductDescription: (includedBudget: string) =>
+      getProductCheckoutDescription({
+        product: AddOnCategory.LEGACY_SEER,
+        isNewCheckout: !!isNewCheckout,
+        withPunctuation: false,
+        includedBudget,
+      }),
+    categoryInfo: {
+      [DataCategory.SEER_AUTOFIX]: {
+        description: t(
+          'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
+        ),
+        maxEventPriceDigits: 0,
+      },
+      [DataCategory.SEER_SCANNER]: {
+        description: t(
+          'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
+        ),
+        maxEventPriceDigits: 3,
+      },
+    },
+  };
   const PRODUCT_CHECKOUT_INFO = {
-    [AddOnCategory.SEER]: {
-      color: theme.pink400 as Color,
-      gradientEndColor: theme.pink100 as Color,
-      buttonBorderColor: theme.pink200 as Color,
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.SEER,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
-      categoryInfo: {
-        [DataCategory.SEER_AUTOFIX]: {
-          description: t(
-            'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
-          ),
-          maxEventPriceDigits: 0,
-        },
-        [DataCategory.SEER_SCANNER]: {
-          description: t(
-            'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
-          ),
-          maxEventPriceDigits: 3,
-        },
-      },
-    },
-    [AddOnCategory.PREVENT]: {
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.PREVENT,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
-      categoryInfo: {
-        [DataCategory.PREVENT_USER]: {
-          description: t('Prevent problems, before they happen'),
-          maxEventPriceDigits: 0,
-        },
-      },
-      color: undefined,
-      gradientEndColor: undefined,
-      buttonBorderColor: undefined,
-    },
+    [AddOnCategory.LEGACY_SEER]: SEER_CHECKOUT_INFO,
+    [AddOnCategory.SEER]: SEER_CHECKOUT_INFO, // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER can be updated to use the new design/copy
   } satisfies Record<AddOnCategory, ProductCheckoutInfo>;
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';

@@ -80,7 +80,7 @@ describe('CheckoutOverviewV2', () => {
       },
       onDemandMaxSpend: 5000,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -179,7 +179,7 @@ describe('CheckoutOverviewV2', () => {
       },
       onDemandMaxSpend: 5000,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: false,
         },
       },

@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconPrevent, IconSeer, IconUser} from 'sentry/icons';
+import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -586,14 +586,10 @@ export function getPlanIcon(plan: Plan) {
 }
 
 export function getProductIcon(product: AddOnCategory, size?: IconSize) {
-  switch (product) {
-    case AddOnCategory.SEER:
-      return <IconSeer size={size} />;
-    case AddOnCategory.PREVENT:
-      return <IconPrevent size={size} />;
-    default:
-      return null;
+  if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
+    return <IconSeer size={size} />;
   }
+  return null;
 }
 
 /**
@@ -780,12 +776,10 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
 }
 
 export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
-  switch (addOnCategory) {
-    case AddOnCategory.SEER:
-      return ReservedBudgetCategoryType.SEER;
-    default:
-      return null;
+  if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(addOnCategory)) {
+    return ReservedBudgetCategoryType.SEER; // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER should be removed from here
   }
+  return null;
 }
 
 // There are the data categories whose retention settings

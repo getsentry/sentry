@@ -180,7 +180,7 @@ describe('CheckoutOverview', () => {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -207,7 +207,7 @@ describe('CheckoutOverview', () => {
       plan: 'am2_team',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: false,
         },
       },

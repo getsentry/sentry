@@ -914,9 +914,9 @@ export function invoiceItemTypeToDataCategory(
 export function invoiceItemTypeToAddOn(type: InvoiceItemType): AddOnCategory | null {
   switch (type) {
     case InvoiceItemType.RESERVED_SEER_BUDGET:
-      return AddOnCategory.SEER;
+      return AddOnCategory.LEGACY_SEER;
     case InvoiceItemType.RESERVED_PREVENT_USERS:
-      return AddOnCategory.PREVENT;
+      return AddOnCategory.SEER; // TODO(seer): Update this to InvoiceItemType.ACTIVATED_CONTRIBUTORS
     default:
       return null;
   }

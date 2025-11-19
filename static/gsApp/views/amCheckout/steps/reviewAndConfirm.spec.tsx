@@ -243,7 +243,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },

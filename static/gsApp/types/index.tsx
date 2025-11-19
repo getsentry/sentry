@@ -136,7 +136,7 @@ export type ReservedBudgetCategory = {
 
 export enum AddOnCategory {
   SEER = 'seer',
-  PREVENT = 'prevent',
+  LEGACY_SEER = 'legacySeer',
 }
 
 export type AddOnCategoryInfo = {

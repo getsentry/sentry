@@ -143,7 +143,7 @@ describe('Cart', () => {
       },
       onDemandMaxSpend: 50_00,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -501,7 +501,7 @@ describe('Cart', () => {
         sharedMaxBudget: 1_00,
       },
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
