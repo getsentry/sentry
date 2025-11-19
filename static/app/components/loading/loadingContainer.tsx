@@ -9,6 +9,7 @@ export type LoadingContainerProps = {
   isLoading?: boolean;
   isReloading?: boolean;
   maskBackgroundColor?: string;
+  showChildrenWhileLoading?: boolean;
 };
 
 type MaskProps = {
@@ -20,6 +21,7 @@ export default function LoadingContainer({
   isLoading = false,
   isReloading = false,
   maskBackgroundColor,
+  showChildrenWhileLoading = true,
   className,
   children,
 }: LoadingContainerProps) {
@@ -37,7 +39,7 @@ export default function LoadingContainer({
           <Indicator />
         </div>
       )}
-      {children}
+      {showChildrenWhileLoading || !isLoadingOrReloading ? children : null}
     </Container>
   );
 }

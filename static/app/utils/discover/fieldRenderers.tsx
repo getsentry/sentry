@@ -1424,7 +1424,7 @@ function getDashboardUrl(
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
       linkedDashboard => linkedDashboard.field === field
     );
-    if (dashboardLink) {
+    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const newTemporaryFilters: GlobalFilter[] =
         dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
 
