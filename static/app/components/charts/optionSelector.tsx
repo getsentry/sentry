@@ -20,19 +20,18 @@ type BaseProps = {
 interface SingleProps
   extends Omit<
       SingleSelectProps<string>,
-      'onChange' | 'defaultValue' | 'multiple' | 'title'
+      'onChange' | 'defaultValue' | 'multiple' | 'title' | 'value'
     >,
     BaseProps {
   onChange: (value: string) => void;
   selected: string;
-  defaultValue?: string;
   multiple?: false;
 }
 
 interface MultipleProps
   extends Omit<
       MultipleSelectProps<string>,
-      'onChange' | 'defaultValue' | 'multiple' | 'title'
+      'onChange' | 'defaultValue' | 'multiple' | 'title' | 'value'
     >,
     BaseProps {
   multiple: true;
@@ -48,7 +47,6 @@ function OptionSelector({
   title,
   featureType,
   multiple,
-  defaultValue,
   closeOnSelect,
   ...rest
 }: SingleProps | MultipleProps) {
@@ -68,7 +66,6 @@ function OptionSelector({
       return {
         multiple,
         value: selected,
-        defaultValue,
         onChange: (sel: Array<SelectOption<string>>) => {
           onChange?.(sel.map(o => o.value));
         },
@@ -79,11 +76,10 @@ function OptionSelector({
     return {
       multiple,
       value: selected,
-      defaultValue,
       onChange: (opt: any) => onChange?.(opt.value),
       closeOnSelect,
     };
-  }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
+  }, [multiple, selected, onChange, closeOnSelect]);
 
   function isOptionDisabled(option: SelectOptionWithKey<string>) {
     return Boolean(

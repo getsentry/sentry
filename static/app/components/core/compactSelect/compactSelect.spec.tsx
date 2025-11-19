@@ -8,6 +8,8 @@ describe('CompactSelect', () => {
   it('renders', async () => {
     render(
       <CompactSelect
+        value={undefined}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -21,6 +23,8 @@ describe('CompactSelect', () => {
     render(
       <CompactSelect
         disabled
+        value={undefined}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -34,6 +38,8 @@ describe('CompactSelect', () => {
     render(
       <CompactSelect
         menuTitle="Menu title"
+        value={undefined}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -53,6 +59,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           value="opt_one"
           menuTitle="Menu A"
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -61,6 +68,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           value="opt_three"
           menuTitle="Menu B"
+          onChange={jest.fn()}
           options={[
             {value: 'opt_three', label: 'Option Three'},
             {value: 'opt_four', label: 'Option Four'},
@@ -110,6 +118,7 @@ describe('CompactSelect', () => {
       const mock = jest.fn();
       render(
         <CompactSelect
+          value={undefined}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -138,6 +147,7 @@ describe('CompactSelect', () => {
             {value: 'opt_two', label: 'Option Two'},
           ]}
           onChange={mock}
+          value={undefined}
         />
       );
 
@@ -165,6 +175,7 @@ describe('CompactSelect', () => {
             {value: '"opt_two"', label: 'Option Two'},
           ]}
           onChange={mock}
+          value={undefined}
         />
       );
 
@@ -186,6 +197,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
           value="opt_one"
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -206,6 +218,8 @@ describe('CompactSelect', () => {
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
           ]}
+          value={undefined}
+          onChange={jest.fn()}
         />
       );
 
@@ -224,6 +238,8 @@ describe('CompactSelect', () => {
     it('can search with sections', async () => {
       render(
         <CompactSelect
+          value={undefined}
+          onChange={jest.fn()}
           searchable
           searchPlaceholder="Search here…"
           options={[
@@ -265,6 +281,8 @@ describe('CompactSelect', () => {
     it('can limit the number of options', async () => {
       render(
         <CompactSelect
+          value={undefined}
+          onChange={jest.fn()}
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
           searchable
@@ -316,6 +334,8 @@ describe('CompactSelect', () => {
         <CompactSelect
           multiple
           onSectionToggle={mock}
+          value={undefined}
+          onChange={jest.fn()}
           options={[
             {
               key: 'section-1',
@@ -424,6 +444,8 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           onClose={onCloseMock}
+          value={undefined}
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -449,6 +471,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
+          value={undefined}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -473,6 +496,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           grid
           multiple
+          value={undefined}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -506,6 +530,7 @@ describe('CompactSelect', () => {
             {value: '"opt_two"', label: 'Option Two'},
           ]}
           onChange={mock}
+          value={undefined}
         />
       );
 
@@ -532,6 +557,7 @@ describe('CompactSelect', () => {
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
           ]}
+          onChange={jest.fn()}
         />
       );
       expect(
@@ -549,6 +575,8 @@ describe('CompactSelect', () => {
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
           ]}
+          value={undefined}
+          onChange={jest.fn()}
         />
       );
 
@@ -576,6 +604,8 @@ describe('CompactSelect', () => {
             {value: 'opt_two', label: 'Option Two'},
             {value: 'opt_three', label: 'Option Three'},
           ]}
+          value={undefined}
+          onChange={jest.fn()}
         />
       );
 
@@ -614,6 +644,8 @@ describe('CompactSelect', () => {
           grid
           multiple
           onSectionToggle={mock}
+          value={undefined}
+          onChange={jest.fn()}
           options={[
             {
               key: 'section-1',
@@ -722,6 +754,8 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
+          value={undefined}
+          onChange={jest.fn()}
           onClose={onCloseMock}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -748,6 +782,8 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
+          value={undefined}
+          onChange={jest.fn()}
           options={[
             {
               value: 'opt_one',

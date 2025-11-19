@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -67,7 +66,6 @@ export function BreadcrumbsDrawer({
   focusControl: initialFocusControl,
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
   const [search, setSearch] = useState('');
@@ -122,6 +120,7 @@ export function BreadcrumbsDrawer({
       </InputGroup>
       <CompactSelect
         size="xs"
+        value={filters}
         onChange={options => {
           const newFilters = options.map(({value}) => value);
           setFilters(newFilters);
@@ -134,23 +133,22 @@ export function BreadcrumbsDrawer({
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <VisibleFocusButton
+          <Button
             size="xs"
             borderless
-            style={{background: filters.length > 0 ? theme.purple100 : 'transparent'}}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
             {filters.length > 0 ? filters.length : null}
-          </VisibleFocusButton>
+          </Button>
         )}
       />
       <CompactSelect
         size="xs"
         trigger={props => (
-          <VisibleFocusButton
+          <Button
             size="xs"
             borderless
             icon={<IconSort />}
@@ -254,11 +252,6 @@ export function BreadcrumbsDrawer({
     </EventDrawerContainer>
   );
 }
-
-const VisibleFocusButton = styled(Button)`
-  box-shadow: ${p => (p.autoFocus ? p.theme.button.default.focusBorder : 'transparent')} 0
-    0 0 1px;
-`;
 
 const TimelineContainer = styled('div')`
   grid-column: span 2;

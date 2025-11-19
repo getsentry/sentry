@@ -69,7 +69,8 @@ describe('CompactSelect', () => {
       <CompositeSelect disabled>
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -87,7 +88,8 @@ describe('CompactSelect', () => {
       <CompositeSelect>
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -96,7 +98,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -143,6 +146,7 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           label="Region 1"
           onChange={region1Mock}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -152,6 +156,7 @@ describe('CompactSelect', () => {
           multiple
           label="Region 2"
           onChange={region2Mock}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -212,7 +217,8 @@ describe('CompactSelect', () => {
       <CompositeSelect searchable searchPlaceholder="Search placeholder…">
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -221,7 +227,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -262,7 +269,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
