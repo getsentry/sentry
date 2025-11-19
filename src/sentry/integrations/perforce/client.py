@@ -12,7 +12,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
-    CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
@@ -397,9 +396,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get changelists for a depot path.
 
-        Uses p4 changes command to list changelists.
-        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
-
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
             max_changes: Maximum number of changes to return when start_cl/end_cl not specified
@@ -473,97 +469,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Note: This does not provide line-specific blame. It returns the most recent
         changelist for the entire file, which is sufficient for suspect commit detection.
 
-        API docs:
-        - p4 filelog: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_filelog.html
-        - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
-
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        metrics.incr("integrations.perforce.get_blame_for_files")
-        blames = []
-        p4 = self._connect()
-
-        # Cache user info to avoid multiple lookups for the same user
-        user_cache: dict[str, dict[str, Any] | None] = {}
-
-        try:
-            for file in files:
-                try:
-                    # Build depot path for the file (includes stream if specified)
-                    # file.ref contains the revision/changelist if available
-                    depot_path = self.build_depot_path(file.repo, file.path)
-
-                    # Use faster p4 filelog approach to get most recent changelist
-                    # This is much faster than p4 annotate
-                    filelog = p4.run("filelog", "-m1", depot_path)
-
-                    changelist = None
-                    if filelog and len(filelog) > 0:
-                        # The 'change' field contains the changelist numbers (as a list)
-                        changelists = filelog[0].get("change", [])
-                        if changelists and len(changelists) > 0:
-                            # Get the first (most recent) changelist number
-                            changelist = changelists[0]
-
-                    # If we found a changelist, get detailed commit info
-                    if changelist:
-                        try:
-                            change_info = p4.run("describe", "-s", changelist)
-                            if change_info and len(change_info) > 0:
-                                change = change_info[0]
-                                username = change.get("user", "unknown")
-
-                                # Get user information from Perforce for email and full name
-                                author_email = f"{username}@perforce"
-                                author_name = username
-
-                                # Fetch user info if not in cache
-                                if username != "unknown" and username not in user_cache:
-                                    user_cache[username] = self.get_user(username)
-
-                                user_info = user_cache.get(username)
-                                if user_info:
-                                    # Use actual email from Perforce if available
-                                    if user_info.get("email"):
-                                        author_email = user_info["email"]
-                                    # Use full name from Perforce if available
-                                    if user_info.get("full_name"):
-                                        author_name = user_info["full_name"]
-
-                                # Handle potentially null/invalid time field
-                                time_value = change.get("time") or 0
-                                try:
-                                    timestamp = int(time_value)
-                                except (TypeError, ValueError):
-                                    timestamp = 0
-
-                                commit = CommitInfo(
-                                    commitId=str(changelist),  # Ensure string type
-                                    committedDate=datetime.fromtimestamp(
-                                        timestamp, tz=timezone.utc
-                                    ),
-                                    commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=author_name,
-                                    commitAuthorEmail=author_email,
-                                )
-
-                                blame_info = FileBlameInfo(
-                                    lineno=file.lineno,
-                                    path=file.path,
-                                    ref=file.ref,
-                                    repo=file.repo,
-                                    code_mapping=file.code_mapping,
-                                    commit=commit,
-                                )
-                                blames.append(blame_info)
-                        except self.P4Exception:
-                            pass
-                except self.P4Exception:
-                    continue
-
-            return blames
-        finally:
-            self._disconnect(p4)
+        return []
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False

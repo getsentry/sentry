@@ -19,7 +19,6 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
-from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +113,6 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration
         """
-        depot_path = data["identifier"]
-
         return {
             "name": depot_path,
             "external_id": data["external_id"],
@@ -215,7 +212,6 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Args:
             changelists: List of changelist dictionaries from P4
             depot_path: Depot path
-            client: Perforce client instance
 
         Returns:
             List of commits in Sentry format
@@ -307,7 +303,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str | None:
         """
         Get URL for pull request.
-        Perforce doesn't have native pull requests.
+        Perforce doesn't have native PRs, but might integrate with Swarm.
         """
         return None
 
