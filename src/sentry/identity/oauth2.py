@@ -246,9 +246,34 @@ class OAuth2LoginView:
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            for param in ("code", "error", "state"):
-                if param in request.GET:
-                    return pipeline.next_step()
+            pipeline_state = pipeline.fetch_state("state")
+            request_state = request.GET.get("state")
+            callback_params_present = any(param in request.GET for param in ("code", "error", "state"))
+
+            if callback_params_present:
+                if not pipeline_state or not request_state:
+                    logger.info(
+                        "identity.oauth-login.missing-state",
+                        extra={
+                            "provider": pipeline.provider.key,
+                            "has_code": "code" in request.GET,
+                            "has_error": "error" in request.GET,
+                            "has_state": bool(request_state),
+                        },
+                    )
+                    return pipeline.error(ERR_INVALID_STATE)
+
+                if not secrets.compare_digest(request_state, pipeline_state):
+                    logger.info(
+                        "identity.oauth-login.state-mismatch",
+                        extra={
+                            "provider": pipeline.provider.key,
+                            "request_state": request_state,
+                        },
+                    )
+                    return pipeline.error(ERR_INVALID_STATE)
+
+                return pipeline.next_step()
 
             state = secrets.token_hex()
 
@@ -354,9 +379,34 @@ class OAuth2CallbackView:
         with record_event(
             IntegrationPipelineViewType.OAUTH_CALLBACK, pipeline.provider.key
         ).capture() as lifecycle:
-            error = request.GET.get("error")
             state = request.GET.get("state")
+            expected_state = pipeline.fetch_state("state")
             code = request.GET.get("code")
+            error = request.GET.get("error")
+
+            if not expected_state or not state:
+                lifecycle.record_failure(
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+                    extra={
+                        "error": "missing_state",
+                        "state": state,
+                        "pipeline_state": expected_state,
+                        "code": code,
+                    },
+                )
+                return pipeline.error(ERR_INVALID_STATE)
+
+            if not secrets.compare_digest(state, expected_state):
+                lifecycle.record_failure(
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+                    extra={
+                        "error": "invalid_state",
+                        "state": state,
+                        "pipeline_state": expected_state,
+                        "code": code,
+                    },
+                )
+                return pipeline.error(ERR_INVALID_STATE)
 
             if error:
                 lifecycle.record_failure(
@@ -364,18 +414,6 @@ class OAuth2CallbackView:
                     extra={"error": error},
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
-
-            if state != pipeline.fetch_state("state"):
-                extra = {
-                    "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
-                }
-                lifecycle.record_failure(
-                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
-                )
-                return pipeline.error(ERR_INVALID_STATE)
 
             if code is None:
                 lifecycle.record_halt(IntegrationPipelineHaltReason.NO_CODE_PROVIDED)

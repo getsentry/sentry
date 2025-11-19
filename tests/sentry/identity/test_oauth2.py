@@ -1,14 +1,17 @@
 from collections import namedtuple
 from functools import cached_property
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
+from sentry.identity import oauth2 as oauth2_module
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
@@ -18,6 +21,23 @@ from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
+
+
+class StubPipeline:
+    def __init__(self, state: str | None = None):
+        self.provider = SimpleNamespace(key="dummy")
+        self.config: dict[str, object] = {}
+        self._state: dict[str, str] = {}
+        if state is not None:
+            self._state["state"] = state
+        self.error = MagicMock(return_value=HttpResponse("error"))
+        self.next_step = MagicMock(return_value=HttpResponse("next"))
+
+    def bind_state(self, key: str, value: str) -> None:
+        self._state[key] = value
+
+    def fetch_state(self, key: str):
+        return self._state.get(key)
 
 
 @control_silo_test
@@ -157,6 +177,41 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    def test_dispatch_requires_state_before_error(self, mock_record: MagicMock) -> None:
+        pipeline = StubPipeline(state="expected-state")
+        request = RequestFactory().get("/?error=boom")
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(oauth2_module.ERR_INVALID_STATE)
+        pipeline.next_step.assert_not_called()
+
+    def test_dispatch_rejects_mismatched_state(self, mock_record: MagicMock) -> None:
+        pipeline = StubPipeline(state="expected-state")
+        request = RequestFactory().get("/?error=boom&state=wrong")
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(oauth2_module.ERR_INVALID_STATE)
+        pipeline.next_step.assert_not_called()
+
+    def test_dispatch_passes_through_error_with_valid_state(self, mock_record: MagicMock) -> None:
+        pipeline = StubPipeline(state="expected-state")
+        request = RequestFactory().get("/?error=boom&state=expected-state")
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once()
+        error_message = pipeline.error.call_args[0][0]
+        assert "boom" in error_message
+        assert error_message.startswith(oauth2_module.ERR_INVALID_STATE)
+        pipeline.next_step.assert_not_called()
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
@@ -209,3 +264,39 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_error_callback_without_state_is_rejected(self) -> None:
+        pipeline = StubPipeline()
+        request = RequestFactory().get("/?error=bad")
+        request.session = Client().session
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(oauth2_module.ERR_INVALID_STATE)
+        pipeline.next_step.assert_not_called()
+
+    def test_error_callback_with_valid_state_advances(self) -> None:
+        pipeline = StubPipeline(state="expected-state")
+        request = RequestFactory().get("/?error=bad&state=expected-state")
+        request.session = Client().session
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.next_step.return_value
+        pipeline.next_step.assert_called_once()
+        pipeline.error.assert_not_called()
+
+    def test_error_callback_with_state_mismatch_is_rejected(self) -> None:
+        pipeline = StubPipeline(state="expected-state")
+        request = RequestFactory().get("/?error=bad&state=wrong")
+        request.session = Client().session
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(oauth2_module.ERR_INVALID_STATE)
+        pipeline.next_step.assert_not_called()
