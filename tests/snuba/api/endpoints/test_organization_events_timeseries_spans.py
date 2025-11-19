@@ -570,7 +570,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             },
         )
         assert response.status_code == 400, response.content
-        assert "OrderBy must also be in the selected columns or groupby" == response.data["detail"]
+        assert "orderby must also be in the selected columns or groupby" == response.data["detail"]
 
     def test_top_events_orderby_is_timestamp(self) -> None:
         response = self._do_request(

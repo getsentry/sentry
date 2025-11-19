@@ -261,10 +261,11 @@ class RPCBase:
         orderby_columns = query.orderby if query.orderby is not None else []
         for orderby_column in orderby_columns:
             stripped_orderby = orderby_column.lstrip("-")
-            if stripped_orderby not in query.selected_columns:
-                raise InvalidSearchQuery("OrderBy must also be in the selected columns or groupby")
             if stripped_orderby in orderby_aliases:
                 resolved_column = orderby_aliases[stripped_orderby]
+            # If this orderby isn't in the aliases, check if its a selected column
+            elif stripped_orderby not in query.selected_columns:
+                raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
             resolved_orderby.append(
