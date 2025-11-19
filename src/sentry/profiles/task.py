@@ -429,8 +429,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile=profile,
                     modules=raw_modules,
                     stacktraces=raw_stacktraces,
-                    # _prepare_frames_from_profile returns frames in the same order
-                    # in which they were stored in the profile, so "caller_first".
+                    # Frames in a profile aren't inherently ordered, and profiling doesn't
+                    # rely on any particular order. Therefore, we arbitrarily
+                    # pick "caller_first" here.
                     frame_order=FrameOrder.caller_first,
                     platform=platform,
                 )
@@ -957,8 +958,9 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                         )
                     },
                 ],
-                # Frames are sent in the same order in which they
-                # were stored in the profile, so "caller_first".
+                # Methods in a profile aren't inherently ordered, and profiling doesn't
+                # rely on any particular order. Therefore, we arbitrarily
+                # pick "caller_first" here.
                 frame_order=FrameOrder.caller_first,
                 platform=profile["platform"],
             )
