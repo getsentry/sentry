@@ -648,6 +648,20 @@ class Quota(Service):
         Removes an assigned seat.
         """
 
+    def remove_seats(
+        self, data_category: DataCategory, seat_objects: Sequence[SeatObject]
+    ) -> None:
+        """
+        Removes assigned seats for a batch of objects.
+
+        The default implementation simply iterates over ``seat_objects`` and calls
+        ``remove_seat`` for each item. Backends that need to perform additional bookkeeping
+        (for example, reducing database queries) can override this method to implement a more
+        efficient bulk removal.
+        """
+        for seat_object in seat_objects:
+            self.remove_seat(data_category, seat_object)
+
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """
         Will return a `PermitCheckInStatus`.

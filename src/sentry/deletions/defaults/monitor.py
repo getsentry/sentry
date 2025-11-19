@@ -1,3 +1,7 @@
+from collections.abc import Sequence
+
+from sentry import quotas
+from sentry.constants import DataCategory
 from sentry.deletions.base import (
     BaseRelation,
     BulkModelDeletionTask,
@@ -17,3 +21,8 @@ class MonitorDeletionTask(ModelDeletionTask[Monitor]):
             ),
             ModelRelation(models.MonitorEnvironment, {"monitor_id": instance.id}),
         ]
+
+    def delete_instance_bulk(self, instance_list: Sequence[Monitor]) -> None:
+        if instance_list:
+            quotas.backend.remove_seats(DataCategory.MONITOR_SEAT, instance_list)
+        super().delete_instance_bulk(instance_list)
