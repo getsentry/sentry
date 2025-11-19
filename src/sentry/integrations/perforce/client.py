@@ -4,6 +4,8 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
+from P4 import P4, P4Exception
+
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
     FileBlameInfo,
@@ -20,27 +22,39 @@ class PerforceClient(RepositoryClient, CommitContextClient):
     """
     Client for interacting with Perforce server.
     Uses P4Python library to execute P4 commands.
+
+    Supports both plaintext and SSL connections. For production use over
+    public internet, SSL is strongly recommended.
     """
 
     def __init__(
         self,
-        host: str | None = None,
-        port: int | str | None = None,
+        p4port: str | None = None,
         user: str | None = None,
         password: str | None = None,
         client: str | None = None,
-        ticket: str | None = None,
+        ssl_fingerprint: str | None = None,
     ):
-        self.ticket = ticket
-        self.host = host or "localhost"
-        self.port = str(port) if port else "1666"
+        """
+        Initialize Perforce client.
+
+        Args:
+            p4port: P4PORT string (e.g., 'ssl:host:port', 'tcp:host:port', or 'host:port')
+            user: Perforce username
+            password: Perforce password OR P4 ticket (both are supported)
+            client: Client/workspace name
+            ssl_fingerprint: SSL trust fingerprint for secure connections
+        """
+        self.p4port = p4port
+        self.ssl_fingerprint = ssl_fingerprint
         self.user = user or ""
         self.password = password
         self.client_name = client
-        self.base_url = f"p4://{self.host}:{self.port}"
+        self.P4 = P4
+        self.P4Exception = P4Exception
 
     def _connect(self):
-        """Create and connect a P4 instance."""
+        """Create and connect a P4 instance with SSL support."""
         pass
 
     def _disconnect(self, p4):
@@ -61,71 +75,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         return None
 
-    def get_file(
-        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
-    ) -> str:
-        """
-        Get file contents from depot.
-
-        Args:
-            repo: Repository object (depot_path includes stream if specified)
-            path: File path
-            ref: Not used (streams are part of depot_path)
-            codeowners: Whether this is a CODEOWNERS file
-
-        Returns:
-            File contents as string
-        """
-        return ""
-
-    def _build_depot_path(self, repo: Repository, path: str, ref: str | None = None) -> str:
-        """
-        Build full depot path from repo config and file path.
-
-        Args:
-            repo: Repository object
-            path: File path (may include @revision syntax like "file.cpp@42")
-            ref: Optional ref/revision (for compatibility, but Perforce uses @revision in path)
-
-        Returns:
-            Full depot path with @revision preserved if present
-        """
-        return ""
-
-    def get_blame(
-        self, repo: Repository, path: str, ref: str | None = None, lineno: int | None = None
-    ) -> list[dict[str, Any]]:
-        """
-        Get blame/annotate information for a file (like git blame).
-
-        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
-        Returns the most recent changelist that modified the file and its author.
-        This is used for CODEOWNERS-style ownership detection.
-
-        Args:
-            repo: Repository object (depot_path includes stream if specified)
-            path: File path relative to depot (may include @revision like "file.cpp@42")
-            ref: Optional revision/changelist number (appended as @ref if not in path)
-            lineno: Specific line number to blame (optional, currently ignored)
-
-        Returns:
-            List with a single entry containing:
-            - changelist: changelist number
-            - user: username who made the change
-            - date: date of change
-            - description: changelist description
-        """
-        return []
-
-    def get_depot_info(self) -> dict[str, Any]:
-        """
-        Get server info for testing connection.
-
-        Returns:
-            Server info dictionary
-        """
-        return {}
-
     def get_depots(self) -> list[dict[str, Any]]:
         """
         List all depots accessible to the user.
@@ -133,7 +82,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of depot info dictionaries
         """
-        return []
+        return None
 
     def get_changes(
         self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
@@ -149,7 +98,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of changelist dictionaries
         """
-        return []
+        return None
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -165,7 +114,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return []
+        return None
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """Create comment. Not applicable for Perforce."""

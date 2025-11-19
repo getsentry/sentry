@@ -33,7 +33,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration dictionary
         """
-        return {}
+        return None
 
     def build_repository_config(
         self, organization: RpcOrganization, data: dict[str, Any]
@@ -48,7 +48,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration
         """
-        raise NotImplementedError
+        return None
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
@@ -64,7 +64,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of changelist dictionaries
         """
-        return []
+        return None
 
     def _format_commits(
         self, changelists: list[dict[str, Any]], depot_path: str
@@ -79,7 +79,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of commits in Sentry format
         """
-        return []
+        return None
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
@@ -90,4 +90,4 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""
-        return ""
+        return repo.config.get("depot_path", repo.name)

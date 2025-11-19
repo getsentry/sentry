@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
@@ -28,16 +28,15 @@ logger = logging.getLogger(__name__)
 DESCRIPTION = """
 Connect your Sentry organization to your Perforce/Helix Core server to enable
 stacktrace linking, commit tracking, suspect commit detection, and code ownership.
-View source code directly from error stack traces, identify suspect commits that
-may have introduced issues, and automatically determine code owners using Perforce
-annotate (blame) information.
+View source code directly from error stack traces and identify suspect commits that
+may have introduced issues.
 """
 
 FEATURES = [
     FeatureDescription(
         """
         Link your Sentry stack traces back to your Perforce depot files with support
-        for P4Web and Helix Swarm web viewers. Automatically maps error locations to
+        for Helix Swarm web viewer. Automatically maps error locations to
         source code using configurable code mappings.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
@@ -50,14 +49,6 @@ FEATURES = [
         modified the code where errors occur.
         """,
         IntegrationFeatures.COMMITS,
-    ),
-    FeatureDescription(
-        """
-        Import your Perforce CODEOWNERS file and use it alongside your ownership rules
-        to assign Sentry issues. Uses Perforce annotate to identify code owners based
-        on who last modified each line.
-        """,
-        IntegrationFeatures.CODEOWNERS,
     ),
 ]
 
@@ -82,7 +73,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     """
 
     integration_name = "perforce"
-    codeowners_locations = ["CODEOWNERS", ".perforce/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(
         self,
@@ -94,7 +84,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
-        raise NotImplementedError
+        return None
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         """
@@ -107,30 +97,11 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """Check if URL is from this Perforce server."""
         return False
 
-    def matches_repository_depot_path(self, repo: Repository, filepath: str) -> bool:
-        """
-        Check if a file path matches this repository's depot path.
-
-        When SRCSRV transformers remap paths to absolute depot paths (e.g.,
-        //depot/project/src/file.cpp), this method verifies that the depot path
-        matches the repository's configured depot_path.
-
-        Args:
-            repo: Repository object
-            filepath: File path (may be absolute depot path or relative path)
-
-        Returns:
-            True if the filepath matches this repository's depot
-        """
-        return False
-
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
-        Check if a filepath belongs to this Perforce repository and return the URL.
+        Check if a file exists in the Perforce depot and return the URL.
 
-        Perforce doesn't have a REST API to check file existence, so we just
-        verify the filepath matches the depot_path configuration and return
-        the formatted URL.
+        Uses the client's check_file method to verify file existence on the P4 server.
 
         Args:
             repo: Repository object
@@ -138,7 +109,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             branch: Branch/stream name (optional)
 
         Returns:
-            Formatted URL if the filepath matches this repository, None otherwise
+            Formatted URL if the file exists, None otherwise
         """
         return None
 
@@ -147,16 +118,16 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Format source URL for stacktrace linking.
 
         The Symbolic transformer includes revision info directly in the filepath
-        using Perforce's native @revision syntax (e.g., "processor.cpp@42").
+        using Perforce's file revision syntax (e.g., "processor.cpp#1").
 
         Args:
             repo: Repository object
-            filepath: File path, may include @revision (e.g., "app/file.cpp@42")
+            filepath: File path, may include #revision (e.g., "app/file.cpp#1")
             branch: Stream name (e.g., "main", "dev") to be inserted after depot path.
                    For Perforce streams: //depot/stream/path/to/file
 
         Returns:
-            Formatted URL (p4:// or web viewer URL)
+            Formatted URL (p4:// or Swarm web viewer URL)
         """
         return ""
 
@@ -189,7 +160,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Returns:
             List of repository dictionaries
         """
-        return []
+        return None
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Check if integration can access the depot."""
@@ -199,29 +170,61 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """Get repositories that can't be migrated. Perforce doesn't need migration."""
         return []
 
-    def test_connection(self) -> dict[str, Any]:
-        """
-        Test the Perforce connection with current credentials.
-
-        Returns:
-            Dictionary with connection status and server info
-        """
-        return {}
-
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.
         These fields will be displayed in the integration settings UI.
         """
-        return []
-
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """
-        Update organization config and optionally validate credentials.
-        Only tests connection when password or ticket is changed to avoid annoying
-        validations on every field blur.
-        """
-        pass
+        return [
+            {
+                "name": "p4port",
+                "type": "string",
+                "label": "P4PORT (Server Address)",
+                "placeholder": "ssl:perforce.company.com:1666",
+                "help": "Perforce server address in P4PORT format. Examples: 'ssl:perforce.company.com:1666' (encrypted), 'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). SSL is strongly recommended for production use.",
+                "required": True,
+            },
+            {
+                "name": "user",
+                "type": "string",
+                "label": "Perforce Username",
+                "placeholder": "sentry-bot",
+                "help": "Username for authenticating with Perforce. Required for both password and ticket authentication.",
+                "required": True,
+            },
+            {
+                "name": "password",
+                "type": "secret",
+                "label": "Password or P4 Ticket",
+                "placeholder": "••••••••",
+                "help": "Perforce password OR P4 authentication ticket. Tickets are obtained via 'p4 login -p' and are more secure than passwords. Both are supported in this field.",
+                "required": True,
+            },
+            {
+                "name": "ssl_fingerprint",
+                "type": "string",
+                "label": "SSL Fingerprint (Required for SSL)",
+                "placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
+                "help": "SSL fingerprint for secure connections. Required when using 'ssl:' protocol. Obtain with: p4 -p ssl:host:port trust -y",
+                "required": False,
+            },
+            {
+                "name": "client",
+                "type": "string",
+                "label": "Perforce Client/Workspace (Optional)",
+                "placeholder": "sentry-workspace",
+                "help": "Optional: Specify a client workspace name",
+                "required": False,
+            },
+            {
+                "name": "web_url",
+                "type": "string",
+                "label": "Helix Swarm URL (Optional)",
+                "placeholder": "https://swarm.company.com",
+                "help": "Optional: URL to Helix Swarm web viewer for browsing files",
+                "required": False,
+            },
+        ]
 
 
 class PerforceIntegrationProvider(IntegrationProvider):
@@ -235,9 +238,9 @@ class PerforceIntegrationProvider(IntegrationProvider):
         [
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.COMMITS,
-            IntegrationFeatures.CODEOWNERS,
         ]
     )
+    requires_feature_flag = True
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         """Get pipeline views for installation flow."""
@@ -253,7 +256,22 @@ class PerforceIntegrationProvider(IntegrationProvider):
         Returns:
             Integration data dictionary
         """
-        return {"external_id": ""}
+        # Use p4port if available, otherwise fall back to host:port for legacy
+        p4port = (
+            state.get("p4port") or f"{state.get('host', 'localhost')}:{state.get('port', '1666')}"
+        )
+
+        return {
+            "name": state.get("name", f"Perforce ({p4port})"),
+            "external_id": p4port,
+            "metadata": {
+                "p4port": p4port,
+                "user": state.get("user"),
+                "password": state.get("password"),
+                "client": state.get("client"),
+                "web_url": state.get("web_url"),
+            },
+        }
 
     def post_install(
         self,
@@ -267,7 +285,15 @@ class PerforceIntegrationProvider(IntegrationProvider):
 
     def setup(self) -> None:
         """Setup integration provider."""
-        pass
+        from sentry.plugins.base import bindings
+
+        from .repository import PerforceRepositoryProvider
+
+        bindings.add(
+            "integration-repository.provider",
+            PerforceRepositoryProvider,
+            id="integrations:perforce",
+        )
 
 
 class PerforceInstallationView:
@@ -281,9 +307,8 @@ class PerforceInstallationView:
     def dispatch(self, request, pipeline):
         """
         Handle installation request.
-
-        Since Perforce doesn't use OAuth and configuration is done through
-        the Settings form, we just pass through to create the integration.
-        Users will configure P4 server details in the Settings tab.
+        Args:
+            request: HTTP request object
+            pipeline: Installation pipeline
         """
-        pass
+        return pipeline.next_step()
