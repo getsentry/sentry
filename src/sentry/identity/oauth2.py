@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from time import time
 from typing import Any
@@ -34,6 +35,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import to_single_line_str, truncatechars
 
 from .base import Provider
 
@@ -42,6 +44,23 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]")
+_MAX_PROVIDER_ERROR_LENGTH = 256
+
+
+def _sanitize_provider_error_message(raw_error: Any) -> str:
+    """
+    Collapse control characters and multi-line payloads from untrusted provider errors so they can
+    be safely surfaced in logs and the pipeline error template.
+    """
+
+    if raw_error is None:
+        return ""
+
+    error = str(raw_error)
+    error = _CONTROL_CHAR_RE.sub(" ", error)
+    error = to_single_line_str(error)
+    return truncatechars(error, _MAX_PROVIDER_ERROR_LENGTH) or ""
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +378,17 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = _sanitize_provider_error_message(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                error_message = (
+                    f"{ERR_INVALID_STATE}\nError: {sanitized_error}"
+                    if sanitized_error
+                    else ERR_INVALID_STATE
+                )
+                return pipeline.error(error_message)
 
             if state != pipeline.fetch_state("state"):
                 extra = {
@@ -386,12 +411,18 @@ class OAuth2CallbackView:
 
         # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
-            error = data.get("error")
-            return pipeline.error(data["error_description"])
+            sanitized_description = _sanitize_provider_error_message(data.get("error_description"))
+            return pipeline.error(sanitized_description or ERR_TOKEN_RETRIEVAL)
 
         if "error" in data:
-            logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
+            sanitized_error = _sanitize_provider_error_message(data["error"])
+            logger.info("identity.token-exchange-error", extra={"error": sanitized_error})
+            error_message = (
+                f"{ERR_TOKEN_RETRIEVAL}\nError: {sanitized_error}"
+                if sanitized_error
+                else ERR_TOKEN_RETRIEVAL
+            )
+            return pipeline.error(error_message)
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
