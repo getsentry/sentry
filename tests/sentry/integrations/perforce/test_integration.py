@@ -62,12 +62,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_format_source_url_with_revision_in_filename(self):
         """
         Test formatting URL with revision in filename (from Symbolic transformer).
-        Perforce uses @ for revisions, which should be preserved.
+        Perforce uses # for file revisions, which should be preserved.
         """
         url = self.installation.format_source_url(
-            repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
+            repo=self.repo, filepath="app/services/processor.cpp#1", branch=None
         )
-        assert url == "p4://depot/app/services/processor.cpp@42"
+        assert url == "p4://depot/app/services/processor.cpp#1"
 
     def test_format_source_url_swarm_viewer(self):
         """Test formatting URL for Swarm viewer with revision"""
@@ -87,9 +87,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
         url = installation.format_source_url(
-            repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
+            repo=self.repo, filepath="app/services/processor.cpp#1", branch=None
         )
-        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp?v=42"
+        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp?v=1"
 
     def test_format_source_url_swarm_viewer_no_revision(self):
         """Test formatting URL for Swarm viewer without revision"""
@@ -198,41 +198,41 @@ class PerforceIntegrationTest(IntegrationTestCase):
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_with_revision_syntax_absolute(self, mock_check_file):
-        """Test check_file with @revision syntax on absolute path"""
+        """Test check_file with #revision syntax on absolute path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp@42")
+        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp#1")
         assert result is not None
-        assert "@42" in result
+        assert "#1" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_with_revision_syntax_depot_name(self, mock_check_file):
-        """Test check_file with @revision syntax on path with depot name"""
+        """Test check_file with #revision syntax on path with depot name"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp@42")
+        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp#1")
         assert result is not None
-        assert "@42" in result
+        assert "#1" in result
         assert "depot/depot" not in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_with_revision_syntax_relative(self, mock_check_file):
-        """Test check_file with @revision syntax on relative path"""
+        """Test check_file with #revision syntax on relative path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "app/services/processor.cpp@42")
+        result = self.installation.check_file(self.repo, "app/services/processor.cpp#1")
         assert result is not None
-        assert "@42" in result
+        assert "#1" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_get_stacktrace_link(self, mock_check_file):
         """Test get_stacktrace_link returns format_source_url result"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        filepath = "app/services/processor.cpp@42"
+        filepath = "app/services/processor.cpp#1"
         default_branch = ""  # Perforce doesn't require default_branch (used for streams)
         version = None
 
         url = self.installation.get_stacktrace_link(self.repo, filepath, default_branch, version)
-        # URL will be encoded by get_stacktrace_link
-        assert url == "p4://depot/app/services/processor.cpp%4042"
-        assert "%40" in url  # @ gets URL-encoded to %40
+        # The # character is preserved as-is (not URL-encoded in this method)
+        assert url == "p4://depot/app/services/processor.cpp#1"
+        assert "#1" in url
 
     def test_integration_name(self):
         """Test integration has correct name"""
@@ -283,18 +283,18 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
 
     def test_format_source_url_preserves_revision_in_filename(self):
         """
-        Test that @revision syntax in filename is preserved.
+        Test that #revision syntax in filename is preserved.
         This tests the Symbolic transformer output format.
         """
         # This is what Symbolic transformer outputs
-        symbolic_path = "app/services/processor.cpp@42"
+        symbolic_path = "app/services/processor.cpp#1"
 
         url = self.installation.format_source_url(
             repo=self.repo, filepath=symbolic_path, branch=None
         )
 
-        # The @42 should be preserved in the path
-        assert url == "p4://depot/app/services/processor.cpp@42"
+        # The #1 should be preserved in the path
+        assert url == "p4://depot/app/services/processor.cpp#1"
 
     def test_format_source_url_python_path_without_revision(self):
         """Test Python SDK paths without revision"""
@@ -400,7 +400,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
         )
 
     def test_swarm_extracts_revision_from_filename(self):
-        """Test Swarm viewer correctly extracts and formats revision from @revision syntax"""
+        """Test Swarm viewer correctly extracts and formats revision from #revision syntax"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
             provider="perforce",
@@ -418,8 +418,8 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
 
         # Filename with revision
         url = installation.format_source_url(
-            repo=self.repo, filepath="game/src/main.cpp@42", branch=None
+            repo=self.repo, filepath="game/src/main.cpp#1", branch=None
         )
 
-        # Should extract @42 and use it as v parameter
-        assert url == "https://swarm.example.com/files//depot/game/src/main.cpp?v=42"
+        # Should extract #1 and use it as v parameter
+        assert url == "https://swarm.example.com/files//depot/game/src/main.cpp?v=1"

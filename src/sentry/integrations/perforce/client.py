@@ -145,17 +145,18 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             repo: Repository object
-            path: File path (may include @revision syntax like "file.cpp@42")
+            path: File path (may include #revision for file revisions like "file.cpp#1")
             branch: Optional branch/stream name to insert after depot (e.g., "main", "dev")
 
         Returns:
-            Full depot path with @revision preserved if present
+            Full depot path with #revision preserved if present
         """
-        # Extract revision if present
+        # Extract file revision if present (# syntax only)
         revision = None
         path_without_rev = path
-        if "@" in path:
-            path_without_rev, revision = path.rsplit("@", 1)
+
+        if "#" in path:
+            path_without_rev, revision = path.rsplit("#", 1)
 
         # If already absolute depot path, use as-is
         if path_without_rev.startswith("//"):
@@ -183,9 +184,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             else:
                 full_path = f"{depot_root}/{path_without_rev}"
 
-        # Add revision back if present
+        # Add file revision back if present
         if revision:
-            full_path = f"{full_path}@{revision}"
+            full_path = f"{full_path}#{revision}"
 
         return full_path
 
