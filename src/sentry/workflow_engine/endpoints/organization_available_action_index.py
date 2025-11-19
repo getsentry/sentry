@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
@@ -77,19 +78,29 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                 AvailableIntegration(integration=integration, services=services)
             )
 
-        sentry_app_component_contexts = app_service.get_installation_component_contexts(
+        all_sentry_app_contexts = app_service.get_installation_component_contexts(
             filter={"organization_id": organization.id},
             component_type="alert-rule-action",
             include_contexts_without_component=True,
         )
 
-        # Split contexts into those with and without components
-        sentry_app_contexts_with_components = [
-            context for context in sentry_app_component_contexts if context.component
-        ]
-        sentry_app_contexts_without_components = [
-            context for context in sentry_app_component_contexts if not context.component
-        ]
+        # filter for alertable apps and split contexts into those with and without components
+        alertable_apps_with_components = []
+        alertable_apps_without_components = []
+        for context in all_sentry_app_contexts:
+            if not context.installation.sentry_app.is_alertable:
+                continue
+
+            if context.component:
+                # filter out broken apps by checking if prepare_ui_component succeeds
+                prepared_component = prepare_ui_component(
+                    installation=context.installation,
+                    component=context.component,
+                )
+                if prepared_component is not None:
+                    alertable_apps_with_components.append(context)
+            else:
+                alertable_apps_without_components.append(context)
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
@@ -112,19 +123,18 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                     )
 
             # add alertable sentry app actions
-            # sentry app actions are only for sentry apps with components
+            # sentry app actions are only for alertable sentry apps with components
             elif action_type == Action.Type.SENTRY_APP:
-                for context in sentry_app_contexts_with_components:
-                    if context.installation.sentry_app.is_alertable:
-                        actions.append(
-                            serialize(
-                                handler,
-                                request.user,
-                                ActionHandlerSerializer(),
-                                action_type=action_type,
-                                sentry_app_context=context,
-                            )
+                for context in alertable_apps_with_components:
+                    actions.append(
+                        serialize(
+                            handler,
+                            request.user,
+                            ActionHandlerSerializer(),
+                            action_type=action_type,
+                            sentry_app_context=context,
                         )
+                    )
 
             # add webhook action
             # service options include plugins and sentry apps without components
@@ -132,7 +142,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                 plugins = get_notification_plugins_for_org(organization)
                 sentry_apps: list[PluginService] = [
                     SentryAppService(context.installation.sentry_app)
-                    for context in sentry_app_contexts_without_components
+                    for context in alertable_apps_without_components
                 ]
                 available_services: list[PluginService] = plugins + sentry_apps
 

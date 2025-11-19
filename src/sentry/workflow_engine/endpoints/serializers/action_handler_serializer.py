@@ -3,7 +3,6 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
-from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.workflow_engine.types import ActionHandler
 
 
@@ -76,16 +75,9 @@ class ActionHandlerSerializer(Serializer):
                 "status": installation.sentry_app.status,
             }
             if component:
-                prepared_component = prepare_ui_component(
-                    installation=installation,
-                    component=component,
-                    project_slug=None,
-                    values=None,
-                )
-                if prepared_component:
-                    sentry_app["settings"] = prepared_component.app_schema.get("settings", {})
-                    if prepared_component.app_schema.get("title"):
-                        sentry_app["title"] = prepared_component.app_schema.get("title")
+                sentry_app["settings"] = component.app_schema.get("settings", {})
+                if component.app_schema.get("title"):
+                    sentry_app["title"] = component.app_schema.get("title")
             result["sentryApp"] = sentry_app
 
         services = kwargs.get("services")
