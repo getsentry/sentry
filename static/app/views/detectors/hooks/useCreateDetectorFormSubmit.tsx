@@ -7,8 +7,10 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
@@ -44,6 +46,11 @@ export function useCreateDetectorFormSubmit<
         const payload = formDataToEndpointPayload(data as TFormData);
         const resultDetector = await createDetector(payload);
 
+        trackAnalytics('monitor.created', {
+          organization,
+          ...getDetectorAnalyticsPayload(resultDetector),
+        });
+
         addSuccessMessage(t('Monitor created successfully'));
 
         if (onSuccess) {
@@ -66,7 +73,7 @@ export function useCreateDetectorFormSubmit<
     [
       formDataToEndpointPayload,
       createDetector,
-      organization.slug,
+      organization,
       navigate,
       onSuccess,
       onError,
