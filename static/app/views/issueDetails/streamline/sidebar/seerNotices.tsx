@@ -536,7 +536,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        to="/settings/integrations/cursor/"
+                        href="/settings/integrations/cursor/"
                         size="sm"
                         priority="primary"
                       >
