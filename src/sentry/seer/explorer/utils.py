@@ -48,8 +48,9 @@ def normalize_description(description: str) -> str:
 
 def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     """
-    Converts profile data into a hierarchical representation of code execution,
-    including only items from the MainThread and app frames.
+    Converts profile data into a hierarchical representation of code execution.
+    Selects the thread with the most in_app frames, or falls back to MainThread if no
+    in_app frames exist (showing all frames including system frames).
     Calculates accurate durations for all nodes based on call stack transitions.
     """
     profile = profile_data.get(
@@ -65,15 +66,55 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
+    thread_metadata = profile.get("thread_metadata", {})
     if not all([frames, stacks, samples]):
         return []
 
-    # Use the thread ID from the first sample as this should be the one with the most application logic
-    if samples:
-        main_thread_id = str(samples[0]["thread_id"])
+    # Count in_app frames per thread
+    thread_in_app_counts: dict[str, int] = {}
+    for sample in samples:
+        thread_id = str(sample["thread_id"])
+        if thread_id not in thread_in_app_counts:
+            thread_in_app_counts[thread_id] = 0
+
+        stack_index = sample.get("stack_id")
+        if stack_index is not None and stack_index < len(stacks):
+            frame_indices = stacks[stack_index]
+            for idx in frame_indices:
+                if idx < len(frames) and frames[idx].get("in_app", False):
+                    thread_in_app_counts[thread_id] += 1
+
+    # Select thread with most in_app frames
+    selected_thread_id: str | None = None
+    max_in_app_count = max(thread_in_app_counts.values()) if thread_in_app_counts else 0
+
+    if max_in_app_count > 0:
+        # Find thread with most in_app frames
+        for thread_id, count in thread_in_app_counts.items():
+            if count == max_in_app_count:
+                selected_thread_id = thread_id
+                break
+        show_all_frames = False
     else:
-        # No samples - can't determine thread
-        main_thread_id = None
+        # No in_app frames found, try to find MainThread
+        main_thread_id_from_metadata = None
+        for thread_id, metadata in thread_metadata.items():
+            thread_name = metadata.get("name", "")
+            if thread_name == "MainThread":
+                main_thread_id_from_metadata = str(thread_id)
+                break
+
+        if main_thread_id_from_metadata:
+            selected_thread_id = main_thread_id_from_metadata
+        elif samples:
+            # Fall back to first sample's thread
+            selected_thread_id = str(samples[0]["thread_id"])
+        else:
+            selected_thread_id = None
+
+        show_all_frames = (
+            True  # Show all frames including system frames when no in_app frames exist
+        )
 
     def _get_elapsed_since_start_ns(
         sample: dict[str, Any], all_samples: list[dict[str, Any]]
@@ -139,23 +180,44 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         parent["children"].append(frame_data)
         return frame_data
 
-    def process_stack(stack_index):
-        """Extract app frames from a stack trace"""
+    def process_stack(stack_index: int, include_all_frames: bool = False) -> list[dict[str, Any]]:
+        """Extract frames from a stack trace.
+
+        Args:
+            stack_index: Index into the stacks array
+            include_all_frames: If True, include all frames (including system frames).
+                               If False, only include in_app frames.
+        """
         frame_indices = stacks[stack_index]
         if not frame_indices:
             return []
 
-        # Create nodes for app frames only, maintaining order (bottom to top)
+        # Create nodes for frames, maintaining order (bottom to top)
         nodes = []
         for idx in reversed(frame_indices):
+            if idx >= len(frames):
+                continue
             frame = frames[idx]
-            if frame.get("in_app", False) and not (
-                frame.get("filename", "").startswith("<")
-                and frame.get("filename", "").endswith(">")
-            ):
-                nodes.append(create_frame_node(idx))
+
+            if include_all_frames:
+                # Include all frames except those with <filename> format
+                if not (
+                    frame.get("filename", "").startswith("<")
+                    and frame.get("filename", "").endswith(">")
+                ):
+                    nodes.append(create_frame_node(idx))
+            else:
+                # Include only in_app frames
+                if frame.get("in_app", False) and not (
+                    frame.get("filename", "").startswith("<")
+                    and frame.get("filename", "").endswith(">")
+                ):
+                    nodes.append(create_frame_node(idx))
 
         return nodes
+
+    if not selected_thread_id:
+        return []
 
     # Build the execution tree and track call stacks
     execution_tree: list[dict[str, Any]] = []
@@ -163,11 +225,11 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
 
     for sample in sorted_samples:
-        if str(sample["thread_id"]) != str(main_thread_id):
+        if str(sample["thread_id"]) != selected_thread_id:
             continue
 
         timestamp_ns = _get_elapsed_since_start_ns(sample, sorted_samples)
-        stack_frames = process_stack(sample["stack_id"])
+        stack_frames = process_stack(sample["stack_id"], include_all_frames=show_all_frames)
         if not stack_frames:
             continue
 
@@ -302,8 +364,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
 
 def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeNode]:
     """
-    Converts profile data into a hierarchical representation of code execution,
-    including only items from the MainThread and app frames.
+    Converts profile data into a hierarchical representation of code execution.
+    Selects the thread with the most in_app frames, or falls back to MainThread if no
+    in_app frames exist (showing all frames including system frames).
     Calculates accurate durations for all nodes based on call stack transitions.
     """
     dict_tree = _convert_profile_to_execution_tree(profile_data)
