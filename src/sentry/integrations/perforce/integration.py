@@ -84,7 +84,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
-        return None
+        if self._client is None:
+            self._client = PerforceClient()
+        return self._client
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         """
@@ -160,7 +162,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         Returns:
             List of repository dictionaries
         """
-        return None
+        return []
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Check if integration can access the depot."""

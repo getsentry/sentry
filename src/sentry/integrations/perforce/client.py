@@ -82,7 +82,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of depot info dictionaries
         """
-        return None
+        return []
 
     def get_changes(
         self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
@@ -98,7 +98,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of changelist dictionaries
         """
-        return None
+        return []
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -114,7 +114,16 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return None
+        return []
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        """
+        Get file contents from Perforce depot.
+        Required by abstract base class but not used (CODEOWNERS feature removed).
+        """
+        raise NotImplementedError("get_file is not supported for Perforce")
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """Create comment. Not applicable for Perforce."""

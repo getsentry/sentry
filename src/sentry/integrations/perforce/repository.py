@@ -33,7 +33,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration dictionary
         """
-        return None
+        return {}
 
     def build_repository_config(
         self, organization: RpcOrganization, data: dict[str, Any]
@@ -48,7 +48,13 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration
         """
-        return None
+        return {
+            "name": "",
+            "external_id": "",
+            "url": "",
+            "config": {},
+            "integration_id": 0,
+        }
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
@@ -64,7 +70,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of changelist dictionaries
         """
-        return None
+        return []
 
     def _format_commits(
         self, changelists: list[dict[str, Any]], depot_path: str
@@ -79,7 +85,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of commits in Sentry format
         """
-        return None
+        return []
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
