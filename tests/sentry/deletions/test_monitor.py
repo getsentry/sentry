@@ -1,3 +1,6 @@
+from unittest import mock
+
+from sentry.constants import DataCategory
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -46,3 +49,22 @@ class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         # Shared objects should continue to exist.
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
+
+    @mock.patch("sentry.deletions.defaults.monitor.quotas.backend.remove_seats")
+    def test_removes_monitor_seats_before_delete(self, mock_remove_seats: mock.MagicMock) -> None:
+        project = self.create_project(name="with-seats")
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        mock_remove_seats.assert_called_once()
+        args, _ = mock_remove_seats.call_args
+        assert args[0] == DataCategory.MONITOR_SEAT
+        assert list(args[1]) == [monitor]
