@@ -63,6 +63,7 @@ class CursorAgentClient(CodingAgentClient):
             },
             data=payload.dict(exclude_none=True),
             json=True,
+            timeout=60,
         )
 
         launch_response = CursorAgentLaunchResponse.validate(api_response.json)

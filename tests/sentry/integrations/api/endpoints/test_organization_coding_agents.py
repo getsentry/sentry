@@ -1236,4 +1236,4 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
-            assert response.data["detail"] == "No prompt to send to agents."
+            assert response.data["detail"] == "Issue fetching prompt to send to coding agents."
