@@ -140,7 +140,6 @@ type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
 function Region<Value extends SelectKey>({
   options,
   value,
-  defaultValue,
   onChange,
   multiple,
   disallowEmptySelection,
@@ -158,7 +157,6 @@ function Region<Value extends SelectKey>({
       return {
         multiple,
         value,
-        defaultValue,
         closeOnSelect,
         onChange,
       };
@@ -166,11 +164,10 @@ function Region<Value extends SelectKey>({
     return {
       multiple,
       value,
-      defaultValue,
       closeOnSelect,
       onChange,
     };
-  }, [multiple, value, defaultValue, onChange, closeOnSelect]);
+  }, [multiple, value, onChange, closeOnSelect]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
