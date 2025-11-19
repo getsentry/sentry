@@ -5,10 +5,15 @@ import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    KeyValue,
+    KeyValueList,
+    TraceItem,
+)
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-from sentry.utils import metrics
 
 I64_MAX = 2**63 - 1
 
@@ -127,7 +132,9 @@ def _anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, list):
         return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
     elif isinstance(value, dict):
-        return AnyValue(string_value=orjson.dumps(value).decode())
+        return AnyValue(
+            kvlist_value=KeyValueList(values=[KeyValue(key=k, value=v) for k, v in value.items()])
+        )
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
