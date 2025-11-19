@@ -26,7 +26,10 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
     ),
     defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => !hasFeatureFlag || !access.has('org:write'),
-    getValue: value => !value,
+    getValue: value => {
+      // Reversing value because the field was previously called hideAiFeatures and we've inverted the behavior.
+      return !value;
+    },
     setValue: value => {
       if (!hasFeatureFlag) {
         return false;

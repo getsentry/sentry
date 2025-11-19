@@ -58,11 +58,5 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       return model.initialData.hideAiFeatures === true;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
-    setValue: value => {
-      if (!hasFeatureFlag) {
-        return false;
-      }
-      return value;
-    },
   };
 };

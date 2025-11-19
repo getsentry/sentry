@@ -430,39 +430,6 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('shows as unchecked when feature flag is off even if org setting is true', () => {
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
-        name: 'us',
-        displayName: 'United States of America (US)',
-        url: 'https://sentry.example.com',
-      });
-
-      render(
-        <OrganizationSettingsForm
-          {...routerProps}
-          initialData={OrganizationFixture({
-            hideAiFeatures: true,
-            enablePrReviewTestGeneration: true, // Org setting is true
-          })}
-          onSave={onSave}
-        />,
-        {
-          organization: {
-            ...organization,
-            features: [], // No gen-ai-features flag
-          },
-        }
-      );
-
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
-      // The checkbox should be unchecked even though the org value is true
-      expect(preventAiField).not.toBeChecked();
-    });
-
     it('is disabled when non US region', async () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'de',
