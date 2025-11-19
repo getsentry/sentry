@@ -1295,15 +1295,12 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic items', () => {
-      it('will suggest logic items when typing its value and not on first input', async () => {
-        render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />,
-          {
-            organization: {
-              features: ['search-query-builder-conditionals-combobox-menus'],
-            },
-          }
-        );
+      it('will suggest logic items when typing its value', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {
+            features: ['search-query-builder-conditionals-combobox-menus'],
+          },
+        });
         await userEvent.click(getLastInput());
 
         await userEvent.type(getLastInput(), 'and');
@@ -1319,29 +1316,6 @@ describe('SearchQueryBuilder', () => {
           name: 'OR',
         });
         expect(orSuggestionItem).toBeInTheDocument();
-      });
-
-      it('will not suggest logic items when typing its value on first input', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {
-            features: ['search-query-builder-conditionals-combobox-menus'],
-          },
-        });
-        await userEvent.click(getLastInput());
-
-        await userEvent.type(getLastInput(), 'and');
-        const andSuggestionItem = screen.queryByRole('option', {
-          name: 'AND',
-        });
-        expect(andSuggestionItem).not.toBeInTheDocument();
-
-        await userEvent.clear(getLastInput());
-
-        await userEvent.type(getLastInput(), 'or');
-        const orSuggestionItem = screen.queryByRole('option', {
-          name: 'OR',
-        });
-        expect(orSuggestionItem).not.toBeInTheDocument();
       });
     });
   });
