@@ -183,6 +183,49 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
         return commits
 
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
+        """
+        Compare commits (changelists) between two versions.
+
+        Used for release tracking when users manually specify changelist numbers.
+
+        Args:
+            repo: Repository instance
+            start_sha: Starting changelist number (or None for initial)
+            end_sha: Ending changelist number
+
+        Returns:
+            List of changelist dictionaries in Sentry commit format
+        """
+        integration_id = repo.integration_id
+        if integration_id is None:
+            raise NotImplementedError("Perforce integration requires an integration_id")
+
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            raise NotImplementedError("Integration not found")
+
+        installation = integration.get_installation(organization_id=repo.organization_id)
+        client = installation.get_client()
+
+        depot_path = repo.config.get("depot_path", repo.name)
+
+        try:
+            # Get changelists in range (start_sha, end_sha]
+            changes = client.get_changes(
+                f"{depot_path}/...",
+                max_changes=20,
+                start_cl=start_sha,
+                end_cl=end_sha,
+            )
+
+            return self._format_commits(changes, depot_path, client)
+
+        except Exception:
+            return []
+
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
         Get URL for pull request.

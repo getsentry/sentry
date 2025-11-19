@@ -296,7 +296,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             return None
 
     def get_changes(
-        self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
+        self,
+        depot_path: str,
+        max_changes: int = 20,
+        start_cl: str | None = None,
+        end_cl: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Get changelists for a depot path.
@@ -306,22 +310,41 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
-            max_changes: Maximum number of changes to return
-            start_cl: Starting changelist number
+            max_changes: Maximum number of changes to return when start_cl/end_cl not specified
+            start_cl: Starting changelist number (exclusive) - returns changes > start_cl
+            end_cl: Ending changelist number (inclusive) - returns changes <= end_cl
 
         Returns:
-            List of changelist dictionaries
+            List of changelist dictionaries in range (start_cl, end_cl]
         """
         p4 = self._connect()
         try:
-            args = ["-m", str(max_changes), "-l"]
+            # Calculate how many changes to fetch based on range
+            if start_cl and end_cl:
+                start_cl_num = int(start_cl) if start_cl.isdigit() else 0
+                end_cl_num = int(end_cl) if end_cl.isdigit() else 0
+                # Fetch enough to cover the range, adding buffer for safety
+                range_size = abs(end_cl_num - start_cl_num) + 10
+                fetch_limit = max(range_size, max_changes)
+            else:
+                fetch_limit = max_changes
 
+            args = ["-m", str(fetch_limit), "-l"]
+
+            # P4 -e flag: return changes >= specified changelist (above and including)
+            # Use start_cl + 1 to get exclusive start (changes > start_cl)
             if start_cl:
-                args.extend(["-e", start_cl])
+                start_cl_num = int(start_cl) if start_cl.isdigit() else 0
+                args.extend(["-e", str(start_cl_num + 1)])
 
             args.append(depot_path)
 
             changes = p4.run("changes", *args)
+
+            # Client-side filter for end_cl (inclusive upper bound)
+            if end_cl and end_cl.isdigit():
+                end_cl_num = int(end_cl)
+                changes = [c for c in changes if c.get("change") and int(c["change"]) <= end_cl_num]
 
             return [
                 {
