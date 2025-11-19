@@ -19,12 +19,12 @@ export interface TraceMetric {
   type: string;
 }
 
-function isTraceMetric(value: any): value is TraceMetric {
-  if (!defined(value) || typeof value !== 'object') {
+function isTraceMetric(value: unknown): value is TraceMetric {
+  if (value === null || !defined(value) || typeof value !== 'object') {
     return false;
   }
 
-  return !!value.name && !!value.type;
+  return 'name' in value && !!value.name && 'type' in value && !!value.type;
 }
 
 export interface BaseMetricQuery {
@@ -177,11 +177,11 @@ export function stripMetricParamsFromLocation(location: Location): Location {
   return target;
 }
 
-function parseQuery(value: any): string {
+function parseQuery(value: unknown): string {
   return typeof value === 'string' ? value : defaultQuery();
 }
 
-function parseVisualizes(value: any): Visualize[] {
+function parseVisualizes(value: unknown): Visualize[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -190,7 +190,7 @@ function parseVisualizes(value: any): Visualize[] {
   return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
 }
 
-function parseGroupBys(value: any): GroupBy[] {
+function parseGroupBys(value: unknown): GroupBy[] {
   if (!Array.isArray(value)) {
     return defaultGroupBys();
   }
@@ -198,7 +198,10 @@ function parseGroupBys(value: any): GroupBy[] {
   return value.filter<GroupBy>(isGroupBy);
 }
 
-function parseAggregateSortBys(value: any, aggregateFields: AggregateField[]): Sort[] {
+function parseAggregateSortBys(
+  value: unknown,
+  aggregateFields: AggregateField[]
+): Sort[] {
   if (!Array.isArray(value) || value.length === 0) {
     return defaultAggregateSortBys(aggregateFields);
   }
