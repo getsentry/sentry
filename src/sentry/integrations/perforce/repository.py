@@ -101,65 +101,6 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             "integration_id": data["integration_id"],
         }
 
-    def compare_commits(
-        self, repo: Repository, start_sha: str | None, end_sha: str
-    ) -> Sequence[Mapping[str, Any]]:
-        """
-        Compare commits (changelists) between two versions.
-
-        Args:
-            repo: Repository instance
-            start_sha: Starting changelist number (or None for initial)
-            end_sha: Ending changelist number
-
-        Returns:
-            List of changelist dictionaries
-        """
-        integration_id = repo.integration_id
-        if integration_id is None:
-            raise NotImplementedError("Perforce integration requires an integration_id")
-
-        integration = integration_service.get_integration(integration_id=integration_id)
-        if integration is None:
-            raise NotImplementedError("Integration not found")
-
-        installation = integration.get_installation(organization_id=repo.organization_id)
-        client = installation.get_client()
-
-        depot_path = repo.config.get("depot_path", repo.name)
-
-        try:
-            # Get changelists in range
-            if start_sha is None:
-                # Get last N changes
-                changes = client.get_changes(f"{depot_path}/...", max_changes=20)
-            else:
-                # Get changes between start and end (exclusive start, inclusive end)
-                # P4 -e flag returns changes >= specified CL, so we get all recent changes
-                # and filter to range (start_sha, end_sha]
-                changes = client.get_changes(f"{depot_path}/...", max_changes=100)
-
-                # Filter to only changes in range: start_sha < change <= end_sha
-                if changes:
-                    start_cl_num = int(start_sha) if start_sha.isdigit() else 0
-                    end_cl_num = int(end_sha) if end_sha.isdigit() else 0
-                    filtered_changes = []
-                    for c in changes:
-                        try:
-                            cl_num = int(c["change"])
-                            # Include changes that are: after start AND at or before end
-                            if start_cl_num < cl_num <= end_cl_num:
-                                filtered_changes.append(c)
-                        except (TypeError, ValueError, KeyError):
-                            # Skip malformed changelist data
-                            continue
-                    changes = filtered_changes
-
-            return self._format_commits(changes, depot_path, client)
-
-        except Exception:
-            return []
-
     def _format_commits(
         self, changelists: list[dict[str, Any]], depot_path: str, client: Any
     ) -> Sequence[Mapping[str, Any]]:
@@ -224,6 +165,49 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 continue
 
         return commits
+
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
+        """
+        Compare commits (changelists) between two versions.
+
+        Used for release tracking when users manually specify changelist numbers.
+
+        Args:
+            repo: Repository instance
+            start_sha: Starting changelist number (or None for initial)
+            end_sha: Ending changelist number
+
+        Returns:
+            List of changelist dictionaries in Sentry commit format
+        """
+        integration_id = repo.integration_id
+        if integration_id is None:
+            raise NotImplementedError("Perforce integration requires an integration_id")
+
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            raise NotImplementedError("Integration not found")
+
+        installation = integration.get_installation(organization_id=repo.organization_id)
+        client = installation.get_client()
+
+        depot_path = repo.config.get("depot_path", repo.name)
+
+        try:
+            # Get changelists in range (start_sha, end_sha]
+            changes = client.get_changes(
+                f"{depot_path}/...",
+                max_changes=20,
+                start_cl=start_sha,
+                end_cl=end_sha,
+            )
+
+            return self._format_commits(changes, depot_path, client)
+
+        except Exception:
+            return []
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
