@@ -244,8 +244,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
 
         # Process root node
         if root["node_id"] is None:
-            root["node_id"] = get_node_path(root)
-            node_registry[root["node_id"]] = root
+            node_id = get_node_path(root)
+            root["node_id"] = node_id
+            node_registry[node_id] = root
             root["first_seen_ns"] = timestamp_ns
 
         root["sample_count"] += 1
@@ -260,8 +261,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             current = find_or_create_child(current, frame)
 
             if current["node_id"] is None:
-                current["node_id"] = get_node_path(current, current_path)
-                node_registry[current["node_id"]] = current
+                node_id = get_node_path(current, current_path)
+                current["node_id"] = node_id
+                node_registry[node_id] = current
                 current["first_seen_ns"] = timestamp_ns
 
             current["sample_count"] += 1
