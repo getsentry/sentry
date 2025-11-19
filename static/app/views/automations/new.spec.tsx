@@ -32,6 +32,11 @@ describe('AutomationNewSettings', () => {
           handlerGroup: ActionGroup.NOTIFICATION,
           integrations: [{id: '1', name: 'My Slack Workspace'}],
         }),
+        ActionHandlerFixture({
+          type: ActionType.EMAIL,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [],
+        }),
       ],
     });
 
@@ -67,7 +72,28 @@ describe('AutomationNewSettings', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       method: 'GET',
-      body: [],
+      body: [
+        {
+          id: '1',
+          name: 'Moo Deng',
+          email: 'moo.deng@sentry.io',
+        },
+      ],
+    });
+
+    // Users endpoint fetched by AutomationBuilder for member selectors
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [
+        {
+          user: {
+            id: '1',
+            name: 'Moo Deng',
+            email: 'moo.deng@sentry.io',
+          },
+        },
+      ],
     });
 
     // Detectors list used by EditConnectedMonitors inside the form
@@ -107,6 +133,17 @@ describe('AutomationNewSettings', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
+    // Add an email action
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Add action'}),
+      'Notify on preferred channel'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Notification target type'}),
+      'Member'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
+
     // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
@@ -145,6 +182,15 @@ describe('AutomationNewSettings', () => {
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',
+                    data: {},
+                    status: 'active',
+                  },
+                  {
+                    type: 'email',
+                    config: {
+                      targetType: 'user',
+                      targetIdentifier: '1',
+                    },
                     data: {},
                     status: 'active',
                   },

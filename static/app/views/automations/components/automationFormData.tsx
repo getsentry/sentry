@@ -35,7 +35,7 @@ const stripSubfilterId = (subfilter: any) => {
   return subfilterWithoutId;
 };
 
-const stripActionFields = (action: any) => {
+const stripActionFields = (action: Action) => {
   const {id: _id, ...actionWithoutId} = action;
 
   // Strip targetDisplay from email action config
