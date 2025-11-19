@@ -181,7 +181,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
                     "name": "Full Config Monitor",
                     "slug": "full-config-monitor",
                     "status": "disabled",
-                    "isMuted": True,
+                    "isMuted": False,
                     "config": {
                         "schedule": "*/30 * * * *",
                         "scheduleType": "crontab",
@@ -205,7 +205,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         )
         assert monitor.name == "Full Config Monitor"
         assert monitor.status == ObjectStatus.DISABLED
-        assert monitor.is_muted is True
+        assert monitor.is_muted is False
         assert monitor.config["schedule"] == "*/30 * * * *"
         assert monitor.config["checkin_margin"] == 15
         assert monitor.config["max_runtime"] == 120

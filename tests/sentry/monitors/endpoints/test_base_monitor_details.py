@@ -345,6 +345,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_can_mute(self) -> None:
         monitor = self._create_monitor()
+        # Create an environment so the monitor has an environment to mute
+        self._create_monitor_environment(monitor)
+
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": True}
         )
@@ -355,8 +358,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_can_unmute(self) -> None:
         monitor = self._create_monitor()
-
-        monitor.update(is_muted=True)
+        # Create a muted environment so the monitor is muted
+        self._create_monitor_environment(monitor, is_muted=True)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": False}
