@@ -20,6 +20,8 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
+  CREDIT_INVOICE_ITEM_TYPES,
+  FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
@@ -804,12 +806,7 @@ export function getCredits({
 }) {
   return invoiceItems.filter(
     item =>
-      [
-        'subscription_credit',
-        'credit_applied', // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
-        'discount',
-        'recurring_discount',
-      ].includes(item.type) ||
+      CREDIT_INVOICE_ITEM_TYPES.includes(item.type as any) ||
       (item.type === 'balance_change' && item.amount < 0)
   );
 }
@@ -844,7 +841,7 @@ export function getFees({
 }) {
   return invoiceItems.filter(
     item =>
-      ['cancellation_fee', 'sales_tax'].includes(item.type) ||
+      FEE_INVOICE_ITEM_TYPES.includes(item.type as any) ||
       (item.type === 'balance_change' && item.amount > 0)
   );
 }
