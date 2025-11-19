@@ -16,10 +16,10 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
-def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> None:
+def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):
-        return
+        return False
 
     event_id = uuid4().hex
     now = datetime.now(UTC)
@@ -102,6 +102,8 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurence, event_data=event_data
     )
+
+    return True
 
 
 def check_unresolved_web_vitals_issue_exists(data: WebVitalIssueGroupData) -> bool:
