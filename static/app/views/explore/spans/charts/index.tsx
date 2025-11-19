@@ -264,45 +264,51 @@ function Chart({
     </Fragment>
   );
 
+  const widget = (
+    <Widget
+      Title={Title}
+      Actions={Actions}
+      Visualization={
+        visualize.visible && (
+          <ChartVisualization
+            chartInfo={chartInfo}
+            chartRef={chartRef}
+            brush={boxSelectOptions.brush}
+            onBrushEnd={boxSelectOptions.onBrushEnd}
+            onBrushStart={boxSelectOptions.onBrushStart}
+            toolBox={boxSelectOptions.toolBox}
+          />
+        )
+      }
+      Footer={
+        visualize.visible && (
+          <ConfidenceFooter
+            extrapolate={extrapolate}
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={
+              topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+            }
+            dataScanned={chartInfo.dataScanned}
+            rawSpanCounts={rawSpanCounts}
+            userQuery={query.trim()}
+          />
+        )
+      }
+      height={chartHeight}
+      revealActions="always"
+    />
+  );
+
   return (
     <ChartWrapper ref={chartWrapperRef}>
-      <AttributeComparisonCTA>
-        <Widget
-          Title={Title}
-          Actions={Actions}
-          Visualization={
-            visualize.visible && (
-              <ChartVisualization
-                chartInfo={chartInfo}
-                chartRef={chartRef}
-                brush={boxSelectOptions.brush}
-                onBrushEnd={boxSelectOptions.onBrushEnd}
-                onBrushStart={boxSelectOptions.onBrushStart}
-                toolBox={boxSelectOptions.toolBox}
-              />
-            )
-          }
-          Footer={
-            visualize.visible && (
-              <ConfidenceFooter
-                extrapolate={extrapolate}
-                sampleCount={chartInfo.sampleCount}
-                isLoading={chartInfo.timeseriesResult?.isPending || false}
-                isSampled={chartInfo.isSampled}
-                confidence={chartInfo.confidence}
-                topEvents={
-                  topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-                }
-                dataScanned={chartInfo.dataScanned}
-                rawSpanCounts={rawSpanCounts}
-                userQuery={query.trim()}
-              />
-            )
-          }
-          height={chartHeight}
-          revealActions="always"
-        />
-      </AttributeComparisonCTA>
+      {index === 0 ? ( // Only show the CTA on the first chart
+        <AttributeComparisonCTA>{widget}</AttributeComparisonCTA>
+      ) : (
+        widget
+      )}
       <FloatingTrigger
         chartInfo={chartInfo}
         setTab={setTab}
