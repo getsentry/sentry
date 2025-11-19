@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from sentry import eventstore, features
 from sentry.api import client
