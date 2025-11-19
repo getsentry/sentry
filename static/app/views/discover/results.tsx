@@ -130,7 +130,7 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
     : [eventView.getYAxis()];
 }
 
-class Results extends Component<Props, State> {
+export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const savedQueryDataset = getSavedQueryDataset(
       nextProps.organization,
@@ -921,19 +921,9 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(
-  props: Omit<Props, 'loading' | 'savedQuery' | 'setSavedQuery'> & {
-    savedQuery?: SavedQuery;
-    setSavedQuery?: (savedQuery?: SavedQuery) => void;
-  }
-) {
+function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
-  const {
-    organization,
-    location,
-    savedQuery: providedSavedQuery,
-    setSavedQuery: providedSetSavedQuery,
-  } = props;
+  const {organization, location} = props;
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -941,28 +931,21 @@ function SavedQueryAPI(
     ],
     [organization, location.query.id]
   );
-
-  // Only fetch if we don't already have a savedQuery (homepage provides its own)
   const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
     queryKey,
     {
-      enabled: Boolean(location.query.id) && !providedSavedQuery,
+      enabled: Boolean(location.query.id),
       staleTime: 0,
     }
   );
 
-  const defaultSetSavedQuery = useCallback(
+  const setSavedQuery = useCallback(
     (newQuery?: SavedQuery) => {
       setApiQueryData(queryClient, queryKey, newQuery);
       queryClient.refetchQueries({queryKey});
     },
     [queryClient, queryKey]
   );
-
-  const setSavedQuery = providedSetSavedQuery ?? defaultSetSavedQuery;
-  const savedQuery =
-    providedSavedQuery ??
-    (hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data);
 
   if (isFetching) {
     return <LoadingIndicator />;
@@ -974,40 +957,17 @@ function SavedQueryAPI(
 
   return (
     <Results
-      api={props.api}
-      organization={props.organization}
-      selection={props.selection}
-      location={props.location}
-      navigate={props.navigate}
-      isHomepage={props.isHomepage}
-      savedQuery={savedQuery}
+      {...props}
+      savedQuery={
+        hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
+      }
       loading={isFetching}
       setSavedQuery={setSavedQuery}
     />
   );
 }
 
-export type ResultsWrapperProps = {
-  isHomepage?: boolean;
-  savedQuery?: SavedQuery;
-  setSavedQuery?: (savedQuery?: SavedQuery) => void;
-};
-
-/**
- * ResultsWrapper - Functional wrapper around the Results class component
- *
- * This component provides modern React patterns (hooks) while maintaining
- * compatibility with the legacy Results class component.
- *
- * Usage:
- * - Use the named export `ResultsWrapper` when passing props (e.g., from homepage)
- * - The default export is used by routes and accepts no props
- */
-export function ResultsWrapper({
-  isHomepage,
-  savedQuery,
-  setSavedQuery,
-}: ResultsWrapperProps) {
+export default function ResultsContainer() {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -1028,10 +988,9 @@ export function ResultsWrapper({
   return (
     <PageFiltersContainer
       disablePersistence={
-        organization.features.includes('discover-query') &&
-        !!(savedQuery || location.query.id)
+        organization.features.includes('discover-query') && !!location.query.id
       }
-      skipLoadLastUsed={!!savedQuery}
+      skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
@@ -1042,22 +1001,8 @@ export function ResultsWrapper({
         selection={selection}
         location={location}
         navigate={navigate}
-        savedQuery={savedQuery}
-        setSavedQuery={setSavedQuery}
-        isHomepage={isHomepage}
       />
     </PageFiltersContainer>
-  );
-}
-
-// Default export for routes - no props
-export default function ResultsWrapperRoute() {
-  return (
-    <ResultsWrapper
-      isHomepage={undefined}
-      savedQuery={undefined}
-      setSavedQuery={undefined}
-    />
   );
 }
 

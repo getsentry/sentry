@@ -11,13 +11,15 @@ import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
-import {ResultsWrapper} from './results';
+import {Results} from './results';
 
 function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
   return [`/organizations/${organization.slug}/discover/homepage/`];
@@ -25,9 +27,11 @@ function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
 
 function Homepage() {
   const organization = useOrganization();
+  const api = useApi();
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
+  const {selection} = usePageFilters();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -105,7 +109,17 @@ function Homepage() {
   };
 
   return (
-    <ResultsWrapper savedQuery={savedQuery} setSavedQuery={setSavedQuery} isHomepage />
+    <Results
+      api={api}
+      loading={isLoading}
+      location={location}
+      navigate={navigate}
+      organization={organization}
+      selection={selection}
+      setSavedQuery={setSavedQuery}
+      isHomepage
+      savedQuery={savedQuery}
+    />
   );
 }
 
