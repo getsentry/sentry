@@ -1,4 +1,4 @@
-import type {RefObject} from 'react';
+import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -27,6 +27,7 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  highlightedRowIndex?: number;
   query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
 };
@@ -40,16 +41,30 @@ export default function ReplayTable({
   ref,
   replays,
   showDropdownFilters,
+  highlightedRowIndex = -1,
   sort,
 }: Props) {
+  const tableRef = useRef<HTMLDivElement | null>(ref?.current ?? null);
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
+
+  useEffect(() => {
+    if (highlightedRowIndex < 0) {
+      return;
+    }
+
+    const highlightedRow = tableRef.current?.querySelector<HTMLElement>(
+      `[data-replay-row-index='${highlightedRowIndex}']`
+    );
+
+    highlightedRow?.scrollIntoView({behavior: 'smooth'});
+  }, [highlightedRowIndex]);
 
   if (isPending) {
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"
-        ref={ref}
+        ref={tableRef}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -69,7 +84,7 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-errored"
-        ref={ref}
+        ref={tableRef}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -92,7 +107,7 @@ export default function ReplayTable({
   return (
     <StyledSimpleTable
       data-test-id="replay-table"
-      ref={ref}
+      ref={tableRef}
       style={{gridTemplateColumns}}
     >
       <ReplayTableHeader
@@ -106,10 +121,15 @@ export default function ReplayTable({
       )}
       {replays.map((replay, rowIndex) => (
         <SimpleTable.Row
+          data-replay-row-index={rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
-          {hasInteractiveColumn ? <InteractionStateLayer /> : null}
+          {hasInteractiveColumn ? (
+            <InteractionStateLayer
+              isHovered={highlightedRowIndex === rowIndex ? true : undefined}
+            />
+          ) : null}
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component

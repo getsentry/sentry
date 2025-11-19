@@ -9,6 +9,7 @@ import {
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
@@ -19,15 +20,18 @@ const VISIBLE_COLUMNS = [
 ];
 
 export default function Playlist() {
-  const replays = useReplayPlaylist();
+  const {replays, currentReplayIndex} = useReplayPlaylist();
   const tableRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   return (
     <ReplayTable
       ref={tableRef}
       columns={VISIBLE_COLUMNS}
       error={null}
+      highlightedRowIndex={currentReplayIndex}
       isPending={replays ? false : true}
+      query={location.query}
       replays={replays ?? []}
       showDropdownFilters={false}
     />
