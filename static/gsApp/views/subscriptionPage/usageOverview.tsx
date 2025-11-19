@@ -243,8 +243,8 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
           !addOnInfo.dataCategories.some(
             category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
           ) &&
-          addOnInfo.apiName !== AddOnCategory.SEER &&
-          subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled
+          (addOnInfo.apiName !== AddOnCategory.SEER ||
+            !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
       ),
     [subscription.addOns, organization.features, subscription.categories]
   );
