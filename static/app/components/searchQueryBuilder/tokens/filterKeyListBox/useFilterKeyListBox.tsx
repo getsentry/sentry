@@ -31,11 +31,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {
-  ParseResultToken,
-  Token,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -204,11 +200,10 @@ const logicFilterItems = [
 ];
 
 interface UseFilterKeyListBoxArgs {
-  filterItem: Node<ParseResultToken>;
   filterValue: string;
 }
 
-export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListBoxArgs) {
+export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const {
     filterKeys,
     getFieldDefinition,
@@ -260,18 +255,12 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
       ];
     }
 
-    const isFirstItem = filterItem.key.toString().endsWith(':0');
-
     if (
       !disallowLogicalOperators &&
       selectedSection === LOGIC_CATEGORY_VALUE &&
       hasConditionalsInCombobox
     ) {
-      return [
-        ...askSeerItem,
-        // only show opening parenthesis on first item
-        ...(isFirstItem ? [createLogicFilterItem({value: '('})] : logicFilterItems),
-      ];
+      return [...askSeerItem, ...logicFilterItems];
     }
 
     const filteredByCategory = sectionedItems.filter(item => {
@@ -289,7 +278,6 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
   }, [
     disallowLogicalOperators,
     enableAISearch,
-    filterItem.key,
     filterKeys,
     gaveSeerConsent,
     getFieldDefinition,
