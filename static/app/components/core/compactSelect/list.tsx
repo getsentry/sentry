@@ -130,7 +130,7 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
  * In composite selectors, there may be multiple self-contained lists, each
  * representing a select "region".
  */
-function List<Value extends SelectKey>({
+export function List<Value extends SelectKey>({
   items,
   value,
   defaultValue,
@@ -147,7 +147,7 @@ function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, registerListState, saveSelectedOptions, search, overlayIsOpen} =
+  const {overlayState, registerListState, search, overlayIsOpen} =
     useContext(SelectContext);
 
   const hiddenOptions = useMemo(
@@ -175,8 +175,6 @@ function List<Value extends SelectKey>({
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
           const selectedOptions = getSelectedOptions<Value>(items, selection);
-          // Save selected options in SelectContext, to update the trigger label
-          saveSelectedOptions(compositeIndex, selectedOptions);
           onChange?.(selectedOptions);
 
           // Close menu if closeOnSelect is true
@@ -203,8 +201,6 @@ function List<Value extends SelectKey>({
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
-        // Save selected options in SelectContext, to update the trigger label
-        saveSelectedOptions(compositeIndex, selectedOption ?? null);
         onChange?.(selectedOption ?? null);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
@@ -228,8 +224,6 @@ function List<Value extends SelectKey>({
     hiddenOptions,
     multiple,
     disallowEmptySelection,
-    compositeIndex,
-    saveSelectedOptions,
     closeOnSelect,
     overlayState,
   ]);
@@ -243,10 +237,6 @@ function List<Value extends SelectKey>({
   // Register the initialized list state once on mount
   useLayoutEffect(() => {
     registerListState(compositeIndex, listState);
-    saveSelectedOptions(
-      compositeIndex,
-      getSelectedOptions(items, listState.selectionManager.selectedKeys)
-    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.collection]);
 
@@ -385,5 +375,3 @@ function List<Value extends SelectKey>({
     </Fragment>
   );
 }
-
-export {List};

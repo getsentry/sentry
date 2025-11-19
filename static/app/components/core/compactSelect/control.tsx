@@ -32,7 +32,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectKey, SelectOption} from './types';
+import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -58,15 +58,6 @@ interface SelectContextValue {
    */
   registerListState: (index: number, listState: ListState<any>) => void;
   /**
-   * Function to be called when a list's selection state changes. We need a complete
-   * list of all selected options to label the trigger button. The `index` parameter
-   * indentifies the list, in the same way as in `registerListState`.
-   */
-  saveSelectedOptions: (
-    index: number,
-    newSelectedOptions: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>
-  ) => void;
-  /**
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
@@ -79,7 +70,6 @@ interface SelectContextValue {
 
 export const SelectContext = createContext<SelectContextValue>({
   registerListState: () => {},
-  saveSelectedOptions: () => {},
   overlayIsOpen: false,
   search: '',
 });
@@ -194,6 +184,7 @@ export interface ControlProps
    */
   searchable?: boolean;
   size?: FormSize;
+
   /**
    * Optional replacement for the default trigger button. Note that the replacement must
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
@@ -240,6 +231,8 @@ export function Control({
   menuBody,
   menuFooter,
   onOpenChange,
+  items,
+  value,
 
   // Select props
   size = 'md',
@@ -253,7 +246,10 @@ export function Control({
   grid = false,
   children,
   ...wrapperProps
-}: ControlProps) {
+}: ControlProps & {
+  items: Array<SelectOptionOrSection<SelectKey>>;
+  value: SelectKey | SelectKey[] | undefined;
+}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
@@ -424,24 +420,6 @@ export function Control({
   );
 
   /**
-   * A list of selected options across all select regions, to be used to generate the
-   * trigger label.
-   */
-  const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | Array<SelectOption<SelectKey>>>
-  >([]);
-  const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
-    (index, newSelectedOptions) => {
-      setSelectedOptions(current => [
-        ...current.slice(0, index),
-        newSelectedOptions,
-        ...current.slice(index + 1),
-      ]);
-    },
-    []
-  );
-
-  /**
    * Trigger label, generated from current selection values. If more than one option is
    * selected, then a count badge will appear.
    */
@@ -450,7 +428,13 @@ export function Control({
       return triggerLabelProp;
     }
 
-    const options = selectedOptions.flat().filter(Boolean);
+    const values = Array.isArray(value) ? value : [value];
+    const options = items
+      .flatMap(item => {
+        if ('options' in item) return item.options.flat();
+        return item;
+      })
+      .filter(item => values.includes(item.value));
 
     if (options.length === 0) {
       return <TriggerLabel>{t('None')}</TriggerLabel>;
@@ -464,7 +448,7 @@ export function Control({
         )}
       </Fragment>
     );
-  }, [triggerLabelProp, selectedOptions]);
+  }, [triggerLabelProp, value, items]);
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -478,10 +462,7 @@ export function Control({
     },
   });
 
-  const showClearButton = useMemo(
-    () => selectedOptions.flat().length > 0,
-    [selectedOptions]
-  );
+  const showClearButton = useMemo(() => items.flat().length > 0, [items]);
 
   const contextValue = useMemo(() => {
     const registerListState: SelectContextValue['registerListState'] = (
@@ -497,12 +478,11 @@ export function Control({
 
     return {
       registerListState,
-      saveSelectedOptions,
       overlayState,
       overlayIsOpen,
       search,
     };
-  }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
+  }, [overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
 
@@ -521,69 +501,67 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        <StyledPositionWrapper
-          zIndex={theme.zIndex?.dropdown}
-          visible={overlayIsOpen}
-          {...overlayProps}
-        >
-          <StyledOverlay
-            width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style!.minWidth}
-            maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style!.maxHeight}
-            maxHeightProp={maxMenuHeight}
-            data-menu-has-header={!!menuTitle || clearable}
-            data-menu-has-search={searchable}
-            data-menu-has-footer={!!menuFooter}
-          >
-            <FocusScope contain={overlayIsOpen}>
-              {(menuTitle ||
-                menuHeaderTrailingItems ||
-                (clearable && showClearButton)) && (
-                <MenuHeader size={size}>
-                  <MenuTitle>{menuTitle}</MenuTitle>
-                  <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} />}
-                    {typeof menuHeaderTrailingItems === 'function'
-                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                      : menuHeaderTrailingItems}
-                    {clearable && showClearButton && (
-                      <ClearButton onClick={clearSelection} size="zero" borderless>
-                        {t('Clear')}
-                      </ClearButton>
-                    )}
-                  </MenuHeaderTrailingItems>
-                </MenuHeader>
-              )}
-              {searchable && (
-                <SearchInput
-                  ref={searchRef}
-                  placeholder={searchPlaceholder}
-                  value={searchInputValue}
-                  onFocus={onSearchFocus}
-                  onBlur={onSearchBlur}
-                  onChange={e => updateSearch(e.target.value)}
-                  size="xs"
-                  {...searchKeyboardProps}
-                />
-              )}
-              {typeof menuBody === 'function'
-                ? menuBody({closeOverlay: overlayState.close})
-                : menuBody}
-              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
-              {menuFooter && (
-                <MenuFooter>
-                  {typeof menuFooter === 'function'
-                    ? menuFooter({
-                        closeOverlay: overlayState.close,
-                        resetSearch: () => updateSearch(''),
-                      })
-                    : menuFooter}
-                </MenuFooter>
-              )}
-            </FocusScope>
-          </StyledOverlay>
-        </StyledPositionWrapper>
+        {overlayIsOpen && (
+          <StyledPositionWrapper zIndex={theme.zIndex?.dropdown} {...overlayProps}>
+            <StyledOverlay
+              width={menuWidth ?? menuFullWidth}
+              minWidth={overlayProps.style!.minWidth}
+              maxWidth={maxMenuWidth}
+              maxHeight={overlayProps.style!.maxHeight}
+              maxHeightProp={maxMenuHeight}
+              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-search={searchable}
+              data-menu-has-footer={!!menuFooter}
+            >
+              <FocusScope contain={overlayIsOpen}>
+                {(menuTitle ||
+                  menuHeaderTrailingItems ||
+                  (clearable && showClearButton)) && (
+                  <MenuHeader size={size}>
+                    <MenuTitle>{menuTitle}</MenuTitle>
+                    <MenuHeaderTrailingItems>
+                      {loading && <StyledLoadingIndicator size={12} />}
+                      {typeof menuHeaderTrailingItems === 'function'
+                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                        : menuHeaderTrailingItems}
+                      {clearable && showClearButton && (
+                        <ClearButton onClick={clearSelection} size="zero" borderless>
+                          {t('Clear')}
+                        </ClearButton>
+                      )}
+                    </MenuHeaderTrailingItems>
+                  </MenuHeader>
+                )}
+                {searchable && (
+                  <SearchInput
+                    ref={searchRef}
+                    placeholder={searchPlaceholder}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    size="xs"
+                    {...searchKeyboardProps}
+                  />
+                )}
+                {typeof menuBody === 'function'
+                  ? menuBody({closeOverlay: overlayState.close})
+                  : menuBody}
+                {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+                {menuFooter && (
+                  <MenuFooter>
+                    {typeof menuFooter === 'function'
+                      ? menuFooter({
+                          closeOverlay: overlayState.close,
+                          resetSearch: () => updateSearch(''),
+                        })
+                      : menuFooter}
+                  </MenuFooter>
+                )}
+              </FocusScope>
+            </StyledOverlay>
+          </StyledPositionWrapper>
+        )}
       </ControlWrap>
     </SelectContext>
   );
@@ -698,9 +676,8 @@ const StyledOverlay = styled(Overlay, {
 
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean; zIndex?: number}>`
+})<{zIndex?: number}>`
   min-width: 100%;
-  display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
 `;
 

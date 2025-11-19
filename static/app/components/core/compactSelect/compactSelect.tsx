@@ -114,6 +114,8 @@ export function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
+      items={itemsWithKey}
+      value={value ?? defaultValue}
     >
       <List
         {...listProps}
@@ -130,11 +132,11 @@ export function CompactSelect<Value extends SelectKey>({
           if ('options' in item) {
             return (
               <Section key={item.key} title={item.label}>
-                {item.options.map(opt => (
+                {item.options?.map(opt => (
                   <Item {...opt} key={opt.key}>
                     {opt.label}
                   </Item>
-                ))}
+                )) ?? null}
               </Section>
             );
           }

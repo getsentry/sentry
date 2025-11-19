@@ -65,7 +65,7 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends ControlProps {
+export interface CompositeSelectProps extends Omit<ControlProps, 'clearable'> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)
@@ -87,7 +87,14 @@ function CompositeSelect({
   ...controlProps
 }: CompositeSelectProps) {
   return (
-    <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
+    <Control
+      {...controlProps}
+      grid={grid}
+      size={size}
+      disabled={disabled}
+      items={[]}
+      value={undefined}
+    >
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, (child, index) => {
