@@ -1,5 +1,6 @@
 import type {StripeConstructor} from '@stripe/stripe-js';
 
+import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
@@ -36,7 +37,7 @@ declare global {
   }
 
   namespace React {
-    interface DOMAttributes<T> {
+    interface DOMAttributes<_T> {
       'data-test-id'?: string;
     }
   }
@@ -649,51 +650,75 @@ export type InvoiceItem = BaseInvoiceItem & {
   periodStart: string;
 };
 
-// TODO(data categories): BIL-969
-export enum InvoiceItemType {
-  UNKNOWN = '',
-  SUBSCRIPTION = 'subscription',
-  ONDEMAND = 'ondemand',
-  RESERVED_EVENTS = 'reserved',
-  DAILY_EVENTS = 'daily_events',
-  BALANCE_CHANGE = 'balance_change',
-  CANCELLATION_FEE = 'cancellation_fee',
-  SUBSCRIPTION_CREDIT = 'subscription_credit',
-  CREDIT_APPLIED = 'credit_applied',
-  RECURRING_DISCOUNT = 'recurring_discount',
-  DISCOUNT = 'discount',
-  SALES_TAX = 'sales_tax',
-  /**
-   * Used for AM plans
-   */
-  ATTACHMENTS = 'attachments',
-  TRANSACTIONS = 'transactions',
-  ONDEMAND_ATTACHMENTS = 'ondemand_attachments',
-  ONDEMAND_ERRORS = 'ondemand_errors',
-  ONDEMAND_TRANSACTIONS = 'ondemand_transactions',
-  ONDEMAND_REPLAYS = 'ondemand_replays',
-  ONDEMAND_SPANS = 'ondemand_spans',
-  ONDEMAND_SPANS_INDEXED = 'ondemand_spans_indexed',
-  ONDEMAND_MONITOR_SEATS = 'ondemand_monitor_seats',
-  ONDEMAND_UPTIME = 'ondemand_uptime',
-  ONDEMAND_PROFILE_DURATION = 'ondemand_profile_duration',
-  ONDEMAND_SEER_AUTOFIX = 'ondemand_seer_autofix',
-  ONDEMAND_SEER_SCANNER = 'ondemand_seer_scanner',
-  RESERVED_ATTACHMENTS = 'reserved_attachments',
-  RESERVED_ERRORS = 'reserved_errors',
-  RESERVED_TRANSACTIONS = 'reserved_transactions',
-  RESERVED_REPLAYS = 'reserved_replays',
-  RESERVED_SPANS = 'reserved_spans',
-  RESERVED_SPANS_INDEXED = 'reserved_spans_indexed',
-  RESERVED_MONITOR_SEATS = 'reserved_monitor_seats',
-  RESERVED_UPTIME = 'reserved_uptime',
-  RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
-  RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
-  RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
-  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
-  RESERVED_PREVENT_USERS = 'reserved_prevent_users',
-  RESERVED_LOG_BYTES = 'reserved_log_bytes',
-}
+/**
+ * Converts camelCase string to snake_case.
+ * Examples: "monitorSeats" -> "monitor_seats", "errors" -> "errors"
+ */
+type CamelToSnake<S extends string> = S extends `${infer T}${infer U}`
+  ? `${T extends Capitalize<T> ? '_' : ''}${Lowercase<T>}${CamelToSnake<U>}`
+  : S;
+
+/**
+ * Dynamically generate ondemand invoice item types from DATA_CATEGORY_INFO.
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: `ondemand_${snake_case_plural}`
+ * Example: DATA_CATEGORY_INFO.ERROR (plural: "errors") -> "ondemand_errors"
+ * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
+ */
+type OnDemandInvoiceItemType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Dynamically generate reserved invoice item types from DATA_CATEGORY_INFO.
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: `reserved_${snake_case_plural}`
+ * Example: DATA_CATEGORY_INFO.ERROR (plural: "errors") -> "reserved_errors"
+ * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
+ */
+type ReservedInvoiceItemType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Static invoice item types that are not tied to data categories.
+ * These must be manually maintained but change infrequently.
+ */
+type StaticInvoiceItemType =
+  | '' // UNKNOWN
+  | 'subscription'
+  | 'ondemand' // Legacy: generic ondemand for AM1 plans
+  | 'subscription_credit'
+  | 'balance_change'
+  | 'cancellation_fee'
+  | 'attachments' // Legacy: AM1 plans
+  | 'transactions' // Legacy: AM1 plans
+  | 'sales_tax'
+  | 'recurring_discount'
+  | 'discount'
+  | 'credit_applied' // Deprecated: replaced by balance_change
+  | 'daily_events' // Deprecated
+  | 'reserved' // Deprecated: legacy name for reserved_events
+  | 'reserved_seer_budget'; // Special case: shared budget for seer_autofix and seer_scanner
+
+/**
+ * Complete invoice item type union.
+ * Automatically stays in sync with backend when new billing categories are added.
+ *
+ * Migration from enum: Use string literals instead of enum members.
+ * Before: InvoiceItemType.SUBSCRIPTION
+ * After:  'subscription'
+ */
+export type InvoiceItemType =
+  | OnDemandInvoiceItemType
+  | ReservedInvoiceItemType
+  | StaticInvoiceItemType;
 
 export enum InvoiceStatus {
   PAID = 'paid',

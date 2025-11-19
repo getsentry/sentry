@@ -20,21 +20,22 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
-  InvoiceItemType,
   OnDemandBudgetMode,
   PlanName,
   PlanTier,
   ReservedBudgetCategoryType,
-  type BillingConfig,
-  type BillingDetails,
-  type BillingMetricHistory,
-  type BillingStatTotal,
-  type EventBucket,
-  type InvoiceItem,
-  type Plan,
-  type PreviewInvoiceItem,
-  type ProductTrial,
-  type Subscription,
+} from 'getsentry/types';
+import type {
+  BillingConfig,
+  BillingDetails,
+  BillingMetricHistory,
+  BillingStatTotal,
+  EventBucket,
+  InvoiceItem,
+  Plan,
+  PreviewInvoiceItem,
+  ProductTrial,
+  Subscription,
 } from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
@@ -804,12 +805,12 @@ export function getCredits({
   return invoiceItems.filter(
     item =>
       [
-        InvoiceItemType.SUBSCRIPTION_CREDIT,
-        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
-        InvoiceItemType.DISCOUNT,
-        InvoiceItemType.RECURRING_DISCOUNT,
+        'subscription_credit',
+        'credit_applied', // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        'discount',
+        'recurring_discount',
       ].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+      (item.type === 'balance_change' && item.amount < 0)
   );
 }
 
@@ -826,7 +827,7 @@ export function getCreditApplied({
   invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
 }) {
   const credits = getCredits({invoiceItems});
-  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+  if (credits.some(item => item.type === 'balance_change')) {
     return 0;
   }
   return creditApplied;
@@ -843,8 +844,8 @@ export function getFees({
 }) {
   return invoiceItems.filter(
     item =>
-      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
-      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+      ['cancellation_fee', 'sales_tax'].includes(item.type) ||
+      (item.type === 'balance_change' && item.amount > 0)
   );
 }
 
