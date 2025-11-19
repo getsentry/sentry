@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from time import time
 from typing import Any
@@ -34,6 +35,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import to_single_line_str
 
 from .base import Provider
 
@@ -42,6 +44,9 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+_SAFE_OAUTH_ERROR_RE = re.compile(r"^[A-Za-z0-9._:/ -]{1,128}$")
+_SCRUBBED_OAUTH_ERROR = "<redacted>"
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -264,6 +269,23 @@ class OAuth2LoginView:
             return HttpResponseRedirect(redirect_uri)
 
 
+def _sanitize_oauth_error_param(error: str | None) -> str | None:
+    """
+    Return an allow-listed OAuth error string or None if the value is not display-safe.
+    """
+    if not error:
+        return None
+
+    normalized = to_single_line_str(error)
+    if not normalized:
+        return None
+
+    if _SAFE_OAUTH_ERROR_RE.fullmatch(normalized):
+        return normalized
+
+    return None
+
+
 class OAuth2CallbackView:
     access_token_url: str | None = None
     client_id: str | None = None
@@ -359,11 +381,19 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = _sanitize_oauth_error_param(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={
+                        "error": sanitized_error if sanitized_error is not None else _SCRUBBED_OAUTH_ERROR
+                    },
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                message = (
+                    f"{ERR_INVALID_STATE}\nError: {sanitized_error}"
+                    if sanitized_error
+                    else ERR_INVALID_STATE
+                )
+                return pipeline.error(message)
 
             if state != pipeline.fetch_state("state"):
                 extra = {
