@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
     ]
 
     @classmethod
-    def setup_constraints(cls):
+    def setup_constraints(cls) -> None:
         from django.db import connection
 
         with connection.cursor() as cursor:
