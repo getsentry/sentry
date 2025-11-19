@@ -74,13 +74,11 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     thread_in_app_counts: dict[str, int] = {}
     for sample in samples:
         thread_id = str(sample["thread_id"])
-        if thread_id not in thread_in_app_counts:
-            thread_in_app_counts[thread_id] = 0
+        thread_in_app_counts.setdefault(thread_id, 0)
 
         stack_index = sample.get("stack_id")
         if stack_index is not None and stack_index < len(stacks):
-            frame_indices = stacks[stack_index]
-            for idx in frame_indices:
+            for idx in stacks[stack_index]:
                 if idx < len(frames) and frames[idx].get("in_app", False):
                     thread_in_app_counts[thread_id] += 1
 
@@ -90,28 +88,22 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
 
     if max_in_app_count > 0:
         # Find thread with most in_app frames
-        for thread_id, count in thread_in_app_counts.items():
-            if count == max_in_app_count:
-                selected_thread_id = thread_id
-                break
+        selected_thread_id = max(thread_in_app_counts.items(), key=lambda x: x[1])[0]
         show_all_frames = False
     else:
         # No in_app frames found, try to find MainThread
-        main_thread_id_from_metadata = None
-        for thread_id, metadata in thread_metadata.items():
-            thread_name = metadata.get("name", "")
-            if thread_name == "MainThread":
-                main_thread_id_from_metadata = str(thread_id)
-                break
+        main_thread_id_from_metadata = next(
+            (
+                str(thread_id)
+                for thread_id, metadata in thread_metadata.items()
+                if metadata.get("name") == "MainThread"
+            ),
+            None,
+        )
 
-        if main_thread_id_from_metadata:
-            selected_thread_id = main_thread_id_from_metadata
-        elif samples:
-            # Fall back to first sample's thread
-            selected_thread_id = str(samples[0]["thread_id"])
-        else:
-            selected_thread_id = None
-
+        selected_thread_id = main_thread_id_from_metadata or (
+            str(samples[0]["thread_id"]) if samples else None
+        )
         show_all_frames = (
             True  # Show all frames including system frames when no in_app frames exist
         )
@@ -180,6 +172,14 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         parent["children"].append(frame_data)
         return frame_data
 
+    def is_valid_frame(frame: dict[str, Any], include_all_frames: bool) -> bool:
+        """Check if a frame should be included in the execution tree."""
+        filename = frame.get("filename", "")
+        is_generated = filename.startswith("<") and filename.endswith(">")
+        if is_generated:
+            return False
+        return include_all_frames or frame.get("in_app", False)
+
     def process_stack(stack_index: int, include_all_frames: bool = False) -> list[dict[str, Any]]:
         """Extract frames from a stack trace.
 
@@ -197,22 +197,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         for idx in reversed(frame_indices):
             if idx >= len(frames):
                 continue
-            frame = frames[idx]
-
-            if include_all_frames:
-                # Include all frames except those with <filename> format
-                if not (
-                    frame.get("filename", "").startswith("<")
-                    and frame.get("filename", "").endswith(">")
-                ):
-                    nodes.append(create_frame_node(idx))
-            else:
-                # Include only in_app frames
-                if frame.get("in_app", False) and not (
-                    frame.get("filename", "").startswith("<")
-                    and frame.get("filename", "").endswith(">")
-                ):
-                    nodes.append(create_frame_node(idx))
+            if is_valid_frame(frames[idx], include_all_frames):
+                nodes.append(create_frame_node(idx))
 
         return nodes
 
@@ -237,26 +223,29 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         current_stack_ids = []
 
         # Find or create root node
-        root = None
-        for existing_root in execution_tree:
-            if (
-                existing_root["function"] == stack_frames[0]["function"]
-                and existing_root["module"] == stack_frames[0]["module"]
-                and existing_root["filename"] == stack_frames[0]["filename"]
-                and existing_root["lineno"] == stack_frames[0]["lineno"]
-            ):
-                root = existing_root
-                break
+        root_frame = stack_frames[0]
+        root = next(
+            (
+                existing_root
+                for existing_root in execution_tree
+                if (
+                    existing_root["function"] == root_frame["function"]
+                    and existing_root["module"] == root_frame["module"]
+                    and existing_root["filename"] == root_frame["filename"]
+                    and existing_root["lineno"] == root_frame["lineno"]
+                )
+            ),
+            None,
+        )
 
         if root is None:
-            root = stack_frames[0]
+            root = root_frame
             execution_tree.append(root)
 
         # Process root node
         if root["node_id"] is None:
-            node_id = get_node_path(root)
-            root["node_id"] = node_id
-            node_registry[node_id] = root
+            root["node_id"] = get_node_path(root)
+            node_registry[root["node_id"]] = root
             root["first_seen_ns"] = timestamp_ns
 
         root["sample_count"] += 1
@@ -271,9 +260,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             current = find_or_create_child(current, frame)
 
             if current["node_id"] is None:
-                node_id = get_node_path(current, current_path)
-                current["node_id"] = node_id
-                node_registry[node_id] = current
+                current["node_id"] = get_node_path(current, current_path)
+                node_registry[current["node_id"]] = current
                 current["first_seen_ns"] = timestamp_ns
 
             current["sample_count"] += 1
