@@ -31,7 +31,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -41,6 +46,23 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+_SECONDARY_RATE_LIMIT_PHRASE = "secondary rate limit"
+
+
+def _is_secondary_rate_limit_error(error: ApiForbiddenError) -> bool:
+    """
+    Detect GitHub "secondary rate limit" responses which are returned as HTTP 403s.
+    """
+
+    candidates: list[str] = []
+    if isinstance(getattr(error, "json", None), Mapping):
+        message = error.json.get("message")
+        if isinstance(message, str):
+            candidates.append(message)
+    if isinstance(error.text, str):
+        candidates.append(error.text)
+    combined = " ".join(candidates).lower()
+    return _SECONDARY_RATE_LIMIT_PHRASE in combined
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -670,6 +692,21 @@ class GitHubBaseClient(
             except ValueError as e:
                 logger.exception(str(e), log_info)
                 return []
+            except ApiForbiddenError as e:
+                if _is_secondary_rate_limit_error(e):
+                    metrics.incr("integrations.github.get_blame_for_files.secondary_rate_limit")
+                    logger.warning(
+                        "sentry.integrations.github.get_blame_for_files.secondary_rate_limit",
+                        extra=log_info,
+                    )
+                    raise ApiRateLimitedError(
+                        e.text,
+                        code=e.code,
+                        url=e.url,
+                        host=e.host,
+                        path=e.path,
+                    ) from e
+                raise
             else:
                 self.set_cache(cache_key, response, 60)
 
