@@ -98,9 +98,10 @@ function useFilterKeyItems() {
 
     const categorizedItems = filterKeySections
       .flatMap(section => section.children)
-      .reduce<
-        Record<string, boolean>
-      >((acc, nextFilterKey) => ({...acc, [nextFilterKey]: true}), {});
+      .reduce<Record<string, boolean>>(function reduceKeys(acc, nextFilterKey) {
+        acc[nextFilterKey] = true;
+        return acc;
+      }, {});
 
     const uncategorizedFilterKeys = flatFilterKeys.filter(
       filterKey => !categorizedItems[filterKey]
