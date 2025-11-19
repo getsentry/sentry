@@ -29,6 +29,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.utils import get_dataset
+from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -469,7 +470,8 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             extra={
                 "profile_id": actual_profile_id,
                 "project_id": project_id,
-                "raw_profile_data": profile_data,
+                "raw_profile_data": json.dumps(profile_data)[:4096],
+                "raw_profile_data_keys": list(profile_data.keys()),
             },
         )
         return {"error": "Failed to generate execution tree from profile data"}
