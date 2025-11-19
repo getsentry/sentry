@@ -308,7 +308,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of changelist dictionaries
         """
-        return None
+        return []
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -324,7 +324,16 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return None
+        return []
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        """
+        Get file contents from Perforce depot.
+        Required by abstract base class but not used (CODEOWNERS feature removed).
+        """
+        raise NotImplementedError("get_file is not supported for Perforce")
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
