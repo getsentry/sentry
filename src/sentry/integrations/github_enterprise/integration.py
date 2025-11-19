@@ -20,6 +20,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
+from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt, parse_github_blob_url
 from sentry.integrations.models.integration import Integration
@@ -80,6 +81,18 @@ FEATURES = [
         Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the status of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the assignment of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
     ),
     FeatureDescription(
         """
@@ -152,7 +165,7 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
+    RepositoryIntegration, GitHubIssuesSpec, GitHubIssueSyncSpec, CommitContextIntegration
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -386,6 +399,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         [
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
         ]
