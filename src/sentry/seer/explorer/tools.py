@@ -466,7 +466,11 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     if not execution_tree:
         logger.warning(
             "rpc_get_profile_flamegraph: Empty execution tree",
-            extra={"profile_id": actual_profile_id, "project_id": project_id},
+            extra={
+                "profile_id": actual_profile_id,
+                "project_id": project_id,
+                "raw_profile_data": profile_data,
+            },
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
