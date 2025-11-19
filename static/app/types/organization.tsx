@@ -275,7 +275,7 @@ export interface NewQuery {
   end?: string | Date;
   environment?: readonly string[];
   expired?: boolean;
-  exploreQuery?: ReadableSavedQuery;
+  exploreQuery?: Partial<ReadableSavedQuery>;
   id?: string;
   interval?: string;
   multiSort?: boolean;

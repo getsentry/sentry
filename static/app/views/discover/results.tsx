@@ -655,7 +655,7 @@ export class Results extends Component<Props, State> {
 
   renderTransactionsDatasetDeprecationBanner() {
     const {savedQueryDataset, savedQuery} = this.state;
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const dataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
       savedQueryDataset
@@ -664,17 +664,17 @@ export class Results extends Component<Props, State> {
     if (dataset === DiscoverDatasets.TRANSACTIONS && savedQuery?.exploreQuery) {
       const exploreUrl = getExploreUrl({
         organization,
-        ...savedQuery.exploreQuery.query[0],
+        ...savedQuery.exploreQuery?.query?.[0],
         id: savedQuery.exploreQuery.id,
         title: savedQuery.exploreQuery.name,
         selection: {
-          projects: savedQuery.exploreQuery.projects,
-          environments: savedQuery.exploreQuery.environment ?? [],
+          projects: savedQuery.exploreQuery.projects ?? selection.projects,
+          environments: savedQuery.exploreQuery.environment ?? selection.environments,
           datetime: {
             start: savedQuery.exploreQuery.start ?? null,
             end: savedQuery.exploreQuery.end ?? null,
             period: savedQuery.exploreQuery.range ?? null,
-            utc: null,
+            utc: selection.datetime.utc ?? null,
           },
         },
       });
