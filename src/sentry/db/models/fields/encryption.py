@@ -10,6 +10,7 @@ from cryptography.fernet import InvalidToken
 from django.db.models import CharField, Field
 
 from sentry import options
+from sentry.utils import metrics
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ class EncryptedField(Field):
             },
         }
 
+    @sentry_sdk.trace
     def _format_encrypted_value(
         self, encrypted_data: bytes, marker: str, key_id: str | None = None
     ) -> str:
@@ -96,6 +98,7 @@ class EncryptedField(Field):
         else:
             return f"{marker}:{encoded_data}"
 
+    @sentry_sdk.trace
     def get_prep_value(self, value: Any) -> str | None:
         """Encrypt the value before saving to database."""
         value = super().get_prep_value(value)
@@ -114,11 +117,27 @@ class EncryptedField(Field):
             encryption_method = "plaintext"
 
         handler = self._encryption_handlers[encryption_method]
-        return handler["encrypt"](value)
 
+        tags = {
+            "method": encryption_method,
+            "field_type": self.__class__.__name__,
+        }
+
+        try:
+            with metrics.timer("database.encrypted_field.encrypt.duration", tags=tags):
+                result = handler["encrypt"](value)
+
+            metrics.incr("database.encrypted_field.encrypt", tags={**tags, "status": "success"})
+            return result
+        except Exception:
+            metrics.incr("database.encrypted_field.encrypt", tags={**tags, "status": "failure"})
+            raise
+
+    @sentry_sdk.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> bytes | str | None:
         return self.to_python(value)
 
+    @sentry_sdk.trace
     def to_python(self, value: Any) -> Any:
         """Decrypt the value when loading from database."""
         if value is None:
@@ -149,6 +168,7 @@ class EncryptedField(Field):
                 return True
         return False
 
+    @sentry_sdk.trace
     def _get_value_in_bytes(self, value: Any) -> bytes:
         if isinstance(value, str):
             return value.encode("utf-8")
@@ -157,11 +177,13 @@ class EncryptedField(Field):
         else:
             return str(value).encode("utf-8")
 
+    @sentry_sdk.trace
     def _encrypt_plaintext(self, value: Any) -> str:
         """Store value as plain text (UTF-8 encoded)."""
         value_bytes = self._get_value_in_bytes(value)
         return self._format_encrypted_value(value_bytes, MARKER_PLAINTEXT)
 
+    @sentry_sdk.trace
     def _decrypt_plaintext(self, value: str) -> bytes:
         """Decrypt plain text. Extracts data from the formatted value.
 
@@ -175,6 +197,7 @@ class EncryptedField(Field):
             logger.warning("Failed to decode base64 data: %s", e)
             raise ValueError("Invalid base64 encoding") from e
 
+    @sentry_sdk.trace
     def _encrypt_fernet(self, value: Any) -> str:
         """Encrypt using Fernet symmetric encryption.
 
@@ -190,6 +213,7 @@ class EncryptedField(Field):
             sentry_sdk.capture_exception(e)
             raise
 
+    @sentry_sdk.trace
     def _decrypt_fernet(self, value: str) -> bytes:
         """Decrypt using Fernet. Extracts key_id from the formatted value.
 
@@ -232,6 +256,7 @@ class EncryptedField(Field):
         """
         raise NotImplementedError("Keysets decryption not yet implemented")
 
+    @sentry_sdk.trace
     def _decrypt_with_fallback(self, value: str) -> bytes | str:
         """
         Attempt to decrypt with the appropriate method based on the marker.
@@ -253,16 +278,33 @@ class EncryptedField(Field):
         # Find the appropriate handler by marker
         for method_name, handler in self._encryption_handlers.items():
             if handler["marker"] == marker:
+                tags = {
+                    "method": method_name,
+                    "field_type": self.__class__.__name__,
+                    "marker": marker,
+                }
+
                 try:
-                    # Pass the full formatted value to the decrypt method
-                    return handler["decrypt"](remaining)
+                    with metrics.timer("database.encrypted_field.decrypt.duration", tags=tags):
+                        result = handler["decrypt"](remaining)
+
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "success"}
+                    )
+                    return result
                 except InvalidToken:
                     # Data might be plain text that happens to accidentally match the encrypted format
                     # Treating this as plain text is the best fallback.
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "failure"}
+                    )
                     return value
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
                     logger.exception("Failed to decrypt with %s", method_name)
+                    metrics.incr(
+                        "database.encrypted_field.decrypt", tags={**tags, "status": "failure"}
+                    )
                     return value
 
         # No handler found for this marker (shouldn't happen with known markers)
@@ -271,6 +313,7 @@ class EncryptedField(Field):
 
 
 class EncryptedCharField(EncryptedField, CharField):
+    @sentry_sdk.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)
         if db_value is None:
