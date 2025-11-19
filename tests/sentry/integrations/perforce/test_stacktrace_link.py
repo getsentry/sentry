@@ -70,12 +70,12 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_get_stacktrace_config_cpp_path_with_revision(self, mock_check_file):
-        """Test stacktrace link generation for C++ path with @revision"""
+        """Test stacktrace link generation for C++ path with #revision"""
         mock_check_file.return_value = {"depotFile": "//depot/game/src/main.cpp"}
         ctx: StacktraceLinkContext = {
-            "file": "depot/game/src/main.cpp@42",
-            "filename": "depot/game/src/main.cpp@42",
-            "abs_path": "depot/game/src/main.cpp@42",
+            "file": "depot/game/src/main.cpp#1",
+            "filename": "depot/game/src/main.cpp#1",
+            "abs_path": "depot/game/src/main.cpp#1",
             "platform": "native",
             "sdk_name": "sentry.native",
             "commit_id": None,
@@ -89,10 +89,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
         assert result["source_url"] is not None
         assert isinstance(result["source_url"], str)
-        # URL will be encoded: p4://depot/game/src/main.cpp%4042
+        # URL will be encoded: p4://depot/game/src/main.cpp%231
         assert "depot/game/src/main.cpp" in result["source_url"]
         assert result["error"] is None
-        assert result["src_path"] == "game/src/main.cpp@42"
+        assert result["src_path"] == "game/src/main.cpp#1"
 
     def test_get_stacktrace_config_no_matching_code_mapping(self):
         """Test stacktrace link when no code mapping matches"""
