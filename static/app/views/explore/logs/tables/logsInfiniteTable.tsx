@@ -178,14 +178,11 @@ export function LogsInfiniteTable({
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!baseData || baseData.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
 
-    const timestamps = data
-      .filter((row): row is OurLogsResponseItem => isRegularLogResponseItem(row))
-      .map(row => getLogRowTimestampMillis(row))
-      .filter(Boolean);
+    const timestamps = baseData.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
     if (timestamps.length === 0) {
       return {logStart: undefined, logEnd: undefined};
     }
@@ -203,7 +200,7 @@ export function LogsInfiniteTable({
       logStart: new Date(quantizedStart).toISOString(),
       logEnd: new Date(quantizedEnd).toISOString(),
     };
-  }, [data]);
+  }, [baseData]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);

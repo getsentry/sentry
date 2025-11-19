@@ -576,7 +576,7 @@ export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
   };
 };
 
-export interface PseudoLogResponseItem {
+interface PseudoLogResponseItem {
   [OurLogKnownFieldKey.ID]: string;
   [OurLogKnownFieldKey.MESSAGE]: string;
   [OurLogKnownFieldKey.SEVERITY]: 'ERROR';
