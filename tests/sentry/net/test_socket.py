@@ -1,8 +1,17 @@
+import socket
+import time
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from django.test import override_settings
 
-from sentry.net.socket import ensure_fqdn, is_ipaddress_allowed, is_safe_hostname
+from sentry.net.socket import (
+    ensure_fqdn,
+    is_ipaddress_allowed,
+    is_safe_hostname,
+    safe_create_connection,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_blocklist
 
@@ -41,3 +50,39 @@ class SocketTest(TestCase):
         assert ensure_fqdn("example.com") == "example.com."
         assert ensure_fqdn("127.0.0.1") == "127.0.0.1"
         assert ensure_fqdn("example.com.") == "example.com."
+
+    @patch("sentry.net.socket.socket.socket")
+    @patch("sentry.net.socket.socket.getaddrinfo")
+    def test_safe_create_connection_times_out_on_slow_dns(
+        self, mock_getaddrinfo: MagicMock, mock_socket_ctor: MagicMock
+    ) -> None:
+        def slow_lookup(*args, **kwargs):
+            time.sleep(0.2)
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("1.1.1.1", 443))]
+
+        mock_getaddrinfo.side_effect = slow_lookup
+        mock_socket_ctor.return_value = MagicMock()
+
+        with pytest.raises(socket.timeout):
+            safe_create_connection(("example.com", 443), timeout=0.05)
+
+        mock_socket_ctor.assert_not_called()
+
+    @patch("sentry.net.socket.socket.socket")
+    @patch("sentry.net.socket.socket.getaddrinfo")
+    def test_safe_create_connection_uses_timeout_objects(
+        self, mock_getaddrinfo: MagicMock, mock_socket_ctor: MagicMock
+    ) -> None:
+        from urllib3.util.timeout import Timeout
+
+        def slow_lookup(*args, **kwargs):
+            time.sleep(0.2)
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("1.1.1.1", 443))]
+
+        mock_getaddrinfo.side_effect = slow_lookup
+        mock_socket_ctor.return_value = MagicMock()
+
+        with pytest.raises(socket.timeout):
+            safe_create_connection(("example.com", 443), timeout=Timeout(connect=0.05))
+
+        mock_socket_ctor.assert_not_called()

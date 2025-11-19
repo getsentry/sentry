@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import functools
 import ipaddress
+import os
 import socket
+import threading
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from socket import timeout as SocketTimeout
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -11,7 +15,7 @@ from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
-from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
+from urllib3.util.timeout import Timeout, _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
 
@@ -21,6 +25,11 @@ if TYPE_CHECKING:
 DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
+
+_DNS_THREADPOOL_LOCK = threading.Lock()
+_DNS_THREADPOOL: ThreadPoolExecutor | None = None
+_DNS_THREADPOOL_PID: int | None = None
+_DNS_THREADPOOL_SIZE = max(1, getattr(settings, "SENTRY_DNS_RESOLUTION_MAX_WORKERS", 4))
 
 
 @functools.lru_cache(maxsize=100)
@@ -104,6 +113,70 @@ def is_safe_hostname(hostname: str | None) -> bool:
     return True
 
 
+def _get_dns_executor() -> ThreadPoolExecutor:
+    global _DNS_THREADPOOL, _DNS_THREADPOOL_PID
+    pid = os.getpid()
+    if _DNS_THREADPOOL is None or _DNS_THREADPOOL_PID != pid:
+        with _DNS_THREADPOOL_LOCK:
+            if _DNS_THREADPOOL is not None and _DNS_THREADPOOL_PID != pid:
+                _DNS_THREADPOOL.shutdown(wait=False)
+                _DNS_THREADPOOL = None
+            if _DNS_THREADPOOL is None:
+                _DNS_THREADPOOL = ThreadPoolExecutor(
+                    max_workers=_DNS_THREADPOOL_SIZE, thread_name_prefix="dns-resolver"
+                )
+                _DNS_THREADPOOL_PID = pid
+    return _DNS_THREADPOOL
+
+
+def _as_float_timeout(value: object) -> float | None:
+    if value is None or value is _DEFAULT_TIMEOUT:
+        return None
+    try:
+        timeout_value = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return timeout_value
+
+
+def _extract_connect_timeout(timeout: _TYPE_DEFAULT | float | Timeout | None) -> float | None:
+    if timeout is None or timeout is _DEFAULT_TIMEOUT:
+        return None
+
+    if isinstance(timeout, Timeout):
+        connect_timeout_bound = timeout.connect_timeout
+        if callable(connect_timeout_bound):
+            connect_timeout_bound = connect_timeout_bound()
+        return _as_float_timeout(connect_timeout_bound)
+
+    if hasattr(timeout, "connect_timeout"):
+        connect_timeout_bound = getattr(timeout, "connect_timeout")
+        if callable(connect_timeout_bound):
+            connect_timeout_bound = connect_timeout_bound()
+        return _as_float_timeout(connect_timeout_bound)
+
+    return _as_float_timeout(timeout)
+
+
+def _resolve_addrinfo_with_timeout(
+    host: str, port: int, family: int, timeout: _TYPE_DEFAULT | float | Timeout | None
+) -> list[tuple[int, int, int, str, tuple[str, int]]]:
+    connect_timeout = _extract_connect_timeout(timeout)
+    if connect_timeout is None:
+        return socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
+
+    if connect_timeout <= 0:
+        raise SocketTimeout(f"timed out while resolving DNS for {host}")
+
+    executor = _get_dns_executor()
+    future = executor.submit(socket.getaddrinfo, host, port, family, socket.SOCK_STREAM)
+    try:
+        return future.result(connect_timeout)
+    except FuturesTimeoutError as exc:
+        future.cancel()
+        raise SocketTimeout(f"timed out while resolving DNS for {host}") from exc
+
+
 # Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
     address: tuple[str, int],
@@ -134,7 +207,7 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+    for res in _resolve_addrinfo_with_timeout(host, port, family, timeout):
         af, socktype, proto, canonname, sa = res
 
         # Begin custom code.
