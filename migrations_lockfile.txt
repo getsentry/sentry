@@ -35,7 +35,7 @@ sentry: 1003_group_history_prev_history_safe_removal
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0001_squashed_0002_make_message_type_nullable
+tempest: 0003_use_encrypted_char_field
 
 uptime: 0048_delete_uptime_status_columns
 
