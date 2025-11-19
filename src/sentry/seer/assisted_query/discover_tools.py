@@ -56,7 +56,7 @@ _SPECIAL_FIELD_VALUE_TYPES = {
     "timestamp.to_day": "datetime",
     "message": "text",
     "title": "text",
-    # Boolean fields - non-exhaustive
+    # Boolean values - non-exhaustive
     "error.handled": "boolean",
     "error.unhandled": "boolean",
     "error.main_thread": "boolean",

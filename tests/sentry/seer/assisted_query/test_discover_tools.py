@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.seer.assisted_query.discover_tools import (
     _ALWAYS_RETURN_EVENT_FIELDS,
     _SPECIAL_FIELD_VALUE_TYPES,
@@ -10,9 +8,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
-    databases = "__all__"
 
     def setUp(self):
         super().setUp()
@@ -104,9 +100,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             assert "project2_tag" in result
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
-    databases = "__all__"
 
     def setUp(self):
         super().setUp()
@@ -148,7 +142,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
         assert len(result) > 0
 
         # Check structure of returned values
@@ -206,12 +199,18 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
-        # Should have flag values
-        if len(result) > 0:
-            for item in result:
-                assert "value" in item
-                assert "count" in item
+        assert len(result) == 2
+
+        for item in result:
+            assert "value" in item
+            assert "count" in item
+            assert "lastSeen" in item
+            assert "firstSeen" in item
+            assert item["count"] == 1
+
+        values = {item["value"] for item in result}
+        assert "true" in values
+        assert "false" in values
 
     def test_get_event_filter_key_values_has_key(self):
         """Test that 'has' key returns all available tag keys"""
