@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
