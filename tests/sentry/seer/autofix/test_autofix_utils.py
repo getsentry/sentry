@@ -178,9 +178,7 @@ class TestUpdateCodingAgentState(TestCase):
     def test_missing_agent_is_ignored(self, mock_make_request, mock_logger):
         mock_response = Mock()
         mock_response.status = 404
-        mock_response.data = orjson.dumps(
-            {"detail": "No run_id found for agent_id agent-404"}
-        )
+        mock_response.data = orjson.dumps({"detail": "No run_id found for agent_id agent-404"})
         mock_make_request.return_value = mock_response
 
         applied = update_coding_agent_state(
