@@ -1024,6 +1024,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 commitAuthorEmail="admin@localhost",
             ),
         )
+        OrganizationOption.objects.set_value(
+            organization=self.project.organization, key="sentry:github_pr_bot", value=True
+        )
 
     def add_responses(self):
         responses.add(
