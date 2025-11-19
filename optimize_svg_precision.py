@@ -38,12 +38,30 @@ def round_number(num_str: str, precision: int) -> str:
 
         # Round to specified precision
         if precision == 0:
-            rounded = str(int(round(num)))
+            # For numbers that started with decimal point, keep at least 1 decimal place
+            # to prevent ambiguity when concatenated (e.g., .0003 becomes .0, not 0)
+            if starts_with_decimal:
+                rounded = f"{num:.1f}"
+                # Remove trailing zeros but keep at least one decimal digit
+                if "." in rounded:
+                    rounded = rounded.rstrip("0")
+                    # Ensure we keep at least one digit after decimal
+                    if rounded.endswith("."):
+                        rounded = rounded + "0"
+            else:
+                rounded = str(int(round(num)))
         else:
             rounded = f"{num:.{precision}f}"
             # Remove trailing zeros after decimal point
             if "." in rounded:
-                rounded = rounded.rstrip("0").rstrip(".")
+                rounded = rounded.rstrip("0")
+                # For numbers that started with decimal point, keep the decimal point
+                # to prevent ambiguity (e.g., .9662 rounded to .97, not becoming 1)
+                if starts_with_decimal and rounded.endswith("."):
+                    rounded = rounded + "0"
+                # For numbers that didn't start with decimal point, remove trailing decimal
+                elif not starts_with_decimal and rounded.endswith("."):
+                    rounded = rounded.rstrip(".")
 
         # Preserve the original format: if it started with a decimal point, remove the leading 0
         if starts_with_decimal and rounded.startswith("0."):
