@@ -48,6 +48,9 @@ function BreadcrumbDropdown({
     <CompactSelect
       searchable
       options={options.map(item => ({...item, hideCheck: true}))}
+      onChange={selected => {
+        onCrumbSelect(selected.value);
+      }}
       closeOnSelect
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
@@ -62,9 +65,6 @@ function BreadcrumbDropdown({
         />
       )}
       {...props}
-      onChange={selected => {
-        onCrumbSelect(selected.value);
-      }}
     />
   );
 }
