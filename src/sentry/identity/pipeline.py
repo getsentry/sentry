@@ -18,6 +18,7 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
+from sentry.pipeline.constants import IDENTITY_PIPELINE_STATE_TTL
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -31,6 +32,7 @@ IDENTITY_LINKED = _("Your {identity_provider} account has been associated with y
 class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     pipeline_name = "identity_provider"
     provider_model_cls = IdentityProvider
+    state_ttl = IDENTITY_PIPELINE_STATE_TTL
 
     # TODO(ecosystem): Delete this after Azure DevOps migration is complete
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:

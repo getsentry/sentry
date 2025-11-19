@@ -56,6 +56,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     pipeline_name: str
     provider_model_cls: type[M] | None = None
     session_store_cls: type[S] = PipelineSessionStore  # type: ignore[assignment]  # python/mypy#18812
+    state_ttl: int = PIPELINE_STATE_TTL
 
     @classmethod
     def get_for_request(cls, request: HttpRequest) -> Self | None:
@@ -74,7 +75,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
     @classmethod
     def unpack_state(cls, request: HttpRequest) -> PipelineRequestState[M, S] | None:
-        state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
+        state = cls.session_store_cls(request, cls.pipeline_name, ttl=cls.state_ttl)
         if not state.is_valid():
             return None
 
@@ -112,7 +113,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
             if isinstance(organization, Organization)
             else organization
         )
-        self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
+        self.state = self.session_store_cls(request, self.pipeline_name, ttl=self.state_ttl)
         self.provider_model = provider_model
         self._provider_key = provider_key
 
