@@ -577,7 +577,7 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         ):
             return dataclasses.asdict(
                 EmailDataBlob(
-                    fallthroughType=self.action.get(
+                    fallthrough_type=self.action.get(
                         EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
                         FallthroughChoiceType.ACTIVE_MEMBERS.value,
                     ),

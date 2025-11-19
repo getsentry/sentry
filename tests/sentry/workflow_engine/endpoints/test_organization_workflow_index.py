@@ -498,7 +498,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
     )
     def test_create_workflow__with_fallthrough_type_action(
         self, mock_action_validator: mock.MagicMock
-    ):
+    ) -> None:
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
@@ -527,6 +527,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         dcga = DataConditionGroupAction.objects.filter(
             condition_group=new_action_filters[0].condition_group
         ).first()
+        assert dcga
         assert str(new_action_filters[0].condition_group.id) == response.data.get(
             "actionFilters", []
         )[0].get("id")
