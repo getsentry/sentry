@@ -320,7 +320,11 @@ function VolumeSliders({
                       onChange={value => value && handleReservedChange(value, category)}
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
-                      <div>{formatReservedWithUnits(min, category)}</div>
+                      <div>
+                        {formatReservedWithUnits(min, category, {
+                          isAbbreviated: !isByteCategory(category),
+                        })}
+                      </div>
                       <div>
                         {formatReservedWithUnits(max, category, {
                           isAbbreviated: !isByteCategory(category),
