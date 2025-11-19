@@ -12,7 +12,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
     get_use_case_id_api_access,
 )
 
-
 USE_CASE_NAMESPACE_ALIASES: Mapping[str, UseCaseID] = {
     # Custom metrics share the same storage/behavior as the transactions use case.
     "custom": UseCaseID.TRANSACTIONS,
