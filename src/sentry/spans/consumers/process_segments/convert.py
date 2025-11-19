@@ -5,10 +5,15 @@ import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    KeyValue,
+    KeyValueList,
+    TraceItem,
+)
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-from sentry.utils import metrics
 
 I64_MAX = 2**63 - 1
 
@@ -92,8 +97,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
-            # The links are currently expected to be a stringified json object.
-            attributes["sentry.links"] = _anyvalue(orjson.dumps(sanitized_links).decode())
+            # Span links are expected to be a stringified json object.
+            value = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
@@ -125,14 +131,14 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, (list, dict)):
-        metrics.incr(
-            "spans.buffer.convert.stringify",
-            tags={
-                "type": "list" if isinstance(value, list) else "dict",
-            },
+    elif isinstance(value, list):
+        return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
+    elif isinstance(value, dict):
+        return AnyValue(
+            kvlist_value=KeyValueList(
+                values=[KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+            )
         )
-        return AnyValue(string_value=orjson.dumps(value).decode())
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
