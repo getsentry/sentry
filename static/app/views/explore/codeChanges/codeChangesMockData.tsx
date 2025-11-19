@@ -540,3 +540,27 @@ export const commitsData = [
     },
   },
 ];
+
+// ============================================================================
+// Mock pull request detail data (used by CodeChangesDetail component)
+// ============================================================================
+export const mockPullRequestDetail = {
+  title: 'steps4: add smiles',
+  author: {
+    id: '1',
+    email: 'flamefire@example.com',
+    name: 'Flamefire',
+    username: 'flamefire',
+    ip_address: '',
+    avatar: {
+      avatarUrl: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+      avatarType: 'upload' as const,
+      avatarUuid: null,
+    },
+  },
+  timestamp: '1 day ago',
+  ciStatus: 'passed',
+  branchName: 'at/add-tests',
+  githubUrl: 'https://github.com/example-org/example-repo/pull/10',
+  prNumber: 10,
+};
