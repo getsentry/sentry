@@ -134,7 +134,9 @@ class OAuth2Callback(AuthView):
             logger.warning(
                 "oauth2.auth.callback.error_param",
                 extra={
-                    "provider": pipeline.provider.key if getattr(pipeline, "provider", None) else None,
+                    "provider": (
+                        pipeline.provider.key if getattr(pipeline, "provider", None) else None
+                    ),
                     "error": error,
                 },
             )

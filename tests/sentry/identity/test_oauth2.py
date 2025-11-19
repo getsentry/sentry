@@ -158,7 +158,9 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
     def test_error_query_param_returns_generic_message(self, mock_record: MagicMock) -> None:
-        request = RequestFactory().get("/", {"error": "10'XOR(1*if(now()=sysdate(),sleep(15),0))XOR'Z"})
+        request = RequestFactory().get(
+            "/", {"error": "10'XOR(1*if(now()=sysdate(),sleep(15),0))XOR'Z"}
+        )
         request.subdomain = None
 
         pipeline = MagicMock()
