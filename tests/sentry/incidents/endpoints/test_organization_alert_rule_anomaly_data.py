@@ -1,14 +1,16 @@
 from unittest.mock import patch
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = [requires_snuba]
 
 
-class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
-    endpoint = "sentry-api-0-organization-alert-rule-anomaly-data"
+class OrganizationDetectorAnomalyDataEndpointTest(AlertRuleBase):
+    endpoint = "sentry-api-0-organization-detector-anomaly-data"
 
     def setUp(self):
         super().setUp()
@@ -20,15 +22,37 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
             threshold_type=AlertRuleThresholdType.ABOVE,
         )
 
+        # Create a detector for the alert rule
+        self.detector = Detector.objects.create(
+            project=self.project,
+            name="Test Detector",
+            type=MetricIssue.slug,
+            config={"threshold_period": 1, "detection_type": "static"},
+            created_by_id=self.user.id,
+        )
+
+        # Link the detector to the alert rule's query subscription
+        subscription = self.alert_rule.snuba_query.subscriptions.first()
+        assert subscription is not None
+        data_source = DataSource.objects.create(
+            organization_id=self.organization.id,
+            type="snuba_query_subscription",
+            source_id=str(subscription.id),
+        )
+        DataSourceDetector.objects.create(
+            detector=self.detector,
+            data_source=data_source,
+        )
+
     def test_missing_parameters(self):
         with self.feature("organizations:incidents"):
             response = self.get_error_response(
-                self.organization.slug, self.alert_rule.id, end="1729179000.0", status_code=400
+                self.organization.slug, self.detector.id, end="1729179000.0", status_code=400
             )
             assert response.data["detail"] == "start and end parameters are required"
 
             response = self.get_error_response(
-                self.organization.slug, self.alert_rule.id, start="1729178100.0", status_code=400
+                self.organization.slug, self.detector.id, start="1729178100.0", status_code=400
             )
             assert response.data["detail"] == "start and end parameters are required"
 
@@ -36,7 +60,7 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
         with self.feature("organizations:incidents"):
             response = self.get_error_response(
                 self.organization.slug,
-                self.alert_rule.id,
+                self.detector.id,
                 start="invalid",
                 end="1729179000.0",
                 status_code=400,
@@ -44,17 +68,18 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
             assert response.data["detail"] == "start and end must be valid timestamps"
 
     def test_no_subscription_found(self):
-        self.alert_rule.snuba_query.subscriptions.all().delete()
+        # Delete the data source to simulate missing subscription
+        DataSourceDetector.objects.filter(detector=self.detector).delete()
 
         with self.feature("organizations:incidents"):
             response = self.get_error_response(
                 self.organization.slug,
-                self.alert_rule.id,
+                self.detector.id,
                 start="1729178100.0",
                 end="1729179000.0",
-                status_code=404,
+                status_code=500,
             )
-        assert response.data["detail"] == "No subscription found for this alert rule"
+        assert response.data["detail"] == "Internal Error"
 
     @patch(
         "sentry.incidents.endpoints.organization_alert_rule_anomaly_data.get_anomaly_threshold_data_from_seer"
@@ -65,7 +90,7 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
         with self.feature("organizations:incidents"):
             response = self.get_error_response(
                 self.organization.slug,
-                self.alert_rule.id,
+                self.detector.id,
                 start="1729178100.0",
                 end="1729179000.0",
                 status_code=400,
@@ -82,7 +107,7 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
         with self.feature("organizations:incidents"):
             response = self.get_success_response(
                 self.organization.slug,
-                self.alert_rule.id,
+                self.detector.id,
                 start="1729178100.0",
                 end="1729179000.0",
             )
@@ -96,7 +121,7 @@ class OrganizationAlertRuleAnomalyDataEndpointTest(AlertRuleBase):
 
         self.get_error_response(
             self.organization.slug,
-            self.alert_rule.id,
+            self.detector.id,
             start="1729178100.0",
             end="1729179000.0",
             status_code=403,

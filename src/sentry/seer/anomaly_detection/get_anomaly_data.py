@@ -287,7 +287,7 @@ def get_anomaly_threshold_data_from_seer(
     end: float,
 ) -> list[AnomalyThresholdDataPoint] | None:
     """
-    Get anomaly detection threshold data from Seer for a specific alert rule and time range.
+    Get anomaly detection threshold data from Seer for a specific query subscription and time range.
     Returns data points with yhat_lower and yhat_upper threshold values.
     """
     source_id = subscription.id
@@ -318,6 +318,7 @@ def get_anomaly_threshold_data_from_seer(
             extra={
                 "response_data": response.data,
                 "payload": payload,
+                "status": response.status,
             },
         )
         return None

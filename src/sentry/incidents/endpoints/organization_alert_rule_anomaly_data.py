@@ -5,25 +5,28 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
-from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.snuba.models import QuerySubscription
+from sentry.workflow_engine.models import DataSourceDetector, Detector
+from sentry.workflow_engine.types import DetectorException
 
 
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
-class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
+class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
-        operation_id="Retrieve Anomaly Detection Threshold Data for an Alert Rule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        operation_id="Retrieve Anomaly Detection Threshold Data for a Detector",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DetectorParams.DETECTOR_ID],
         responses={
             200: object,
             401: RESPONSE_UNAUTHORIZED,
@@ -31,10 +34,15 @@ class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
+    def get(self, request: Request, organization: Organization, detector_id: str) -> Response:
         """
-        Return anomaly detection threshold data (yhat_lower, yhat_upper) for a metric alert rule.
+        Return anomaly detection threshold data (yhat_lower, yhat_upper) for a detector.
         """
+
+        try:
+            detector = Detector.objects.get(id=detector_id, project__organization=organization)
+        except Detector.DoesNotExist:
+            raise ResourceDoesNotExist
 
         start = request.GET.get("start")
         end = request.GET.get("end")
@@ -48,11 +56,20 @@ class OrganizationAlertRuleAnomalyDataEndpoint(OrganizationAlertRuleEndpoint):
         except ValueError:
             return Response({"detail": "start and end must be valid timestamps"}, status=400)
 
-        subscription = alert_rule.snuba_query.subscriptions.first()
-        if not subscription:
-            return Response({"detail": "No subscription found for this alert rule"}, status=404)
+        data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
+        if not data_source_detector:
+            raise DetectorException("Could not find detector, data source not found.")
+        data_source = data_source_detector.data_source
+
+        try:
+            query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
+        except QuerySubscription.DoesNotExist:
+            raise DetectorException(
+                f"Could not find detector, query subscription {data_source.source_id} not found."
+            )
+
         data = get_anomaly_threshold_data_from_seer(
-            subscription=subscription, start=start_float, end=end_float
+            subscription=query_subscription, start=start_float, end=end_float
         )
 
         if data is None:
