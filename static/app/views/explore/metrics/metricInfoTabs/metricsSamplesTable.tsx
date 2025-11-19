@@ -81,12 +81,12 @@ export function MetricsSamplesTable({
       {isFetching && <TransparentLoadingMask />}
       <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
       <StyledSimpleTableBody>
-        {error ? (
+        {!overrideTableData?.length && error ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </SimpleTable.Empty>
-        ) : data?.length ? (
-          (overrideTableData ?? data).map((row, i) => (
+        ) : overrideTableData?.length || data?.length ? (
+          (overrideTableData ?? data ?? []).map((row, i) => (
             <SampleTableRow
               key={i}
               row={row}
