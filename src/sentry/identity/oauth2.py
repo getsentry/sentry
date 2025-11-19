@@ -34,6 +34,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import to_single_line_str, truncatechars
 
 from .base import Provider
 
@@ -42,6 +43,18 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+_MAX_SANITIZED_ERROR_CHARS = 256
+
+
+def _sanitize_oauth_error_value(error: str) -> str:
+    """
+    Normalize error values coming from OAuth callbacks so we never log or
+    render raw attacker-controlled strings.
+    """
+    collapsed = to_single_line_str(error)
+    truncated = truncatechars(collapsed, _MAX_SANITIZED_ERROR_CHARS) or ""
+    # unicode_escape gives us a printable ASCII representation (e.g. \n, \')
+    return truncated.encode("unicode_escape").decode("ascii")
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -359,11 +372,17 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                sanitized_error = _sanitize_oauth_error_value(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                message = (
+                    f"{ERR_INVALID_STATE}\nError: {sanitized_error}"
+                    if sanitized_error
+                    else ERR_INVALID_STATE
+                )
+                return pipeline.error(message)
 
             if state != pipeline.fetch_state("state"):
                 extra = {
