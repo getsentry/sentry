@@ -17,7 +17,7 @@ SENTRY_BUILTIN_SOURCES_PLATFORM_TEST = {
     },
     "nintendo": {
         "id": "sentry:nintendo",
-        "name": "Nintendo Private",
+        "name": "Nintendo SDK",
         "type": "s3",
         "bucket": "nintendo-symbols",
         "region": "us-east-1",
