@@ -5,11 +5,12 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -193,6 +194,45 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def _build_request(self, params: dict[str, str] | None = None):
+        request = RequestFactory().get("/", params or {})
+        request.session = Client().session
+        request.subdomain = None
+        return request
+
+    def test_callback_missing_state_is_rejected(self) -> None:
+        request = self._build_request({"code": "auth-code"})
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.bind_state("state", "expected")
+
+        with patch.object(pipeline, "error", return_value=HttpResponse("error")) as mock_error:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response.content == b"error"
+        mock_error.assert_called_once_with(ERR_INVALID_STATE)
+
+    def test_callback_mismatched_state_is_rejected(self) -> None:
+        request = self._build_request({"code": "auth-code", "state": "unexpected"})
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.bind_state("state", "expected")
+
+        with patch.object(pipeline, "error", return_value=HttpResponse("error")) as mock_error:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response.content == b"error"
+        mock_error.assert_called_once_with(ERR_INVALID_STATE)
+
+    def test_callback_with_matching_state_advances_pipeline(self) -> None:
+        request = self._build_request({"code": "auth-code", "state": "expected"})
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.bind_state("state", "expected")
+
+        with patch.object(pipeline, "next_step", return_value=HttpResponse("ok")) as mock_next:
+            response = self.view.dispatch(request, pipeline)
+
+        assert response.content == b"ok"
+        mock_next.assert_called_once_with()
 
     def test_customer_domains(self) -> None:
         self.request.subdomain = "albertos-apples"
