@@ -13,9 +13,11 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationPipelineErrorReason
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
+from sentry.utils.hashlib import sha256_text
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
@@ -27,6 +29,7 @@ class OAuth2CallbackViewTest(TestCase):
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
+        self.request.session = Client().session
         self.request.subdomain = None
 
     def tearDown(self) -> None:
@@ -156,6 +159,38 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_state_mismatch_logs_sanitized_values(self, mock_record: MagicMock) -> None:
+        malicious_state = "16LmDTzTt'; waitfor delay '0:0:15' --"
+        request = RequestFactory().get("/", {"state": malicious_state, "code": "abc"})
+        request.session = Client().session
+
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        expected_state = "expected-state-token"
+        pipeline.bind_state("state", expected_state)
+
+        lifecycle = MagicMock()
+        context_manager = MagicMock()
+        context_manager.__enter__.return_value = lifecycle
+        context_manager.__exit__.return_value = None
+
+        mock_event = MagicMock()
+        mock_event.capture.return_value = context_manager
+
+        with patch("sentry.identity.oauth2.record_event", return_value=mock_event):
+            self.view.dispatch(request, pipeline)
+        lifecycle.record_failure.assert_called_once_with(
+            IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+            extra={
+                "error": "invalid_state",
+                "state_present": True,
+                "state_length": len(malicious_state),
+                "state_sha256": sha256_text(malicious_state).hexdigest(),
+                "pipeline_state_present": True,
+                "pipeline_state_length": len(expected_state),
+                "pipeline_state_sha256": sha256_text(expected_state).hexdigest(),
+            },
+        )
 
 
 @control_silo_test
