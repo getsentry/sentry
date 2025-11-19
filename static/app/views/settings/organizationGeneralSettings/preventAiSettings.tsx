@@ -52,9 +52,12 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       ),
     }),
     visible: ({model}) => {
-      // Show field when AI features are enabled (hideAiFeatures is false)
-      const hideAiFeatures = model.getValue('hideAiFeatures');
-      return hideAiFeatures;
+      // Check if feature flag is on - if so, use current model value for dynamic toggling
+      if (hasFeatureFlag) {
+        return !!model.getValue('hideAiFeatures');
+      }
+      // If flag is off, use initialData because setValue forces model value to false
+      return model.initialData.hideAiFeatures === true;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
     setValue: value => {

@@ -27,13 +27,16 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
     defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => !hasFeatureFlag || !access.has('org:write'),
     getValue: value => {
-      // If feature flag is off, always return false (show as disabled)
-      // regardless of the org's actual setting
+      // getValue is used when submitting to API
+      // Invert because the checkbox shows "Show AI" but field is "hideAiFeatures"
+      return !value;
+    },
+    setValue: value => {
+      // If feature flag is off, force checkbox to be unchecked (value=false means unchecked)
       if (!hasFeatureFlag) {
         return false;
       }
-      // Reversing value because the field was previously called hideAiFeatures and we've inverted the behavior.
-      return !value;
+      return value;
     },
     disabledReason: isBaa
       ? t(
