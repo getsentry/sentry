@@ -31,10 +31,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  getWidgetLogURL,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -249,7 +246,7 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS) {
+  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
@@ -259,20 +256,6 @@ export function getMenuOptions(
         selection,
         organization,
         Mode.SAMPLES,
-        getReferrer(widget.displayType)
-      ),
-    });
-  }
-
-  if (widget.widgetType === WidgetType.LOGS) {
-    menuOptions.push({
-      key: 'open-in-explore',
-      label: t('Open in Explore'),
-      to: getWidgetLogURL(
-        widget,
-        dashboardFilters,
-        selection,
-        organization,
         getReferrer(widget.displayType)
       ),
     });
