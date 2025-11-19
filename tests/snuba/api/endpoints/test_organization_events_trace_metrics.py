@@ -366,6 +366,26 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {"count(value,foo,counter,-)": 2},
         ]
 
+    def test_aggregation_embedded_metric_name_formula(self):
+        trace_metrics = [
+            *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
+            self.create_trace_metric("bar", 594, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["per_second(value,foo,counter,-)"],
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
+            {"per_second(value,foo,counter,-)": 0.01},
+        ]
+
     def test_aggregation_multiple_embedded_same_metric_name(self):
         trace_metrics = [
             self.create_trace_metric("foo", 1, "distribution"),

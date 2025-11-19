@@ -17,6 +17,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
+    _can_use_prevent_ai_features,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
@@ -24,6 +25,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
 )
+from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -118,6 +120,8 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self) -> None:
         """Test when multiple organizations exist, one with consent"""
+        from sentry.testutils.helpers.features import with_feature
+
         org_without_consent = self.create_organization(owner=self.user)
         org_with_consent = self.create_organization(owner=self.user)
 
@@ -143,7 +147,8 @@ class TestSeerRpcMethods(APITestCase):
             org_with_consent, "sentry:enable_pr_review_test_generation", True
         )
 
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+        with with_feature("organizations:gen-ai-features"):
+            result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
 
@@ -289,6 +294,63 @@ class TestSeerRpcMethods(APITestCase):
             "consent_url": self.organization.absolute_url("/settings/organization/"),
         }
 
+    def test_can_use_prevent_ai_features_without_gen_ai_flag(self) -> None:
+        """Test that _can_use_prevent_ai_features returns False when gen-ai-features flag is disabled"""
+        # Enable PR review and disable hide_ai_features (should normally pass)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+
+        # Without the feature flag enabled, should return False
+        result = _can_use_prevent_ai_features(self.organization)
+        assert result is False
+
+    def test_can_use_prevent_ai_features_with_gen_ai_flag(self) -> None:
+        """Test that _can_use_prevent_ai_features checks org-level flags when gen-ai-features is enabled"""
+        from sentry.testutils.helpers.features import with_feature
+
+        # Enable PR review and disable hide_ai_features
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+
+        # With the feature flag enabled and correct org settings, should return True
+        with with_feature("organizations:gen-ai-features"):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is True
+
+    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_hide_ai(self) -> None:
+        """Test that _can_use_prevent_ai_features returns False when hide_ai_features is True"""
+        from sentry.testutils.helpers.features import with_feature
+
+        # Enable PR review but enable hide_ai_features
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
+
+        # Even with feature flag enabled, should return False due to hide_ai_features
+        with with_feature("organizations:gen-ai-features"):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is False
+
+    def test_can_use_prevent_ai_features_with_gen_ai_flag_but_no_pr_review(self) -> None:
+        """Test that _can_use_prevent_ai_features returns False when PR review is disabled"""
+        from sentry.testutils.helpers.features import with_feature
+
+        # Disable PR review but disable hide_ai_features
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+
+        # Even with feature flag enabled, should return False due to PR review being disabled
+        with with_feature("organizations:gen-ai-features"):
+            result = _can_use_prevent_ai_features(self.organization)
+            assert result is False
+
     def test_get_attributes_for_span(self) -> None:
         project = self.create_project(organization=self.organization)
 
@@ -316,6 +378,40 @@ class TestSeerRpcMethods(APITestCase):
         assert attribute["value"] == "example"
         assert attribute["name"] in {"span.description", "tags[span.description,string]"}
         mock_rpc.assert_called_once()
+
+    def test_get_trace_item_attributes_metric(self) -> None:
+        """Test get_trace_item_attributes with metric item_type"""
+        project = self.create_project(organization=self.organization)
+
+        mock_response_data = {
+            "itemId": "b582741a4a35039b",
+            "timestamp": "2025-11-16T19:14:12Z",
+            "attributes": [
+                {"name": "metric.name", "type": "str", "value": "http.request.duration"},
+                {"name": "value", "type": "float", "value": 123.45},
+            ],
+        }
+
+        with patch("sentry.seer.explorer.tools.client.get") as mock_get:
+            mock_get.return_value.data = mock_response_data
+            result = get_trace_item_attributes(
+                org_id=self.organization.id,
+                project_id=project.id,
+                trace_id="23eef78c77a94766ac941cce6510c057",
+                item_id="b582741a4a35039b",
+                item_type="tracemetrics",
+            )
+
+        assert len(result["attributes"]) == 2
+        # Check that we have both types (order may vary)
+        types = {attr["type"] for attr in result["attributes"]}
+        assert types == {"str", "float"}
+        mock_get.assert_called_once()
+
+        # Verify the correct parameters were passed
+        call_kwargs = mock_get.call_args[1]
+        assert call_kwargs["params"]["item_type"] == "tracemetrics"
+        assert call_kwargs["params"]["trace_id"] == "23eef78c77a94766ac941cce6510c057"
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -505,6 +601,7 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_sentry_organization_ids_repository_found(self) -> None:
         """Test when repository exists and is active"""
+        from sentry.testutils.helpers.features import with_feature
 
         # Create a project
         project = self.create_project(organization=self.organization)
@@ -546,7 +643,8 @@ class TestSeerRpcMethods(APITestCase):
         OrganizationOption.objects.set_value(
             self.organization, "sentry:enable_pr_review_test_generation", True
         )
-        result = get_sentry_organization_ids(external_id="1234567890")
+        with with_feature("organizations:gen-ai-features"):
+            result = get_sentry_organization_ids(external_id="1234567890")
         assert result == {
             "org_ids": [self.organization.id],
             "org_slugs": [self.organization.slug],
@@ -659,8 +757,11 @@ class TestSeerRpcMethods(APITestCase):
         )
         OrganizationOption.objects.set_value(org2, "sentry:enable_pr_review_test_generation", True)
 
+        from sentry.testutils.helpers.features import with_feature
+
         # Search for GitHub provider
-        result = get_sentry_organization_ids(external_id="1234567890")
+        with with_feature("organizations:gen-ai-features"):
+            result = get_sentry_organization_ids(external_id="1234567890")
 
         assert result == {
             "org_ids": [self.organization.id],
@@ -668,10 +769,11 @@ class TestSeerRpcMethods(APITestCase):
         }
 
         # Search for GitLab provider
-        result = get_sentry_organization_ids(
-            provider="integrations:gitlab",
-            external_id="1234567890",
-        )
+        with with_feature("organizations:gen-ai-features"):
+            result = get_sentry_organization_ids(
+                provider="integrations:gitlab",
+                external_id="1234567890",
+            )
 
         assert result == {"org_ids": [org2.id], "org_slugs": [org2.slug]}
 
@@ -775,7 +877,10 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Search for GitHub provider
-        result = get_sentry_organization_ids(external_id="1234567890")
+        from sentry.testutils.helpers.features import with_feature
+
+        with with_feature("organizations:gen-ai-features"):
+            result = get_sentry_organization_ids(external_id="1234567890")
 
         assert set(result["org_ids"]) == {self.organization.id, org2.id}
         assert set(result["org_slugs"]) == {self.organization.slug, org2.slug}

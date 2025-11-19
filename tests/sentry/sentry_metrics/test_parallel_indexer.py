@@ -28,7 +28,7 @@ counter_payload = {
 def reset_global_metrics_state():
     # running a MetricsConsumerStrategyFactory has a side-effect of mutating
     # global metrics tags
-    with global_tags(_all_threads=True):
+    with global_tags(all_threads=True):
         yield
 
 

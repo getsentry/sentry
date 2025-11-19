@@ -8,7 +8,11 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
+from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
+from sentry.seer.anomaly_detection.store_data_workflow_engine import (
+    send_new_detector_data,
+    update_detector_data,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import (
@@ -237,7 +241,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             return True
         return False
 
-    def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
+    def update_data_source(
+        self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
+    ):
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -270,6 +276,18 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     "Invalid extrapolation mode for this detector type."
                 )
 
+        # Handle a dynamic detector's snuba query changing
+        if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+            try:
+                validated_data_source: dict[str, Any] = {"data_sources": [data_source]}
+                if not seer_updated:
+                    update_detector_data(instance, validated_data_source)
+            except Exception:
+                # don't update the snuba query if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -285,7 +303,42 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             ),
         )
 
+    def update_anomaly_detection(self, instance: Detector, validated_data: dict[str, Any]) -> bool:
+        """
+        When data changes on a detector we may need to tell Seer to update or remove their data for the detector
+        """
+        seer_updated = False
+        is_currently_dynamic_detector = (
+            instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+        )
+        is_update_dynamic_detector = (
+            validated_data.get("config", {}).get("detection_type") == AlertRuleDetectionType.DYNAMIC
+        )
+        if not is_currently_dynamic_detector and is_update_dynamic_detector:
+            # Detector has been changed to become a dynamic detector
+            try:
+                update_detector_data(instance, validated_data)
+                seer_updated = True
+            except Exception:
+                # Don't update if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
+
+        elif (
+            validated_data.get("config")
+            and is_currently_dynamic_detector
+            and not is_update_dynamic_detector
+        ):
+            # Detector has been changed from a dynamic detector to another type
+            delete_data_in_seer_for_detector(instance)
+
+        return seer_updated
+
     def update(self, instance: Detector, validated_data: dict[str, Any]):
+        # Handle anomaly detection changes first in case we need to exit before saving so that the instance values do not get updated
+        seer_updated = self.update_anomaly_detection(instance, validated_data)
+
         super().update(instance, validated_data)
 
         # Handle enable/disable query subscriptions
@@ -299,13 +352,14 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
+        # Handle data sources
         data_source: SnubaQueryDataSourceType | None = None
 
         if "data_sources" in validated_data:
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
-            self.update_data_source(instance, data_source)
+            self.update_data_source(instance, data_source, seer_updated)
 
         instance.save()
 
@@ -324,11 +378,18 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             try:
                 send_new_detector_data(detector)
             except Exception:
-                # Sending historical data failed; Detector won't be save, but we
+                # Sending historical data failed; Detector won't be saved, but we
                 # need to clean up database state that has already been created.
                 detector.workflow_condition_group.delete()
-
                 raise
 
         schedule_update_project_config(detector)
         return detector
+
+    def delete(self):
+        # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
+        assert self.instance is not None
+        detector: Detector = self.instance
+        delete_data_in_seer_for_detector(detector)
+
+        super().delete()

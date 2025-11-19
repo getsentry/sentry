@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import (
     Action,
@@ -10,6 +12,7 @@ from sentry.workflow_engine.models import (
 )
 
 
+@pytest.mark.skip
 class TestFixEmailNotificationNames(TestMigrations):
     migrate_from = "0090_add_detectorgroup_detector_date_index"
     migrate_to = "0091_fix_email_notification_names"

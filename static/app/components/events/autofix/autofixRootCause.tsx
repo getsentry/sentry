@@ -334,7 +334,7 @@ function AutofixRootCauseDisplay({
     setPreferredAction('cursor_background_agent');
 
     // Show immediate loading toast
-    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name), {duration: 60000});
 
     launchCodingAgent({
       integrationId: cursorIntegration.id,
@@ -479,10 +479,10 @@ function AutofixRootCauseDisplay({
                     busy={isLaunchingAgent}
                     disabled={isLoadingAgents}
                     onClick={handleLaunchCodingAgent}
-                    title={t('Send to Cursor Background Agent')}
+                    title={t('Send to Cursor Cloud Agent')}
                     icon={<PluginIcon pluginId="cursor" size={16} />}
                   >
-                    {t('Send to Cursor Background Agent')}
+                    {t('Send to Cursor Cloud Agent')}
                   </Button>
                   <DropdownMenu
                     items={[
@@ -531,7 +531,7 @@ function AutofixRootCauseDisplay({
                         label: (
                           <Flex gap="md" align="center">
                             <PluginIcon pluginId="cursor" size={20} />
-                            <div>{t('Send to Cursor Background Agent')}</div>
+                            <div>{t('Send to Cursor Cloud Agent')}</div>
                           </Flex>
                         ),
                         onAction: handleLaunchCodingAgent,

@@ -92,7 +92,7 @@ class OpsgenieClient(ApiClient):
             if notification_uuid:
                 group_params["notification_uuid"] = notification_uuid
             rule_workflow_context = {}
-            if features.has("organizations:workflow-engine-ui", group.project.organization):
+            if features.has("organizations:workflow-engine-ui-links", group.project.organization):
                 workflow_urls = self._get_workflow_urls(group, rules)
                 rule_workflow_context = {
                     "Triggering Workflows": ", ".join([rule.label for rule in rules]),

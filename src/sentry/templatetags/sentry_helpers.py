@@ -9,6 +9,7 @@ from urllib.parse import quote, urlencode
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone as django_timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from packaging.version import parse as parse_version
 
@@ -110,13 +111,17 @@ def org_url(organization, path, query=None, fragment=None) -> str:
 @register.simple_tag
 def loading_message():
     options = [
-        "Please wait while we load an obnoxious amount of JavaScript.",
-        "Escaping node_modules gravity well.",
-        "Parallelizing webpack builders.",
-        "Awaiting solution to the halting problem.",
-        "Collapsing wavefunctions.",
+        "Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;",
+        "Escaping <code>node_modules</code> gravity well&hellip;",
+        "Parallelizing webpack builders&hellip;",
+        "Awaiting solution to the halting problem&hellip;",
+        "Collapsing wavefunctions&hellip;",
+        "Reticulating splines&hellip;",
+        "Making it make sense&hellip;",
+        "Deploying swarm of autonomous agents&hellip;",
+        "Installing <code>left-pad</code>&hellip;",
     ]
-    return random.choice(options)
+    return mark_safe(random.choice(options))
 
 
 @register.simple_tag

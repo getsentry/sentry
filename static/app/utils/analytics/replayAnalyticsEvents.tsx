@@ -49,6 +49,9 @@ export type ReplayEventParameters = {
     resource_type: string;
     tab: string;
   };
+  'replay.details-playlist-clicked': {
+    direction: 'previous' | 'next';
+  };
   'replay.details-refresh-clicked': Record<string, unknown>;
   'replay.details-resized-panel': {
     layout: LayoutKey;
@@ -145,6 +148,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.ai-summary.regenerate-requested': 'Requested to Regenerate Replay AI Summary',
   'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-refresh-clicked': 'Clicked Refresh Button in Replay Details',
+  'replay.details-playlist-clicked': 'Clicked Replay Playlist Button in Replay Details',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',

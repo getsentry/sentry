@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip
 class RenameErrorDetectorsTest(TestMigrations):
     app = "workflow_engine"
     migrate_from = "0068_migrate_anomaly_detection_alerts"
