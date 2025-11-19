@@ -433,7 +433,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: [], // No gen-ai-features flag
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -442,9 +442,8 @@ describe('OrganizationSettingsForm', () => {
         name: /Enable AI Code Review/i,
       });
       expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
+      expect(preventAiField).toBeEnabled();
 
-      // No disabled tag shown when feature flag is off
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
