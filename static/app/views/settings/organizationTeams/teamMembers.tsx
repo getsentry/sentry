@@ -145,6 +145,7 @@ function AddMemberDropdown({
       menuWidth={250}
       options={items}
       onClose={() => setMemberQuery('')}
+      value={undefined}
       onChange={
         canAddMembers
           ? addTeamMember

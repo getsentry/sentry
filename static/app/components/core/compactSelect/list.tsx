@@ -100,25 +100,25 @@ interface BaseListProps<Value extends SelectKey>
 }
 
 export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
+  onChange: (selectedOption: SelectOption<Value>) => void;
+  value: Value | undefined;
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected option and returns whether to close the menu.
    */
   closeOnSelect?: boolean | ((selectedOption: SelectOption<Value>) => boolean);
   multiple?: false;
-  onChange?: (selectedOption: SelectOption<Value>) => void;
-  value?: Value;
 }
 
 export interface MultipleListProps<Value extends SelectKey> extends BaseListProps<Value> {
   multiple: true;
+  onChange: (selectedOptions: Array<SelectOption<Value>>) => void;
+  value: Value[] | undefined;
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected options and returns whether to close the menu.
    */
   closeOnSelect?: boolean | ((selectedOptions: Array<SelectOption<Value>>) => boolean);
-  onChange?: (selectedOptions: Array<SelectOption<Value>>) => void;
-  value?: Value[];
 }
 
 /**

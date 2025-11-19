@@ -6,6 +6,8 @@ describe('ListBox', () => {
   it('hides details overlay when mouse leaves the list', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -42,6 +44,8 @@ describe('ListBox', () => {
   it('shows different details when hovering over different options', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -81,6 +85,8 @@ describe('ListBox', () => {
   it('does not show details overlay when showDetailsInOverlay is false', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
@@ -105,6 +111,8 @@ describe('ListBox', () => {
   it('maintains keyboard navigation focus when hovering', async () => {
     render(
       <CompactSelect
+        onChange={jest.fn()}
+        value={undefined}
         options={[
           {
             value: 'opt_one',
