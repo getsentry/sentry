@@ -1663,23 +1663,22 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
 
-            # Acquire a task queuing lock to avoid dispatching duplicate tasks
-            # This is separate from the work execution lock in get_issue_summary()
-            lock_key = f"post-process-seer-automation-dispatch:{group.id}"
-            lock = locks.get(lock_key, duration=60, name="post_process_seer_automation_dispatch")
-            try:
-                with lock.acquire():
-                    # Check if summary exists in cache
-                    cache_key = get_issue_summary_cache_key(group.id)
-                    if cache.get(cache_key) is not None:
-                        # Summary exists, run automation directly
-                        run_automation_for_group.delay(group.id)
-                    else:
-                        # No summary yet, generate summary + run automation in one go
-                        start_seer_automation.delay(group.id)
-            except UnableToAcquireLock:
-                # Another process is already dispatching tasks for this group
-                return
+            # Check if we're already processing automation for this group
+            automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
+            if cache.get(automation_dispatch_cache_key) is not None:
+                return  # Another process already dispatched automation
+
+            # Set cache with 5 minute TTL to prevent duplicate dispatches
+            cache.set(automation_dispatch_cache_key, True, timeout=300)
+
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                # Summary exists, run automation directly
+                run_automation_for_group.delay(group.id)
+            else:
+                # No summary yet, generate summary + run automation in one go
+                start_seer_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
