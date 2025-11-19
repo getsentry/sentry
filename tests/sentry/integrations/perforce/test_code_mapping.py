@@ -74,8 +74,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
 
     def test_code_mapping_with_symbolic_revision_syntax(self):
         """
-        Test code mapping with Symbolic's @revision syntax.
-        The @revision should be preserved in the output.
+        Test code mapping with Symbolic's #revision syntax.
+        The #revision should be preserved in the output.
         """
         repo = Repository.objects.create(
             name="//depot",
@@ -95,17 +95,17 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
-        # Test C++ path from Symbolic: depot/game/src/main.cpp@42
+        # Test C++ path from Symbolic: depot/game/src/main.cpp#1
         frame = EventFrame(
-            filename="depot/game/src/main.cpp@42", abs_path="depot/game/src/main.cpp@42"
+            filename="depot/game/src/main.cpp#1", abs_path="depot/game/src/main.cpp#1"
         )
 
         result = convert_stacktrace_frame_path_to_source_path(
             frame=frame, code_mapping=code_mapping, platform="native", sdk_name="sentry.native"
         )
 
-        # Should strip "depot/" and preserve "@42"
-        assert result == "game/src/main.cpp@42"
+        # Should strip "depot/" and preserve "#1"
+        assert result == "game/src/main.cpp#1"
 
     def test_code_mapping_multiple_depots(self):
         """Test code mappings for multiple depots (depot and myproject)"""
@@ -378,18 +378,18 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         """Test full flow: Symbolic C++ -> code mapping -> format_source_url"""
         # 1. Symbolic transformer sends this path
         frame = EventFrame(
-            filename="depot/game/src/main.cpp@42", abs_path="depot/game/src/main.cpp@42"
+            filename="depot/game/src/main.cpp#1", abs_path="depot/game/src/main.cpp#1"
         )
 
         # 2. Code mapping transforms it (use existing code_mapping from setUp)
         mapped_path = convert_stacktrace_frame_path_to_source_path(
             frame=frame, code_mapping=self.code_mapping, platform="native", sdk_name="sentry.native"
         )
-        assert mapped_path == "game/src/main.cpp@42"
+        assert mapped_path == "game/src/main.cpp#1"
 
-        # 3. format_source_url creates final URL (preserves @42)
+        # 3. format_source_url creates final URL (preserves #1)
         url = self.installation.format_source_url(repo=self.repo, filepath=mapped_path, branch=None)
-        assert url == "p4://depot/game/src/main.cpp@42"
+        assert url == "p4://depot/game/src/main.cpp#1"
 
     def test_full_flow_with_swarm_viewer(self):
         """Test full flow with Swarm viewer configuration"""
