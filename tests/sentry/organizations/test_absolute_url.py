@@ -39,6 +39,8 @@ from sentry.organizations.absolute_url import customer_domain_path
         ("/join-request/acme/", "/join-request/"),
         ("/onboarding/acme/", "/onboarding/"),
         ("/onboarding/acme/project/", "/onboarding/project/"),
+        ("/checkout/acme/", "/checkout/"),
+        ("/checkout/acme/?query=value", "/checkout/?query=value"),
         ("/organizations/new/", "/organizations/new/"),
         ("/organizations/albertos-apples/issues/", "/issues/"),
         ("/organizations/albertos-apples/issues/?_q=all#hash", "/issues/?_q=all#hash"),
