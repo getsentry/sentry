@@ -142,7 +142,9 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
 def get_detector_by_group(group: Group) -> Detector:
     try:
-        return DetectorGroup.objects.get(group=group).detector
+        detector = DetectorGroup.objects.get(group=group).detector
+        if detector is not None:
+            return detector
     except DetectorGroup.DoesNotExist:
         logger.exception(
             "DetectorGroup not found for group",
@@ -152,7 +154,7 @@ def get_detector_by_group(group: Group) -> Detector:
 
     try:
         return Detector.objects.get(project_id=group.project_id, type=group.issue_type.slug)
-    except Detector.DoesNotExist:
+    except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
         # return issue stream detector
         return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
 
