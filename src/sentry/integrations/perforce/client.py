@@ -335,6 +335,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             username: Perforce username
+            p4: Optional P4 connection to reuse (avoids creating new connection)
 
         Returns:
             User info dictionary with Email and FullName fields, or None if not found
