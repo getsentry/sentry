@@ -1,6 +1,7 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
@@ -10,6 +11,7 @@ export interface ReadableQueryParamsOptions {
   readonly aggregateCursor: string;
   readonly aggregateFields: readonly AggregateField[];
   readonly aggregateSortBys: readonly Sort[];
+  readonly crossEvents: readonly CrossEvent[];
   readonly cursor: string;
   readonly extrapolate: boolean;
   readonly fields: string[];
@@ -39,6 +41,8 @@ export class ReadableQueryParams {
   readonly id?: string;
   readonly title?: string;
 
+  readonly crossEvents: readonly CrossEvent[];
+
   constructor(options: ReadableQueryParamsOptions) {
     this.extrapolate = options.extrapolate;
     this.mode = options.mode;
@@ -58,6 +62,8 @@ export class ReadableQueryParams {
 
     this.id = options.id;
     this.title = options.title;
+
+    this.crossEvents = options.crossEvents;
   }
 
   replace(options: Partial<ReadableQueryParamsOptions>) {
@@ -73,6 +79,7 @@ export class ReadableQueryParams {
       sortBys: options.sortBys ?? this.sortBys,
       id: options.id ?? this.id,
       title: options.title ?? this.title,
+      crossEvents: options.crossEvents ?? this.crossEvents,
     });
   }
 }
