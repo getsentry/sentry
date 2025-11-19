@@ -57,5 +57,13 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       return hideAiFeatures;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
+    setValue: value => {
+      // If feature flag is off, always show as disabled (false)
+      // regardless of the org's actual setting
+      if (!hasFeatureFlag) {
+        return false;
+      }
+      return value;
+    },
   };
 };
