@@ -710,7 +710,7 @@ function SearchQueryBuilderInputInternal({
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
       >
-        {renderItem}
+        {isOpen ? renderItem : null}
       </SearchQueryBuilderCombobox>
     </Fragment>
   );
