@@ -444,6 +444,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Note: This does not provide line-specific blame. It returns the most recent
         changelist for the entire file, which is sufficient for suspect commit detection.
 
+        API docs:
+        - p4 filelog: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_filelog.html
+        - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
+
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
         metrics.incr("integrations.perforce.get_blame_for_files")
