@@ -70,7 +70,11 @@ _SPECIAL_FIELD_VALUE_TYPES = {
 
 
 def _get_tag_and_feature_flag_keys(
-    org_id: int, org_slug: str, project_ids: list[int], stats_period: str
+    org_id: int,
+    org_slug: str,
+    project_ids: list[int],
+    stats_period: str,
+    include_feature_flags: bool = True,
 ) -> tuple[set[str], set[str]]:
     api_key = ApiKey(organization_id=org_id, scope_list=["org:read", "project:read", "event:read"])
 
@@ -96,19 +100,22 @@ def _get_tag_and_feature_flag_keys(
     event_tag_keys.discard("total.count")
 
     # Get feature flags
-    flags_params = {
-        **base_params,
-        "dataset": Dataset.Events.value,
-        "useFlagsBackend": "1",
-    }
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{org_slug}/tags/",
-        params=flags_params,
-    )
-    flags = flags_resp.data or []
-    flag_keys = {t["key"] for t in flags}
+    if include_feature_flags:
+        flags_params = {
+            **base_params,
+            "dataset": Dataset.Events.value,
+            "useFlagsBackend": "1",
+        }
+        flags_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{org_slug}/tags/",
+            params=flags_params,
+        )
+        flags = flags_resp.data or []
+        flag_keys = {t["key"] for t in flags}
+    else:
+        flag_keys = set()
 
     return event_tag_keys, flag_keys
 
@@ -149,6 +156,7 @@ def get_event_filter_keys(
     org_id: int,
     project_ids: list[int] | None = None,
     stats_period: str = "7d",
+    include_feature_flags: bool = False,
 ) -> dict[str, dict[str, Any]] | None:
     """
     Get available event filter keys for the "errors" dataset (tags, feature flags, and static fields). This mirrors the
@@ -172,7 +180,11 @@ def get_event_filter_keys(
 
     always_fields = {*_ALWAYS_RETURN_EVENT_FIELDS}
     tag_keys, flag_keys = _get_tag_and_feature_flag_keys(
-        organization.id, organization.slug, project_ids, stats_period
+        organization.id,
+        organization.slug,
+        project_ids,
+        stats_period,
+        include_feature_flags=include_feature_flags,
     )
 
     result = {}
@@ -189,7 +201,7 @@ def get_event_filter_key_values(
     *,
     org_id,
     filter_key: str,
-    is_feature_flag: bool,
+    is_feature_flag: bool = False,
     substring: str | None = None,
     project_ids: list[int] | None = None,
     stats_period: str = "7d",
@@ -235,7 +247,11 @@ def get_event_filter_key_values(
 
     if filter_key == "has":
         tag_keys, _ = _get_tag_and_feature_flag_keys(
-            organization.id, organization.slug, project_ids, stats_period
+            organization.id,
+            organization.slug,
+            project_ids,
+            stats_period,
+            include_feature_flags=False,
         )
         return [{"value": t} for t in tag_keys]
 

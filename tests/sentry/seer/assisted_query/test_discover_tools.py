@@ -14,7 +14,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_event_filter_keys_success(self):
+    def test_get_event_filter_keys_with_feature_flags(self):
         """Test that get_event_filter_keys returns tags, feature flags, and static fields"""
         # Create an error event with custom tags
         self.store_event(
@@ -45,6 +45,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
         result = get_event_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            include_feature_flags=True,
         )
 
         assert result is not None
@@ -58,6 +59,57 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
         for k in ["feature_a", "feature_b"]:
             assert k in result
             assert result[k]["type"] == "feature_flag"
+
+        # Check always-return fields
+        for k in _ALWAYS_RETURN_EVENT_FIELDS:
+            assert k in result
+            expected_type = _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")
+            assert result[k]["type"] == expected_type
+
+    def test_get_event_filter_keys_exclude_feature_flags(self):
+        """Test that get_event_filter_keys excludes feature flags when include_feature_flags is False"""
+        # Create an error event with custom tags
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"fruit": "apple", "color": "red"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an event with feature flags
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "feature_a", "result": True},
+                            {"flag": "feature_b", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_event_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            include_feature_flags=False,
+        )
+
+        assert result is not None
+
+        # Check tags
+        for k in ["fruit", "color"]:
+            assert k in result
+            assert result[k]["type"] == "tag"
+
+        # Check feature flags not present
+        for k in ["feature_a", "feature_b"]:
+            assert k not in result
 
         # Check always-return fields
         for k in _ALWAYS_RETURN_EVENT_FIELDS:
