@@ -158,8 +158,8 @@ describe('AddDataVolume for legacy plans', () => {
       {
         billingInterval: MONTHLY,
         category: 'attachments',
-        max: '1TB',
-        min: '1GB',
+        max: '1,000 GB',
+        min: '1 GB',
         selectedTier: '1 GB',
       },
       {
@@ -210,8 +210,8 @@ describe('AddDataVolume for legacy plans', () => {
       {
         billingInterval: MONTHLY,
         category: 'attachments',
-        max: '1GB',
-        min: '1TB',
+        max: '1 GB',
+        min: '1,000 GB',
         selectedTier: '50 GB',
         tierPrice: 12,
         pricePerEvent: '$0.25',
@@ -265,8 +265,8 @@ describe('AddDataVolume for legacy plans', () => {
       {
         billingInterval: ANNUAL,
         category: 'attachments',
-        max: '1GB',
-        min: '1TB',
+        max: '1 GB',
+        min: '1,000 GB',
         selectedTier: '25 GB',
         tierPrice: 63,
       },
@@ -454,8 +454,8 @@ describe('AddDataVolume for modern plans', () => {
       {
         billingInterval: MONTHLY,
         category: 'attachments',
-        max: '1GB',
-        min: '1TB',
+        max: '1 GB',
+        min: '1,000 GB',
         selectedTier: '1 GB',
       },
       {
@@ -503,8 +503,8 @@ describe('AddDataVolume for modern plans', () => {
       {
         billingInterval: MONTHLY,
         category: 'attachments',
-        max: '1GB',
-        min: '1TB',
+        max: '1 GB',
+        min: '1,000 GB',
         selectedTier: '50 GB',
         tierPrice: 12,
         pricePerEvent: '$0.25',
@@ -559,8 +559,8 @@ describe('AddDataVolume for modern plans', () => {
       {
         billingInterval: ANNUAL,
         category: 'attachments',
-        max: '1GB',
-        min: '1TB',
+        max: '1 GB',
+        min: '1,000 GB',
         selectedTier: '25 GB',
         tierPrice: 65,
       },

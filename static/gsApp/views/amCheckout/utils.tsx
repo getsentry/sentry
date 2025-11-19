@@ -50,7 +50,6 @@ import {
   isTeamPlanFamily,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
@@ -343,41 +342,6 @@ export function getDiscountedPrice({
  */
 export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
-}
-
-function getWithBytes(gigabytes: number): string {
-  if (gigabytes >= 1000) {
-    return `${(gigabytes / 1000).toLocaleString()} TB`;
-  }
-  return `${gigabytes.toLocaleString()} GB`;
-}
-
-/**
- * Used by RangeSlider. As such, a value of zero is not equivalent to unlimited.
- */
-export function getEventsWithUnit(
-  events: number,
-  dataType: string
-): string | number | null {
-  if (!events) {
-    return null;
-  }
-
-  if (isByteCategory(dataType)) {
-    return getWithBytes(events).replace(' ', '');
-  }
-
-  if (events >= 1_000_000_000) {
-    return `${events / 1_000_000_000}B`;
-  }
-  if (events >= 1_000_000) {
-    return `${events / 1_000_000}M`;
-  }
-  if (events >= 1_000) {
-    return `${events / 1_000}K`;
-  }
-
-  return events;
 }
 
 type CheckoutData = {
