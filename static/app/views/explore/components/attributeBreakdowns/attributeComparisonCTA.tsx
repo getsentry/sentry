@@ -18,7 +18,7 @@ import {useChartSelection} from './chartSelectionContext';
 
 const PANEL_WIDTH = '400px';
 const ILLUSTRATION_HEIGHT = '120px';
-const LOCAL_STORAGE_KEY = 'explore:attribute-breakdowns-cta-visible';
+const LOCAL_STORAGE_KEY = 'explore:attribute-breakdowns-cta-dismissed';
 const CTA_DELAY_MS = 1000;
 
 export function AttributeComparisonCTA({children}: {children: React.ReactNode}) {
@@ -58,7 +58,7 @@ export function AttributeComparisonCTA({children}: {children: React.ReactNode}) 
                 icon={<IconClose size="sm" />}
                 borderless
                 aria-label={t('Attribute Breakdowns CTA dismissed')}
-                onClick={() => setIsDismissed(false)}
+                onClick={() => setIsDismissed(true)}
               />
             </Flex>
             <Text size="xs" align="left">
