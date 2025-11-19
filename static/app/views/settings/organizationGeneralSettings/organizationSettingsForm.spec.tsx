@@ -399,7 +399,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is disabled when feature flag is off', async () => {
+    it('is disabled when feature flag is off', () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
