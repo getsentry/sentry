@@ -5,11 +5,12 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -171,6 +172,16 @@ class OAuth2LoginViewTest(TestCase):
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
+    def build_mock_pipeline(self) -> MagicMock:
+        pipeline = MagicMock()
+        pipeline.provider.key = "dummy"
+        pipeline.config = {"redirect_url": "/extensions/default/setup/"}
+        pipeline.bind_state = MagicMock()
+        pipeline.fetch_state.return_value = "stored-state"
+        pipeline.next_step.return_value = HttpResponse("next-step")
+        pipeline.error.return_value = HttpResponse("error")
+        return pipeline
+
     @cached_property
     def view(self):
         return OAuth2LoginView(
@@ -209,3 +220,39 @@ class OAuth2LoginViewTest(TestCase):
         assert query["response_type"][0] == "code"
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
+
+    def test_callback_advances_when_state_matches(self) -> None:
+        pipeline = self.build_mock_pipeline()
+        request = RequestFactory().get("/", {"code": "abc", "state": "stored-state"})
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        pipeline.fetch_state.assert_called_once_with("state")
+        pipeline.next_step.assert_called_once()
+        pipeline.error.assert_not_called()
+        assert response is pipeline.next_step.return_value
+
+    def test_callback_rejects_mismatched_state(self) -> None:
+        pipeline = self.build_mock_pipeline()
+        pipeline.fetch_state.return_value = "expected"
+        request = RequestFactory().get("/", {"code": "abc", "state": "other"})
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        pipeline.next_step.assert_not_called()
+        pipeline.error.assert_called_once_with(ERR_INVALID_STATE)
+        assert response is pipeline.error.return_value
+
+    @patch("sentry.identity.oauth2.secrets.token_hex", return_value="generated-state")
+    def test_state_param_without_code_does_not_advance(self, _mock_token_hex: MagicMock) -> None:
+        pipeline = self.build_mock_pipeline()
+        request = RequestFactory().get("/", {"state": "external"})
+        request.subdomain = None
+
+        response = self.view.dispatch(request, pipeline)
+
+        pipeline.next_step.assert_not_called()
+        pipeline.bind_state.assert_any_call("state", "generated-state")
+        assert response.status_code == 302

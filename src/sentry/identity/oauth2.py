@@ -245,10 +245,28 @@ class OAuth2LoginView:
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
-        with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
-            for param in ("code", "error", "state"):
-                if param in request.GET:
-                    return pipeline.next_step()
+        with record_event(
+            IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key
+        ).capture() as lifecycle:
+            is_callback = any(param in request.GET for param in ("code", "error"))
+            if is_callback:
+                state = request.GET.get("state")
+                pipeline_state = pipeline.fetch_state("state")
+                if state is None or pipeline_state is None or state != pipeline_state:
+                    code = request.GET.get("code")
+                    extra = {
+                        "error": "invalid_state",
+                        "state": state,
+                        "pipeline_state": pipeline_state,
+                        "code": code,
+                        "has_error": "error" in request.GET,
+                    }
+                    lifecycle.record_failure(
+                        IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
+                    )
+                    return pipeline.error(ERR_INVALID_STATE)
+
+                return pipeline.next_step()
 
             state = secrets.token_hex()
 
