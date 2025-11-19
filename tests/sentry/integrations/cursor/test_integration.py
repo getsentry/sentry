@@ -164,7 +164,8 @@ class CursorIntegrationTest(IntegrationTestCase):
             branch_name="fix-bug",
         )
 
-        result = cast(CursorAgentIntegration, installation).launch(request=request)
+        run_id = 123
+        result = cast(CursorAgentIntegration, installation).launch(request=request, run_id=run_id)
 
         assert result.id == "test_session_123"
         assert result.status == CodingAgentStatus.RUNNING
@@ -174,6 +175,8 @@ class CursorIntegrationTest(IntegrationTestCase):
         mock_post.assert_called_once()
         call_args = mock_post.call_args
         assert call_args[0][0] == "/v0/agents"
+        payload = call_args[1]["data"]
+        assert payload["webhook"]["url"].endswith(f"?run_id={run_id}")
 
     def test_update_organization_config_persists_api_key_and_clears_org_config(self):
         integration = self.create_integration(

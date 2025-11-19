@@ -30,22 +30,47 @@ class TestCursorWebhook(APITestCase):
             },
         )
         self.installation = self.integration.get_installation(organization_id=self.organization.id)
+        self.default_run_id = 101
 
-    def _url(self) -> str:
-        return reverse(
+        patcher = patch(
+            "sentry.integrations.cursor.webhooks.handler.CursorWebhookEndpoint._is_agent_registered",
+            return_value=True,
+        )
+        self.mock_is_agent_registered = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _url(self, include_run_id: bool = True, run_id: int | None = None) -> str:
+        base = reverse(
             "sentry-extensions-cursor-webhook",
             kwargs={"organization_id": self.organization.id},
         )
+        if not include_run_id:
+            return base
+
+        rid = run_id if run_id is not None else self.default_run_id
+        return f"{base}?run_id={rid}"
 
     def _signed_headers(self, body: bytes, secret: str | None = None) -> dict[str, str]:
         used_secret = secret or self.integration.metadata["webhook_secret"]
         signature = hmac.new(used_secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         return {"HTTP_X_WEBHOOK_SIGNATURE": f"sha256={signature}"}
 
-    def _post_with_headers(self, body: bytes, headers: dict[str, str]):
+    def _post_with_headers(
+        self,
+        body: bytes,
+        headers: dict[str, str],
+        *,
+        include_run_id: bool = True,
+        run_id: int | None = None,
+    ):
         # mypy: The DRF APIClient stubs can misinterpret **extra headers as a positional arg.
         client: Any = self.client
-        return client.post(self._url(), data=body, content_type="application/json", **headers)
+        return client.post(
+            self._url(include_run_id=include_run_id, run_id=run_id),
+            data=body,
+            content_type="application/json",
+            **headers,
+        )
 
     def _build_status_payload(
         self,
@@ -164,6 +189,34 @@ class TestCursorWebhook(APITestCase):
         args, kwargs = mock_update_state.call_args
         assert kwargs["status"].name == "FAILED"
 
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_missing_run_id_skips_registration_check(self, mock_update_state):
+        self.mock_is_agent_registered.reset_mock()
+        payload = self._build_status_payload(status="FINISHED")
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers, include_run_id=False)
+
+        assert response.status_code == 204
+        assert mock_update_state.call_count == 1
+        self.mock_is_agent_registered.assert_not_called()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_agent_not_registered_for_run(self, mock_update_state):
+        self.mock_is_agent_registered.return_value = False
+        payload = self._build_status_payload(status="FINISHED")
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        mock_update_state.assert_not_called()
+        self.mock_is_agent_registered.return_value = True
+
     def test_missing_agent_id_or_status(self):
         # Missing id
         body = orjson.dumps(self._build_status_payload(id=None))
@@ -254,3 +307,19 @@ class TestCursorWebhook(APITestCase):
             response = self._post_with_headers(body, headers)
         assert response.status_code == 204
         # Even with exception, endpoint must not raise
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_seer_missing_run_id_error_is_ignored(self, mock_update_state):
+        from sentry.seer.models import SeerApiError
+
+        mock_update_state.side_effect = SeerApiError(
+            '{"detail":"No run_id found for agent"}', status=404
+        )
+        payload = self._build_status_payload(status="FINISHED")
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        with Feature({"organizations:seer-coding-agent-integrations": True}):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204

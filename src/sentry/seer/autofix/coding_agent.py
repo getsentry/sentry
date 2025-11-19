@@ -269,7 +269,7 @@ def _launch_agents_for_repos(
         )
 
         try:
-            coding_agent_state = installation.launch(launch_request)
+            coding_agent_state = installation.launch(request=launch_request, run_id=run_id)
         except (HTTPError, ApiError) as e:
             logger.exception(
                 "coding_agent.repo_launch_error",

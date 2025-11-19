@@ -24,8 +24,10 @@ from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
+    AutofixState,
     CodingAgentResult,
     CodingAgentStatus,
+    get_autofix_state,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
@@ -65,7 +67,9 @@ class CursorWebhookEndpoint(Endpoint):
             logger.warning("cursor_webhook.invalid_signature")
             raise PermissionDenied("Invalid signature")
 
-        self._process_webhook(payload)
+        run_id = self._get_run_id_from_request(request)
+
+        self._process_webhook(payload, organization, run_id)
         logger.info("cursor_webhook.success", extra={"event_type": event_type})
         return self.respond(status=204)
 
@@ -133,7 +137,33 @@ class CursorWebhookEndpoint(Endpoint):
 
         return is_valid
 
-    def _process_webhook(self, payload: dict[str, Any]) -> None:
+    def _get_run_id_from_request(self, request: Request) -> int | None:
+        """Extract run_id query parameter if present."""
+        run_id_raw = request.query_params.get("run_id")
+        if run_id_raw is None:
+            return None
+
+        try:
+            run_id = int(run_id_raw)
+        except (TypeError, ValueError):
+            logger.warning(
+                "cursor_webhook.invalid_run_id_param",
+                extra={"run_id": run_id_raw},
+            )
+            return None
+
+        if run_id <= 0:
+            logger.warning(
+                "cursor_webhook.invalid_run_id_param",
+                extra={"run_id": run_id},
+            )
+            return None
+
+        return run_id
+
+    def _process_webhook(
+        self, payload: dict[str, Any], organization: Organization, run_id: int | None
+    ) -> None:
         """Process webhook payload based on event type."""
         event_type = payload.get("event", "unknown")
 
@@ -143,13 +173,15 @@ class CursorWebhookEndpoint(Endpoint):
         }
 
         handler = handlers.get(event_type, self._handle_unknown_event)
-        handler(payload)
+        handler(payload, organization=organization, run_id=run_id)
 
-    def _handle_unknown_event(self, payload: dict[str, Any]) -> None:
+    def _handle_unknown_event(self, payload: dict[str, Any], **_: Any) -> None:
         """Handle unknown event types."""
         logger.error("cursor_webhook.unknown_event", extra=payload)
 
-    def _handle_status_change(self, payload: dict[str, Any]) -> None:
+    def _handle_status_change(
+        self, payload: dict[str, Any], organization: Organization, run_id: int | None
+    ) -> None:
         """Handle status change events."""
         agent_id = payload.get("id")
         cursor_status = payload.get("status")
@@ -165,6 +197,17 @@ class CursorWebhookEndpoint(Endpoint):
                 extra={"agent_id": agent_id, "status": cursor_status},
             )
             return
+
+        if run_id is None:
+            logger.info(
+                "cursor_webhook.run_id_missing",
+                extra={"agent_id": agent_id},
+            )
+        else:
+            if not self._is_agent_registered(
+                agent_id=agent_id, run_id=run_id, organization=organization
+            ):
+                return
 
         status = CodingAgentStatus.from_cursor_status(cursor_status)
         if not status:
@@ -229,7 +272,45 @@ class CursorWebhookEndpoint(Endpoint):
             status=status,
             agent_url=agent_url,
             result=result,
+            run_id=run_id,
         )
+
+    def _fetch_autofix_state(
+        self, *, organization: Organization, run_id: int
+    ) -> AutofixState | None:
+        try:
+            return get_autofix_state(run_id=run_id, organization_id=organization.id)
+        except Exception:
+            logger.exception(
+                "cursor_webhook.autofix_state_fetch_failed",
+                extra={"organization_id": organization.id, "run_id": run_id},
+            )
+            return None
+
+    def _is_agent_registered(
+        self, *, agent_id: str, run_id: int, organization: Organization
+    ) -> bool:
+        state = self._fetch_autofix_state(organization=organization, run_id=run_id)
+        if state is None:
+            logger.warning(
+                "cursor_webhook.autofix_state_unavailable",
+                extra={"organization_id": organization.id, "run_id": run_id},
+            )
+            return False
+
+        coding_agents = state.coding_agents or {}
+        if agent_id not in coding_agents:
+            logger.warning(
+                "cursor_webhook.agent_not_registered_for_run",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "agent_id": agent_id,
+                },
+            )
+            return False
+
+        return True
 
     def _update_coding_agent_status(
         self,
@@ -237,36 +318,50 @@ class CursorWebhookEndpoint(Endpoint):
         status: CodingAgentStatus,
         agent_url: str | None = None,
         result: CodingAgentResult | None = None,
+        run_id: int | None = None,
     ):
         try:
-            update_sent = update_coding_agent_state(
+            update_coding_agent_state(
                 agent_id=agent_id,
                 status=status,
                 agent_url=agent_url,
                 result=result,
             )
-            if update_sent:
+            logger.info(
+                "cursor_webhook.status_updated_to_seer",
+                extra={
+                    "agent_id": agent_id,
+                    "status": status.value,
+                    "has_result": result is not None,
+                    "run_id": run_id,
+                },
+            )
+        except SeerApiError as exc:
+            if self._is_missing_run_error(exc):
                 logger.info(
-                    "cursor_webhook.status_updated_to_seer",
+                    "cursor_webhook.agent_not_found_in_seer",
                     extra={
                         "agent_id": agent_id,
                         "status": status.value,
-                        "has_result": result is not None,
+                        "run_id": run_id,
                     },
                 )
-            else:
-                logger.info(
-                    "cursor_webhook.agent_not_registered",
-                    extra={
-                        "agent_id": agent_id,
-                        "status": status.value,
-                    },
-                )
-        except SeerApiError:
+                return
+
             logger.exception(
                 "cursor_webhook.seer_update_error",
                 extra={
                     "agent_id": agent_id,
                     "status": status.value,
+                    "run_id": run_id,
                 },
             )
+
+    def _is_missing_run_error(self, error: SeerApiError) -> bool:
+        try:
+            payload = orjson.loads(error.message)
+        except orjson.JSONDecodeError:
+            return False
+
+        detail = payload.get("detail")
+        return isinstance(detail, str) and "No run_id found" in detail
