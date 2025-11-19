@@ -127,9 +127,7 @@ export default function OrganizationDataForwardingSetup() {
                 }
               >
                 <Flex align="center" gap="sm">
-                  <PluginIcon
-                    pluginId={key === DataForwarderProviderSlug.SQS ? 'amazon-sqs' : key}
-                  />
+                  <PluginIcon pluginId={key} />
                   <b>{label}</b>
                 </Flex>
               </TabList.Item>
