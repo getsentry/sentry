@@ -19,6 +19,7 @@ from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.models.authidentity import AuthIdentity
 from sentry.utils.http import absolute_uri
+from sentry.utils.oauth import sanitize_oauth_error
 
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper
@@ -129,7 +130,11 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            safe_error = sanitize_oauth_error(error)
+            message = ERR_INVALID_STATE
+            if safe_error:
+                message = f"{message}\nError code: {safe_error}"
+            return pipeline.error(message)
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)

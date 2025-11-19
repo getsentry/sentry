@@ -1,11 +1,13 @@
 from collections.abc import Mapping
 from functools import cached_property
+from unittest.mock import MagicMock
 from typing import Any
 
 import pytest
+from django.test import RequestFactory
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.providers.oauth2 import OAuth2Provider
+from sentry.auth.providers.oauth2 import ERR_INVALID_STATE, OAuth2Callback, OAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
@@ -48,3 +50,31 @@ class OAuth2ProviderTest(TestCase):
         provider = DummyOAuth2Provider()
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
+
+
+class OAuth2CallbackTest(TestCase):
+    def setUp(self) -> None:
+        self.request_factory = RequestFactory()
+        self.callback = OAuth2Callback(
+            access_token_url="https://example.org/token",
+            client_id="client-id",
+            client_secret="client-secret",
+        )
+
+    def test_error_param_uses_sanitized_code(self) -> None:
+        request = self.request_factory.get("/", {"error": "access_denied"})
+        request.subdomain = None
+        pipeline = MagicMock()
+
+        self.callback.dispatch(request, pipeline)
+
+        pipeline.error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError code: access_denied")
+
+    def test_error_param_omitted_when_invalid(self) -> None:
+        request = self.request_factory.get("/", {"error": "(select(0)from(select(sleep(15)))v)"})
+        request.subdomain = None
+        pipeline = MagicMock()
+
+        self.callback.dispatch(request, pipeline)
+
+        pipeline.error.assert_called_once_with(ERR_INVALID_STATE)

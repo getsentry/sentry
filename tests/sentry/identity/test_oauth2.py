@@ -9,7 +9,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -156,6 +156,35 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_callback_error_param_uses_sanitized_code(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "access_denied"})
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.error = MagicMock()
+
+        with patch(
+            "sentry.integrations.utils.metrics.EventLifecycle.record_failure"
+        ) as mock_failure:
+            self.view.dispatch(request, pipeline)
+
+        pipeline.error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError code: access_denied")
+        assert mock_failure.call_args.kwargs["extra"] == {"error": "access_denied"}
+
+    def test_callback_error_param_rejected_when_invalid(self, mock_record: MagicMock) -> None:
+        malicious_payload = "(select(0)from(select(sleep(15)))v)"
+        request = RequestFactory().get("/", {"error": malicious_payload})
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+        pipeline.error = MagicMock()
+
+        with patch(
+            "sentry.integrations.utils.metrics.EventLifecycle.record_failure"
+        ) as mock_failure:
+            self.view.dispatch(request, pipeline)
+
+        pipeline.error.assert_called_once_with(ERR_INVALID_STATE)
+        assert mock_failure.call_args.kwargs["extra"] == {"error": "invalid_oauth_error_param"}
 
 
 @control_silo_test

@@ -34,6 +34,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.oauth import sanitize_oauth_error
 
 from .base import Provider
 
@@ -359,11 +360,15 @@ class OAuth2CallbackView:
             code = request.GET.get("code")
 
             if error:
+                safe_error = sanitize_oauth_error(error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": safe_error or "invalid_oauth_error_param"},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                message = ERR_INVALID_STATE
+                if safe_error:
+                    message = f"{message}\nError code: {safe_error}"
+                return pipeline.error(message)
 
             if state != pipeline.fetch_state("state"):
                 extra = {
