@@ -115,13 +115,15 @@ function LogsHeader() {
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
-  const documentTitle = hasSavedQueryTitle ? `${savedQuery.name} — ${t('Logs')}` : title;
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
-          <SentryDocumentTitle title={documentTitle} orgSlug={organization?.slug} />
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Logs')}`}
+            orgSlug={organization?.slug}
+          />
         ) : null}
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />

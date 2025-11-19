@@ -98,15 +98,15 @@ function MetricsHeader() {
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
-  const documentTitle = hasSavedQueryTitle
-    ? `${savedQuery.name} — ${t('Metrics')}`
-    : title;
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
-          <SentryDocumentTitle title={documentTitle} orgSlug={organization?.slug} />
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Metrics')}`}
+            orgSlug={organization?.slug}
+          />
         ) : null}
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
