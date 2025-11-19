@@ -129,6 +129,13 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
             DataTitles.avg,
             DataTitles.timeSpent,
           ],
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 3,
+            },
+          ],
         },
       ],
       layout: {
