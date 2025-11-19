@@ -141,12 +141,15 @@ class VstsSubscriptionCheckTest(TestCase):
         )
         integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
-        with patch(
-            "sentry.integrations.vsts.tasks.kickoff_subscription_check.time",
-            return_value=time() + 60,
-        ), patch(
-            "sentry.integrations.vsts.tasks.kickoff_subscription_check.vsts_subscription_check.apply_async"
-        ) as mock_apply_async:
+        with (
+            patch(
+                "sentry.integrations.vsts.tasks.kickoff_subscription_check.time",
+                return_value=time() + 60,
+            ),
+            patch(
+                "sentry.integrations.vsts.tasks.kickoff_subscription_check.vsts_subscription_check.apply_async"
+            ) as mock_apply_async,
+        ):
             kickoff_vsts_subscription_check()
 
         mock_apply_async.assert_not_called()
