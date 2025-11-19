@@ -1639,10 +1639,9 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
-                # Summary already exists, nothing to do
                 return
 
-            # Check if we're already processing this issue
+            # Check if we're already generating the summary
             lock_key, lock_name = get_issue_summary_lock_key(group.id)
             lock = locks.get(lock_key, duration=5, name=lock_name)
             if lock.locked():
@@ -1662,7 +1661,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not is_issue_eligible_for_seer_automation(group):
                 return
 
-            # Now acquire lock (only after all cheap checks pass)
+            # Now acquire a longer lock to avoid race conditions when starting the automation
             lock_key, lock_name = get_issue_summary_lock_key(group.id)
             lock = locks.get(lock_key, duration=10, name=lock_name)
             if lock.locked():
