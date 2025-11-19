@@ -46,22 +46,6 @@ function confidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
 
-  if (
-    // Extrapolation disabled, so don't mention estimations.
-    (defined(extrapolate) && !extrapolate) ||
-    // No sampling happened, so don't mention estimations.
-    noSampling
-  ) {
-    return isTopN
-      ? tct('Span count for top [topEvents] groups: [matchingSpansCount]', {
-          topEvents,
-          matchingSpansCount: <Count value={sampleCount} />,
-        })
-      : tct('Span count: [matchingSpansCount]', {
-          matchingSpansCount: <Count value={sampleCount} />,
-        });
-  }
-
   const maybeWarning =
     confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
   const maybeTooltip =
@@ -91,6 +75,57 @@ function confidenceMessage({
       maybeWarning,
       maybeTooltip,
       matchingSpansCount,
+    });
+  }
+
+  if (
+    // Extrapolation disabled, so don't mention estimations.
+    (defined(extrapolate) && !extrapolate) ||
+    // No sampling happened, so don't mention estimations.
+    noSampling
+  ) {
+    if (!userQuery) {
+      if (isTopN) {
+        return tct('Span count for top [topEvents] groups: [matchingSpansCount]', {
+          topEvents,
+          matchingSpansCount: <Count value={sampleCount} />,
+        });
+      }
+
+      return tct('Span count: [matchingSpansCount]', {
+        matchingSpansCount: <Count value={sampleCount} />,
+      });
+    }
+
+    const matchingSpansCount =
+      sampleCount > 1
+        ? t('%s matches', <Count value={sampleCount} />)
+        : t('%s match', <Count value={sampleCount} />);
+
+    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+      rawSpanCounts.highAccuracy.count > 1 ? (
+        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+      ) : (
+        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+      )
+    ) : (
+      <Placeholder width={40} />
+    );
+
+    if (isTopN) {
+      return tct(
+        'Span count for top [topEvents] groups: [matchingSpansCount] of [totalSpansCount]',
+        {
+          topEvents,
+          matchingSpansCount,
+          totalSpansCount,
+        }
+      );
+    }
+
+    return tct('Span count: [matchingSpansCount] of [totalSpansCount]', {
+      matchingSpansCount,
+      totalSpansCount,
     });
   }
 

@@ -12,42 +12,6 @@ describe('ConfidenceFooter', () => {
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
-  describe('unextrapolated', () => {
-    it('loaded without top events', () => {
-      render(<ConfidenceFooter extrapolate={false} sampleCount={100} />, {
-        wrapper: Wrapper,
-      });
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
-    });
-
-    it('loaded with top events', () => {
-      render(<ConfidenceFooter extrapolate={false} sampleCount={100} topEvents={5} />, {
-        wrapper: Wrapper,
-      });
-      expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Span count for top 5 groups: 100'
-      );
-    });
-  });
-
-  describe('unsampled', () => {
-    it('loaded without top events', () => {
-      render(<ConfidenceFooter isSampled={false} sampleCount={100} />, {
-        wrapper: Wrapper,
-      });
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
-    });
-
-    it('loaded with top events', () => {
-      render(<ConfidenceFooter isSampled={false} sampleCount={100} topEvents={5} />, {
-        wrapper: Wrapper,
-      });
-      expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Span count for top 5 groups: 100'
-      );
-    });
-  });
-
   describe('without raw counts', () => {
     describe('low confidence', () => {
       it('loaded 1', async () => {
@@ -165,6 +129,150 @@ describe('ConfidenceFooter', () => {
         isLoading: false,
       },
     };
+
+    describe('unextrapolated', () => {
+      describe('without user query', () => {
+        it('loaded without top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              extrapolate={false}
+              sampleCount={100}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+        });
+
+        it('loaded with top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              extrapolate={false}
+              sampleCount={100}
+              topEvents={5}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count for top 5 groups: 100'
+          );
+        });
+      });
+
+      describe('with user query', () => {
+        it('loaded without top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              userQuery="query"
+              extrapolate={false}
+              sampleCount={100}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count: 100 matches of 1k spans'
+          );
+        });
+
+        it('loaded with top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              userQuery="query"
+              extrapolate={false}
+              sampleCount={100}
+              topEvents={5}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count for top 5 groups: 100 matches of 1k spans'
+          );
+        });
+      });
+    });
+
+    describe('unsampled', () => {
+      describe('without user query', () => {
+        it('loaded without top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              isSampled={false}
+              sampleCount={100}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+        });
+
+        it('loaded with top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              isSampled={false}
+              sampleCount={100}
+              topEvents={5}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count for top 5 groups: 100'
+          );
+        });
+      });
+
+      describe('with user query', () => {
+        it('loaded without top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              userQuery="query"
+              isSampled={false}
+              sampleCount={100}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count: 100 matches of 1k spans'
+          );
+        });
+
+        it('loaded with top events', () => {
+          render(
+            <ConfidenceFooter
+              rawSpanCounts={rawSpanCounts}
+              userQuery="query"
+              isSampled={false}
+              sampleCount={100}
+              topEvents={5}
+            />,
+            {
+              wrapper: Wrapper,
+            }
+          );
+          expect(screen.getByTestId('wrapper')).toHaveTextContent(
+            'Span count for top 5 groups: 100 matches of 1k spans'
+          );
+        });
+      });
+    });
 
     describe('without user query', () => {
       describe('partial scan', () => {
