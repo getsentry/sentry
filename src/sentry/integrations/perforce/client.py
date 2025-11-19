@@ -314,6 +314,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             Sequence of depot info dictionaries
         """
+<<<<<<< HEAD
         with self._connect() as p4:
             depots = p4.run("depots")
             return [
@@ -356,6 +357,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 )
             # User not found - return None (not an error condition)
             return None
+=======
+        return []
+>>>>>>> 6b799feb551 (Fix typing)
 
     def get_changes(
         self,
@@ -382,6 +386,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Raises:
             TypeError: If start_cl or end_cl are not integers
         """
+<<<<<<< HEAD
         with self._connect() as p4:
             # Validate types - changelists must be integers
             if start_cl is not None and not isinstance(start_cl, int):
@@ -430,6 +435,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 )
                 for change in changes
             ]
+=======
+        return []
+>>>>>>> 6b799feb551 (Fix typing)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -445,7 +453,16 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return None
+        return []
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        """
+        Get file contents from Perforce depot.
+        Required by abstract base class but not used (CODEOWNERS feature removed).
+        """
+        raise NotImplementedError("get_file is not supported for Perforce")
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
