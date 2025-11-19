@@ -177,6 +177,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Double-clicking on metric '${metricName}' at ${timestamp}...`
       : `Double-clicked on metric '${metricName}' at ${timestamp}`;
   },
+
+  get_log_attributes: (args, isLoading) => {
+    const logMessage = args.log_message || '';
+    const timestamp = args.timestamp || '';
+    return isLoading
+      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}...`
+      : `Examined logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}`;
+  },
 };
 
 /**
