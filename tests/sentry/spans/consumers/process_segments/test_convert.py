@@ -4,7 +4,7 @@ import orjson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.spans.consumers.process_segments.convert import RENAME_ATTRIBUTES, convert_span_to_item
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
@@ -81,7 +81,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
     "_meta": {
         "attributes": {
             "my.invalid.field": {
-                "": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}
+                "": {"err": ["invalid_data"], "val": {"type": "boolean", "value": True}}
             }
         }
     },
@@ -123,7 +123,14 @@ def test_convert_span_to_item() -> None:
                 ],
             ),
         ),
-        "my.dict.field": AnyValue(string_value=r"""{"id":42,"name":"test"}"""),
+        "my.dict.field": AnyValue(
+            kvlist_value=KeyValueList(
+                values=[
+                    KeyValue(key="id", value=AnyValue(int_value=42)),
+                    KeyValue(key="name", value=AnyValue(string_value="test")),
+                ],
+            ),
+        ),
         "my.false.bool.field": AnyValue(bool_value=False),
         "my.float.field": AnyValue(double_value=101.2),
         "my.int.field": AnyValue(int_value=2000),
@@ -185,7 +192,7 @@ def test_convert_span_to_item() -> None:
         "thread.id": AnyValue(string_value="8522009600"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
         "sentry._meta.fields.attributes.my.invalid.field": AnyValue(
-            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"string","value":true}}}}"""
+            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"boolean","value":true}}}}"""
         ),
     }
 

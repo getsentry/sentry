@@ -97,7 +97,9 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
-            attributes["sentry.links"] = _anyvalue(orjson.dumps(sanitized_links).decode())
+            # Span links are expected to be a stringified json object.
+            value = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
