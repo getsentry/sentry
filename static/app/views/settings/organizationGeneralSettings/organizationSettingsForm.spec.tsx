@@ -282,7 +282,13 @@ describe('OrganizationSettingsForm', () => {
         {...routerProps}
         initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
-      />
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['gen-ai-features'],
+        },
+      }
     );
 
     expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
@@ -308,7 +314,13 @@ describe('OrganizationSettingsForm', () => {
         // This logic is inverted from the variable name
         initialData={OrganizationFixture({hideAiFeatures: false})}
         onSave={onSave}
-      />
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['gen-ai-features'],
+        },
+      }
     );
 
     expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
@@ -325,7 +337,13 @@ describe('OrganizationSettingsForm', () => {
         {...routerProps}
         initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
-      />
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['gen-ai-features'],
+        },
+      }
     );
 
     expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
