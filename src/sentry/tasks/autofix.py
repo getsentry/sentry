@@ -60,3 +60,26 @@ def generate_issue_summary_only(group_id: int) -> None:
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.run_automation_for_group",
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=1),
+)
+def run_automation_for_group(group_id: int) -> None:
+    """
+    Run automation directly for a group (assumes summary and fixability already exist).
+    Used for triage signals flow when event count >= 10 and summary exists.
+    """
+    from sentry.seer.autofix.issue_summary import _run_automation
+
+    group = Group.objects.get(id=group_id)
+    event = group.get_latest_event()
+
+    if not event:
+        logger.warning("run_automation_for_group.no_event_found", extra={"group_id": group_id})
+        return
+
+    _run_automation(group=group, user=None, event=event, source=SeerAutomationSource.POST_PROCESS)

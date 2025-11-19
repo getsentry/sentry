@@ -1600,28 +1600,80 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
     )
-    from sentry.tasks.autofix import start_seer_automation
+    from sentry.tasks.autofix import (
+        generate_issue_summary_only,
+        run_automation_for_group,
+        start_seer_automation,
+    )
 
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
-    if group.seer_fixability_score is not None:
-        return
+    # Default behaviour
+    if not features.has("projects:triage-signals-v0", group.project):
+        # Only run on issues with no existing scan
+        if group.seer_fixability_score is not None:
+            return
 
-    if is_issue_eligible_for_seer_automation(group) is False:
-        return
+        if is_issue_eligible_for_seer_automation(group) is False:
+            return
 
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return
+        # Don't run if there's already a task in progress for this issue
+        lock_key, lock_name = get_issue_summary_lock_key(group.id)
+        lock = locks.get(lock_key, duration=1, name=lock_name)
+        if lock.locked():
+            return
 
-    if is_seer_scanner_rate_limited(group.project, group.organization):
-        return
+        if is_seer_scanner_rate_limited(group.project, group.organization):
+            return
 
-    start_seer_automation.delay(group.id)
+        start_seer_automation.delay(group.id)
+    else:
+        # Triage signals V0 behaviour
+
+        # If event count < 10, only generate summary + fixability (no automation)
+        if group.times_seen_with_pending < 10:
+            # Check if fixability already exists (which means summary exists too)
+            if group.seer_fixability_score is not None:
+                return
+
+            # Check if we're already processing this issue
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=5, name=lock_name)
+            if lock.locked():
+                return
+
+            # Generate summary + fixability (no automation)
+            if is_issue_eligible_for_seer_automation(group):
+                if not is_seer_scanner_rate_limited(group.project, group.organization):
+                    generate_issue_summary_only.delay(group.id)
+        else:
+            # Event count >= 10: run automation
+
+            # Check seer_last_triggered first (long-term check to avoid re-running)
+            if group.seer_last_triggered is not None:
+                return
+
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
+
+            # Now acquire lock (only after all cheap checks pass)
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=10, name=lock_name)
+            if lock.locked():
+                return
+
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
+
+            # Check if fixability already exists (which means summary exists too)
+            if group.seer_fixability_score is not None:
+                # Summary exists, run automation directly
+                run_automation_for_group.delay(group.id)
+            else:
+                # No summary yet, generate summary + fixability + run automation in one go
+                start_seer_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
