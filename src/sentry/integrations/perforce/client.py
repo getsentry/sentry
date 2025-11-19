@@ -442,7 +442,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return []
+        return None
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False

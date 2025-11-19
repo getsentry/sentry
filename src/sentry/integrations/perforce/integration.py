@@ -3,7 +3,11 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, Sequence
+<<<<<<< HEAD
 from typing import Any, TypedDict
+=======
+from typing import Any
+>>>>>>> 7432be05bba (Simplify integration and enable feature-flag support)
 
 from django import forms
 from django.http import HttpRequest, HttpResponseBase
