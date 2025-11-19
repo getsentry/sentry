@@ -68,6 +68,10 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
+from sentry.seer.assisted_query.discover_tools import (
+    get_event_filter_key_values,
+    get_event_filter_keys,
+)
 from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
@@ -1195,6 +1199,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_filter_key_values": get_filter_key_values,
     "execute_issues_query": execute_issues_query,
     "get_issues_stats": get_issues_stats,
+    "get_event_filter_keys": get_event_filter_keys,
+    "get_event_filter_key_values": get_event_filter_key_values,
     #
     # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
