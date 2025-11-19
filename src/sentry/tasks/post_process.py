@@ -1641,16 +1641,19 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if cache.get(cache_key) is not None:
                 return
 
-            # Check if we're already generating the summary
-            lock_key, lock_name = get_issue_summary_lock_key(group.id)
-            lock = locks.get(lock_key, duration=5, name=lock_name)
-            if lock.locked():
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
+            if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
 
+            # Atomically set cache to prevent duplicate summary generation
+            summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
+            if not cache.add(summary_dispatch_cache_key, True, timeout=30):
+                return  # Another process already dispatched summary generation
+
             # Generate summary (no automation)
-            if is_issue_eligible_for_seer_automation(group):
-                if not is_seer_scanner_rate_limited(group.project, group.organization):
-                    generate_issue_summary_only.delay(group.id)
+            generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
             # Check seer_last_triggered first (long-term check to avoid re-running)
