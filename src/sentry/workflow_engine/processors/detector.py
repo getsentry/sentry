@@ -141,6 +141,10 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
 
 def get_detector_by_group(group: Group) -> Detector:
+    """
+    Returns Detector associated with this group, either based on DetectorGroup,
+    (project, type), or if those fail, returns the Issue Stream detector.
+    """
     try:
         detector = DetectorGroup.objects.get(group=group).detector
         if detector is not None:
