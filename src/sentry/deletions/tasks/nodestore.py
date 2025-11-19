@@ -215,38 +215,33 @@ def delete_events_from_eap(
     group_ids: Sequence[int],
     dataset: Dataset,
 ) -> None:
-    eap_deletion_allowlist = options.get("eventstream.eap.deletion_enabled.organization_allowlist")
-    if organization_id not in eap_deletion_allowlist:
+    if not options.get("eventstream.eap.deletion-enabled"):
         return
 
     try:
-        response = delete_groups_from_eap_rpc(
+        delete_groups_from_eap_rpc(
             organization_id=organization_id,
             project_id=project_id,
             group_ids=group_ids,
             referrer="deletions.group.eap",
         )
-        logger.info(
-            "eap.delete_groups.completed",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "group_count": len(group_ids),
-                "matching_items_count": response.matching_items_count,
-            },
+        metrics.incr(
+            "deletions.group.eap.success",
+            tags={"dataset": dataset.value},
+            sample_rate=1.0,
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
-            "eap.delete_groups.failed",
+            "Failed to delete groups from EAP",
             extra={
                 "organization_id": organization_id,
                 "project_id": project_id,
                 "group_ids": group_ids[:10],
-                "error": str(e),
+                "dataset": dataset.value,
             },
         )
         metrics.incr(
-            "deletions.eap.failed",
+            "deletions.group.eap.failure",
             tags={"dataset": dataset.value},
             sample_rate=1.0,
         )
