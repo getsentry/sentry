@@ -7,9 +7,9 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorEnvBrokenDetection,
     ScheduleType,
 )
 from sentry.testutils.cases import APITestCase, TransactionTestCase
