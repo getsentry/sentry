@@ -123,12 +123,15 @@ function SpansTabHeader() {
 
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
+  const documentTitle = hasSavedQueryTitle
+    ? `${savedQuery.name} — ${t('Traces')}`
+    : title;
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
-          <SentryDocumentTitle title={savedQuery.name} orgSlug={organization?.slug} />
+          <SentryDocumentTitle title={documentTitle} orgSlug={organization?.slug} />
         ) : null}
         {title && defined(id) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
