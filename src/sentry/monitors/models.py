@@ -238,12 +238,6 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
-    is_muted = models.BooleanField(default=False, db_default=False)
-    """
-    Monitor is operating normally but will not produce incidents or produce
-    occurrences into the issues platform.
-    """
-
     name = models.CharField(max_length=128)
     """
     Human readable name of the monitor. Used for display purposes.
@@ -439,23 +433,22 @@ class Monitor(Model):
         self.guid = uuid4()
         return old_pk
 
-    def ensure_is_muted(self) -> None:
+    @property
+    def is_muted(self) -> bool:
         """
-        Dual-write: Sync is_muted from monitor environments back to the monitor.
-
-        Sets Monitor.is_muted based on whether all MonitorEnvironments are muted.
-        If there are no environments, is_muted remains unchanged.
+        A monitor is considered muted if ALL of its environments are muted.
+        If a monitor has no environments, it is considered unmuted.
         """
-        # Count total environments and muted environments
         env_counts = MonitorEnvironment.objects.filter(monitor_id=self.id).aggregate(
             total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
         )
 
-        # Only update if there are environments
-        if env_counts["total"] > 0:
-            all_muted = env_counts["total"] == env_counts["muted"]
-            if self.is_muted != all_muted:
-                self.update(is_muted=all_muted)
+        # If no environments exist, monitor is not muted
+        if env_counts["total"] == 0:
+            return False
+
+        # Monitor is muted only if ALL environments are muted
+        return env_counts["total"] == env_counts["muted"]
 
 
 def check_organization_monitor_limit(organization_id: int) -> None:

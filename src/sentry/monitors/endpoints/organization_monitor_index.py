@@ -143,11 +143,17 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         sort_fields = []
 
         if sort == "status":
+            # Check if all environments are muted by seeing if any unmuted environments exist
+            has_unmuted_env = monitor_environments_query.filter(is_muted=False)
+
             queryset = queryset.annotate(
                 environment_status_ordering=Case(
-                    # Sort DISABLED and is_muted monitors to the bottom of the list
+                    # Sort DISABLED and fully muted monitors to the bottom of the list
                     When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_STATUS_ORDER) + 1)),
-                    When(is_muted=True, then=Value(len(DEFAULT_STATUS_ORDER))),
+                    When(
+                        Exists(monitor_environments_query) & ~Exists(has_unmuted_env),
+                        then=Value(len(DEFAULT_STATUS_ORDER)),
+                    ),
                     default=Subquery(
                         monitor_environments_query.annotate(
                             status_ordering=MONITOR_ENVIRONMENT_ORDERING
@@ -169,10 +175,21 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         elif sort == "name":
             sort_fields = ["name"]
         elif sort == "muted":
+            # Check if any environments are muted
+            has_muted_env = monitor_environments_query.filter(is_muted=True)
+            # Check if all environments are muted
+            has_unmuted_env = monitor_environments_query.filter(is_muted=False)
+
             queryset = queryset.annotate(
                 muted_ordering=Case(
-                    When(is_muted=True, then=Value(2)),
-                    When(Exists(monitor_environments_query.filter(is_muted=True)), then=Value(1)),
+                    # No environments muted (or no environments at all)
+                    When(~Exists(has_muted_env), then=Value(0)),
+                    # Some environments muted (not all)
+                    When(Exists(has_muted_env) & Exists(has_unmuted_env), then=Value(1)),
+                    # All environments muted (and at least one environment exists)
+                    When(
+                        Exists(monitor_environments_query) & ~Exists(has_unmuted_env), then=Value(2)
+                    ),
                     default=0,
                 ),
             )
@@ -315,6 +332,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             if not assign_result.assignable:
                 return self.respond(assign_result.reason, status=400)
 
+        # Extract is_muted to propagate to environments, don't update Monitor directly
+        is_muted = result.pop("is_muted", None)
+
         updated = []
         errored = []
         for monitor in monitors:
@@ -330,7 +350,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 if status == ObjectStatus.DISABLED:
                     quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, monitor)
 
-                monitor.update(**result)
+                # Propagate is_muted to all monitor environments
+                if is_muted is not None:
+                    MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
+                        is_muted=is_muted
+                    )
+
+                if result:
+                    monitor.update(**result)
                 updated.append(monitor)
             self.create_audit_entry(
                 request=request,

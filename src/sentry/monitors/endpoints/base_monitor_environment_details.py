@@ -22,8 +22,6 @@ class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):
         is_muted = request.data.get("isMuted")
         if type(is_muted) is bool:
             monitor_environment.update(is_muted=is_muted)
-            # Dual-write: Sync is_muted back to monitor if all environments are muted
-            monitor.ensure_is_muted()
 
         self.create_audit_entry(
             request=request,

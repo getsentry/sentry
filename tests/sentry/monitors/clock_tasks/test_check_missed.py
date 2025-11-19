@@ -459,7 +459,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
                 "max_runtime": None,
             },
             status=state,
-            is_muted=is_muted,
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
@@ -469,7 +468,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.ACTIVE,
-            is_muted=environment_is_muted,
+            is_muted=is_muted or environment_is_muted,
         )
 
         dispatch_check_missing(ts)
