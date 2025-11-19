@@ -102,15 +102,12 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
     def test_unmuting_one_environment_unmutes_monitor(self) -> None:
         """Test that unmuting one environment when all were muted also unmutes the monitor."""
-        # Start with a muted monitor
+        # Start with a monitor that has all environments muted
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
-        monitor.update(is_muted=True)
 
         # Create two muted environments
-        env1 = self._create_monitor_environment(monitor, name="production")
-        env1.update(is_muted=True)
-        env2 = self._create_monitor_environment(monitor, name="staging")
-        env2.update(is_muted=True)
+        env1 = self._create_monitor_environment(monitor, name="production", is_muted=True)
+        env2 = self._create_monitor_environment(monitor, name="staging", is_muted=True)
 
         # Verify initial state
         monitor.refresh_from_db()
