@@ -130,11 +130,12 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 # Get last N changes
                 changes = client.get_changes(f"{depot_path}/...", max_changes=20)
             else:
-                # Get changes between start and end
-                # P4 doesn't have native compare, so get changes up to end_sha
-                changes = client.get_changes(f"{depot_path}/...", max_changes=100, start_cl=end_sha)
+                # Get changes between start and end (exclusive start, inclusive end)
+                # P4 -e flag returns changes >= specified CL, so we get all recent changes
+                # and filter to range (start_sha, end_sha]
+                changes = client.get_changes(f"{depot_path}/...", max_changes=100)
 
-                # Filter to only changes after start_sha
+                # Filter to only changes in range: start_sha < change <= end_sha
                 if changes:
                     start_cl_num = int(start_sha) if start_sha.isdigit() else 0
                     changes = [c for c in changes if int(c["change"]) > start_cl_num]
