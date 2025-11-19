@@ -19,10 +19,15 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.models import SnubaQueryEventType
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowItem
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
+    from sentry.workflow_engine.models.action import ActionSnapshot
     from sentry.workflow_engine.models.data_condition import Condition
+    from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
+    from sentry.workflow_engine.models.detector import DetectorSnapshot
+    from sentry.workflow_engine.models.workflow import WorkflowSnapshot
 
 T = TypeVar("T")
 
@@ -87,16 +92,33 @@ class WorkflowEventData:
     workflow_env: Environment | None = None
 
 
+class WorkflowEvaluationSnapshot(TypedDict):
+    """
+    A snapshot of data used to evaluate a workflow.
+    Ensure that this size is kept smaller, since it's used in logging.
+    """
+
+    associated_detector: DetectorSnapshot | None
+    event_id: str | None  # ID in NodeStore
+    group: Group | None
+    workflow_ids: list[int] | None
+    triggered_workflows: list[WorkflowSnapshot] | None
+    delayed_conditions: list[str] | None
+    action_filter_conditions: list[DataConditionGroupSnapshot] | None
+    triggered_actions: list[ActionSnapshot] | None
+
+
 @dataclass
 class WorkflowEvaluationData:
     event: GroupEvent | Activity
+    associated_detector: Detector | None = None
     action_groups: set[DataConditionGroup] | None = None
     workflows: set[Workflow] | None = None
-    triggered_actions: set[Action] | None = None
     triggered_workflows: set[Workflow] | None = None
-    associated_detector: Detector | None = None
+    delayed_conditions: dict[Workflow, DelayedWorkflowItem] | None = None
+    triggered_actions: set[Action] | None = None
 
-    def get_snapshot(self) -> dict[str, Any]:
+    def get_snapshot(self) -> WorkflowEvaluationSnapshot:
         """
         This method will take the complex data structures, like models / list of models,
         and turn them into the critical attributes of a model or lists of IDs.
@@ -124,18 +146,23 @@ class WorkflowEvaluationData:
 
         event_id = None
         if hasattr(self.event, "event_id"):
-            # Activity's do not have an event id
-            event_id = self.event.event_id
+            event_id = str(self.event.event_id)
+
+        delayed_conditions = None
+        if self.delayed_conditions:
+            delayed_conditions = [
+                delayed_item.buffer_key() for _, delayed_item in self.delayed_conditions.items()
+            ]
 
         return {
-            "workflow_ids": workflow_ids,
             "associated_detector": associated_detector,
-            "event": self.event,
             "event_id": event_id,
             "group": self.event.group,
+            "workflow_ids": workflow_ids,
+            "triggered_workflows": triggered_workflows,
+            "delayed_conditions": delayed_conditions,
             "action_filter_conditions": action_filter_conditions,
             "triggered_actions": triggered_actions,
-            "triggered_workflows": triggered_workflows,
         }
 
 
@@ -155,8 +182,8 @@ class WorkflowEvaluation:
     """
 
     tainted: bool
-    msg: str | None
     data: WorkflowEvaluationData
+    msg: str | None = None
 
     def to_log(self, logger: Logger) -> None:
         """
@@ -176,7 +203,31 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**self.data.get_snapshot(), "debug_msg": self.msg})
+        data_snapshot = self.data.get_snapshot()
+        detection_type = (
+            data_snapshot["associated_detector"]["type"]
+            if data_snapshot["associated_detector"]
+            else None
+        )
+        group_id = data_snapshot["group"].id if data_snapshot["group"] else None
+        triggered_workflows = data_snapshot["triggered_workflows"] or []
+        action_filter_conditions = data_snapshot["action_filter_conditions"] or []
+        triggered_actions = data_snapshot["triggered_actions"] or []
+
+        logger.info(
+            log_str,
+            extra={
+                "event_id": data_snapshot["event_id"],
+                "group_id": group_id,
+                "detection_type": detection_type,
+                "workflow_ids": data_snapshot["workflow_ids"],
+                "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
+                "delayed_conditions": data_snapshot["delayed_conditions"],
+                "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
+                "triggered_action_ids": [a["id"] for a in triggered_actions],
+                "debug_msg": self.msg,
+            },
+        )
 
 
 class ConfigTransformer(ABC):
