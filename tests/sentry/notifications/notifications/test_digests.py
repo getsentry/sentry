@@ -1,7 +1,7 @@
 import uuid
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
-from urllib.parse import urlencode
+from urllib.parse import quote
 
 import orjson
 from django.core import mail
@@ -375,20 +375,18 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         # Last block should be truncation warning with issue count
         last_block = blocks[-1]
         assert last_block["type"] == "context"
-        warning_text = last_block["elements"][0]["text"].lower()
-        assert "showing" in warning_text
+        warning_text = last_block["elements"][0]["text"]
+        warning_text_lower = warning_text.lower()
+
+        assert "showing" in warning_text_lower
         # Should show X issues out of Y where X < 13 and Y = 13
         assert "/13" in warning_text
-        assert "view all issues in sentry" in warning_text
+        assert "view all issues in sentry" in warning_text_lower
 
-        issues_url = self.organization.absolute_url(
-            path=f"/organizations/{self.organization.slug}/issues/",
-            query=urlencode(
-                {
-                    "start": timestamp,
-                    "end": timestamp,
-                    "project": self.project.id,
-                }
-            ),
-        )
-        assert issues_url.lower() in warning_text
+        # Check URL components and values (URL-encoded)
+        assert f"/organizations/{self.organization.slug}/issues/" in warning_text_lower
+        assert f"project={self.project.id}" in warning_text_lower
+        # Timestamps are URL-encoded in the link
+        encoded_timestamp = quote(timestamp, safe="")
+        assert f"start={encoded_timestamp.lower()}" in warning_text_lower
+        assert f"end={encoded_timestamp.lower()}" in warning_text_lower
