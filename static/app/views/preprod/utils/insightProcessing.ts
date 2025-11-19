@@ -52,6 +52,11 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     ),
   },
   {
+    key: 'webp_optimization',
+    name: t('WebP Optimization'),
+    description: t('Images can be converted to WebP to reduce size.'),
+  },
+  {
     key: 'duplicate_files',
     name: t('Duplicate Files'),
     description: t(
@@ -334,6 +339,7 @@ export function processInsights(
     'audio_compression',
     'video_compression',
     'multiple_native_library_archs',
+    'webp_optimization',
   ] as const;
 
   regularInsightKeys.forEach(key => {
@@ -348,15 +354,17 @@ export function processInsights(
           description: config.description,
           totalSavings: insight.total_savings,
           percentage: (insight.total_savings / totalSize) * 100,
-          files: files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          })),
+          files: files
+            .sort((a, b) => b.total_savings - a.total_savings)
+            .map((file: FileSavingsResult) => ({
+              path: file.file_path,
+              savings: file.total_savings,
+              percentage: (file.total_savings / totalSize) * 100,
+              data: {
+                fileType: 'regular' as const,
+                originalFile: file,
+              },
+            })),
         });
       }
     }

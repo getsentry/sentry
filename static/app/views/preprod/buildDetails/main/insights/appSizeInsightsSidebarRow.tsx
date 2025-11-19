@@ -41,6 +41,7 @@ export function formatUpside(percentage: number): string {
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
+  'webp_optimization',
   'alternate_icons_optimization',
   'localized_strings_minify',
   'strip_binary',
@@ -74,7 +75,10 @@ export function AppSizeInsightsSidebarRow({
   const handleOpenModal = () => {
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
-    } else if (insight.key === 'image_optimization') {
+    } else if (
+      insight.key === 'image_optimization' ||
+      insight.key === 'webp_optimization'
+    ) {
       openOptimizeImagesModal(platform);
     } else if (insight.key === 'localized_strings_minify') {
       openMinifyLocalizedStringsModal();
