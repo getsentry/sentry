@@ -136,7 +136,6 @@ export function BreadcrumbsDrawer({
           <Button
             size="xs"
             borderless
-            aria-checked
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
             {...props}
