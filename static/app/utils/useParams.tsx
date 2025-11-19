@@ -12,6 +12,7 @@ import {useTestRouteContext} from './useRouteContext';
  */
 type ParamKeys =
   | 'alertId'
+  | 'alertType'
   | 'apiKey'
   | 'appId'
   | 'appSlug'
@@ -42,6 +43,7 @@ type ParamKeys =
   | 'release'
   | 'relocationUuid'
   | 'replaySlug'
+  | 'ruleId'
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
