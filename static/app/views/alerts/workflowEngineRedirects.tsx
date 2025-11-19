@@ -7,7 +7,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {
-  makeAutomationBasePathname,
   makeAutomationDetailsPathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
@@ -166,25 +165,6 @@ function WorkflowEngineRedirectWithAlertRuleData({
   return children;
 }
 
-// Simple static redirects
-
-export function WorkflowEngineRedirectToAutomationList({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  const organization = useOrganization();
-  return (
-    <WorkflowEngineRedirect
-      redirectTo={makeAutomationBasePathname(organization.slug)}
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirect>
-  );
-}
-
 export function WorkflowEngineRedirectToDetectorCreate({
   children,
   ...props
@@ -211,8 +191,6 @@ export function WorkflowEngineRedirectToDetectorCreate({
     </WorkflowEngineRedirect>
   );
 }
-
-// Data-dependent redirects for issue rules (with projectId)
 
 export function WorkflowEngineRedirectToAutomationDetails({
   children,
@@ -249,8 +227,6 @@ export function WorkflowEngineRedirectToAutomationEdit({
     </WorkflowEngineRedirectWithRuleData>
   );
 }
-
-// Data-dependent redirects for alert rules
 
 export function WorkflowEngineRedirectToDetectorDetails({
   children,
