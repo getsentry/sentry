@@ -78,13 +78,16 @@ export function IssuesWidget() {
 }
 
 function IssuesVisualization({groups}: {groups: Group[]}) {
+  const organization = useOrganization();
   return (
     <IssueList>
       {groups.map((issue, index) => (
         <IssueRow key={issue.id} isFirst={index === 0}>
           <PlatformIcon platform={issue.project.platform ?? ''} size={16} />
           <IssueTitle>
-            <Link to={`/issues/${issue.id}`}>{issue.title}</Link>
+            <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+              {issue.title}
+            </Link>
           </IssueTitle>
           <IssueCount value={issue.count} />
         </IssueRow>

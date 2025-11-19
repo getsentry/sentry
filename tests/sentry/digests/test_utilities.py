@@ -65,7 +65,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         # Make sure that the target_identifier = RULE
         assert {record.value.identifier_key == IdentifierKey.RULE for record in records}
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_event_to_record_with_workflow_id(self) -> None:
         project = self.create_project(fire_project_created=True)
         workflow = self.create_workflow(organization=self.organization)
@@ -242,7 +242,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
 
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_simple_with_workflow_id(self) -> None:
         records = [
             event_to_record(event, (self.rule_with_workflow_id,))
@@ -286,7 +286,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
         )
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_direct_email_with_workflow_id(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest. - Workflow ID"""
         self.project_ownership.update(fallthrough=False)
@@ -339,7 +339,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             actor for actors in participants_by_provider_by_event.values() for actor in actors
         }  # no users in this team no digests should be processed
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_team_without_members_with_workflow_id(self) -> None:
         team = self.create_team()
         project = self.create_project(teams=[team], fire_project_created=True)
@@ -422,7 +422,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
         assert_get_personalized_digests(self.project, digest, expected_result)
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_everyone_with_owners_with_workflow_id(self) -> None:
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
@@ -468,7 +468,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         """
         self.create_alert_rule_workflow(workflow=self.workflow, rule_id=self.shadow_rule.id)
 
-        with self.feature("organizations:workflow-engine-ui"):
+        with self.feature("organizations:workflow-engine-ui-links"):
             records = [
                 event_to_record(event, (self.rule_with_workflow_id,))
                 for event in self.team1_events + self.team2_events + self.user4_events

@@ -11,6 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed, ParseError, Permissi
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -87,6 +88,9 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:
     """Check if organization has opted in to Prevent AI features."""
+    if not features.has("organizations:gen-ai-features", org):
+        return False
+
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(

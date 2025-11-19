@@ -8,7 +8,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function PreprodContainer() {
+export default function PreprodContainer() {
   const organization = useOrganization();
 
   return (
@@ -31,5 +31,3 @@ function PreprodContainer() {
     </Feature>
   );
 }
-
-export default PreprodContainer;

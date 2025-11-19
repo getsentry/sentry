@@ -1,9 +1,10 @@
 import {Fragment, useContext, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -54,9 +55,10 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
+  const theme = useTheme();
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
       <TemplateSection />
       <CustomizeMetricSection />
@@ -64,7 +66,7 @@ function MetricDetectorForm() {
       <AssignSection />
       <DescribeSection />
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
@@ -228,7 +230,7 @@ function PriorityRow({
 
   const thresholdAriaLabel = isHigh ? t('High threshold') : t('Medium threshold');
 
-  const directionField = (
+  const directionField = isHigh ? (
     <DirectionField
       aria-label={t('Threshold direction')}
       name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
@@ -236,16 +238,26 @@ function PriorityRow({
       inline
       flexibleControlStateSize
       choices={conditionChoices}
-      required={isHigh}
-      disabled={!isHigh}
-      defaultValue={conditionType}
+      required
       preserveOnUnmount
+    />
+  ) : (
+    <DirectionField
+      aria-label={t('Threshold direction')}
+      name="conditionTypeDisplay"
+      hideLabel
+      inline
+      flexibleControlStateSize
+      choices={conditionChoices}
+      value={conditionType}
+      defaultValue={conditionType}
+      disabled
     />
   );
 
   return (
     <PriorityRowContainer>
-      <PriorityDot $priority={priority} />
+      <PriorityDot priority={priority} />
       <PriorityLabel>
         {isHigh ? t('High priority') : t('Medium priority')}
         {isHigh && <RequiredAsterisk>*</RequiredAsterisk>}
@@ -562,13 +574,6 @@ function TransactionsDatasetWarningListener() {
   return <TransactionsDatasetWarning />;
 }
 
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  max-width: ${p => p.theme.breakpoints.xl};
-`;
-
 const DatasetRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -677,11 +682,11 @@ const PriorityRowContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const PriorityDot = styled('div')<{$priority: 'high' | 'medium'}>`
+const PriorityDot = styled('div')<{priority: 'high' | 'medium'}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${p => (p.$priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
+  background-color: ${p => (p.priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
   flex-shrink: 0;
 `;
 

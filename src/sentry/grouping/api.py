@@ -38,6 +38,7 @@ from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS
 from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -282,16 +283,9 @@ def apply_server_side_fingerprinting(
 
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
+        # TODO: We don't need to return attributes as part of the fingerprint match anymore
         matched_rule, new_fingerprint, attributes = fingerprint_match
-
-        # A custom title attribute is stored in the event to override the
-        # default title.
-        if "title" in attributes:
-            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
-
-        # Persist the rule that matched with the fingerprint in the event
-        # dictionary for later debugging.
         fingerprint_info["matched_rule"] = matched_rule.to_json()
 
     if fingerprint_info:
@@ -405,6 +399,9 @@ def get_grouping_variants_for_event(
         else resolve_fingerprint_values(raw_fingerprint, event.data)
     )
 
+    # Check if the fingerprint includes a custom title, and if so, set the event's title accordingly.
+    _apply_custom_title_if_needed(fingerprint_info, event)
+
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
     context = GroupingContext(config or _load_default_grouping_config(), event)
@@ -456,6 +453,18 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def _apply_custom_title_if_needed(fingerprint_info: FingerprintInfo, event: Event) -> None:
+    """
+    If the given event has a custom fingerprint which includes a title template, apply the custom
+    title to the event.
+    """
+    custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+    if custom_title_template:
+        resolved_title = expand_title_template(custom_title_template, event.data)
+        event.data["title"] = resolved_title
 
 
 def get_contributing_variant_and_component(

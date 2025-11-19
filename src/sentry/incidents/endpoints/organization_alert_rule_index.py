@@ -73,6 +73,7 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
@@ -100,6 +101,9 @@ def create_metric_alert(
         raise ValidationError(
             "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    if data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+        raise ValidationError("server_weighted extrapolation mode is not supported for new alerts.")
 
     if project:
         data["projects"] = [project.slug]

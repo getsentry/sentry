@@ -153,8 +153,12 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         }
 
     def test_simple_using_spans_item_type(self) -> None:
+        previous_trace = uuid.uuid4().hex
         span_1 = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
+            {
+                "description": "foo",
+                "sentry_tags": {"status": "success", "previous_trace": previous_trace},
+            },
             measurements={
                 "code.lineno": {"value": 420},
                 "http.response_content_length": {"value": 100},
@@ -192,6 +196,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
+            {"name": "previous_trace", "type": "str", "value": previous_trace},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
             {"name": "sdk.version", "type": "str", "value": "1.0"},

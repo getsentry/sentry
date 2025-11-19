@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import type {
-  AppleInsightResults,
   FileSavingsResult,
   FileSavingsResultGroup,
   FilesInsightResult,
   GroupsInsightResult,
+  InsightResults,
   OptimizableImageFile,
   StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
@@ -131,6 +131,13 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
       "Alternate icons don't need full size quality because they are only shown downscaled in the homescreen."
     ),
   },
+  {
+    key: 'multiple_native_library_archs',
+    name: t('Multiple native library architectures'),
+    description: t(
+      'Only one native library architecture is needed. Non-arm64 architectures can be removed.'
+    ),
+  },
 ];
 
 function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void {
@@ -163,7 +170,7 @@ function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void
  * Process all insights into a standardized format for display
  */
 export function processInsights(
-  insights: AppleInsightResults,
+  insights: InsightResults,
   totalSize: number
 ): ProcessedInsight[] {
   const processedInsights: ProcessedInsight[] = [];
@@ -326,6 +333,7 @@ export function processInsights(
     'hermes_debug_info',
     'audio_compression',
     'video_compression',
+    'multiple_native_library_archs',
   ] as const;
 
   regularInsightKeys.forEach(key => {

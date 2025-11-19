@@ -9,7 +9,6 @@ from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry import options
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
@@ -326,8 +325,6 @@ class PrepareQueryParamsTest(TestCase):
             previous_group_id=g3.id,
         )
 
-        options.set("snuba.preprocess-group-redirects", True)
-
         params = SnubaQueryParams(dataset=Dataset.Events, filter_keys={"group_id": {g1.id}})
         assert params.conditions[0] == ["group_id", "IN", {g1.id, g2.id, g3.id}]
 
@@ -359,6 +356,18 @@ class PrepareQueryParamsTest(TestCase):
         )
         assert params.conditions[0] == ["foo", "=", "bar"]
         assert len(params.conditions) == 1
+
+        # Should not mutate inputs
+        filter_keys = {"group_id": {g4.id}}
+        conditions = [["group_id", "IN", [g1.id, g4.id]]]
+
+        SnubaQueryParams(
+            dataset=Dataset.Events,
+            filter_keys=filter_keys,
+            conditions=conditions,
+        )
+        assert filter_keys == {"group_id": {g4.id}}
+        assert conditions == [["group_id", "IN", [g1.id, g4.id]]]
 
 
 class QuantizeTimeTest(unittest.TestCase):

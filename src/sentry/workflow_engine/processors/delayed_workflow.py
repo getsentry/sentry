@@ -533,7 +533,7 @@ def _group_result_for_dcg(
 
     return evaluate_data_conditions(
         conditions_to_evaluate, DataConditionGroup.Type(dcg.logic_type)
-    ).logic_result
+    ).logic_result.triggered
 
 
 @sentry_sdk.trace

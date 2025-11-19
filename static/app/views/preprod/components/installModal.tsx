@@ -10,8 +10,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
@@ -40,33 +41,91 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     }
   );
 
+  const header = (
+    <Flex justify="center" align="center" width="100%" position="relative">
+      <Heading as="h2">{t('Install App')}</Heading>
+      <Container
+        position="absolute"
+        style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
+      >
+        <Button
+          onClick={closeModal}
+          priority="transparent"
+          icon={<IconClose />}
+          size="sm"
+          aria-label={t('Close')}
+        />
+      </Container>
+    </Flex>
+  );
+
   if (isPending) {
     return (
-      <Flex direction="column" align="center" gap="md" padding="3xl">
+      <Flex direction="column" align="center" gap="xl">
+        {header}
         <LoadingIndicator />
         <Text>{t('Loading install details...')}</Text>
       </Flex>
     );
   }
 
-  if (isError) {
+  if (isError || !installDetails) {
     return (
-      <Flex direction="column" align="center" gap="md" padding="3xl">
+      <Flex direction="column" align="center" gap="xl">
+        {header}
         <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
-        <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
     );
   }
 
-  if (!installDetails?.install_url) {
-    const message = installDetails
-      ? t('No install download link available')
-      : t('No install details available');
+  if (installDetails.codesigning_type === 'appstore') {
     return (
-      <Flex direction="column" align="center" gap="md" padding="3xl">
-        <Text>{message}</Text>
-        <Button onClick={closeModal}>{t('Close')}</Button>
+      <Flex direction="column" align="center" gap="xl">
+        {header}
+        <CodeSignatureInfo>
+          <Text>{t('This app cannot be installed')}</Text>
+          <br />
+          <Text size="sm" variant="muted">
+            {tct(
+              'App was signed for the App Store using the [profileName] profile and cannot be installed directly. Re-upload with an enterprise, ad-hoc, or development proifle to install this app.',
+              {
+                profileName: <strong>{installDetails.profile_name}</strong>,
+              }
+            )}
+          </Text>
+        </CodeSignatureInfo>
+      </Flex>
+    );
+  }
+
+  if (!installDetails.install_url) {
+    if (!installDetails.is_code_signature_valid) {
+      let errors = null;
+      if (
+        installDetails.code_signature_errors &&
+        installDetails.code_signature_errors.length > 0
+      ) {
+        errors = (
+          <CodeSignatureInfo>
+            {installDetails.code_signature_errors.map(e => (
+              <Text key={e}>{e}</Text>
+            ))}
+          </CodeSignatureInfo>
+        );
+      }
+      return (
+        <Flex direction="column" align="center" gap="xl">
+          {header}
+          <Text>{'Code signature is invalid'}</Text>
+          {errors}
+        </Flex>
+      );
+    }
+    return (
+      <Flex direction="column" align="center" gap="xl">
+        {header}
+        <Text>{t('No install download link available')}</Text>
       </Flex>
     );
   }
@@ -90,21 +149,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   return (
     <Fragment>
       <Flex direction="column" align="center" gap="xl">
-        <Flex justify="center" align="center" width="100%" position="relative">
-          <Heading as="h2">{t('Install App')}</Heading>
-          <Container
-            position="absolute"
-            style={{top: '50%', right: 0, transform: 'translateY(-50%)'}}
-          >
-            <Button
-              onClick={closeModal}
-              priority="transparent"
-              icon={<IconClose />}
-              size="sm"
-              aria-label={t('Close')}
-            />
-          </Container>
-        </Flex>
+        {header}
 
         <Fragment>
           <Stack align="center" gap="md">
@@ -151,6 +196,14 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
               {t('The install link will expire in 12 hours')}
             </Text>
           </Stack>
+          {installDetails.release_notes && (
+            <ReleaseNotesSection direction="column" gap="md">
+              <Heading as="h3">{t('Release Notes')}</Heading>
+              <ReleaseNotesContent>
+                <MarkedText text={installDetails.release_notes} />
+              </ReleaseNotesContent>
+            </ReleaseNotesSection>
+          )}
         </Fragment>
       </Flex>
     </Fragment>
@@ -163,6 +216,9 @@ export const CodeSignatureInfo = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${space(1)};
   border: 1px solid ${p => p.theme.border};
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
 `;
 
 const Divider = styled(Flex)`
@@ -188,6 +244,19 @@ const Divider = styled(Flex)`
     background: ${p => p.theme.background};
     padding: 0 ${p => p.theme.space.xl};
   }
+`;
+
+const ReleaseNotesSection = styled(Flex)`
+  width: 100%;
+  margin-top: ${p => p.theme.space.xl};
+`;
+
+const ReleaseNotesContent = styled('div')`
+  width: 100%;
+  padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.space.md};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 export function openInstallModal(projectId: string, artifactId: string) {
