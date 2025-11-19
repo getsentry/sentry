@@ -301,6 +301,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get changelists for a depot path.
 
+        Uses p4 changes command to list changelists.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
+
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
             max_changes: Maximum number of changes to return
@@ -332,8 +335,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             ]
         finally:
             self._disconnect(p4)
+<<<<<<< HEAD
 
     # CommitContextClient methods (stubbed for now)
+=======
+>>>>>>> 2194bee20ee (feat(perforce): Implement repository/depot and code mapping logic)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

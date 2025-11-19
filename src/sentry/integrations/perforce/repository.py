@@ -149,7 +149,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             return []
 
     def _format_commits(
-        self, changelists: list[dict[str, Any]], depot_path: str
+        self, changelists: list[dict[str, Any]], depot_path: str, client: Any
     ) -> Sequence[Mapping[str, Any]]:
         """
         Format Perforce changelists into Sentry commit format.
@@ -157,6 +157,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Args:
             changelists: List of changelist dictionaries from P4
             depot_path: Depot path
+            client: Perforce client instance
 
         Returns:
             List of commits in Sentry format
@@ -184,7 +185,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
         Get URL for pull request.
-        Perforce doesn't have native PRs, but might integrate with Swarm.
+        Perforce doesn't have native pull requests.
         """
         web_url = None
         if repo.integration_id:
