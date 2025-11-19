@@ -14,14 +14,11 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
   const regionData = getRegionDataFromOrganization(organization);
   const isUSOrg = regionData?.name?.toLowerCase() === 'us';
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const hasFeatureFlag = organization.features.includes('gen-ai-features');
 
-  const isDisabled = isSelfHosted || !isUSOrg || !hasFeatureFlag;
+  const isDisabled = isSelfHosted || !isUSOrg;
   const disabledReason = isSelfHosted
     ? t('This feature is not available for self-hosted instances')
-    : isUSOrg
-      ? null
-      : t('This feature is only available in the US region');
+    : t('This feature is only available in the US region');
 
   return {
     name: 'enablePrReviewTestGeneration',
@@ -33,7 +30,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
           type="beta"
           {...(isDisabled ? {tooltipProps: {position: 'top'}} : {})}
         />
-        {isDisabled && disabledReason && (
+        {isDisabled && (
           <Tooltip title={disabledReason} position="top">
             <Tag
               role="status"
@@ -52,10 +49,9 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       ),
     }),
     visible: ({model}) => {
-      if (hasFeatureFlag) {
-        return !!model.getValue('hideAiFeatures');
-      }
-      return model.initialData.hideAiFeatures === true;
+      // Show field when AI features are enabled (hideAiFeatures is false)
+      const hideAiFeatures = model.getValue('hideAiFeatures');
+      return hideAiFeatures;
     },
     disabled: ({access}) => isDisabled || !access.has('org:write'),
   };
