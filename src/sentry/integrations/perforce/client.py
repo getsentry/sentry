@@ -368,6 +368,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get changelists for a depot path.
 
+        Uses p4 changes command to list changelists.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
+
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
             max_changes: Maximum number of changes to return when start_cl/end_cl not specified

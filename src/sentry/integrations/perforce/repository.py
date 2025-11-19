@@ -215,6 +215,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Args:
             changelists: List of changelist dictionaries from P4
             depot_path: Depot path
+            client: Perforce client instance
 
         Returns:
             List of commits in Sentry format
@@ -306,7 +307,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str | None:
         """
         Get URL for pull request.
-        Perforce doesn't have native PRs, but might integrate with Swarm.
+        Perforce doesn't have native pull requests.
         """
         return None
 
