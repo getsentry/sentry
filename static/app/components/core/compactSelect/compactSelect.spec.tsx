@@ -9,7 +9,7 @@ describe('CompactSelect', () => {
     render(
       <CompactSelect
         value={undefined}
-        onChange={jest.fn}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -24,7 +24,7 @@ describe('CompactSelect', () => {
       <CompactSelect
         disabled
         value={undefined}
-        onChange={jest.fn}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -39,7 +39,7 @@ describe('CompactSelect', () => {
       <CompactSelect
         menuTitle="Menu title"
         value={undefined}
-        onChange={jest.fn}
+        onChange={jest.fn()}
         options={[
           {value: 'opt_one', label: 'Option One'},
           {value: 'opt_two', label: 'Option Two'},
@@ -59,7 +59,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           value="opt_one"
           menuTitle="Menu A"
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -68,7 +68,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           value="opt_three"
           menuTitle="Menu B"
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {value: 'opt_three', label: 'Option Three'},
             {value: 'opt_four', label: 'Option Four'},
@@ -197,7 +197,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
           value="opt_one"
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -219,7 +219,7 @@ describe('CompactSelect', () => {
             {value: 'opt_two', label: 'Option Two'},
           ]}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
         />
       );
 
@@ -239,7 +239,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           searchable
           searchPlaceholder="Search here…"
           options={[
@@ -282,7 +282,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
           searchable
@@ -335,7 +335,7 @@ describe('CompactSelect', () => {
           multiple
           onSectionToggle={mock}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {
               key: 'section-1',
@@ -445,7 +445,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           onClose={onCloseMock}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -557,7 +557,7 @@ describe('CompactSelect', () => {
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
           ]}
-          onChange={jest.fn}
+          onChange={jest.fn()}
         />
       );
       expect(
@@ -576,7 +576,7 @@ describe('CompactSelect', () => {
             {value: 'opt_two', label: 'Option Two'},
           ]}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
         />
       );
 
@@ -605,7 +605,7 @@ describe('CompactSelect', () => {
             {value: 'opt_three', label: 'Option Three'},
           ]}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
         />
       );
 
@@ -645,7 +645,7 @@ describe('CompactSelect', () => {
           multiple
           onSectionToggle={mock}
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {
               key: 'section-1',
@@ -755,7 +755,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           grid
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           onClose={onCloseMock}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -783,7 +783,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           grid
           value={undefined}
-          onChange={jest.fn}
+          onChange={jest.fn()}
           options={[
             {
               value: 'opt_one',
