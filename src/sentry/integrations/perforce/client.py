@@ -302,6 +302,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get changelists for a depot path.
 
+        Uses p4 changes command to list changelists.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
+
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
             max_changes: Maximum number of changes to return
@@ -310,7 +313,29 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of changelist dictionaries
         """
-        return []
+        p4 = self._connect()
+        try:
+            args = ["-m", str(max_changes), "-l"]
+
+            if start_cl:
+                args.extend(["-e", start_cl])
+
+            args.append(depot_path)
+
+            changes = p4.run("changes", *args)
+
+            return [
+                {
+                    "change": change.get("change"),
+                    "user": change.get("user"),
+                    "client": change.get("client"),
+                    "time": change.get("time"),
+                    "desc": change.get("desc"),
+                }
+                for change in changes
+            ]
+        finally:
+            self._disconnect(p4)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
