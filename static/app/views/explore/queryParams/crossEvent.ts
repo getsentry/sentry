@@ -14,14 +14,14 @@ export function defaultCrossEvents() {
 export function getCrossEventsFromLocation(
   location: Location,
   key: string
-): CrossEvent[] | null {
+): CrossEvent[] | undefined {
   const rawCrossEvents = decodeList(location.query?.[key]);
 
   if (rawCrossEvents.length) {
     return rawCrossEvents.map(crossEvent => ({crossEvent}));
   }
 
-  return null;
+  return undefined;
 }
 
 export function isCrossEvent(value: any): value is CrossEvent {

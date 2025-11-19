@@ -474,7 +474,7 @@ export function useSetQueryParamsCrossEvents() {
 
   return useCallback(
     () => (crossEvent: string) => {
-      setQueryParams({crossEvents: [...queryParams.crossEvents, {crossEvent}]});
+      setQueryParams({crossEvents: [...(queryParams.crossEvents ?? []), {crossEvent}]});
     },
     [queryParams, setQueryParams]
   );

@@ -11,13 +11,13 @@ export interface ReadableQueryParamsOptions {
   readonly aggregateCursor: string;
   readonly aggregateFields: readonly AggregateField[];
   readonly aggregateSortBys: readonly Sort[];
-  readonly crossEvents: readonly CrossEvent[];
   readonly cursor: string;
   readonly extrapolate: boolean;
   readonly fields: string[];
   readonly mode: Mode;
   readonly query: string;
   readonly sortBys: Sort[];
+  readonly crossEvents?: CrossEvent[];
   readonly id?: string;
   readonly title?: string;
 }
@@ -41,7 +41,7 @@ export class ReadableQueryParams {
   readonly id?: string;
   readonly title?: string;
 
-  readonly crossEvents: readonly CrossEvent[];
+  readonly crossEvents?: CrossEvent[];
 
   constructor(options: ReadableQueryParamsOptions) {
     this.extrapolate = options.extrapolate;
