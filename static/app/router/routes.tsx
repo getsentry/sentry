@@ -15,7 +15,6 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import {
   WorkflowEngineRedirectToAutomationDetails,
   WorkflowEngineRedirectToAutomationEdit,
-  WorkflowEngineRedirectToAutomationList,
 } from 'sentry/views/alerts/workflowEngineRedirects';
 import App from 'sentry/views/app';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
@@ -1486,16 +1485,9 @@ function buildRoutes(): RouteObject[] {
           children: [
             {
               index: true,
-              component: WorkflowEngineRedirectToAutomationList,
-              deprecatedRouteProps: true,
-              children: [
-                {
-                  index: true,
-                  redirectTo: forCustomerDomain
-                    ? '/alerts/rules/'
-                    : '/organizations/:orgId/alerts/rules/',
-                },
-              ],
+              redirectTo: forCustomerDomain
+                ? '/alerts/rules/'
+                : '/organizations/:orgId/alerts/rules/',
             },
             {
               path: ':ruleId/',

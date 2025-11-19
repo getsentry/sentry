@@ -7,7 +7,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {
-  makeAutomationBasePathname,
   makeAutomationDetailsPathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
@@ -16,36 +15,6 @@ interface AlertRuleWorkflow {
   alertRuleId: string | null;
   ruleId: string | null;
   workflowId: string;
-}
-
-/**
- * Base component for workflow engine redirects that conditionally redirects
- * users based on feature flags.
- */
-function WorkflowEngineRedirect({
-  children,
-  redirectTo,
-  ...props
-}: {
-  children: React.ReactNode;
-  redirectTo: string;
-}) {
-  const user = useUser();
-  const organization = useOrganization();
-
-  const shouldRedirect =
-    !user.isStaff && organization.features.includes('workflow-engine-ui');
-
-  if (shouldRedirect) {
-    return <Redirect to={redirectTo} />;
-  }
-
-  // Pass through all props to children
-  if (isValidElement(children)) {
-    return cloneElement(children, props);
-  }
-
-  return children;
 }
 
 /**
@@ -99,25 +68,6 @@ function WorkflowEngineRedirectWithData({
   }
 
   return children;
-}
-
-// Simple static redirects
-
-export function WorkflowEngineRedirectToAutomationList({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  const organization = useOrganization();
-  return (
-    <WorkflowEngineRedirect
-      redirectTo={makeAutomationBasePathname(organization.slug)}
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirect>
-  );
 }
 
 // Data-dependent redirects
