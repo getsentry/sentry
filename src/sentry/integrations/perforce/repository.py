@@ -192,8 +192,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 author_email = f"{username}@perforce"
                 author_name = username
 
-                # Fetch user info if not in cache
-                if username not in user_cache:
+                # Fetch user info if not in cache (skip "unknown" placeholder)
+                if username != "unknown" and username not in user_cache:
                     user_cache[username] = client.get_user(username)
 
                 user_info = user_cache[username]
