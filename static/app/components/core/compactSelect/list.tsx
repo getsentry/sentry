@@ -105,7 +105,6 @@ export interface SingleListProps<Value extends SelectKey> extends BaseListProps<
    * that receives the newly selected option and returns whether to close the menu.
    */
   closeOnSelect?: boolean | ((selectedOption: SelectOption<Value>) => boolean);
-  defaultValue?: Value;
   multiple?: false;
   onChange?: (selectedOption: SelectOption<Value>) => void;
   value?: Value;
@@ -118,7 +117,6 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
    * that receives the newly selected options and returns whether to close the menu.
    */
   closeOnSelect?: boolean | ((selectedOptions: Array<SelectOption<Value>>) => boolean);
-  defaultValue?: Value[];
   onChange?: (selectedOptions: Array<SelectOption<Value>>) => void;
   value?: Value[];
 }
@@ -133,7 +131,6 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
 function List<Value extends SelectKey>({
   items,
   value,
-  defaultValue,
   onChange,
   grid,
   multiple,
@@ -170,7 +167,6 @@ function List<Value extends SelectKey>({
         disabledKeys,
         // react-aria turns all keys into strings
         selectedKeys: value?.map(getEscapedKey),
-        defaultSelectedKeys: defaultValue?.map(getEscapedKey),
         disallowEmptySelection,
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
@@ -196,9 +192,6 @@ function List<Value extends SelectKey>({
       disabledKeys,
       // react-aria turns all keys into strings
       selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
-      defaultSelectedKeys: defined(defaultValue)
-        ? [getEscapedKey(defaultValue)]
-        : undefined,
       disallowEmptySelection: disallowEmptySelection ?? true,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
@@ -221,7 +214,6 @@ function List<Value extends SelectKey>({
     };
   }, [
     value,
-    defaultValue,
     onChange,
     items,
     isOptionDisabled,

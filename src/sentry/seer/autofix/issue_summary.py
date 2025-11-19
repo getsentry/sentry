@@ -67,8 +67,11 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
         return AutofixStoppingPoint.SOLUTION
-    else:
+    # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
+    elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
+    else:
+        return AutofixStoppingPoint.OPEN_PR
 
 
 def _fetch_user_preference(project_id: int) -> str | None:
@@ -105,22 +108,30 @@ def _fetch_user_preference(project_id: int) -> str | None:
 def _apply_user_preference_upper_bound(
     fixability_suggestion: AutofixStoppingPoint | None,
     user_preference: str | None,
-) -> AutofixStoppingPoint | None:
+) -> AutofixStoppingPoint:
     """
     Apply user preference as an upper bound on the fixability-based stopping point.
     Returns the more conservative (earlier) stopping point between the two.
     """
-    if fixability_suggestion is None or user_preference is None:
+    # If fixability is None but user preference exists, use user preference
+    if fixability_suggestion is None and user_preference is not None:
+        return AutofixStoppingPoint(user_preference)
+    # If fixability exists but user preference is None, use fixability
+    elif fixability_suggestion is not None and user_preference is None:
         return fixability_suggestion
-
-    user_stopping_point = AutofixStoppingPoint(user_preference)
-
-    return (
-        fixability_suggestion
-        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
-        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
-        else user_stopping_point
-    )
+    # If both are None, return ROOT_CAUSE as default
+    elif fixability_suggestion is None and user_preference is None:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # Both are not None - return the more conservative one
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
 
 
 @instrumented_task(
@@ -303,18 +314,13 @@ def _run_automation(
         }
     )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
-
-    if not issue_summary.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if issue_summary.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
-
-    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+    fixability_score = group.seer_fixability_score
+    if fixability_score is None:
+        logger.error("Fixability score is not available for group %s", group.id)
+        return
 
     if (
-        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        not _is_issue_fixable(group, fixability_score)
         and not group.issue_type.always_trigger_seer_automation
     ):
         return
@@ -336,9 +342,7 @@ def _run_automation(
 
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
-        fixability_stopping_point = _get_stopping_point_from_fixability(
-            issue_summary.scores.fixability_score
-        )
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
         logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
@@ -390,12 +394,35 @@ def _generate_summary(
         trace_tree,
     )
 
-    if should_run_automation:
+    if source != SeerAutomationSource.ISSUE_DETAILS and group.seer_fixability_score is None:
         try:
-            _run_automation(group, user, event, source)
+            with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+                fixability_response = _generate_fixability_score(group)
+
+            if not fixability_response.scores:
+                raise ValueError("Issue summary scores is None or empty.")
+            if fixability_response.scores.fixability_score is None:
+                raise ValueError("Issue summary fixability score is None.")
+
+            group.update(seer_fixability_score=fixability_response.scores.fixability_score)
         except Exception:
             logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+                "Error generating fixability score in summary", extra={"group_id": group.id}
+            )
+
+    if should_run_automation:
+        if group.seer_fixability_score is not None:
+            try:
+                _run_automation(group, user, event, source)
+            except Exception:
+                logger.exception(
+                    "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+                )
+        else:
+            logger.error(
+                "Skipping automation: fixability score unavailable for group %s",
+                group.id,
+                extra={"group_id": group.id},
             )
 
     summary_dict = issue_summary.dict()
