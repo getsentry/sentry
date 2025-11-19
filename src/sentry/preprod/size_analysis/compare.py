@@ -7,10 +7,18 @@ from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.size_analysis.insight_models import (
+    BaseInsightResult,
+    FileSavingsResult,
+    FileSavingsResultGroup,
+    FilesInsightResult,
+    GroupsInsightResult,
+)
 from sentry.preprod.size_analysis.models import (
     ComparisonResults,
     DiffItem,
     DiffType,
+    InsightDiffItem,
     FileAnalysis,
     FileInfo,
     SizeAnalysisResults,
@@ -144,9 +152,26 @@ def compare_size_analysis(
         base_download_size=base_size_analysis.max_download_size,
     )
 
+    # Compare insights only if we're not skipping the comparison
+    insight_diff_items = []
+    if not skip_diff_item_comparison:
+        insight_diff_items = _compare_insights(
+            head_size_analysis_results, base_size_analysis_results
+        )
+    else:
+        logger.info(
+            "preprod.size_analysis.compare.skipped_insight_comparison",
+            extra={
+                "head_analysis_version": head_size_analysis_results.analysis_version,
+                "base_analysis_version": base_size_analysis_results.analysis_version,
+                "preprod_artifact_id": head_size_analysis.preprod_artifact_id,
+            },
+        )
+
     return ComparisonResults(
         diff_items=diff_items,
         size_metric_diff_item=size_metric_diff_item,
+        insight_diff_items=insight_diff_items,
         skipped_diff_item_comparison=skip_diff_item_comparison,
         head_analysis_version=head_size_analysis_results.analysis_version,
         base_analysis_version=base_size_analysis_results.analysis_version,
@@ -336,3 +361,234 @@ def _collect_file_hashes(
         # Asset catalogs can have children
         for child in file_info.children:
             _collect_file_hashes(child, hash_to_paths, full_path)
+
+
+def _compare_files(
+    head_files: list[FileSavingsResult], base_files: list[FileSavingsResult]
+) -> list[DiffItem]:
+    diff_items = []
+
+    head_files_dict = {f.file_path: f for f in head_files}
+    base_files_dict = {f.file_path: f for f in base_files}
+
+    all_paths = set(head_files_dict.keys()) | set(base_files_dict.keys())
+
+    for path in sorted(all_paths):
+        head_file = head_files_dict.get(path)
+        base_file = base_files_dict.get(path)
+
+        if head_file and base_file:
+            # File exists in both - check for size change
+            size_diff = head_file.total_savings - base_file.total_savings
+            diff_type = (
+                DiffType.UNCHANGED
+                if size_diff == 0
+                else DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
+            )
+
+            diff_items.append(
+                DiffItem(
+                    size_diff=size_diff,
+                    head_size=head_file.total_savings,
+                    base_size=base_file.total_savings,
+                    path=path,
+                    item_type=None,
+                    type=diff_type,
+                )
+            )
+        elif head_file:
+            # File added in head
+            diff_items.append(
+                DiffItem(
+                    size_diff=head_file.total_savings,
+                    head_size=head_file.total_savings,
+                    base_size=None,
+                    path=path,
+                    item_type=None,
+                    type=DiffType.ADDED,
+                )
+            )
+        elif base_file:
+            # File removed from head
+            diff_items.append(
+                DiffItem(
+                    size_diff=-base_file.total_savings,
+                    head_size=None,
+                    base_size=base_file.total_savings,
+                    path=path,
+                    item_type=None,
+                    type=DiffType.REMOVED,
+                )
+            )
+
+    return diff_items
+
+
+def _compare_groups(
+    head_groups: list[FileSavingsResultGroup], base_groups: list[FileSavingsResultGroup]
+) -> list[DiffItem]:
+    diff_items = []
+
+    # Create dictionaries for easier lookup
+    head_groups_dict = {g.name: g for g in head_groups}
+    base_groups_dict = {g.name: g for g in base_groups}
+
+    all_names = set(head_groups_dict.keys()) | set(base_groups_dict.keys())
+
+    for name in sorted(all_names):
+        head_group = head_groups_dict.get(name)
+        base_group = base_groups_dict.get(name)
+
+        if head_group and base_group:
+            # Group exists in both - check for size change
+            size_diff = head_group.total_savings - base_group.total_savings
+            diff_type = (
+                DiffType.UNCHANGED
+                if size_diff == 0
+                else DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
+            )
+
+            diff_items.append(
+                DiffItem(
+                    size_diff=size_diff,
+                    head_size=head_group.total_savings,
+                    base_size=base_group.total_savings,
+                    path=name,
+                    item_type=None,
+                    type=diff_type,
+                )
+            )
+        elif head_group:
+            # Group added in head
+            diff_items.append(
+                DiffItem(
+                    size_diff=head_group.total_savings,
+                    head_size=head_group.total_savings,
+                    base_size=None,
+                    path=name,
+                    item_type=None,
+                    type=DiffType.ADDED,
+                )
+            )
+        elif base_group:
+            # Group removed from head
+            diff_items.append(
+                DiffItem(
+                    size_diff=-base_group.total_savings,
+                    head_size=None,
+                    base_size=base_group.total_savings,
+                    path=name,
+                    item_type=None,
+                    type=DiffType.REMOVED,
+                )
+            )
+
+    return diff_items
+
+
+def _diff_insight(
+    insight_type: str,
+    head_insight: BaseInsightResult,
+    base_insight: BaseInsightResult,
+) -> InsightDiffItem:
+    total_savings_change = head_insight.total_savings - base_insight.total_savings
+
+    file_diffs = []
+    group_diffs = []
+
+    if isinstance(head_insight, FilesInsightResult) and isinstance(
+        base_insight, FilesInsightResult
+    ):
+        file_diffs = _compare_files(head_insight.files, base_insight.files)
+    elif isinstance(head_insight, GroupsInsightResult) and isinstance(
+        base_insight, GroupsInsightResult
+    ):
+        group_diffs = _compare_groups(head_insight.groups, base_insight.groups)
+
+    # TODO(EME-) Implement non-File/GroupinsightsResult insight diffs in future
+
+    return InsightDiffItem(
+        insight_type=insight_type,
+        status="unresolved",  # TODO
+        total_savings_change=total_savings_change,
+        file_diffs=file_diffs,
+        group_diffs=group_diffs,
+    )
+
+
+def _compare_insights(
+    head_size_analysis_results: SizeAnalysisResults,
+    base_size_analysis_results: SizeAnalysisResults,
+) -> list[InsightDiffItem]:
+    insight_diff_items = []
+
+    head_insights = head_size_analysis_results.insights
+    base_insights = base_size_analysis_results.insights
+
+    if head_insights is None and base_insights is None:
+        return insight_diff_items
+
+    # Convert insights to dictionaries for easier comparison
+    head_insight_dict = (
+        {
+            field_name: getattr(head_insights, field_name)
+            for field_name in head_insights.__class__.model_fields.keys()
+            if getattr(head_insights, field_name) is not None
+        }
+        if head_insights
+        else {}
+    )
+    base_insight_dict = (
+        {
+            field_name: getattr(base_insights, field_name)
+            for field_name in base_insights.__class__.model_fields.keys()
+            if getattr(base_insights, field_name) is not None
+        }
+        if base_insights
+        else {}
+    )
+
+    # Get all insight types from both head and base
+    all_insight_types = set(head_insight_dict.keys()) | set(base_insight_dict.keys())
+
+    for insight_type in sorted(all_insight_types):
+        head_insight = head_insight_dict.get(insight_type)
+        base_insight = base_insight_dict.get(insight_type)
+
+        # Determine if insight has actionable savings (exclude zero-savings insights)
+        head_has_savings = head_insight is not None and head_insight.total_savings > 0
+        base_has_savings = base_insight is not None and base_insight.total_savings > 0
+
+        if not head_has_savings and not base_has_savings:
+            # Skip insights with zero savings in both head and base
+            continue
+
+        # Determine status and create diff item
+        if head_insight is not None and base_insight is None:
+            # New insight in head
+            insight_diff_items.append(
+                InsightDiffItem(
+                    insight_type=insight_type,
+                    status="new",
+                    total_savings_change=head_insight.total_savings,
+                    file_diffs=[],
+                    group_diffs=[],
+                )
+            )
+        elif head_insight is None and base_insight is not None:
+            # Resolved insight (was in base, not in head)
+            insight_diff_items.append(
+                InsightDiffItem(
+                    insight_type=insight_type,
+                    status="resolved",
+                    total_savings_change=-base_insight.total_savings,
+                    file_diffs=[],
+                    group_diffs=[],
+                )
+            )
+        else:
+            # Unresolved insight (exists in both)
+            if head_insight and base_insight:
+                insight_diff_items.append(_diff_insight(insight_type, head_insight, base_insight))
+
+    return insight_diff_items

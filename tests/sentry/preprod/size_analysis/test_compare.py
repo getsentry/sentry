@@ -3,7 +3,16 @@ from sentry.preprod.size_analysis.compare import (
     _should_skip_diff_item_comparison,
     compare_size_analysis,
 )
+from sentry.preprod.size_analysis.insight_models import (
+    DuplicateFilesInsightResult,
+    FileSavingsResult,
+    FileSavingsResultGroup,
+    LargeImageFileInsightResult,
+    WebPOptimizationInsightResult,
+)
 from sentry.preprod.size_analysis.models import (
+    AndroidInsightResults,
+    AppleInsightResults,
     ComparisonResults,
     DiffType,
     FileAnalysis,
@@ -1283,3 +1292,608 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
 
         # The renamed asset should be excluded - no diff items
         assert len(result.diff_items) == 0
+
+
+class CompareInsightsTest(TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+
+    def _create_size_analysis_results(
+        self,
+        insights: AndroidInsightResults | AppleInsightResults | None = None,
+        analysis_version="1.0.0",
+    ):
+        return SizeAnalysisResults(
+            analysis_duration=1.0,
+            download_size=500,
+            install_size=1000,
+            treemap=None,
+            insights=insights,
+            analysis_version=analysis_version,
+        )
+
+    def test_compare_insights_new_insight_in_head(self):
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head has duplicate files insight, base has none
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=1000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="image.png",
+                        files=[FileSavingsResult(file_path="/path/image.png", total_savings=500)],
+                        total_savings=500,
+                    )
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=None)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "duplicate_files"
+        assert insight_diff.status == "new"
+        assert insight_diff.total_savings_change == 1000
+        assert insight_diff.file_diffs == []
+        assert insight_diff.group_diffs == []
+
+    def test_compare_insights_resolved_insight_in_base(self):
+        """Test that insights only in base are marked as 'resolved'."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Base has large images insight, head has none
+        base_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=None,
+            large_images=LargeImageFileInsightResult(
+                total_savings=2000,
+                files=[FileSavingsResult(file_path="/path/large.png", total_savings=2000)],
+            ),
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=None)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "large_images"
+        assert insight_diff.status == "resolved"
+        assert insight_diff.total_savings_change == -2000
+        assert insight_diff.file_diffs == []
+        assert insight_diff.group_diffs == []
+
+    def test_compare_insights_unresolved_insight_in_both(self):
+        """Test that insights in both head and base are marked as 'unresolved'."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Both have webp_optimization insight with different savings
+        head_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=1500,
+                files=[FileSavingsResult(file_path="/path/image.png", total_savings=1500)],
+            ),
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=1000,
+                files=[FileSavingsResult(file_path="/path/image.png", total_savings=1000)],
+            ),
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "webp_optimization"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 500
+        assert insight_diff.file_diffs == []
+        assert insight_diff.group_diffs == []
+
+    def test_compare_insights_multiple_insights(self):
+        """Test comparison with multiple insights in different states."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head: duplicate_files (new), webp_optimization (unresolved)
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=1000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="image.png",
+                        files=[FileSavingsResult(file_path="/path/image.png", total_savings=500)],
+                        total_savings=500,
+                    )
+                ],
+            ),
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=1500,
+                files=[FileSavingsResult(file_path="/path/photo.png", total_savings=1500)],
+            ),
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        # Base: webp_optimization (unresolved), large_images (resolved)
+        base_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=1000,
+                files=[FileSavingsResult(file_path="/path/photo.png", total_savings=1000)],
+            ),
+            large_images=LargeImageFileInsightResult(
+                total_savings=2000,
+                files=[FileSavingsResult(file_path="/path/huge.png", total_savings=2000)],
+            ),
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 3
+
+        # Sort by insight_type for predictable testing
+        insight_diffs = sorted(result.insight_diff_items, key=lambda x: x.insight_type)
+
+        # duplicate_files - new
+        assert insight_diffs[0].insight_type == "duplicate_files"
+        assert insight_diffs[0].status == "new"
+
+        # large_images - resolved
+        assert insight_diffs[1].insight_type == "large_images"
+        assert insight_diffs[1].status == "resolved"
+
+        # webp_optimization - unresolved
+        assert insight_diffs[2].insight_type == "webp_optimization"
+        assert insight_diffs[2].status == "unresolved"
+
+    def test_compare_insights_zero_savings_excluded(self):
+        """Test that insights with zero total_savings are excluded."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Both have insights but with zero savings
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(total_savings=0, groups=[]),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(total_savings=0, groups=[]),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Should have no insight diff items since all have zero savings
+        assert len(result.insight_diff_items) == 0
+
+    def test_compare_insights_version_mismatch_skips_comparison(self):
+        """Test that insight comparison is skipped when analysis versions mismatch."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head has insights
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=1000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="image.png",
+                        files=[FileSavingsResult(file_path="/path/image.png", total_savings=500)],
+                        total_savings=500,
+                    )
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        # Version mismatch: major version differs
+        head_results = self._create_size_analysis_results(
+            insights=head_insights, analysis_version="2.0.0"
+        )
+        base_results = self._create_size_analysis_results(insights=None, analysis_version="1.0.0")
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Insight comparison should be skipped
+        assert len(result.insight_diff_items) == 0
+        assert result.skipped_diff_item_comparison is True
+
+    def test_compare_insights_apple_platform(self):
+        """Test insight comparison works with Apple platform insights."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Apple insights with different fields than Android
+        head_insights = AppleInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=1000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="icon.png",
+                        files=[FileSavingsResult(file_path="/path/icon.png", total_savings=500)],
+                        total_savings=500,
+                    )
+                ],
+            ),
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+        base_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=LargeImageFileInsightResult(
+                total_savings=3000,
+                files=[FileSavingsResult(file_path="/path/background.png", total_savings=3000)],
+            ),
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 2
+
+        # Sort by insight_type for predictable testing
+        insight_diffs = sorted(result.insight_diff_items, key=lambda x: x.insight_type)
+
+        # duplicate_files - new (Apple specific)
+        assert insight_diffs[0].insight_type == "duplicate_files"
+        assert insight_diffs[0].status == "new"
+
+        # large_images - resolved (Apple specific)
+        assert insight_diffs[1].insight_type == "large_images"
+        assert insight_diffs[1].status == "resolved"
+
+    def test_compare_insights_files_insight_with_diffs(self):
+        """Test FilesInsightResult with file-level differences."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head has 3 files, base has 2 (1 modified, 1 added, 1 removed)
+        head_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=3500,
+                files=[
+                    FileSavingsResult(file_path="/path/image1.png", total_savings=1500),
+                    FileSavingsResult(file_path="/path/image2.png", total_savings=2000),
+                    FileSavingsResult(file_path="/path/image3.png", total_savings=1500),
+                    FileSavingsResult(file_path="/path/image4.png", total_savings=1500),
+                ],
+            ),
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=None,
+            webp_optimization=WebPOptimizationInsightResult(
+                total_savings=2500,
+                files=[
+                    FileSavingsResult(file_path="/path/image1.png", total_savings=1000),
+                    FileSavingsResult(file_path="/path/image3.png", total_savings=1500),
+                ],
+            ),
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "webp_optimization"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 1000
+
+        # Check file-level diffs
+        assert len(insight_diff.file_diffs) == 3
+        file_diffs_by_path = {d.path: d for d in insight_diff.file_diffs}
+
+        # image1.png - increased (1000 -> 1500)
+        assert file_diffs_by_path["/path/image1.png"].type.value == "increased"
+        assert file_diffs_by_path["/path/image1.png"].size_diff == 500
+
+        # image2.png - added
+        assert file_diffs_by_path["/path/image2.png"].type.value == "added"
+        assert file_diffs_by_path["/path/image2.png"].size_diff == 2000
+
+        # image3.png - unchanged
+        assert file_diffs_by_path["/path/image3.png"].type.value == "unchanged"
+        assert file_diffs_by_path["/path/image3.png"].size_diff == 0
+
+        # image4.png - removed
+        assert file_diffs_by_path["/path/image4.png"].type.value == "removed"
+        assert file_diffs_by_path["/path/image4.png"].size_diff == -1500
+
+    def test_compare_insights_groups_insight_with_diffs(self):
+        """Test GroupsInsightResult with group-level differences."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head has 2 groups, base has 2 groups (1 modified, 1 different)
+        head_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=4000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="icon.png",
+                        files=[FileSavingsResult(file_path="/a/icon.png", total_savings=500)],
+                        total_savings=1500,
+                    ),
+                    FileSavingsResultGroup(
+                        name="icon2.png",
+                        files=[FileSavingsResult(file_path="/a/icon2.png", total_savings=500)],
+                        total_savings=1500,
+                    ),
+                    FileSavingsResultGroup(
+                        name="logo.png",
+                        files=[FileSavingsResult(file_path="/b/logo.png", total_savings=500)],
+                        total_savings=2500,
+                    ),
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+        base_insights = AndroidInsightResults(
+            duplicate_files=DuplicateFilesInsightResult(
+                total_savings=3000,
+                groups=[
+                    FileSavingsResultGroup(
+                        name="icon.png",
+                        files=[FileSavingsResult(file_path="/a/icon.png", total_savings=500)],
+                        total_savings=1000,
+                    ),
+                    FileSavingsResultGroup(
+                        name="banner.png",
+                        files=[FileSavingsResult(file_path="/c/banner.png", total_savings=500)],
+                        total_savings=2000,
+                    ),
+                ],
+            ),
+            webp_optimization=None,
+            large_images=None,
+            large_videos=None,
+            large_audio=None,
+            hermes_debug_info=None,
+            multiple_native_library_archs=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "duplicate_files"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 1000
+
+        # Check group-level diffs
+        assert len(insight_diff.group_diffs) == 3
+        group_diffs_by_path = {d.path: d for d in insight_diff.group_diffs}
+
+        # banner.png - removed
+        assert group_diffs_by_path["banner.png"].type.value == "removed"
+        assert group_diffs_by_path["banner.png"].size_diff == -2000
+
+        # icon.png - increased (1000 -> 1500)
+        assert group_diffs_by_path["icon.png"].type.value == "increased"
+        assert group_diffs_by_path["icon.png"].size_diff == 500
+
+        # logo.png - added
+        assert group_diffs_by_path["logo.png"].type.value == "added"
+        assert group_diffs_by_path["logo.png"].size_diff == 2500
