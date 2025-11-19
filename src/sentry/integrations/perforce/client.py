@@ -7,6 +7,9 @@ from typing import Any
 
 from P4 import P4, P4Exception
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
     CommitInfo,
@@ -16,7 +19,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -33,32 +36,41 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
     def __init__(
         self,
-        p4port: str | None = None,
-        user: str | None = None,
-        password: str | None = None,
-        client: str | None = None,
-        ssl_fingerprint: str | None = None,
+        integration: Integration | RpcIntegration,
+        org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None,
     ):
         """
         Initialize Perforce client.
 
         Args:
-            p4port: P4PORT string (e.g., 'ssl:host:port', 'tcp:host:port', or 'host:port')
-            user: Perforce username
-            password: Perforce password OR P4 ticket (both are supported)
-            client: Client/workspace name
-            ssl_fingerprint: SSL trust fingerprint for secure connections
+            integration: Integration instance
+            org_integration: Organization integration instance containing per-org config
         """
-        self.p4port = p4port or "localhost:1666"
-        self.ssl_fingerprint = ssl_fingerprint
-        self.user = user or ""
-        self.password = password
-        self.client_name = client
+        self.integration = integration
+        self.org_integration = org_integration
         self.P4 = P4
         self.P4Exception = P4Exception
 
+        # Extract configuration from org_integration
+        if not org_integration:
+            raise IntegrationError("Organization Integration is required for Perforce")
+
+        config = org_integration.config
+        self.p4port = config.get("p4port", "localhost:1666")
+        self.user = config.get("user", "")
+        self.password = config.get("password")
+        self.client_name = config.get("client")
+        self.ssl_fingerprint = config.get("ssl_fingerprint")
+
     def _connect(self):
-        """Create and connect a P4 instance with SSL support."""
+        """
+        Create and connect a P4 instance with SSL support.
+
+        Uses P4Python API:
+        - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
+        - p4.run_trust(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_trust.html
+        - p4.run_login(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_login.html
+        """
         p4 = self.P4()
         p4.port = self.p4port
         p4.user = self.user
@@ -111,6 +123,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
         Check if a file exists in the depot.
+
+        Uses p4 files command to list file(s) in the depot.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_files.html
 
         Args:
             repo: Repository object containing depot path (includes stream if specified)
@@ -194,6 +209,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         List all depots accessible to the user.
 
+        Uses p4 depots command to display a list of all depots.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_depots.html
+
         Returns:
             List of depot info dictionaries
         """
@@ -211,11 +229,43 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         finally:
             self._disconnect(p4)
 
+    def get_user(self, username: str) -> dict[str, Any] | None:
+        """
+        Get user information from Perforce.
+
+        Uses p4 user command to fetch user details including email and full name.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_user.html
+
+        Args:
+            username: Perforce username
+
+        Returns:
+            User info dictionary with Email and FullName fields, or None if not found
+        """
+        p4 = self._connect()
+        try:
+            result = p4.run("user", "-o", username)
+            if result and len(result) > 0:
+                user_info = result[0]
+                return {
+                    "email": user_info.get("Email", ""),
+                    "full_name": user_info.get("FullName", ""),
+                    "username": user_info.get("User", username),
+                }
+            return None
+        except self.P4Exception:
+            return None
+        finally:
+            self._disconnect(p4)
+
     def get_changes(
         self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
     ) -> list[dict[str, Any]]:
         """
         Get changelists for a depot path.
+
+        Uses p4 changes command to list changelists.
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
 
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
@@ -261,11 +311,18 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Note: This does not provide line-specific blame. It returns the most recent
         changelist for the entire file, which is sufficient for suspect commit detection.
 
+        API docs:
+        - p4 filelog: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_filelog.html
+        - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
+
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
         metrics.incr("integrations.perforce.get_blame_for_files")
         blames = []
         p4 = self._connect()
+
+        # Cache user info to avoid multiple lookups for the same user
+        user_cache: dict[str, dict[str, Any] | None] = {}
 
         try:
             for file in files:
@@ -293,8 +350,23 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                             if change_info and len(change_info) > 0:
                                 change = change_info[0]
                                 username = change.get("user", "unknown")
-                                # Perforce doesn't provide email by default, so we generate a fallback
-                                email = change.get("email") or f"{username}@perforce.local"
+
+                                # Get user information from Perforce for email and full name
+                                author_email = f"{username}@perforce"
+                                author_name = username
+
+                                # Fetch user info if not in cache
+                                if username != "unknown" and username not in user_cache:
+                                    user_cache[username] = self.get_user(username)
+
+                                user_info = user_cache.get(username)
+                                if user_info:
+                                    # Use actual email from Perforce if available
+                                    if user_info.get("email"):
+                                        author_email = user_info["email"]
+                                    # Use full name from Perforce if available
+                                    if user_info.get("full_name"):
+                                        author_name = user_info["full_name"]
 
                                 # Handle potentially null/invalid time field
                                 time_value = change.get("time") or 0
@@ -309,8 +381,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                         timestamp, tz=timezone.utc
                                     ),
                                     commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=username,
-                                    commitAuthorEmail=email,
+                                    commitAuthorName=author_name,
+                                    commitAuthorEmail=author_email,
                                 )
 
                                 blame_info = FileBlameInfo(
@@ -322,29 +394,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                     commit=commit,
                                 )
                                 blames.append(blame_info)
-                        except self.P4Exception as e:
-                            logger.warning(
-                                "perforce.client.get_blame_for_files.describe_error",
-                                extra={
-                                    **extra,
-                                    "changelist": changelist,
-                                    "error": str(e),
-                                    "repo_name": file.repo.name,
-                                    "file_path": file.path,
-                                },
-                            )
-                except self.P4Exception as e:
-                    # Log but don't fail for individual file errors
-                    logger.warning(
-                        "perforce.client.get_blame_for_files.annotate_error",
-                        extra={
-                            **extra,
-                            "error": str(e),
-                            "repo_name": file.repo.name,
-                            "file_path": file.path,
-                            "file_lineno": file.lineno,
-                        },
-                    )
+                        except self.P4Exception:
+                            pass
+                except self.P4Exception:
                     continue
 
             return blames

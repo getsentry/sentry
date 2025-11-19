@@ -4,6 +4,8 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django import forms
+from django.http import HttpRequest, HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.base import (
@@ -15,6 +17,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.perforce.client import PerforceClient
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -22,6 +25,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +70,73 @@ metadata = IntegrationMetadata(
 )
 
 
+class PerforceInstallationForm(forms.Form):
+    """Form for Perforce installation configuration."""
+
+    p4port = forms.CharField(
+        label=_("P4PORT (Server Address)"),
+        help_text=_(
+            "Perforce server address in P4PORT format. "
+            "Examples: 'ssl:perforce.company.com:1666' (encrypted), "
+            "'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). "
+            "SSL is strongly recommended for production use."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "ssl:perforce.company.com:1666"}),
+    )
+    user = forms.CharField(
+        label=_("Perforce Username"),
+        help_text=_(
+            "Username for authenticating with Perforce. "
+            "Required for both password and ticket authentication."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "sentry-bot"}),
+    )
+    password = forms.CharField(
+        label=_("Password or P4 Ticket"),
+        help_text=_(
+            "Perforce password OR P4 authentication ticket. "
+            "Tickets are obtained via 'p4 login -p' and are more secure than passwords. "
+            "Both are supported in this field."
+        ),
+        widget=forms.PasswordInput(attrs={"placeholder": "••••••••"}),
+    )
+    client = forms.CharField(
+        label=_("Perforce Client/Workspace (Optional)"),
+        help_text=_("Optional: Specify a client workspace name"),
+        widget=forms.TextInput(attrs={"placeholder": "sentry-workspace"}),
+        required=False,
+    )
+    ssl_fingerprint = forms.CharField(
+        label=_("SSL Fingerprint (Required for SSL)"),
+        help_text=_(
+            "SSL fingerprint for secure connections. "
+            "Required when using 'ssl:' protocol. "
+            "Obtain with: p4 -p ssl:host:port trust -y"
+        ),
+        widget=forms.TextInput(
+            attrs={"placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01"}
+        ),
+        required=False,
+    )
+    web_url = forms.CharField(
+        label=_("Helix Swarm URL (Optional)"),
+        help_text=_("Optional: URL to Helix Swarm web viewer for browsing files"),
+        widget=forms.TextInput(attrs={"placeholder": "https://swarm.company.com"}),
+        required=False,
+    )
+
+    def clean_p4port(self):
+        """Strip off trailing / and whitespace from p4port"""
+        return self.cleaned_data["p4port"].strip().rstrip("/")
+
+    def clean_web_url(self):
+        """Strip off trailing / from web_url"""
+        web_url = self.cleaned_data.get("web_url", "")
+        if web_url:
+            return web_url.rstrip("/")
+        return web_url
+
+
 class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     """
     Integration for Perforce/Helix Core version control system.
@@ -90,15 +161,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if not self.org_integration:
             raise IntegrationError("Organization Integration not found")
 
-        # Credentials are stored in org_integration.config (per-organization)
-        config = self.org_integration.config
-
         self._client = PerforceClient(
-            p4port=config.get("p4port", "localhost:1666"),
-            user=config.get("user", ""),
-            password=config.get("password"),
-            client=config.get("client"),
-            ssl_fingerprint=config.get("ssl_fingerprint"),
+            integration=self.model,
+            org_integration=self.org_integration,
         )
         return self._client
 
@@ -181,12 +246,15 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
             # Swarm format: /files/<depot_path>?v=<revision>
             if revision:
-                return f"{web_url}/files{path_without_rev}?v={revision}"
-            return f"{web_url}/files{full_path}"
+                url = f"{web_url}/files{path_without_rev}?v={revision}"
+            else:
+                url = f"{web_url}/files{full_path}"
+            return url
 
         # Default: p4:// protocol URL with file revision (#) syntax
         # Strip leading // from full_path to avoid p4:////
-        return f"p4://{full_path.lstrip('/')}"
+        url = f"p4://{full_path.lstrip('/')}"
+        return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         """
@@ -268,7 +336,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             # Re-raise authentication/connection errors so user sees them
             raise
         except Exception as e:
-            logger.exception("perforce.get_repositories_failed")
             raise IntegrationError(f"Failed to fetch repositories from Perforce: {str(e)}")
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
@@ -373,27 +440,39 @@ class PerforceIntegrationProvider(IntegrationProvider):
         """
         Build integration data from installation state.
 
+        Each organization gets its own private Perforce integration instance,
+        even if multiple orgs connect to the same Perforce server. This ensures
+        credentials and configuration are isolated per organization.
+
         Args:
             state: Installation state from pipeline
 
         Returns:
             Integration data dictionary
+
+        Raises:
+            IntegrationError: If organization_id is not provided
         """
+        # Validate organization_id is present
+        organization_id = state.get("organization_id")
+        if not organization_id:
+            raise IntegrationError("Organization ID is required for Perforce integration")
+
         # Use p4port if available, otherwise fall back to host:port for legacy
         p4port = (
             state.get("p4port") or f"{state.get('host', 'localhost')}:{state.get('port', '1666')}"
         )
 
+        # Create unique external_id per organization to ensure private integrations
+        # Format: "org-{org_id}:{p4port}" e.g. "org-123:ssl:perforce.company.com:1666"
+        external_id = f"org-{organization_id}:{p4port}"
+
         return {
             "name": state.get("name", f"Perforce ({p4port})"),
-            "external_id": p4port,
-            "metadata": {
-                "p4port": p4port,
-                "user": state.get("user"),
-                "password": state.get("password"),
-                "client": state.get("client"),
-                "ssl_fingerprint": state.get("ssl_fingerprint"),
-                "web_url": state.get("web_url"),
+            "external_id": external_id,
+            "metadata": {},
+            "post_install_data": {
+                "installation_data": state.get("installation_data", {}),
             },
         }
 
@@ -404,8 +483,41 @@ class PerforceIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        """Actions after installation."""
-        pass
+        """
+        Actions after installation.
+        Sets organization-level configuration from installation pipeline state.
+        """
+        from sentry.integrations.services.integration import integration_service
+
+        installation_data = extra.get("installation_data", {})
+
+        # Store per-organization configuration
+        org_integration_config = {
+            "p4port": installation_data.get("p4port", "localhost:1666"),
+            "user": installation_data.get("user", ""),
+            "password": installation_data.get("password", ""),
+        }
+
+        # Add optional fields if provided
+        if installation_data.get("client"):
+            org_integration_config["client"] = installation_data.get("client")
+
+        if installation_data.get("ssl_fingerprint"):
+            org_integration_config["ssl_fingerprint"] = installation_data.get("ssl_fingerprint")
+
+        if installation_data.get("web_url"):
+            org_integration_config["web_url"] = installation_data.get("web_url")
+
+        # Update organization integration with configuration
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=organization.id
+        )
+
+        if org_integration:
+            integration_service.update_organization_integration(
+                org_integration_id=org_integration.id,
+                config=org_integration_config,
+            )
 
     def setup(self) -> None:
         """Setup integration provider."""
@@ -423,21 +535,47 @@ class PerforceIntegrationProvider(IntegrationProvider):
 class PerforceInstallationView:
     """
     Installation view for Perforce configuration.
-
-    This is a simple pass-through view. The actual configuration
-    happens in the Settings tab after installation via get_organization_config().
+    Collects and validates Perforce server credentials during installation.
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         """
-        Handle installation request.
+        Handle installation request with form validation.
+
         Args:
             request: HTTP request object
             pipeline: Installation pipeline
-        """
-        # Set some default values that users will configure later
-        pipeline.bind_state("p4port", "localhost:1666")
-        pipeline.bind_state("user", "")
-        pipeline.bind_state("name", "Perforce Integration")
 
-        return pipeline.next_step()
+        Returns:
+            HTTP response (form render or redirect to next step)
+        """
+        if request.method == "POST":
+            form = PerforceInstallationForm(request.POST)
+            if form.is_valid():
+                form_data = form.cleaned_data
+
+                # Bind configuration data to pipeline state
+                pipeline.bind_state("installation_data", form_data)
+                pipeline.bind_state("p4port", form_data.get("p4port"))
+                pipeline.bind_state("name", f"Perforce ({form_data.get('p4port')})")
+                # Include organization_id to create unique external_id per org
+                pipeline.bind_state("organization_id", pipeline.organization.id)
+
+                pipeline.get_logger().info(
+                    "perforce.setup.installation-config-view.success",
+                    extra={
+                        "p4port": form_data.get("p4port"),
+                        "user": form_data.get("user"),
+                        "has_ssl_fingerprint": bool(form_data.get("ssl_fingerprint")),
+                        "has_web_url": bool(form_data.get("web_url")),
+                    },
+                )
+                return pipeline.next_step()
+        else:
+            form = PerforceInstallationForm()
+
+        return render_to_response(
+            template="sentry/integrations/perforce-config.html",
+            context={"form": form},
+            request=request,
+        )
