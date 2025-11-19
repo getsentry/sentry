@@ -397,15 +397,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             role="member",
             organization=self.organization,
         )
-        self.basic_condition = (
-            [
-                {
-                    "type": Condition.EQUAL.value,
-                    "comparison": 1,
-                    "conditionResult": True,
-                }
-            ],
-        )
+        self.basic_condition = [
+            {
+                "type": Condition.EQUAL.value,
+                "comparison": 1,
+                "conditionResult": True,
+            }
+        ]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
