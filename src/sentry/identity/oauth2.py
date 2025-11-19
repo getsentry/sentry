@@ -363,7 +363,14 @@ class OAuth2CallbackView:
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
                     extra={"error": error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                logger.warning(
+                    "oauth2.callback.error_param",
+                    extra={
+                        "provider": pipeline.provider.key if pipeline.provider else None,
+                        "error": error,
+                    },
+                )
+                return pipeline.error(ERR_INVALID_STATE)
 
             if state != pipeline.fetch_state("state"):
                 extra = {

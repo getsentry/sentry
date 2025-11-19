@@ -9,7 +9,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -156,6 +156,21 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_error_query_param_returns_generic_message(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "10'XOR(1*if(now()=sysdate(),sleep(15),0))XOR'Z"})
+        request.subdomain = None
+
+        pipeline = MagicMock()
+        provider = MagicMock()
+        provider.key = "dummy"
+        pipeline.provider = provider
+        pipeline.error.return_value = object()
+
+        response = self.view.dispatch(request, pipeline)
+
+        assert response is pipeline.error.return_value
+        pipeline.error.assert_called_once_with(ERR_INVALID_STATE)
 
 
 @control_silo_test

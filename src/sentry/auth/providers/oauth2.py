@@ -23,6 +23,8 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper
 
+logger = logging.getLogger(__name__)
+
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
 
@@ -129,7 +131,14 @@ class OAuth2Callback(AuthView):
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            logger.warning(
+                "oauth2.auth.callback.error_param",
+                extra={
+                    "provider": pipeline.provider.key if getattr(pipeline, "provider", None) else None,
+                    "error": error,
+                },
+            )
+            return pipeline.error(ERR_INVALID_STATE)
 
         if state != pipeline.fetch_state("state"):
             return pipeline.error(ERR_INVALID_STATE)
@@ -143,7 +152,7 @@ class OAuth2Callback(AuthView):
             return pipeline.error(data["error_description"])
 
         if "error" in data:
-            logging.info("Error exchanging token: %s", data["error"])
+            logger.info("Error exchanging token: %s", data["error"])
             return pipeline.error("Unable to retrieve your token")
 
         # we can either expect the API to be implicit and say "im looking for
