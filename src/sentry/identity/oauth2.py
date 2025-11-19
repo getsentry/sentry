@@ -385,7 +385,11 @@ class OAuth2CallbackView:
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
                     extra={
-                        "error": sanitized_error if sanitized_error is not None else _SCRUBBED_OAUTH_ERROR
+                        "error": (
+                            sanitized_error
+                            if sanitized_error is not None
+                            else _SCRUBBED_OAUTH_ERROR
+                        )
                     },
                 )
                 message = (
