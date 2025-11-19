@@ -151,17 +151,13 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                             continue
                     changes = filtered_changes
 
-            return self._format_commits(changes, depot_path)
+            return self._format_commits(changes, depot_path, client)
 
-        except Exception as e:
-            logger.exception(
-                "perforce.compare_commits.error",
-                extra={"repo": repo.name, "start": start_sha, "end": end_sha, "error": str(e)},
-            )
+        except Exception:
             return []
 
     def _format_commits(
-        self, changelists: list[dict[str, Any]], depot_path: str
+        self, changelists: list[dict[str, Any]], depot_path: str, client: Any
     ) -> Sequence[Mapping[str, Any]]:
         """
         Format Perforce changelists into Sentry commit format.
@@ -169,11 +165,15 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Args:
             changelists: List of changelist dictionaries from P4
             depot_path: Depot path
+            client: Perforce client instance
 
         Returns:
             List of commits in Sentry format
         """
         commits = []
+
+        # Cache user info to avoid multiple lookups for the same user
+        user_cache: dict[str, dict[str, Any] | None] = {}
 
         for cl in changelists:
             try:
@@ -187,23 +187,36 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 # Format timestamp (P4 time is Unix timestamp)
                 timestamp = self.format_date(time_int)
 
+                # Get user information from Perforce
+                username = cl.get("user", "unknown")
+                author_email = f"{username}@perforce"
+                author_name = username
+
+                # Fetch user info if not in cache
+                if username not in user_cache:
+                    user_cache[username] = client.get_user(username)
+
+                user_info = user_cache[username]
+                if user_info:
+                    # Use actual email from Perforce if available
+                    if user_info.get("email"):
+                        author_email = user_info["email"]
+                    # Use full name from Perforce if available
+                    if user_info.get("full_name"):
+                        author_name = user_info["full_name"]
+
                 commits.append(
                     {
                         "id": str(cl["change"]),  # Changelist number as commit ID
                         "repository": depot_path,
-                        "author_email": f"{cl.get('user', 'unknown')}@perforce",  # P4 doesn't store email
-                        "author_name": cl.get("user", "unknown"),
+                        "author_email": author_email,
+                        "author_name": author_name,
                         "message": cl.get("desc", ""),
                         "timestamp": timestamp,
                         "patch_set": [],  # Could fetch with 'p4 describe' if needed
                     }
                 )
-            except (KeyError, TypeError) as e:
-                # Skip malformed changelist data
-                logger.warning(
-                    "perforce.format_commits.invalid_data",
-                    extra={"changelist": cl, "error": str(e)},
-                )
+            except (KeyError, TypeError):
                 continue
 
         return commits
@@ -211,19 +224,9 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         """
         Get URL for pull request.
-        Perforce doesn't have native PRs, but might integrate with Swarm.
+        Perforce doesn't have native pull requests.
         """
-        web_url = None
-        if repo.integration_id:
-            integration = integration_service.get_integration(integration_id=repo.integration_id)
-            if integration:
-                web_url = integration.metadata.get("web_url")
-
-        if web_url:
-            # Swarm review URL format
-            return f"{web_url}/reviews/{pull_request.key}"
-
-        return f"p4://{repo.name}@{pull_request.key}"
+        raise NotImplementedError("Perforce does not have native pull requests")
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""
