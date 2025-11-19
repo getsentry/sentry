@@ -10,7 +10,8 @@ const TITLE = t('Metric Monitors');
 const DESCRIPTION = t(
   'Metric monitors track errors based on span attributes and custom metrics.'
 );
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL =
+  'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/#metric-monitor-settings';
 
 export default function MetricDetectorsList() {
   const detectorListQuery = useDetectorListQuery({

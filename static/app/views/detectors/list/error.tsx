@@ -10,7 +10,8 @@ const TITLE = t('Error Monitors');
 const DESCRIPTION = t(
   'Error monitors are created by default for each project based on issue grouping/fingerprint rules.'
 );
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL =
+  'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/#default-monitors';
 
 export default function ErrorDetectorsList() {
   const detectorListQuery = useDetectorListQuery({
