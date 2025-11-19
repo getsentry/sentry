@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from time import time
 from typing import Any
@@ -34,6 +35,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import to_single_line_str, truncatechars
 
 from .base import Provider
 
@@ -42,6 +44,23 @@ __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
+
+_ALLOWED_ERROR_CHARACTERS = re.compile(r"[^\w\s.,:/@-]")
+_MAX_ERROR_LENGTH = 256
+
+
+def _sanitize_oauth_error_parameter(error: str) -> str:
+    """
+    Normalize user supplied OAuth error strings before logging or displaying them.
+
+    We collapse whitespace to a single line, strip any characters outside a conservative
+    allow list, and truncate excessively long values to keep log lines stable.
+    """
+
+    condensed = to_single_line_str(error)
+    cleaned = _ALLOWED_ERROR_CHARACTERS.sub("", condensed)
+    trimmed = truncatechars(cleaned, _MAX_ERROR_LENGTH).strip()
+    return trimmed or "[filtered]"
 
 
 def _redirect_url(pipeline: IdentityPipeline) -> str:
@@ -354,16 +373,17 @@ class OAuth2CallbackView:
         with record_event(
             IntegrationPipelineViewType.OAUTH_CALLBACK, pipeline.provider.key
         ).capture() as lifecycle:
-            error = request.GET.get("error")
+            raw_error = request.GET.get("error")
             state = request.GET.get("state")
             code = request.GET.get("code")
 
-            if error:
+            if raw_error:
+                sanitized_error = _sanitize_oauth_error_parameter(raw_error)
                 lifecycle.record_failure(
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
+                    extra={"error": sanitized_error},
                 )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {sanitized_error}")
 
             if state != pipeline.fetch_state("state"):
                 extra = {
