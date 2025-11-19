@@ -75,6 +75,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             [{"count": value}] for value in metric_values
         ]
 
+    @pytest.mark.skip(reason="flaky: #103661")
     def test_per_second_function(self) -> None:
         metrics = []
 
