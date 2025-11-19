@@ -15,8 +15,8 @@ SENTRY_BUILTIN_SOURCES_PLATFORM_TEST = {
         "type": "http",
         "url": "https://example.com/symbols2/",
     },
-    "nintendo-private": {
-        "id": "sentry:nintendo-private",
+    "nintendo": {
+        "id": "sentry:nintendo",
         "name": "Nintendo Private",
         "type": "s3",
         "bucket": "nintendo-symbols",
@@ -79,7 +79,7 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
     def test_platform_filtering_nintendo_switch_with_access(self) -> None:
-        """Nintendo Switch platform should see nintendo-private source only if org has access"""
+        """Nintendo Switch platform should see nintendo source only if org has access"""
         # Enable nintendo-switch for this organization
         self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
 
@@ -89,15 +89,15 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         body = resp.data
         source_keys = [source["sentry_key"] for source in body]
 
-        # Nintendo Switch with access should see nintendo-private
-        assert "nintendo-private" in source_keys
+        # Nintendo Switch with access should see nintendo
+        assert "nintendo" in source_keys
         # Should also see public sources (no platform restriction)
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
     def test_platform_filtering_nintendo_switch_without_access(self) -> None:
-        """Nintendo Switch platform should NOT see nintendo-private if org lacks access"""
+        """Nintendo Switch platform should NOT see nintendo if org lacks access"""
         # Organization does not have nintendo-switch enabled (default is empty list)
 
         resp = self.get_response(self.organization.slug, qs_params={"platform": "nintendo-switch"})
@@ -106,15 +106,15 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         body = resp.data
         source_keys = [source["sentry_key"] for source in body]
 
-        # Should NOT see nintendo-private without console platform access
-        assert "nintendo-private" not in source_keys
+        # Should NOT see nintendo without console platform access
+        assert "nintendo" not in source_keys
         # Should still see public sources
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
     def test_platform_filtering_unity(self) -> None:
-        """Unity platform should NOT see nintendo-private source"""
+        """Unity platform should NOT see nintendo source"""
         resp = self.get_response(self.organization.slug, qs_params={"platform": "unity"})
         assert resp.status_code == 200
 
@@ -124,8 +124,8 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         # Unity should see public sources (no platform restriction)
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
-        # Unity should NOT see nintendo-private (restricted to nintendo-switch)
-        assert "nintendo-private" not in source_keys
+        # Unity should NOT see nintendo (restricted to nintendo-switch)
+        assert "nintendo" not in source_keys
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_PLATFORM_TEST)
     def test_no_platform_parameter(self) -> None:
@@ -140,4 +140,4 @@ class BuiltinSymbolSourcesPlatformFilteringTest(APITestCase):
         assert "public-source-1" in source_keys
         assert "public-source-2" in source_keys
         # Should NOT see platform-restricted source when no platform is provided
-        assert "nintendo-private" not in source_keys
+        assert "nintendo" not in source_keys

@@ -76,7 +76,7 @@ class PlatformRestrictedSymbolSourcesTest(TestCase):
         self.organization = self.create_organization(owner=self.user)
 
     def test_nintendo_switch_with_org_access(self):
-        """Nintendo Switch project should get nintendo-private source if org has access"""
+        """Nintendo Switch project should get nintendo source if org has access"""
         # Grant org access to nintendo-switch console platform
         self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
 
@@ -85,10 +85,10 @@ class PlatformRestrictedSymbolSourcesTest(TestCase):
 
         sources = project.get_option("sentry:builtin_symbol_sources")
         assert sources is not None
-        assert "nintendo-private" in sources
+        assert "nintendo" in sources
 
     def test_nintendo_switch_without_org_access(self):
-        """Nintendo Switch project should NOT get nintendo-private source if org lacks access"""
+        """Nintendo Switch project should NOT get nintendo source if org lacks access"""
         # Org has no enabled console platforms (default is empty list)
         project = self.create_project(organization=self.organization, platform="nintendo-switch")
         set_default_symbol_sources(project, self.organization)
