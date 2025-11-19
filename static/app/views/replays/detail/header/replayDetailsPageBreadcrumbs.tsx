@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -40,7 +40,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   // We use a ref to store the initial location so that we can use it to navigate to the previous and next replays
   // without dirtying the URL with the URL params from the tabs navigation.
-  // const initialLocation = useRef(location);
+  const initialLocation = useRef(location);
 
   const nextReplay = useMemo(
     () =>
@@ -111,7 +111,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                         organization,
                       })
                     : undefined,
-                  query: location.query,
+                  query: initialLocation.current.query,
                 }}
                 onClick={() =>
                   trackAnalytics('replay.details-playlist-clicked', {
@@ -128,7 +128,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   pathname: nextReplay
                     ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
                     : undefined,
-                  query: location.query,
+                  query: initialLocation.current.query,
                 }}
                 onClick={() =>
                   trackAnalytics('replay.details-playlist-clicked', {
