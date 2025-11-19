@@ -232,7 +232,7 @@ export function Control({
   menuBody,
   menuFooter,
   onOpenChange,
-  items,
+  items = [],
   value,
 
   // Select props
@@ -248,8 +248,8 @@ export function Control({
   children,
   ...wrapperProps
 }: ControlProps & {
-  items: Array<SelectOptionOrSection<SelectKey>>;
-  value: SelectKey | SelectKey[] | undefined;
+  items?: Array<SelectOptionOrSection<SelectKey>>;
+  value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way

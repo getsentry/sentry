@@ -87,14 +87,7 @@ function CompositeSelect({
   ...controlProps
 }: CompositeSelectProps) {
   return (
-    <Control
-      {...controlProps}
-      grid={grid}
-      size={size}
-      disabled={disabled}
-      items={[]}
-      value={undefined}
-    >
+    <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, (child, index) => {
