@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import logging
-<<<<<<< HEAD
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from typing import Any, TypedDict
-=======
-from collections.abc import Sequence
-from datetime import datetime, timezone
-from typing import Any
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
 from P4 import P4, P4Exception
 
@@ -25,12 +19,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-<<<<<<< HEAD
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
-=======
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +108,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             integration: Integration instance containing credentials in metadata
             org_integration: Organization integration instance (required for API compatibility)
         """
-<<<<<<< HEAD
         self.integration = integration
         self.org_integration = org_integration
 
@@ -231,62 +219,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             except Exception as e:
                 # Log disconnect failures as they may indicate connection leaks
                 logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
-=======
-        self.p4port = p4port
-        self.ssl_fingerprint = ssl_fingerprint
-        self.user = user or ""
-        self.password = password
-        self.client_name = client
-        self.base_url = f"p4://{self.host}:{self.port}"
-        self.P4 = P4
-        self.P4Exception = P4Exception
-
-    def _connect(self):
-        """Create and connect a P4 instance."""
-        is_ticket_auth = bool(self.ticket)
-
-        p4 = self.P4()
-
-        if is_ticket_auth:
-            # Ticket authentication: P4Python auto-extracts host/port/user from ticket
-            # Just set the ticket as password and P4 will handle the rest
-            p4.password = self.ticket
-        else:
-            # Password authentication: set host/port/user explicitly
-            p4.port = f"{self.host}:{self.port}"
-            p4.user = self.user
-
-            if self.password:
-                p4.password = self.password
-
-        if self.client_name:
-            p4.client = self.client_name
-
-        p4.exception_level = 1  # Only errors raise exceptions
-
-        try:
-            p4.connect()
-
-            # Authenticate with the server if password is provided (not ticket)
-            if self.password and not is_ticket_auth:
-                try:
-                    p4.run_login()
-                except self.P4Exception as login_error:
-                    p4.disconnect()
-                    raise ApiError(f"Failed to authenticate with Perforce: {login_error}")
-
-            return p4
-        except self.P4Exception as e:
-            raise ApiError(f"Failed to connect to Perforce: {e}")
-
-    def _disconnect(self, p4):
-        """Disconnect P4 instance."""
-        try:
-            if p4.connected():
-                p4.disconnect()
-        except Exception:
-            pass
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
@@ -303,141 +235,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             File info dict if exists, None otherwise
         """
-<<<<<<< HEAD
         with self._connect() as p4:
             try:
                 depot_path = self.build_depot_path(repo, path)
                 result = p4.run("files", depot_path)
-=======
-        p4 = self._connect()
-        try:
-            depot_path = self._build_depot_path(repo, path)
-            result = p4.run("files", depot_path)
-
-            if result and len(result) > 0:
-                return result[0]
-            return None
-
-        except self.P4Exception:
-            return None
-        finally:
-            self._disconnect(p4)
-
-    def _build_depot_path(self, repo: Repository, path: str, ref: str | None = None) -> str:
-        """
-        Build full depot path from repo config and file path.
-
-        Args:
-            repo: Repository object
-            path: File path (may include @revision syntax like "file.cpp@42")
-            ref: Optional ref/revision (for compatibility, but Perforce uses @revision in path)
-
-        Returns:
-            Full depot path with @revision preserved if present
-        """
-        depot_root = repo.config.get("depot_path", repo.name).rstrip("/")
-
-        # Ensure path doesn't start with /
-        path = path.lstrip("/")
-
-        # If path contains @revision, preserve it (e.g., "file.cpp@42")
-        # If ref is provided and path doesn't have @revision, append it
-        full_path = f"{depot_root}/{path}"
-
-        # If ref is provided and path doesn't already have @revision, append it
-        # Skip "master" as it's a Git concept and not valid in Perforce
-        if ref and "@" not in path and ref != "master":
-            full_path = f"{full_path}@{ref}"
-
-        return full_path
-
-    def get_blame(
-        self, repo: Repository, path: str, ref: str | None = None, lineno: int | None = None
-    ) -> list[dict[str, Any]]:
-        """
-        Get blame/annotate information for a file (like git blame).
-
-        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
-        Returns the most recent changelist that modified the file and its author.
-        This is used for CODEOWNERS-style ownership detection.
-
-        Args:
-            repo: Repository object (depot_path includes stream if specified)
-            path: File path relative to depot (may include @revision like "file.cpp@42")
-            ref: Optional revision/changelist number (appended as @ref if not in path)
-            lineno: Specific line number to blame (optional, currently ignored)
-
-        Returns:
-            List with a single entry containing:
-            - changelist: changelist number
-            - user: username who made the change
-            - date: date of change
-            - description: changelist description
-        """
-        p4 = self._connect()
-        try:
-            depot_path = self._build_depot_path(repo, path, ref)
-
-            # Use 'p4 filelog' to get the most recent changelist for this file
-            # This is much faster than 'p4 annotate'
-            # If depot_path includes @revision, filelog will show history up to that revision
-            filelog = p4.run("filelog", "-m1", depot_path)
-
-            if not filelog or len(filelog) == 0:
-                return []
-
-            # Get the most recent changelist number
-            # filelog returns a list of revisions, we want the first one
-            revisions = filelog[0].get("rev", [])
-            if not revisions or len(revisions) == 0:
-                return []
-
-            # Get the changelist number from the first revision
-            changelist = revisions[0].get("change")
-            if not changelist:
-                return []
-
-            # Get detailed changelist information using 'p4 describe'
-            # -s flag means "short" - don't include diffs, just metadata
-            change_info = p4.run("describe", "-s", changelist)
-
-            if not change_info:
-                return []
-
-            change_data = change_info[0]
-            return [
-                {
-                    "changelist": str(changelist),
-                    "user": change_data.get("user", "unknown"),
-                    "date": change_data.get("time", ""),
-                    "description": change_data.get("desc", ""),
-                }
-            ]
-
-        except self.P4Exception:
-            return []
-        finally:
-            self._disconnect(p4)
-
-    def get_depot_info(self) -> dict[str, Any]:
-        """
-        Get server info for testing connection.
-
-        Returns:
-            Server info dictionary
-        """
-        p4 = self._connect()
-        try:
-            info = p4.run("info")[0]
-            return {
-                "server_address": info.get("serverAddress"),
-                "server_version": info.get("serverVersion"),
-                "user": info.get("userName"),
-                "client": info.get("clientName"),
-            }
-        finally:
-            self._disconnect(p4)
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
                 # Verify result contains actual file data (not just warnings)
                 # When exception_level=1, warnings are returned in result list
@@ -514,8 +315,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             Sequence of depot info dictionaries
         """
-<<<<<<< HEAD
-<<<<<<< HEAD
         with self._connect() as p4:
             depots = p4.run("depots")
             return [
@@ -558,24 +357,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 )
             # User not found - return None (not an error condition)
             return None
-=======
-        return []
->>>>>>> 6b799feb551 (Fix typing)
-=======
-        p4 = self._connect()
-        try:
-            depots = p4.run("depots")
-            return [
-                {
-                    "name": depot.get("name"),
-                    "type": depot.get("type"),
-                    "description": depot.get("desc", ""),
-                }
-                for depot in depots
-            ]
-        finally:
-            self._disconnect(p4)
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
     def get_changes(
         self,
@@ -602,8 +383,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Raises:
             TypeError: If start_cl or end_cl are not integers
         """
-<<<<<<< HEAD
-<<<<<<< HEAD
         with self._connect() as p4:
             # Validate types - changelists must be integers
             if start_cl is not None and not isinstance(start_cl, int):
@@ -630,20 +409,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # Use it for end_cl (inclusive upper bound)
             if end_cl_num is not None:
                 args.extend(["-e", str(end_cl_num)])
-=======
-        p4 = self._connect()
-        try:
-            args = ["-m", str(max_changes), "-l"]
-
-            if start_cl:
-                args.extend(["-e", start_cl])
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
             args.append(depot_path)
 
             changes = p4.run("changes", *args)
 
-<<<<<<< HEAD
             # Client-side filter for start_cl (exclusive lower bound)
             # Filter out changes <= start_cl to get changes > start_cl
             if start_cl_num is not None:
@@ -661,25 +431,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 )
                 for change in changes
             ]
-=======
-        return []
->>>>>>> 6b799feb551 (Fix typing)
-=======
-            return [
-                {
-                    "change": change.get("change"),
-                    "user": change.get("user"),
-                    "client": change.get("client"),
-                    "time": change.get("time"),
-                    "desc": change.get("desc"),
-                }
-                for change in changes
-            ]
-        finally:
-            self._disconnect(p4)
-
-    # CommitContextClient methods (stubbed for now)
->>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
