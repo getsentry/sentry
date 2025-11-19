@@ -195,12 +195,6 @@ ORG_OPTIONS = (
         GITLAB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "gitlabOpenPRBot",
-        "sentry:gitlab_open_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -307,7 +301,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
-    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -892,10 +885,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # gitlab features
     gitlabPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-    gitlabOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
         required=False,
     )
 
