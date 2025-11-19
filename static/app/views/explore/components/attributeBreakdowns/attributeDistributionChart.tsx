@@ -2,7 +2,6 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
-import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
@@ -87,41 +86,24 @@ export function Chart({
     [attributeDistribution.values, cohortCount]
   );
 
-  const toolTipValueFormatter = useCallback(
-    (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
-      const pct = Number(seriesParams?.data);
-      return percentageFormatter(pct);
-    },
-    []
-  );
+  const toolTipFormatter = useCallback((p: TooltipComponentFormatterCallbackParams) => {
+    const data = Array.isArray(p) ? p[0]?.data : p.data;
+    const pct = percentageFormatter(Number(data));
 
-  const toolTipFormatAxisLabel = useCallback(
-    (
-      _value: number,
-      _isTimestamp: boolean,
-      _utc: boolean,
-      _showTimeInTooltip: boolean,
-      _addSecondsToTimeFormat: boolean,
-      _bucketSize: number | undefined,
-      seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-    ) => {
-      const name = Array.isArray(seriesParamsOrParam)
-        ? seriesParamsOrParam?.[0]?.name
-        : undefined;
-
-      if (!name) {
-        return '\u2014';
-      }
-
-      const truncatedName =
-        name.length > TOOLTIP_MAX_VALUE_LENGTH
-          ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
-          : name;
-
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2; color: black;">${truncatedName}</div>`;
-    },
-    []
-  );
+    const value = Array.isArray(p) ? p[0]?.name : p.name;
+    const truncatedValue = value
+      ? value.length > TOOLTIP_MAX_VALUE_LENGTH
+        ? `${value.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
+        : value
+      : '\u2014';
+    return [
+      '<div class="tooltip-series" style="padding: 0;">',
+      `<div><span class="tooltip-label" style="margin: 0 auto; text-align: center; padding:8px 20px; min-width: 100px; max-width: 300px; word-break: break-word; white-space: normal; overflow-wrap: anywhere;"><strong>${truncatedValue}</strong></span></div>`,
+      '</div>',
+      `<div class="tooltip-footer" style="display: flex; justify-content: center; padding: 4px;">${pct}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  }, []);
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
@@ -188,8 +170,7 @@ export function Chart({
           appendToBody: true,
           trigger: 'axis',
           renderMode: 'html',
-          valueFormatter: toolTipValueFormatter,
-          formatAxisLabel: toolTipFormatAxisLabel,
+          formatter: toolTipFormatter,
         }}
         grid={{
           left: 2,
@@ -231,7 +212,6 @@ export function Chart({
           {
             type: 'bar',
             data: seriesData.map(value => value.value),
-            name: 'density',
             itemStyle: {
               color,
             },
