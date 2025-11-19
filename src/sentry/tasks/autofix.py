@@ -75,7 +75,9 @@ def run_automation_for_group(group_id: int) -> None:
     Run automation directly for a group (assumes summary and fixability already exist).
     Used for triage signals flow when event count >= 10 and summary exists.
     """
-    from sentry.seer.autofix.issue_summary import _run_automation
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.seer.autofix.issue_summary import run_automation
 
     group = Group.objects.get(id=group_id)
     event = group.get_latest_event()
@@ -84,4 +86,6 @@ def run_automation_for_group(group_id: int) -> None:
         logger.warning("run_automation_for_group.no_event_found", extra={"group_id": group_id})
         return
 
-    _run_automation(group=group, user=None, event=event, source=SeerAutomationSource.POST_PROCESS)
+    run_automation(
+        group=group, user=AnonymousUser(), event=event, source=SeerAutomationSource.POST_PROCESS
+    )
