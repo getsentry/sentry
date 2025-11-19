@@ -188,8 +188,7 @@ const storeConfig: GroupStoreDefinition = {
    */
   addToFront(items) {
     items = toArray(items);
-    const itemMap: Record<string, Item> = items.reduce((acc, item) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const itemMap = items.reduce<Record<string, Item>>((acc, item) => {
       acc[item.id] = item;
       return acc;
     }, {});
