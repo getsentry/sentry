@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 class DetectorSnapshot(TypedDict):
     id: int
+    type: str
     enabled: bool
     status: int
     trigger_condition: DataConditionGroupSnapshot | None
@@ -156,6 +157,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
+            "type": self.type,
             "enabled": self.enabled,
             "status": self.status,
             "trigger_condition": trigger_condition,
