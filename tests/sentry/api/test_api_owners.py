@@ -1,5 +1,6 @@
-import pytest
 from unittest import TestCase
+
+import pytest
 
 from sentry.api.api_owners import ApiOwner
 
