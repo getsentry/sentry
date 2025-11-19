@@ -32,7 +32,9 @@ _SANITIZE_WHITESPACE_PATTERN = re.compile(r"\s{2,}")
 _MAX_PIPELINE_MESSAGE_LENGTH = 1024
 
 
-def sanitize_pipeline_message(message: str | None, *, max_length: int = _MAX_PIPELINE_MESSAGE_LENGTH) -> str:
+def sanitize_pipeline_message(
+    message: str | None, *, max_length: int = _MAX_PIPELINE_MESSAGE_LENGTH
+) -> str:
     if not message:
         return ""
 

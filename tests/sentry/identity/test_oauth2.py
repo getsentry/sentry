@@ -231,6 +231,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "${" not in logged_error
         assert "$ {" in logged_error
 
+
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
     def setUp(self) -> None:
