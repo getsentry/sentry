@@ -67,7 +67,7 @@ class DiscoverSavedQueryModelSerializer(Serializer):
 
         for key in query_keys:
             if query.query.get(key) is not None:
-                data[key] = query.query[key]  # type: ignore[literal-required]
+                data[key] = query.query[key]
 
         # expire queries that are beyond the retention period
         if "start" in query.query:
