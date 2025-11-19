@@ -4,7 +4,7 @@ import orjson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.spans.consumers.process_segments.convert import RENAME_ATTRIBUTES, convert_span_to_item
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
@@ -26,6 +26,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
         "my.neg.float.field": {"value": -101.2, "type": "double"},
         "my.true.bool.field": {"value": True, "type": "boolean"},
         "my.u64.field": {"value": 9447000002305251000, "type": "integer"},
+        "my.unested.array.field": {"value": [1, 2, 3, 4], "type": "array"},
         "my.invalid.field": None,
         "num_of_spans": {"value": 50.0, "type": "string"},
         "relay_endpoint_version": {"value": "3", "type": "string"},
@@ -80,7 +81,7 @@ SPAN_KAFKA_MESSAGE: SpanEvent = {
     "_meta": {
         "attributes": {
             "my.invalid.field": {
-                "": {"err": ["invalid_data"], "val": {"type": "string", "value": True}}
+                "": {"err": ["invalid_data"], "val": {"type": "boolean", "value": True}}
             }
         }
     },
@@ -106,8 +107,30 @@ def test_convert_span_to_item() -> None:
 
     assert attrs == {
         "http.status_code": AnyValue(string_value="200"),
-        "my.array.field": AnyValue(string_value=r"""[1,2,["nested","array"]]"""),
-        "my.dict.field": AnyValue(string_value=r"""{"id":42,"name":"test"}"""),
+        "my.array.field": AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(int_value=1),
+                    AnyValue(int_value=2),
+                    AnyValue(
+                        array_value=ArrayValue(
+                            values=[
+                                AnyValue(string_value="nested"),
+                                AnyValue(string_value="array"),
+                            ],
+                        ),
+                    ),
+                ],
+            ),
+        ),
+        "my.dict.field": AnyValue(
+            kvlist_value=KeyValueList(
+                values=[
+                    KeyValue(key="id", value=AnyValue(int_value=42)),
+                    KeyValue(key="name", value=AnyValue(string_value="test")),
+                ],
+            ),
+        ),
         "my.false.bool.field": AnyValue(bool_value=False),
         "my.float.field": AnyValue(double_value=101.2),
         "my.int.field": AnyValue(int_value=2000),
@@ -115,6 +138,16 @@ def test_convert_span_to_item() -> None:
         "my.neg.float.field": AnyValue(double_value=-101.2),
         "my.true.bool.field": AnyValue(bool_value=True),
         "my.u64.field": AnyValue(double_value=9447000002305251000.0),
+        "my.unested.array.field": AnyValue(
+            array_value=ArrayValue(
+                values=[
+                    AnyValue(int_value=1),
+                    AnyValue(int_value=2),
+                    AnyValue(int_value=3),
+                    AnyValue(int_value=4),
+                ],
+            ),
+        ),
         "num_of_spans": AnyValue(double_value=50.0),
         "relay_endpoint_version": AnyValue(string_value="3"),
         "relay_id": AnyValue(string_value="88888888-4444-4444-8444-cccccccccccc"),
@@ -159,7 +192,7 @@ def test_convert_span_to_item() -> None:
         "thread.id": AnyValue(string_value="8522009600"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
         "sentry._meta.fields.attributes.my.invalid.field": AnyValue(
-            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"string","value":true}}}}"""
+            string_value=r"""{"meta":{"":{"err":["invalid_data"],"val":{"type":"boolean","value":true}}}}"""
         ),
     }
 
