@@ -147,10 +147,7 @@ export function OverviewRow({
     ...(onToggleMuteEnvironment
       ? [
           (env: string, isMuted: boolean) => ({
-            label:
-              isMuted && !monitor.isMuted
-                ? t('Unmute Environment')
-                : t('Mute Environment'),
+            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
             key: 'mute',
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
