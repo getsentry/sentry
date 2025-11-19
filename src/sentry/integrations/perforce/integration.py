@@ -271,6 +271,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
                 "user": state.get("user"),
                 "password": state.get("password"),
                 "client": state.get("client"),
+                "ssl_fingerprint": state.get("ssl_fingerprint"),
                 "web_url": state.get("web_url"),
             },
         }
