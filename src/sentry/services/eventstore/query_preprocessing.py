@@ -23,8 +23,9 @@ def _get_all_related_redirects_query(
         ).values_list("group_id", "previous_group_id")
         # This order returns the newest redirects first. i.e. we're implicitly dropping
         # the oldest redirects if we have >THRESHOLD. We choose to drop the oldest
-        # because they're least likely to have data in retention
-        .order_by("-date_added")
+        # because they're least likely to have data in retention.
+        # Technically id != date_added, but it's a close appx (& much faster).
+        .order_by("-id")
     )
 
 
