@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.dashboards.endpoints.organization_dashboards import PREBUILT_DASHBOARDS
+from sentry.dashboards.endpoints.organization_dashboards import (
+    PREBUILT_DASHBOARDS,
+    PrebuiltDashboardId,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -1991,3 +1994,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, prebuilt_id__isnull=False
         ).count()
         assert prebuilt_count == 0
+
+    def test_get_with_prebuilt_ids(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request(
+                "get", self.url, {"prebuiltId": [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]}
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
