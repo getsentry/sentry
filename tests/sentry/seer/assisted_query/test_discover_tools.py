@@ -190,7 +190,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="environment",
-            is_feature_flag=False,
         )
 
         assert result is not None
@@ -247,7 +246,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="organizations:test-feature",
-            is_feature_flag=True,
         )
 
         assert result is not None
@@ -280,7 +278,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="has",
-            is_feature_flag=False,
         )
 
         assert result is not None
@@ -296,7 +293,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="count()",
-            is_feature_flag=False,
         )
 
         assert result == []
@@ -342,7 +338,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="environment",
-            is_feature_flag=False,
             substring="prod",
         )
 
@@ -363,7 +358,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="nonexistent_tag_key_12345",
-            is_feature_flag=False,
         )
         # Should return empty list, not None
         assert result == []
@@ -396,7 +390,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
                 org_id=self.organization.id,
                 project_ids=pids,
                 filter_key="region",
-                is_feature_flag=False,
             )
 
             assert result is not None
@@ -436,7 +429,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="test_tag",
-            is_feature_flag=False,
             stats_period="24h",
         )
 
@@ -445,7 +437,6 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="test_tag",
-            is_feature_flag=False,
             stats_period="7d",
         )
 

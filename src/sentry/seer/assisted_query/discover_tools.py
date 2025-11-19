@@ -201,7 +201,6 @@ def get_event_filter_key_values(
     *,
     org_id,
     filter_key: str,
-    is_feature_flag: bool = False,
     substring: str | None = None,
     project_ids: list[int] | None = None,
     stats_period: str = "7d",
@@ -219,7 +218,6 @@ def get_event_filter_key_values(
         org_id: Organization ID
         project_ids: List of project IDs to query
         filter_key: The filter key to get values for
-        is_feature_flag: Whether the filter key is a feature flag
         substring: Optional substring to filter values. Only values containing this substring will be returned
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d"
 
@@ -268,22 +266,25 @@ def get_event_filter_key_values(
     if substring:
         base_params["query"] = substring
 
-    if is_feature_flag:
+    # Try tags query
+    resp = client.get(
+        auth=api_key,
+        user=None,
+        path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
+        params={**base_params, "dataset": Dataset.Events.value},
+    )
+
+    if not resp.data:
+        # Try feature flags query
         resp = client.get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
             params={**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"},
         )
-    else:
-        resp = client.get(
-            auth=api_key,
-            user=None,
-            path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
-            params={**base_params, "dataset": Dataset.Events.value},
-        )
 
     data = resp.data or []
+
     return [
         {k: item[k] for k in item if k in ["value", "count", "lastSeen", "firstSeen"]}
         for item in data
