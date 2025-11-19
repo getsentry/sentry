@@ -651,11 +651,25 @@ export type InvoiceItem = BaseInvoiceItem & {
 };
 
 /**
- * Converts camelCase string to snake_case.
+ * Converts camelCase string to snake_case. Consecutive capitals are treated as
+ * a single acronym (e.g. "profileDurationUI" -> "profile_duration_ui").
  * Examples: "monitorSeats" -> "monitor_seats", "errors" -> "errors"
  */
-type CamelToSnake<S extends string> = S extends `${infer T}${infer U}`
-  ? `${T extends Capitalize<T> ? '_' : ''}${Lowercase<T>}${CamelToSnake<U>}`
+type CamelToSnake<
+  S extends string,
+  Prev extends 'lower' | 'upper' | '' = '',
+> = S extends `${infer First}${infer Rest}`
+  ? First extends Lowercase<First>
+    ? `${First}${CamelToSnake<Rest, 'lower'>}`
+    : First extends Uppercase<First>
+      ? Rest extends ''
+        ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
+        : Rest extends `${infer Next}${infer _Tail}`
+          ? Next extends Lowercase<Next>
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+          : never
+      : `${First}${CamelToSnake<Rest, Prev>}`
   : S;
 
 /**
