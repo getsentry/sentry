@@ -246,9 +246,7 @@ function VolumeSliders({
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>
                         {tct('[min] included', {
-                          min: formatReservedWithUnits(min, category, {
-                            isAbbreviated: !isByteCategory(category),
-                          }),
+                          min: formatReservedWithUnits(min, category),
                         })}
                       </div>
                       <div>
@@ -322,11 +320,7 @@ function VolumeSliders({
                       onChange={value => value && handleReservedChange(value, category)}
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
-                      <div>
-                        {formatReservedWithUnits(min, category, {
-                          isAbbreviated: !isByteCategory(category),
-                        })}
-                      </div>
+                      <div>{formatReservedWithUnits(min, category)}</div>
                       <div>
                         {formatReservedWithUnits(max, category, {
                           isAbbreviated: !isByteCategory(category),
