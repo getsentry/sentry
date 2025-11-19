@@ -3,7 +3,6 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from django.test import override_settings
 
 from sentry.net.socket import (

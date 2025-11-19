@@ -6,7 +6,8 @@ import os
 import socket
 import threading
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from socket import timeout as SocketTimeout
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -15,7 +16,7 @@ from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
-from urllib3.util.timeout import Timeout, _DEFAULT_TIMEOUT, _TYPE_DEFAULT
+from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT, Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 
