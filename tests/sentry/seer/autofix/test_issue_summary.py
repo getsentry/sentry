@@ -607,7 +607,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
         assert status_code == 200
-        mock_record_seer_run.assert_not_called()
+        mock_record_seer_run.assert_called_once()
         mock_trigger_autofix_task.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")

@@ -653,12 +653,10 @@ def trigger_autofix(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type != WebVitalsGroup:
-        # log billing event for seer autofix
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+    # log billing event for seer autofix
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+    )
 
     return Response(
         {
