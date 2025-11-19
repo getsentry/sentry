@@ -71,6 +71,16 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     disableProps.title = permissionTooltipText;
   }
 
+  const hasEnvironments = monitor.environments.length > 0;
+  const muteDisableProps = {...disableProps};
+
+  if (!hasEnvironments) {
+    muteDisableProps.disabled = true;
+    muteDisableProps.title = t(
+      'Muting is only available when there are monitor environments'
+    );
+  }
+
   return (
     <ButtonBar>
       <FeedbackWidgetButton />
@@ -78,7 +88,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
         onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
-        {...disableProps}
+        {...muteDisableProps}
       >
         {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
