@@ -10,3 +10,9 @@ class PipelineSessionStore(RedisSessionStore):
     step_index = redis_property("step_index")
     config = redis_property("config")
     data = redis_property("data")
+
+    def mark_session(self) -> None:
+        super().mark_session()
+        session = getattr(self.request, "session", None)
+        if session is not None:
+            session.modified = True

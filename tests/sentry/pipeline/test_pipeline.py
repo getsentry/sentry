@@ -21,6 +21,12 @@ class PipelineStep:
         pipeline.bind_state("some_state", "value")
 
 
+class DummySession(dict):
+    def __init__(self):
+        super().__init__()
+        self.modified = False
+
+
 class DummyProvider(PipelineProvider["DummyPipeline"]):
     key = "dummy"
     name = "dummy"
@@ -126,3 +132,18 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_pipeline_session_store_marks_session_modified(self) -> None:
+        request = HttpRequest()
+        request.session = DummySession()
+        request.user = self.user
+
+        pipeline = DummyPipeline(request, "dummy", self.org)
+        assert request.session.modified is False
+
+        pipeline.initialize()
+        assert request.session.modified is True
+
+        request.session.modified = False
+        pipeline.clear_session()
+        assert request.session.modified is True
