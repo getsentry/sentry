@@ -94,7 +94,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             open_period_activities = defaultdict(list)
             # XXX: the incident endpoint is undocumented, so we aren' on the hook for supporting
             # any specific payloads. Since this isn't used on the Sentry side for notification charts,
-            # I've opted to just use the GroupOpenPeriodActivity serializer.ß
+            # I've opted to just use the GroupOpenPeriodActivity serializer.
             for gopa, serialized_activity in zip(
                 gopas,
                 serialize(gopas, user=user, serializer=GroupOpenPeriodActivitySerializer()),
