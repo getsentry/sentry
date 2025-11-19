@@ -121,7 +121,7 @@ describe('LogsTabContent', () => {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           dataScanned: 'full',
           accuracy: {
             confidence: [{}, {}],
@@ -182,7 +182,7 @@ describe('LogsTabContent', () => {
         query: expect.objectContaining({
           environment: [],
           statsPeriod: '14d',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
           query: 'severity:error',
@@ -196,7 +196,7 @@ describe('LogsTabContent', () => {
         query: expect.objectContaining({
           environment: [],
           statsPeriod: '14d',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           yAxis: 'count(message)',
           interval: '1h',
           query: 'severity:error timestamp_precise:<=1508208040000000000',
@@ -275,7 +275,7 @@ describe('LogsTabContent', () => {
         query: expect.objectContaining({
           environment: [],
           statsPeriod: '14d',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
           query: 'severity:error',
@@ -290,7 +290,7 @@ describe('LogsTabContent', () => {
         query: expect.objectContaining({
           environment: [],
           statsPeriod: '14d',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           yAxis: 'count(message)',
           interval: '1h',
           query: 'severity:error timestamp_precise:<=1508208040000000000',

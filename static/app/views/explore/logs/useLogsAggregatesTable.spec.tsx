@@ -72,7 +72,7 @@ describe('useLogsAggregatesTable', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'ourlogs',
+          dataset: 'logs',
           sampling: SAMPLING_MODE.NORMAL,
         }),
       })
@@ -83,7 +83,7 @@ describe('useLogsAggregatesTable', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'ourlogs',
+          dataset: 'logs',
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
         }),
       })

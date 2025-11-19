@@ -190,7 +190,7 @@ describe('LogsPage', () => {
           query: expect.objectContaining({
             environment: [],
             statsPeriod: '24h',
-            dataset: 'ourlogs',
+            dataset: 'logs',
             field: ['severity', 'count(message)'],
             sort: '-count(message)',
           }),
@@ -205,7 +205,7 @@ describe('LogsPage', () => {
           query: expect.objectContaining({
             environment: [],
             statsPeriod: '24h',
-            dataset: 'ourlogs',
+            dataset: 'logs',
             field: ['severity', 'count(message)'],
             yAxis: 'count(message)',
             orderby: '-count_message',

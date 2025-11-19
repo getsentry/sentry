@@ -62,7 +62,7 @@ function LogsSectionContent({
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
-        searchSource="ourlogs"
+        searchSource="logs"
         onSearch={query => setLogsQuery(query)}
       />
       <TableContainer>

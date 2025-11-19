@@ -121,7 +121,7 @@ describe('MetricsSection', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [MockApiClient.matchQuery({dataset: 'ourlogs'})],
+      match: [MockApiClient.matchQuery({dataset: 'logs'})],
       body: {data: [], meta: {}},
     });
   });

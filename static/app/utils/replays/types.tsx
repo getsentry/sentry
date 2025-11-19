@@ -434,7 +434,7 @@ export type ResourceFrame = HydratedSpan<
 
 // OurLogs converted from log to frame for use with jump buttons etc.
 export type OurLogsPseudoFrame = {
-  category: 'ourlogs';
+  category: 'logs';
   offsetMs: number;
   timestampMs: number;
   data?: undefined;
