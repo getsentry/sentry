@@ -42,7 +42,7 @@ _ALWAYS_RETURN_EVENT_FIELDS = frozenset(
         "trace",
         "trace.span",  # Root span ID
         "trace.parent_span",  # Parent span ID
-        "project",
+        "project",  # Project slug
         "issue",  # Issue short ID
         "has",
     }
