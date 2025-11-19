@@ -49,7 +49,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             client: Client/workspace name
             ssl_fingerprint: SSL trust fingerprint for secure connections
         """
-        self.p4port = p4port
+        self.p4port = p4port or "localhost:1666"
         self.ssl_fingerprint = ssl_fingerprint
         self.user = user or ""
         self.password = password
@@ -134,19 +134,19 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         finally:
             self._disconnect(p4)
 
-    def _build_depot_path(self, repo: Repository, path: str, ref: str | None = None) -> str:
+    def build_depot_path(self, repo: Repository, path: str, stream: str | None = None) -> str:
         """
         Build full depot path from repo config and file path.
 
         Handles both relative and absolute paths:
         - Relative: "depot/app/file.py" or "app/file.py" → "//depot/app/file.py"
         - Absolute: "//depot/app/file.py" → "//depot/app/file.py" (unchanged)
-        - With branch/stream: "app/file.py" + branch="main" → "//depot/main/app/file.py"
+        - With stream: "app/file.py" + stream="main" → "//depot/main/app/file.py"
 
         Args:
             repo: Repository object
             path: File path (may include #revision for file revisions like "file.cpp#1")
-            branch: Optional branch/stream name to insert after depot (e.g., "main", "dev")
+            stream: Optional stream name to insert after depot (e.g., "main", "dev")
 
         Returns:
             Full depot path with #revision preserved if present
@@ -177,10 +177,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # Remove leading slashes from relative path
             path_without_rev = path_without_rev.lstrip("/")
 
-            # Handle Perforce streams: insert branch/stream after depot
+            # Handle Perforce streams: insert stream after depot
             # Format: //depot/stream/path/to/file
-            if branch:
-                full_path = f"{depot_root}/{branch}/{path_without_rev}"
+            if stream:
+                full_path = f"{depot_root}/{stream}/{path_without_rev}"
             else:
                 full_path = f"{depot_root}/{path_without_rev}"
 
