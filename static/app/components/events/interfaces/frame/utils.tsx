@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -137,12 +135,8 @@ function getRootDomain(url: string): string {
     // Split hostname into parts and get the last two parts (if they exist)
     const parts = hostname.split('.');
     return parts.slice(-2).join('.');
-  } catch (err) {
-    // Capture to review edge cases and handle them properly
-    Sentry.withScope(scope => {
-      scope.setExtra('url', url);
-      Sentry.captureException(err);
-    });
+  } catch {
+    // Invalid URLs are possible/expected
     return '';
   }
 }
@@ -156,12 +150,8 @@ function getRootDomain(url: string): string {
 function getProtocol(url: string): string {
   try {
     return new URL(url).protocol;
-  } catch (err) {
-    // Capture to review edge cases and handle them properly
-    Sentry.withScope(scope => {
-      scope.setExtra('url', url);
-      Sentry.captureException(err);
-    });
+  } catch {
+    // Invalid URLs are possible/expected
     return '';
   }
 }

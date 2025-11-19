@@ -3178,6 +3178,13 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3654,4 +3661,11 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.scanner_no_consent.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
