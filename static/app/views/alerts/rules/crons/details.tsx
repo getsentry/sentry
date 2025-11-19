@@ -15,7 +15,7 @@ import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider'
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
@@ -73,26 +73,19 @@ function MonitorDetails({params, location}: Props) {
     monitorSlug: params.monitorSlug,
   });
 
-  function onUpdate(data: Monitor) {
-    const updatedMonitor = {
-      ...data,
-      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
-      // which pauses/unpauses a monitor not returning monitor environments
-      // we should reuse the environments retrieved from the initial request
-      environments: monitor?.environments,
-    };
-    setApiQueryData(queryClient, queryKey, updatedMonitor);
+  function onUpdate() {
+    // Invalidate the query to refetch the monitor with updated environment data.
+    // The PUT request doesn't return environments, so we need to refetch to get
+    // the latest environment muting status and other environment data.
+    queryClient.invalidateQueries({queryKey});
   }
 
   const handleUpdate = async (data: Partial<Monitor>) => {
     if (monitor === undefined) {
       return;
     }
-    const resp = await updateMonitor(api, organization.slug, monitor, data);
-
-    if (resp !== null) {
-      onUpdate(resp);
-    }
+    await updateMonitor(api, organization.slug, monitor, data);
+    onUpdate();
   };
 
   const userTimezone = useTimezone();
