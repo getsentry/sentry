@@ -710,6 +710,11 @@ function SearchQueryBuilderInputInternal({
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
       >
+        {/* `useComboBoxState` inside the combo box component eagerly iterates
+        `children`, which can be very slow if there are many items. If the combo
+        box is not even open, do not pass any `children`. This prevents the
+        combo box from iterating anything while it's closed, which improves
+        render performance when the combo box is closed. */}
         {isOpen ? renderItem : null}
       </SearchQueryBuilderCombobox>
     </Fragment>
