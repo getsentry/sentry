@@ -23,7 +23,6 @@ type ParamKeys =
   | 'dataForwarderId'
   | 'dataExportId'
   | 'detectorId'
-  | 'detectorId'
   | 'docIntegrationSlug'
   | 'eventId'
   | 'eventSlug'

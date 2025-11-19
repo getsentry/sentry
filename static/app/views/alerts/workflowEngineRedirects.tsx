@@ -165,6 +165,17 @@ function WorkflowEngineRedirectWithAlertRuleData({
   return children;
 }
 
+const getDetectionType = (type: string | undefined): string | null => {
+  switch (type) {
+    case 'crons':
+      return 'monitor_check_in_failure';
+    case 'uptime':
+      return 'uptime_domain_failure';
+    default:
+      return null;
+  }
+};
+
 export function WorkflowEngineRedirectToDetectorCreate({
   children,
   ...props
@@ -174,12 +185,7 @@ export function WorkflowEngineRedirectToDetectorCreate({
   const organization = useOrganization();
 
   const {alertType} = useParams();
-  const detectorType =
-    alertType === 'crons'
-      ? 'monitor_check_in_failure'
-      : alertType === 'uptime'
-        ? 'uptime_domain_failure'
-        : null;
+  const detectorType = getDetectionType(alertType);
 
   const redirectPath = detectorType
     ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
