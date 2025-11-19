@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
 _STATE_VALUE_PATTERN = re.compile(r"^[a-f0-9]{8,128}$")
-_SAFE_PROVIDER_ERROR_CHARS = frozenset(string.ascii_letters + string.digits + " ._-/:" )
+_SAFE_PROVIDER_ERROR_CHARS = frozenset(string.ascii_letters + string.digits + " ._-/:")
 
 
 def _summarize_sensitive_value(
@@ -69,11 +69,7 @@ def _sanitize_provider_error(error: str | None) -> str | None:
         return None
 
     trimmed = error.strip()
-    if (
-        trimmed
-        and len(trimmed) <= 128
-        and all(ch in _SAFE_PROVIDER_ERROR_CHARS for ch in trimmed)
-    ):
+    if trimmed and len(trimmed) <= 128 and all(ch in _SAFE_PROVIDER_ERROR_CHARS for ch in trimmed):
         return trimmed
 
     return None
