@@ -70,7 +70,6 @@ def create_workflow_fire_histories(
             workflow_id=workflow_id,
             group=event_data.group,
             event_id=event_id,
-            is_single_written=True,
         )
         for workflow_id in workflow_ids
     ]

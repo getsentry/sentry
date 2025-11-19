@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0099_backfill_metric_issue_detectorgroup
+workflow_engine: 0100_move_is_single_written_to_pending

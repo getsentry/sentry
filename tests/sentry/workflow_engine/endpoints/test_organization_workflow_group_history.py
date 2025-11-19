@@ -32,7 +32,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
-                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
@@ -41,7 +40,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
-                is_single_written=True,
             )
         )
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)

@@ -44,7 +44,7 @@ class RuleSerializerTest(TestCase):
         workflow = IssueAlertMigrator(rule).run()
 
         WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=True
+            workflow=workflow, group=self.group, event_id="test-event-id"
         )
 
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
@@ -63,26 +63,11 @@ class RuleSerializerTest(TestCase):
 
         # Create a newer WorkflowFireHistory
         WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=True
+            workflow=workflow, group=self.group, event_id="test-event-id"
         )
 
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] == timezone.now()
-
-    def test_last_triggered_workflow_ignore_single_written_false(self) -> None:
-        """Test that WorkflowFireHistory with is_single_written=False is ignored."""
-        rule = self.create_project_rule()
-
-        # Create a workflow for the rule
-        workflow = IssueAlertMigrator(rule).run()
-
-        # Create a WorkflowFireHistory with is_single_written=False
-        WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="test-event-id", is_single_written=False
-        )
-
-        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
-        assert result["lastTriggered"] is None
 
 
 @freeze_time()

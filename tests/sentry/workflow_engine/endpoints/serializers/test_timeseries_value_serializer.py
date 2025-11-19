@@ -44,7 +44,6 @@ class WorkflowHourlyStatsTest(TestCase):
                     WorkflowFireHistory(
                         workflow=self.workflow,
                         group=self.group,
-                        is_single_written=True,
                     )
                 )
 
@@ -54,16 +53,8 @@ class WorkflowHourlyStatsTest(TestCase):
                 WorkflowFireHistory(
                     workflow=self.workflow_2,
                     group=self.group,
-                    is_single_written=True,
                 )
             )
-
-        # dual written WFH is ignored
-        WorkflowFireHistory.objects.create(
-            workflow=self.workflow_2,
-            group=self.group,
-            is_single_written=False,
-        )
 
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 
