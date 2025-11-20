@@ -18,7 +18,7 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
             enabled=True, data_sources__source_id=source_id, data_sources__type=query_type
         )
         .select_related("workflow_condition_group")
-        .prefetch_related("workflow_condition_group__conditions", "data_sources")
+        .prefetch_related("workflow_condition_group__conditions")
         .distinct()
         .order_by("id")
     )

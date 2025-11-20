@@ -22,7 +22,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     EventData,
     GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -358,14 +358,9 @@ class StatefulDetectorHandler(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[str, Any] | None:
         try:
-            data_source = next(
-                (
-                    ds
-                    for ds in self.detector.data_sources.all()
-                    if ds.source_id == data_packet.source_id
-                ),
-                None,
-            )
+            data_source = DataSource.objects.filter(
+                detectors=self.detector, source_id=data_packet.source_id
+            ).first()
             if not data_source:
                 logger.warning(
                     "Matching data source not found for detector while generating occurrence evidence data",
@@ -375,7 +370,7 @@ class StatefulDetectorHandler(
                     },
                 )
                 return None
-            return serialize(data_source) if data_source else None
+            return serialize(data_source)
         except Exception:
             logger.exception(
                 "Failed to serialize data source definition when building workflow engine evidence data"
