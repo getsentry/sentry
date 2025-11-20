@@ -392,7 +392,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.
-        These fields will be displayed in the integration settings UI.
+
+        Returns the form schema (field definitions, labels, help text, types).
+        Current values are provided separately via get_config_data().
         """
         return [
             {
@@ -444,6 +446,45 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
             },
         ]
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        """
+        Get current configuration values for the integration.
+
+        This is called by the serializer to populate the form fields with existing values.
+        Since we store credentials in integration.metadata (not org_integration.config),
+        we override the base implementation to read from metadata.
+
+        Returns:
+            Dictionary of current configuration values that will be used to populate
+            the form fields defined in get_organization_config()
+        """
+        return self.model.metadata
+
+    def update_organization_config(self, data: Mapping[str, Any]) -> None:
+        """
+        Update organization configuration by saving to integration.metadata.
+
+        Since each organization has its own private Perforce integration instance,
+        we store credentials in integration.metadata instead of org_integration.config.
+
+        Only updates fields that are present in data, preserving existing values
+        for fields not included in the update.
+
+        Args:
+            data: Updated configuration data from the form (only changed fields)
+        """
+        from sentry.integrations.services.integration import integration_service
+
+        # Update integration metadata with new values
+        metadata = dict(self.model.metadata)  # Create a mutable copy
+        metadata.update(data)  # Only update fields present in data
+
+        # Update the integration with new metadata
+        integration_service.update_integration(
+            integration_id=self.model.id,
+            metadata=metadata,
+        )
 
 
 class PerforceIntegrationProvider(IntegrationProvider):
@@ -574,6 +615,73 @@ class PerforceInstallationView:
             form = PerforceInstallationForm(request.POST)
             if form.is_valid():
                 form_data = form.cleaned_data
+
+                # Verify connection to Perforce server before completing installation
+                try:
+                    client = PerforceClient(
+                        integration=type(
+                            "obj",
+                            (object,),
+                            {
+                                "metadata": {
+                                    "p4port": form_data.get("p4port"),
+                                    "user": form_data.get("user"),
+                                    "password": form_data.get("password"),
+                                    "client": form_data.get("client"),
+                                    "ssl_fingerprint": form_data.get("ssl_fingerprint"),
+                                }
+                            },
+                        )(),
+                        org_integration=type("obj", (object,), {})(),
+                    )
+                    # Test connection by fetching depot list
+                    client.get_depots()
+
+                    pipeline.get_logger().info(
+                        "perforce.setup.connection-verified",
+                        extra={
+                            "p4port": form_data.get("p4port"),
+                            "user": form_data.get("user"),
+                        },
+                    )
+                except ApiUnauthorized as e:
+                    form.add_error(
+                        None,
+                        f"Authentication failed: {e}. Please check your username and password.",
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/perforce-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
+                except ApiError as e:
+                    form.add_error(
+                        None,
+                        f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint.",
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/perforce-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
+                except Exception as e:
+                    pipeline.get_logger().error(
+                        "perforce.setup.connection-verification-failed",
+                        extra={
+                            "p4port": form_data.get("p4port"),
+                            "error": str(e),
+                        },
+                        exc_info=True,
+                    )
+                    form.add_error(
+                        None,
+                        f"Unexpected error during connection verification: {e}",
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/perforce-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
 
                 # Bind configuration data to pipeline state
                 pipeline.bind_state("installation_data", form_data)

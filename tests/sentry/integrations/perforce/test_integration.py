@@ -428,3 +428,147 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
 
         # Should extract #1 and use it as v parameter
         assert url == "https://swarm.example.com/files//depot/game/src/main.cpp?v=1"
+
+
+class PerforceIntegrationEndToEndTest(IntegrationTestCase):
+    """
+    End-to-end test covering the full integration lifecycle:
+    - Installation with credentials
+    - Configuration retrieval
+    - Partial updates
+    - Full updates
+    """
+
+    provider = PerforceIntegrationProvider
+
+    def test_integration_lifecycle(self):
+        """Test complete integration lifecycle from installation to updates"""
+
+        # Step 1: Simulate installation with build_integration
+        provider = PerforceIntegrationProvider()
+        state = {
+            "organization_id": self.organization.id,
+            "installation_data": {
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "sentry-bot",
+                "password": "initial_password",
+                "client": "sentry-workspace",
+                "ssl_fingerprint": "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD",
+                "web_url": "https://swarm.example.com",
+            },
+            "name": "Perforce (ssl:perforce.example.com:1666)",
+        }
+
+        integration_data = provider.build_integration(state)
+
+        # Verify integration data structure
+        assert integration_data["name"] == "Perforce (ssl:perforce.example.com:1666)"
+        assert (
+            integration_data["external_id"]
+            == f"org-{self.organization.id}:ssl:perforce.example.com:1666"
+        )
+        assert "metadata" in integration_data
+
+        # Verify all credentials are in metadata
+        metadata = integration_data["metadata"]
+        assert metadata["p4port"] == "ssl:perforce.example.com:1666"
+        assert metadata["user"] == "sentry-bot"
+        assert metadata["password"] == "initial_password"
+        assert metadata["client"] == "sentry-workspace"
+        assert (
+            metadata["ssl_fingerprint"]
+            == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
+        )
+        assert metadata["web_url"] == "https://swarm.example.com"
+
+        # Step 2: Create integration (simulating ensure_integration)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name=integration_data["name"],
+            external_id=integration_data["external_id"],
+            metadata=integration_data["metadata"],
+        )
+
+        # Step 3: Get installation and verify configuration retrieval
+        installation: PerforceIntegration = integration.get_installation(self.organization.id)  # type: ignore[assignment]
+
+        # Test get_organization_config returns form schema
+        org_config = installation.get_organization_config()
+        assert len(org_config) == 6  # 6 configuration fields
+        field_names = {field["name"] for field in org_config}
+        assert field_names == {"p4port", "user", "password", "ssl_fingerprint", "client", "web_url"}
+
+        # Verify field types
+        field_types = {field["name"]: field["type"] for field in org_config}
+        assert field_types["password"] == "secret"
+        assert field_types["p4port"] == "string"
+        assert field_types["user"] == "string"
+
+        # Test get_config_data returns current values
+        config_data = installation.get_config_data()
+        assert config_data["p4port"] == "ssl:perforce.example.com:1666"
+        assert config_data["user"] == "sentry-bot"
+        assert config_data["password"] == "initial_password"
+        assert config_data["client"] == "sentry-workspace"
+        assert (
+            config_data["ssl_fingerprint"]
+            == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
+        )
+        assert config_data["web_url"] == "https://swarm.example.com"
+
+        # Step 4: Test partial update (only change password)
+        installation.update_organization_config({"password": "updated_password_123"})
+
+        # Refresh and verify password changed but other fields preserved
+        integration.refresh_from_db()
+        updated_config = installation.get_config_data()
+        assert updated_config["password"] == "updated_password_123"
+        assert updated_config["p4port"] == "ssl:perforce.example.com:1666"  # Preserved
+        assert updated_config["user"] == "sentry-bot"  # Preserved
+        assert updated_config["client"] == "sentry-workspace"  # Preserved
+        assert (
+            updated_config["ssl_fingerprint"]
+            == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
+        )  # Preserved
+        assert updated_config["web_url"] == "https://swarm.example.com"  # Preserved
+
+        # Step 5: Test multiple field update
+        installation.update_organization_config(
+            {
+                "user": "new-user",
+                "client": "new-workspace",
+                "web_url": "https://new-swarm.example.com",
+            }
+        )
+
+        # Refresh and verify multiple fields changed
+        integration.refresh_from_db()
+        final_config = installation.get_config_data()
+        assert final_config["user"] == "new-user"
+        assert final_config["client"] == "new-workspace"
+        assert final_config["web_url"] == "https://new-swarm.example.com"
+        # Verify other fields still preserved
+        assert final_config["password"] == "updated_password_123"  # From previous update
+        assert final_config["p4port"] == "ssl:perforce.example.com:1666"  # Original value
+        assert (
+            final_config["ssl_fingerprint"]
+            == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
+        )  # Original value
+
+        # Step 6: Verify empty optional fields don't break anything
+        installation.update_organization_config(
+            {
+                "client": "",  # Clear client
+                "web_url": "",  # Clear web_url
+            }
+        )
+
+        integration.refresh_from_db()
+        cleared_config = installation.get_config_data()
+        assert cleared_config["client"] == ""
+        assert cleared_config["web_url"] == ""
+        # Required fields still preserved
+        assert cleared_config["p4port"] == "ssl:perforce.example.com:1666"
+        assert cleared_config["user"] == "new-user"
+        assert cleared_config["password"] == "updated_password_123"
