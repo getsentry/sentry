@@ -6,6 +6,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryProject,
     DiscoverSavedQueryTypes,
 )
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -67,6 +68,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10
 
+        assert "exploreQuery" not in response.data
+
     def test_get_discover_query_flag(self) -> None:
         with self.feature("organizations:discover-query"):
             url = reverse(
@@ -101,6 +104,73 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["query"] == "event.type:error"
         assert response.data["limit"] == 10
         assert response.data["version"] == 2
+
+    def test_get_with_explore_query(self) -> None:
+        """Test that discover saved query returns associated explore query"""
+        # Create an explore saved query
+        explore_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Discover to Explore query",
+            query={
+                "query": [
+                    {
+                        "query": "is_transaction:1",
+                        "fields": ["transaction", "count(span.duration)"],
+                        "mode": "samples",
+                        "aggregateField": [{"yAxes": ["count(span.duration)"], "chartType": 2}],
+                    }
+                ],
+                "range": "24h",
+            },
+            dataset=ExploreSavedQueryDataset.SPANS,
+        )
+        explore_query.set_projects(self.project_ids)
+
+        # Create a discover query with reference to explore query
+        discover_query = {
+            "fields": ["title", "count()"],
+            "yAxis": ["count()"],
+            "query": "event.type:transaction",
+            "version": 2,
+        }
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Discover to Explore query",
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            query=discover_query,
+            explore_query=explore_query,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, model.id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(model.id)
+
+        response_discover_query = response.data
+        assert response_discover_query["fields"] == ["title", "count()"]
+        assert response_discover_query["yAxis"] == ["count()"]
+        assert response_discover_query["query"] == "event.type:transaction"
+        # Verify exploreQuery field is present and contains the serialized explore query
+        assert "exploreQuery" in response.data
+        assert response.data["exploreQuery"]["id"] == str(explore_query.id)
+        assert response.data["exploreQuery"]["name"] == "Discover to Explore query"
+        assert response.data["exploreQuery"]["query"][0]["query"] == "is_transaction:1"
+        assert response.data["exploreQuery"]["query"][0]["fields"] == [
+            "transaction",
+            "count(span.duration)",
+        ]
+        assert response.data["exploreQuery"]["query"][0]["mode"] == "samples"
+        assert response.data["exploreQuery"]["query"][0]["aggregateField"] == [
+            {"yAxes": ["count(span.duration)"], "chartType": 2}
+        ]
+        assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
 
     def test_get_org_without_access(self) -> None:
         with self.feature(self.feature_name):

@@ -65,13 +65,15 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends ControlProps {
+export interface CompositeSelectProps
+  extends Omit<ControlProps, 'triggerProps' | 'trigger'> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
+  trigger: NonNullable<ControlProps['trigger']>;
 }
 
 /**
@@ -133,7 +135,6 @@ type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
 function Region<Value extends SelectKey>({
   options,
   value,
-  defaultValue,
   onChange,
   multiple,
   disallowEmptySelection,
@@ -151,7 +152,6 @@ function Region<Value extends SelectKey>({
       return {
         multiple,
         value,
-        defaultValue,
         closeOnSelect,
         onChange,
       };
@@ -159,11 +159,10 @@ function Region<Value extends SelectKey>({
     return {
       multiple,
       value,
-      defaultValue,
       closeOnSelect,
       onChange,
     };
-  }, [multiple, value, defaultValue, onChange, closeOnSelect]);
+  }, [multiple, value, onChange, closeOnSelect]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 

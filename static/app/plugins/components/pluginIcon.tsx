@@ -40,6 +40,7 @@ const PLUGIN_ICONS = {
   os: sentry,
   urls: sentry,
   webhooks: sentry,
+  sqs: aws,
   'amazon-sqs': aws,
   aws_lambda: aws,
   cursor,

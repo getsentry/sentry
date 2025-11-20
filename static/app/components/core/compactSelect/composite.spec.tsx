@@ -5,10 +5,13 @@ import {CompositeSelect} from './composite';
 describe('CompactSelect', () => {
   it('renders', async () => {
     render(
-      <CompositeSelect menuTitle="Menu title">
+      <CompositeSelect
+        menuTitle="Menu title"
+        trigger={props => <button {...props}>Open menu</button>}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue="choice_one"
+          value="choice_one"
           onChange={() => {}}
           options={[
             {value: 'choice_one', label: 'Choice One'},
@@ -18,7 +21,7 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          defaultValue={['choice_three', 'choice_four']}
+          value={['choice_three', 'choice_four']}
           onChange={() => {}}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
@@ -66,10 +69,11 @@ describe('CompactSelect', () => {
 
   it('renders disabled trigger button', async () => {
     render(
-      <CompositeSelect disabled>
+      <CompositeSelect disabled trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -84,10 +88,11 @@ describe('CompactSelect', () => {
   // focus state. This test ensures that focus moves seamlessly between regions.
   it('manages focus between regions', async () => {
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -96,7 +101,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -139,10 +145,11 @@ describe('CompactSelect', () => {
     const region1Mock = jest.fn();
     const region2Mock = jest.fn();
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           onChange={region1Mock}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -152,6 +159,7 @@ describe('CompactSelect', () => {
           multiple
           label="Region 2"
           onChange={region2Mock}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -166,9 +174,8 @@ describe('CompactSelect', () => {
     // select Choice One
     await userEvent.click(screen.getByRole('option', {name: 'Choice One'}));
 
-    // Region 1's callback is called, and trigger label is updated
+    // Region 1's callback is called
     expect(region1Mock).toHaveBeenCalledWith({value: 'choice_one', label: 'Choice One'});
-    expect(screen.getByRole('button', {name: 'Choice One'})).toBeInTheDocument();
 
     // open the menu again
     await userEvent.click(screen.getByRole('button'));
@@ -204,15 +211,19 @@ describe('CompactSelect', () => {
     expect(region2Mock).toHaveBeenCalledWith([
       {value: 'choice_three', label: 'Choice Three'},
     ]);
-    expect(screen.getByRole('button', {name: 'Choice One +1'})).toBeInTheDocument();
   });
 
   it('can search', async () => {
     render(
-      <CompositeSelect searchable searchPlaceholder="Search placeholder…">
+      <CompositeSelect
+        searchable
+        searchPlaceholder="Search placeholder…"
+        trigger={props => <button {...props}>Open menu</button>}
+      >
         <CompositeSelect.Region
           label="Region 1"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_one', label: 'Choice One'},
             {value: 'choice_two', label: 'Choice Two'},
@@ -221,7 +232,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -249,10 +261,10 @@ describe('CompactSelect', () => {
 
   it('works with grid lists', async () => {
     render(
-      <CompositeSelect grid>
+      <CompositeSelect grid trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue="choice_one"
+          value="choice_one"
           onChange={() => {}}
           options={[
             {value: 'choice_one', label: 'Choice One'},
@@ -262,7 +274,8 @@ describe('CompactSelect', () => {
         <CompositeSelect.Region
           multiple
           label="Region 2"
-          onChange={() => {}}
+          onChange={jest.fn()}
+          value={undefined}
           options={[
             {value: 'choice_three', label: 'Choice Three'},
             {value: 'choice_four', label: 'Choice Four'},
@@ -314,10 +327,10 @@ describe('CompactSelect', () => {
   it('can use numbers as values', async () => {
     const onChange = jest.fn();
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
-          defaultValue={1}
+          value={1}
           onChange={onChange}
           options={[
             {value: 1, label: 'One'},

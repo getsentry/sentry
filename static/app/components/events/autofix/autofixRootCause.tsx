@@ -334,7 +334,7 @@ function AutofixRootCauseDisplay({
     setPreferredAction('cursor_background_agent');
 
     // Show immediate loading toast
-    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name), {duration: 60000});
 
     launchCodingAgent({
       integrationId: cursorIntegration.id,
