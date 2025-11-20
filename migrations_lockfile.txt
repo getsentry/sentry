@@ -17,7 +17,7 @@ hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0012_remove_monitor_is_muted_field
+monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
