@@ -5,7 +5,10 @@ import {CompositeSelect} from './composite';
 describe('CompactSelect', () => {
   it('renders', async () => {
     render(
-      <CompositeSelect menuTitle="Menu title">
+      <CompositeSelect
+        menuTitle="Menu title"
+        trigger={props => <button {...props}>Open menu</button>}
+      >
         <CompositeSelect.Region
           label="Region 1"
           value="choice_one"
@@ -66,7 +69,7 @@ describe('CompactSelect', () => {
 
   it('renders disabled trigger button', async () => {
     render(
-      <CompositeSelect disabled>
+      <CompositeSelect disabled trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           onChange={jest.fn()}
@@ -85,7 +88,7 @@ describe('CompactSelect', () => {
   // focus state. This test ensures that focus moves seamlessly between regions.
   it('manages focus between regions', async () => {
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           onChange={jest.fn()}
@@ -142,7 +145,7 @@ describe('CompactSelect', () => {
     const region1Mock = jest.fn();
     const region2Mock = jest.fn();
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           onChange={region1Mock}
@@ -214,7 +217,11 @@ describe('CompactSelect', () => {
 
   it('can search', async () => {
     render(
-      <CompositeSelect searchable searchPlaceholder="Search placeholder…">
+      <CompositeSelect
+        searchable
+        searchPlaceholder="Search placeholder…"
+        trigger={props => <button {...props}>Open menu</button>}
+      >
         <CompositeSelect.Region
           label="Region 1"
           onChange={jest.fn()}
@@ -256,7 +263,7 @@ describe('CompactSelect', () => {
 
   it('works with grid lists', async () => {
     render(
-      <CompositeSelect grid>
+      <CompositeSelect grid trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           value="choice_one"
@@ -322,7 +329,7 @@ describe('CompactSelect', () => {
   it('can use numbers as values', async () => {
     const onChange = jest.fn();
     render(
-      <CompositeSelect>
+      <CompositeSelect trigger={props => <button {...props}>Open menu</button>}>
         <CompositeSelect.Region
           label="Region 1"
           value={1}
