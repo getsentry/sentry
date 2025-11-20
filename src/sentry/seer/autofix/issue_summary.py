@@ -65,7 +65,7 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
-        return AutofixStoppingPoint.SOLUTION
+        return AutofixStoppingPoint.ROOT_CAUSE
     # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
     elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
