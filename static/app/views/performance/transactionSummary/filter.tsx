@@ -45,7 +45,7 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 
 type Props = {
   currentFilter: SpanOperationBreakdownFilter;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: OrganizationSummary;
 };
 

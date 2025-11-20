@@ -1,10 +1,11 @@
 import {useId, useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {t} from 'sentry/locale';
 
-import type {ControlProps} from './control';
-import {Control} from './control';
+import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
@@ -19,23 +20,22 @@ import {getItemsWithKeys} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
+interface BaseSelectProps<Value extends SelectKey>
+  extends Omit<ControlProps, 'onClear' | 'clearable'> {
   options: Array<SelectOptionOrSection<Value>>;
 }
 
-export interface SingleSelectProps<Value extends SelectKey>
-  extends BaseSelectProps<Value>,
-    Omit<
-      SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-    > {}
+export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributiveOmit<
+    SingleListProps<Value>,
+    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+  >;
 
-export interface MultipleSelectProps<Value extends SelectKey>
-  extends BaseSelectProps<Value>,
-    Omit<
-      MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-    > {}
+export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributiveOmit<
+    MultipleListProps<Value>,
+    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+  >;
 
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
@@ -63,6 +63,7 @@ export function CompactSelect<Value extends SelectKey>({
   onChange,
   onSectionToggle,
   multiple,
+  clearable,
   disallowEmptySelection,
   isOptionDisabled,
   sizeLimit,
@@ -111,6 +112,16 @@ export function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
+      clearable={clearable}
+      onClear={() => {
+        if (clearable) {
+          if (multiple) {
+            onChange([]);
+          } else {
+            onChange(undefined);
+          }
+        }
+      }}
     >
       <List
         {...listProps}

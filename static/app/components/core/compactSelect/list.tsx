@@ -99,9 +99,35 @@ interface BaseListProps<Value extends SelectKey>
   sizeLimitMessage?: string;
 }
 
-export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
+/**
+ * A single-selection (only one option can be selected at a time) list that allows
+ * clearing the selection.
+ * `value` can be `undefined` to represent no selection.
+ */
+export interface SingleClearableListProps<Value extends SelectKey>
+  extends BaseListProps<Value> {
+  clearable: true;
+  onChange: (selectedOption: SelectOption<Value> | undefined) => void;
+  value: Value | undefined;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?:
+    | boolean
+    | ((selectedOption: SelectOption<Value> | undefined) => boolean);
+  multiple?: false;
+}
+
+export type SingleListProps<Value extends SelectKey> =
+  | SingleClearableListProps<Value>
+  | SingleUnclearableListProps<Value>;
+
+export interface SingleUnclearableListProps<Value extends SelectKey>
+  extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
+  clearable?: false;
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected option and returns whether to close the menu.
@@ -114,6 +140,11 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
   multiple: true;
   onChange: (selectedOptions: Array<SelectOption<Value>>) => void;
   value: Value[] | undefined;
+  /**
+   * set to a regular boolean here because the empty type can be represented as an empty array
+   */
+  clearable?: boolean;
+
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected options and returns whether to close the menu.
@@ -144,7 +175,7 @@ function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, registerListState, saveSelectedOptions, search, overlayIsOpen} =
+  const {overlayState, saveSelectedOptions, search, overlayIsOpen} =
     useContext(SelectContext);
 
   const hiddenOptions = useMemo(
@@ -234,7 +265,6 @@ function List<Value extends SelectKey>({
 
   // Register the initialized list state once on mount
   useLayoutEffect(() => {
-    registerListState(compositeIndex, listState);
     saveSelectedOptions(
       compositeIndex,
       getSelectedOptions(items, listState.selectionManager.selectedKeys)

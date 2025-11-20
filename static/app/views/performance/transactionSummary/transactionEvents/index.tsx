@@ -58,7 +58,7 @@ function TransactionEvents() {
   };
 
   const onChangeSpanOperationBreakdownFilter = (
-    newFilter: SpanOperationBreakdownFilter
+    newFilter: SpanOperationBreakdownFilter | undefined
   ) => {
     trackAnalytics('performance_views.transactionEvents.ops_filter_dropdown.selection', {
       organization,
