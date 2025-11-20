@@ -1520,7 +1520,6 @@ function buildRoutes(): RouteObject[] {
               component: withDetectorDetailsRedirect(
                 make(() => import('sentry/views/alerts/rules/uptime/details'))
               ),
-              deprecatedRouteProps: true,
             },
             {
               path: 'existing-or-create/',

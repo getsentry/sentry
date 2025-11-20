@@ -27,28 +27,6 @@ interface AlertRuleDetector {
 }
 
 /**
- * HoC that wraps a component to handle workflow engine redirects based on feature flags.
- */
-function withWorkflowEngineRedirect(
-  Component: React.ComponentType<any>,
-  redirectTo: string
-) {
-  return function WorkflowEngineRedirectWrapper(props: any) {
-    const user = useUser();
-    const organization = useOrganization();
-
-    const shouldRedirect =
-      !user.isStaff && organization.features.includes('workflow-engine-ui');
-
-    if (shouldRedirect) {
-      return <Redirect to={redirectTo} />;
-    }
-
-    return <Component {...props} />;
-  };
-}
-
-/**
  * HoC that wraps a component to handle workflow engine
  * redirects for issue alert rules. Fetches workflow data if needed and
  * shows loading state while requests are in flight.
@@ -143,32 +121,6 @@ function withAlertRuleRedirect(
   };
 }
 
-const getDetectionType = (type: string | undefined): string | null => {
-  switch (type) {
-    case 'crons':
-      return 'monitor_check_in_failure';
-    case 'uptime':
-      return 'uptime_domain_failure';
-    default:
-      return null;
-  }
-};
-
-export function withDetectorCreateRedirect(Component: React.ComponentType<any>) {
-  return function WorkflowEngineRedirectWrapper(props: any) {
-    const organization = useOrganization();
-    const {alertType} = useParams();
-    const detectorType = getDetectionType(alertType);
-
-    const redirectPath = detectorType
-      ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
-      : makeMonitorCreatePathname(organization.slug);
-
-    const WrappedComponent = withWorkflowEngineRedirect(Component, redirectPath);
-    return <WrappedComponent {...props} />;
-  };
-}
-
 export const withAutomationDetailsRedirect = (Component: React.ComponentType<any>) =>
   withRuleRedirect(Component, (workflowId, orgSlug) =>
     makeAutomationDetailsPathname(orgSlug, workflowId)
@@ -188,3 +140,36 @@ export const withDetectorEditRedirect = (Component: React.ComponentType<any>) =>
   withAlertRuleRedirect(Component, (detectorId, orgSlug) =>
     makeMonitorEditPathname(orgSlug, detectorId)
   );
+
+const getDetectionType = (type: string | undefined): string | null => {
+  switch (type) {
+    case 'crons':
+      return 'monitor_check_in_failure';
+    case 'uptime':
+      return 'uptime_domain_failure';
+    default:
+      return null;
+  }
+};
+
+export function withDetectorCreateRedirect(Component: React.ComponentType<any>) {
+  return function WorkflowEngineRedirectWrapper(props: any) {
+    const user = useUser();
+    const organization = useOrganization();
+    const {alertType} = useParams();
+
+    const shouldRedirect =
+      !user.isStaff && organization.features.includes('workflow-engine-ui');
+
+    if (shouldRedirect) {
+      const detectorType = getDetectionType(alertType);
+      const redirectPath = detectorType
+        ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
+        : makeMonitorCreatePathname(organization.slug);
+
+      return <Redirect to={redirectPath} />;
+    }
+
+    return <Component {...props} />;
+  };
+}
