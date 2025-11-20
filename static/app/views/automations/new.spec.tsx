@@ -1,5 +1,7 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 import {
   ActionHandlerFixture,
   DataConditionHandlerFixture,
@@ -18,6 +20,9 @@ import AutomationNewSettings from 'sentry/views/automations/new';
 
 describe('AutomationNewSettings', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const mockMember = MemberFixture({
+    user: UserFixture({id: '1', name: 'Moo Deng', email: 'moo.deng@sentry.io'}),
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -68,32 +73,16 @@ describe('AutomationNewSettings', () => {
       ],
     });
 
-    // Users endpoint fetched by AutomationBuilder for member selectors
+    // Users/members endpoints fetched by AutomationBuilder for member selectors
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       method: 'GET',
-      body: [
-        {
-          id: '1',
-          name: 'Moo Deng',
-          email: 'moo.deng@sentry.io',
-        },
-      ],
+      body: [mockMember],
     });
-
-    // Users endpoint fetched by AutomationBuilder for member selectors
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: [
-        {
-          user: {
-            id: '1',
-            name: 'Moo Deng',
-            email: 'moo.deng@sentry.io',
-          },
-        },
-      ],
+      body: [mockMember],
     });
 
     // Detectors list used by EditConnectedMonitors inside the form
@@ -152,7 +141,7 @@ describe('AutomationNewSettings', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            name: 'Notify #alerts via Slack',
+            name: 'Notify #alerts via Slack, Notify Moo Deng',
             triggers: {
               logicType: 'any-short',
               conditions: [
