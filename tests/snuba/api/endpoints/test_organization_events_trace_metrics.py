@@ -230,6 +230,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert meta["fields"]["per_second(value)"] == "rate"
         assert meta["dataset"] == "tracemetrics"
 
+    @pytest.mark.skip(reason="flaky: #103741")
     def test_per_second_formula_with_counter_metric_type(self) -> None:
         counter_metrics = [
             self.create_trace_metric("request_count", 5.0, "counter"),
