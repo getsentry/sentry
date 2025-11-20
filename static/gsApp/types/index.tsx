@@ -157,6 +157,11 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
+type RetentionSettings = {
+  downsampled: number | null;
+  standard: number | null;
+};
+
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
   allowAdditionalReservedEvents: boolean;
@@ -202,9 +207,7 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
-  retentions?: Partial<
-    Record<DataCategory, {downsampled: number | null; standard: number}>
-  >;
+  retentions?: Partial<Record<DataCategory, RetentionSettings>>;
 };
 
 type PendingChanges = {
@@ -376,6 +379,7 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
+  orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
     brand: string;

@@ -150,6 +150,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     vatID: null,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
+    orgRetention: {standard: null, downsampled: null},
     addOns,
     reservedBudgets,
     categories: {
