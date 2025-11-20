@@ -19,7 +19,7 @@ class Platform(StrEnum):
 
 
 class AppleAppInfo(BaseModel):
-    missing_dsym_binaries: list[str] = []
+    has_missing_dsym_binaries: bool = False
 
 
 class AndroidAppInfo(BaseModel):
@@ -182,11 +182,16 @@ def transform_preprod_artifact_to_build_details(
 
     apple_app_info = None
     if platform == Platform.IOS or platform == Platform.MACOS:
-        apple_app_info = AppleAppInfo(
-            missing_dsym_binaries=(
-                artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
-            )
+        legacy_missing_dsym_binaries = (
+            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
         )
+        has_missing_dsym_binaries = (
+            artifact.extras.get("has_missing_dsym_binaries", False)
+            or len(legacy_missing_dsym_binaries) > 0
+            if artifact.extras
+            else False
+        )
+        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
 
     android_app_info = None
     if platform == Platform.ANDROID:
