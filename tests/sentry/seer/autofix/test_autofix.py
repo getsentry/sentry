@@ -64,7 +64,7 @@ class TestConvertProfileToExecutionTree(TestCase):
 
         execution_tree = _convert_profile_to_execution_tree(profile_data)
 
-        # Should only include in_app frames from MainThread
+        # Should only include in_app frames from the selected thread (MainThread in this case)
         assert len(execution_tree) == 1  # One root node
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -81,7 +81,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
     def test_convert_profile_to_execution_tree_non_main_thread(self) -> None:
-        """Test that the first sample's thread is used (even if not MainThread)"""
+        """Test that the thread with in_app frames is selected (even if not MainThread)"""
         profile_data = {
             "profile": {
                 "frames": [
@@ -101,7 +101,7 @@ class TestConvertProfileToExecutionTree(TestCase):
 
         execution_tree = _convert_profile_to_execution_tree(profile_data)
 
-        # Should include the worker thread since it's the first sample's thread
+        # Should include the worker thread since it has in_app frames
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "worker"
         assert execution_tree[0]["filename"] == "worker.py"
