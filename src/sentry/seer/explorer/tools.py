@@ -733,8 +733,8 @@ def get_issue_and_event_details(
 ) -> dict[str, Any] | None:
     """
     Tool to get details for a Sentry issue and one of its associated events. The issue_id can be ommitted so it
-    is automatically looked up from the event info. In this case, if the event is ungrouped we return no issue data.
-    Event details are always returned.
+    is automatically looked up from the event's grouping info. If the rare case the event is ungrouped, we return 
+    null for all issue fields. Event details are always returned.
 
     Args:
         organization_id: The ID of the organization to query.
