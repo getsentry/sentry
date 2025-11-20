@@ -46,6 +46,12 @@ type QueryBuilderState = {
    * a state change. useApplyFocusOverride reads this value and focuses the selected item.
    */
   focusOverride: FocusOverride | null;
+
+  /**
+   * Stores the previous action that was preformed. This enables us to determine if we should take certain actions based on what was previously done.
+   */
+  previousAction: QueryBuilderActions['type'] | null;
+
   /**
    * The current query value.
    * This is the basic source of truth for what is currently being displayed.
@@ -493,11 +499,13 @@ function replaceTokensWithText(
     text,
     tokens,
     focusOverride: incomingFocusOverride,
+    shouldCommitQuery = true,
   }: {
     getFieldDefinition: FieldDefinitionGetter;
     text: string;
     tokens: Array<TokenResult<Token>>;
     focusOverride?: FocusOverride;
+    shouldCommitQuery?: boolean;
   }
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, tokens, text);
@@ -533,7 +541,7 @@ function replaceTokensWithText(
   return {
     ...state,
     query: newQuery,
-    committedQuery: newQuery,
+    committedQuery: shouldCommitQuery ? newQuery : state.committedQuery,
     focusOverride,
   };
 }
@@ -839,6 +847,7 @@ export function useQueryBuilderState({
     committedQuery: initialQuery,
     focusOverride: null,
     clearAskSeerFeedback: false,
+    previousAction: null,
   };
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
@@ -847,10 +856,14 @@ export function useQueryBuilderState({
         return state;
       }
 
+      const hasReplaceRawSearchKeys =
+        replaceRawSearchKeys && replaceRawSearchKeys.length > 0;
+
       switch (action.type) {
         case 'CLEAR':
           return {
             ...state,
+            previousAction: action.type,
             query: '',
             committedQuery: '',
             focusOverride: {
@@ -859,22 +872,23 @@ export function useQueryBuilderState({
           };
         case 'COMMIT_QUERY':
           if (state.query === state.committedQuery) {
-            return state;
+            return {...state, previousAction: action.type};
           }
-          return {...state, committedQuery: state.query};
+          return {...state, committedQuery: state.query, previousAction: action.type};
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
 
           if (
             !hasWildcardOperators ||
-            !replaceRawSearchKeys ||
-            replaceRawSearchKeys.length === 0
+            !hasReplaceRawSearchKeys ||
+            state.previousAction === 'UPDATE_FREE_TEXT_ON_BLUR'
           ) {
             return {
               ...state,
               query: action.query,
               committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
               focusOverride: action.focusOverride ?? null,
+              previousAction: action.type,
             };
           }
 
@@ -890,12 +904,19 @@ export function useQueryBuilderState({
             ? replacedState.focusOverride
             : (action.focusOverride ?? null);
 
-          return {...state, query, committedQuery, focusOverride};
+          return {
+            ...state,
+            query,
+            committedQuery,
+            focusOverride,
+            previousAction: action.type,
+          };
         }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,
             focusOverride: null,
+            previousAction: action.type,
           };
         case 'DELETE_TOKEN': {
           return {
@@ -905,12 +926,24 @@ export function useQueryBuilderState({
               getFieldDefinition,
             }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
+            previousAction: action.type,
           };
         }
         case 'DELETE_TOKENS': {
           return {
             ...deleteQueryTokens(state, action),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
+            previousAction: action.type,
+          };
+        }
+        case 'UPDATE_FREE_TEXT_ON_BLUR': {
+          const newState = updateFreeText(state, action);
+          return {
+            ...newState,
+            committedQuery: state.committedQuery,
+            clearAskSeerFeedback:
+              newState.query !== state.query && displayAskSeerFeedback ? true : false,
+            previousAction: action.type,
           };
         }
         case 'UPDATE_FREE_TEXT_ON_SELECT':
@@ -918,14 +951,13 @@ export function useQueryBuilderState({
         case 'UPDATE_FREE_TEXT_ON_FUNCTION':
         case 'UPDATE_FREE_TEXT_ON_PARENTHESIS': {
           const newState = updateFreeText(state, action);
-
           return {
             ...newState,
             clearAskSeerFeedback:
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
+            previousAction: action.type,
           };
         }
-        case 'UPDATE_FREE_TEXT_ON_BLUR':
         case 'UPDATE_FREE_TEXT_ON_EXIT':
         case 'UPDATE_FREE_TEXT_ON_COMMIT': {
           const newState = updateFreeTextAndReplaceText(
@@ -940,69 +972,59 @@ export function useQueryBuilderState({
             ...newState,
             clearAskSeerFeedback:
               newState.query !== state.query && displayAskSeerFeedback ? true : false,
+            previousAction: action.type,
+          };
+        }
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN': {
+          return {
+            ...replaceTokensWithText(state, {
+              tokens: action.tokens,
+              text: action.text,
+              focusOverride: action.focusOverride,
+              getFieldDefinition,
+              shouldCommitQuery: hasReplaceRawSearchKeys ? false : true,
+            }),
+            previousAction: action.type,
           };
         }
         case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
-          return replaceTokensWithText(state, {
-            tokens: action.tokens,
-            text: action.text,
-            focusOverride: action.focusOverride,
-            getFieldDefinition,
-          });
-        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE': {
-          const newState = replaceTokensWithText(state, {
-            tokens: action.tokens,
-            text: action.text,
-            focusOverride: action.focusOverride,
-            getFieldDefinition,
-          });
-
-          if (
-            !hasWildcardOperators ||
-            !replaceRawSearchKeys ||
-            replaceRawSearchKeys.length === 0
-          ) {
-            return newState;
-          }
-
-          const replacedState = replaceFreeTextTokens(
-            newState.query,
-            getFieldDefinition,
-            replaceRawSearchKeys ?? []
-          );
-
-          const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
-          const focusOverride = replacedState?.focusOverride
-            ? replacedState.focusOverride
-            : newState.focusOverride;
-
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT': {
           return {
-            ...newState,
-            query,
-            committedQuery: query,
-            focusOverride,
+            ...replaceTokensWithText(state, {
+              tokens: action.tokens,
+              text: action.text,
+              focusOverride: action.focusOverride,
+              getFieldDefinition,
+            }),
+            previousAction: action.type,
           };
         }
         case 'UPDATE_FILTER_KEY':
-          return updateFilterKey(state, action);
+          return {...updateFilterKey(state, action), previousAction: action.type};
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action, hasWildcardOperators);
+          return {
+            ...modifyFilterOperator(state, action, hasWildcardOperators),
+            previousAction: action.type,
+          };
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
+            previousAction: action.type,
           };
         case 'UPDATE_LOGIC_OPERATOR':
-          return updateLogicOperator(state, action);
+          return {...updateLogicOperator(state, action), previousAction: action.type};
         case 'UPDATE_AGGREGATE_ARGS':
-          return updateAggregateArgs(state, action, {getFieldDefinition});
+          return {
+            ...updateAggregateArgs(state, action, {getFieldDefinition}),
+            previousAction: action.type,
+          };
         case 'TOGGLE_FILTER_VALUE':
-          return multiSelectTokenValue(state, action);
+          return {...multiSelectTokenValue(state, action), previousAction: action.type};
         case 'RESET_CLEAR_ASK_SEER_FEEDBACK':
-          return {...state, clearAskSeerFeedback: false};
+          return {...state, clearAskSeerFeedback: false, previousAction: action.type};
         default:
           return state;
       }
