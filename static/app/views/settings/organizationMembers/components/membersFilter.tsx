@@ -1,5 +1,6 @@
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
@@ -54,7 +55,11 @@ function MembersFilter({roles, query, onChange}: Props) {
 
   return (
     <CompositeSelect
-      triggerProps={{icon: <IconSliders />, size: 'md', children: t('Filter')}}
+      trigger={props => (
+        <DropdownButton {...props} size="md" icon={<IconSliders />}>
+          {t('Filter')}
+        </DropdownButton>
+      )}
       maxMenuHeight="22rem"
       size="sm"
     >
