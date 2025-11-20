@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -106,14 +107,13 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         )
 
         # For Perforce, allow empty branch (streams are part of depot path)
-        if integration and integration.provider == "perforce":
-            # Allow empty string for Perforce
-            if not default_branch:
-                return default_branch
-        else:
-            # For other integrations, branch is required
-            if not default_branch:
-                raise serializers.ValidationError("This field is required.")
+        # For other integrations, branch is required
+        if (
+            not default_branch
+            and integration
+            and integration.provider != IntegrationProviderSlug.PERFORCE
+        ):
+            raise serializers.ValidationError("This field is required.")
 
         return default_branch
 
