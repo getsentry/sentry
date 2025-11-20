@@ -14,6 +14,36 @@ class PromptsActivityTest(APITestCase):
         )
         self.path = reverse("sentry-api-0-organization-prompts-activity", args=[self.org.slug])
 
+    def test_organization_permissions(self) -> None:
+        new_org = self.create_organization()
+        self.path = reverse("sentry-api-0-organization-prompts-activity", args=[new_org.slug])
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": new_org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 403
+
+    def test_organization_id_mismatch(self) -> None:
+        new_org = self.create_organization()
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": new_org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Organization missing or mismatched"
+
     def test_invalid_feature(self) -> None:
         # Invalid feature prompt name
         resp = self.client.put(
