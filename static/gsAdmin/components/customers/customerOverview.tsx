@@ -639,9 +639,9 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
             {customer.orgRetention?.standard ??
-              customer.categories[DataCategory.ERRORS]?.retention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
               90}
-            &nbsp;days
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}
