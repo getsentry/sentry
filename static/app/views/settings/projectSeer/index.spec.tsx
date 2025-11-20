@@ -407,18 +407,8 @@ describe('ProjectSeer', () => {
     const option = await screen.findByText('Code Changes');
     await userEvent.click(option);
 
-    // Form has saveOnBlur=true, so wait for the PUT request
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledTimes(1);
-    });
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({data: {automated_run_stopping_point: 'code_changes'}})
-      );
-    });
-
-    // Also check that the seer preferences POST was called with the new stopping point
+    // The field uses getData: () => ({}) to exclude itself from the form submission
+    // Only the seer preferences POST should be called with the actual data
     await waitFor(() => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -430,6 +420,14 @@ describe('ProjectSeer', () => {
         })
       );
     });
+
+    // The project PUT may be called but with empty data (no automated_run_stopping_point)
+    if (projectPutRequest.mock.calls.length > 0) {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {}})
+      );
+    }
   });
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
@@ -526,12 +524,8 @@ describe('ProjectSeer', () => {
     const cursorOption = await screen.findByText('Hand off to Cursor Cloud Agent');
     await userEvent.click(cursorOption);
 
-    // Form has saveOnBlur=true, so wait for the PUT request
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledTimes(1);
-    });
-
-    // Wait for the seer preferences POST to be called with automation_handoff
+    // The field uses getData: () => ({}) to exclude itself from the form submission
+    // Only the seer preferences POST should be called with the actual data
     await waitFor(() => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -548,6 +542,14 @@ describe('ProjectSeer', () => {
         })
       );
     });
+
+    // The project PUT may be called but with empty data (no automated_run_stopping_point)
+    if (projectPutRequest.mock.calls.length > 0) {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {}})
+      );
+    }
   });
 
   it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
