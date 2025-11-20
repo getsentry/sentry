@@ -91,7 +91,7 @@ function getProjectConfigurationForm({projects}: {projects: Project[]}): JsonFor
         label: 'Forwarding projects',
         type: 'select',
         multiple: true,
-        required: false,
+        required: true,
         defaultValue: [],
         help: 'Select the projects which should forward their data.',
         options: projectOptions,
