@@ -199,7 +199,7 @@ function List<Value extends SelectKey>({
         selectionMode: 'multiple' as const,
         disabledKeys,
         // react-aria turns all keys into strings
-        selectedKeys: value?.map(getEscapedKey),
+        selectedKeys: value?.map(getEscapedKey) ?? [],
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
           const selectedOptions = getSelectedOptions<Value>(items, selection);
@@ -223,21 +223,20 @@ function List<Value extends SelectKey>({
       selectionMode: 'single' as const,
       disabledKeys,
       // react-aria turns all keys into strings
-      selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
+      selectedKeys: defined(value) ? [getEscapedKey(value)] : [],
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
         // Save selected options in SelectContext, to update the trigger label
-        saveSelectedOptions(compositeIndex, selectedOption ?? null);
-        onChange?.(selectedOption ?? null);
+        onChange?.(selectedOption);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
         if (
           !defined(closeOnSelect) ||
           (typeof closeOnSelect === 'function'
-            ? closeOnSelect(selectedOption ?? null)
+            ? closeOnSelect(selectedOption)
             : closeOnSelect)
         ) {
           overlayState?.close();
