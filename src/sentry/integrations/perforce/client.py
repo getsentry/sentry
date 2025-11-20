@@ -282,6 +282,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             result = p4.run("user", "-o", username)
             if result and len(result) > 0:
                 user_info = result[0]
+                # p4 user -o returns a template for non-existent users
+                # Check if user actually exists by verifying Update field is set
+                if not user_info.get("Update"):
+                    return None
                 return {
                     "email": user_info.get("Email", ""),
                     "full_name": user_info.get("FullName", ""),
