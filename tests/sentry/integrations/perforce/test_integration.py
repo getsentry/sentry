@@ -76,12 +76,11 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://swarm.example.com",
-                    "web_viewer_type": "swarm",
-                }
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -98,12 +97,11 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm2",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://swarm.example.com",
-                    "web_viewer_type": "swarm",
-                }
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -120,8 +118,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm-abs",
-            metadata={},
-            oi_params={"config": {"web_url": "https://swarm.example.com"}},
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
@@ -138,8 +140,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm-depot",
-            metadata={},
-            oi_params={"config": {"web_url": "https://swarm.example.com"}},
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
@@ -406,12 +412,11 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm3",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://swarm.example.com",
-                    "web_viewer_type": "swarm",
-                }
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
