@@ -1,4 +1,4 @@
-import {useEffect, useRef, type RefObject} from 'react';
+import {useEffect, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -44,7 +44,6 @@ export default function ReplayTable({
   highlightedRowIndex = -1,
   sort,
 }: Props) {
-  const tableRef = useRef<HTMLDivElement | null>(ref?.current ?? null);
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
 
@@ -52,7 +51,7 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"
-        ref={tableRef}
+        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -72,7 +71,7 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-errored"
-        ref={tableRef}
+        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -95,7 +94,7 @@ export default function ReplayTable({
   return (
     <StyledSimpleTable
       data-test-id="replay-table"
-      ref={tableRef}
+      ref={ref}
       style={{gridTemplateColumns}}
     >
       <ReplayTableHeader
@@ -110,7 +109,7 @@ export default function ReplayTable({
       {replays.map((replay, rowIndex) => (
         <RowWithScrollIntoView
           data_replay_row_index={rowIndex}
-          isHovered={highlightedRowIndex === rowIndex}
+          scrollIntoView={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
@@ -139,14 +138,12 @@ export default function ReplayTable({
 function RowWithScrollIntoView({
   children,
   data_replay_row_index,
-  isHovered,
-  key,
+  scrollIntoView: isHovered,
   variant,
 }: {
   children: React.ReactNode;
   data_replay_row_index: number;
-  isHovered: boolean;
-  key: string;
+  scrollIntoView: boolean;
   variant: 'default' | 'faded';
 }) {
   useEffect(() => {
@@ -158,11 +155,7 @@ function RowWithScrollIntoView({
     }
   }, [isHovered, data_replay_row_index]);
   return (
-    <SimpleTable.Row
-      data-replay-row-index={data_replay_row_index}
-      key={key}
-      variant={variant}
-    >
+    <SimpleTable.Row data-replay-row-index={data_replay_row_index} variant={variant}>
       {children}
     </SimpleTable.Row>
   );
