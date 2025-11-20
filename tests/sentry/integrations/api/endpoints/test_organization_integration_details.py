@@ -108,13 +108,14 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         )
 
     def test_delete_disabled_integration(self) -> None:
-        self.integration.update(status=ObjectStatus.DISABLED)
-        self.get_success_response(self.organization.slug, self.integration.id)
-        assert Integration.objects.filter(id=self.integration.id).exists()
-
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id
         )
+        org_integration.update(status=ObjectStatus.DISABLED)
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert Integration.objects.filter(id=self.integration.id).exists()
+
+        org_integration.refresh_from_db()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
