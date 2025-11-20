@@ -13,7 +13,14 @@ from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    Condition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -54,7 +61,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "enabled": True,
             "config": {},
             "triggers": {"logicType": "any", "conditions": []},
-            "action_filters": [],
+            "actionFilters": [],
         }
         validator = WorkflowValidator(
             data=self.valid_workflow,
@@ -72,6 +79,101 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_add_email_action(self) -> None:
+        """
+        Test that adding a simple email user action to a workflow works as expected
+        """
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.EQUAL.value,
+                        "comparison": 1,
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [
+                    {
+                        "type": Action.Type.EMAIL,
+                        "config": {
+                            "targetIdentifier": str(self.user.id),
+                            "targetType": "user",
+                        },
+                        "data": {},
+                    },
+                ],
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        action_filter = WorkflowDataConditionGroup.objects.get(workflow=updated_workflow)
+        dcga = DataConditionGroupAction.objects.get(condition_group=action_filter.condition_group)
+        action = dcga.action
+
+        assert response.status_code == 200
+        assert action.type == Action.Type.EMAIL
+        assert action.data == {}
+        assert action.config == {"target_type": "user", "target_identifier": str(self.user.id)}
+
+    def test_update_add_sentry_app_action(self) -> None:
+        """
+        Test that adding a sentry app action to a workflow works as expected
+        """
+        self.sentry_app_settings_schema = self.create_alert_rule_action_schema()
+        self.sentry_app = self.create_sentry_app(
+            name="Moo Deng's Fire Sentry App",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.sentry_app_settings_schema,
+                ]
+            },
+            is_alertable=True,
+        )
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization
+        )
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.EQUAL.value,
+                        "comparison": 1,
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [
+                    {
+                        "type": Action.Type.SENTRY_APP,
+                        "config": {
+                            "sentryAppIdentifier": "sentry_app_id",
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": "sentry_app",
+                        },
+                        "data": {},
+                        "integrationId": None,
+                        "status": "active",
+                    },
+                ],
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        action_filter = WorkflowDataConditionGroup.objects.get(workflow=updated_workflow)
+        dcga = DataConditionGroupAction.objects.get(condition_group=action_filter.condition_group)
+        action = dcga.action
+
+        assert response.status_code == 200
+        assert action.type == Action.Type.SENTRY_APP
+        assert action.data == {}
+        assert action.config == {"target_type": "user", "target_identifier": str(self.user.id)}
 
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
