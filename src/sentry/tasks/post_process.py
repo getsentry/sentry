@@ -1681,7 +1681,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 # Summary exists, run automation directly
                 run_automation_only_task.delay(group.id)
             else:
-                # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+                # Rate limit check before generating summary
                 if is_seer_scanner_rate_limited(group.project, group.organization):
                     return
 
