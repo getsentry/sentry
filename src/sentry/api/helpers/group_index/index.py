@@ -44,8 +44,7 @@ advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = 
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
 
-DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
-TAXONOMY_DEFAULT_QUERY = "is:unresolved"
+DEFAULT_QUERY = "is:unresolved"
 
 
 def parse_and_convert_issue_search_query(
@@ -95,11 +94,7 @@ def build_query_params_from_request(
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        query = (
-            TAXONOMY_DEFAULT_QUERY
-            if features.has("organizations:issue-taxonomy", organization)
-            else DEFAULT_QUERY
-        )
+        query = DEFAULT_QUERY
 
     query = query.strip()
 

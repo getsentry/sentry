@@ -460,7 +460,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         perf_group = event.group
         serialized = serialize(perf_group)
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == "performance"
+        assert serialized["issueCategory"] == "db_query"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
 
 
