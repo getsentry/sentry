@@ -155,7 +155,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 depot_path = self.build_depot_path(repo, path)
                 result = p4.run("files", depot_path)
 
-                if result and len(result) > 0:
+                # Verify result contains actual file data (not just warnings)
+                # When exception_level=1, warnings are returned in result list
+                if result and len(result) > 0 and "depotFile" in result[0]:
                     return result[0]
                 return None
 
@@ -259,6 +261,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             result = p4.run("user", "-o", username)
             if result and len(result) > 0:
                 user_info = result[0]
+                # p4 user -o returns a template for non-existent users
+                # Check if user actually exists by verifying Update field is set
+                if not user_info.get("Update"):
+                    return None
                 return {
                     "email": user_info.get("Email", ""),
                     "full_name": user_info.get("FullName", ""),
