@@ -367,6 +367,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable issue resolve in current semver release
     manager.add("organizations:resolve-in-semver-release", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable semver precedence (ie, ignoring build code) when detecting regressions
+    manager.add("organizations:regressions-semver-precedence", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable revocation of org auth keys when a user renames an org slug
     manager.add("organizations:revoke-org-auth-on-slug-rename", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable detecting SDK crashes during event processing

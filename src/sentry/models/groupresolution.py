@@ -6,6 +6,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -132,7 +133,17 @@ class GroupResolution(Model):
                     release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
-                    return compare_version_relay(current_release_raw, release_raw) >= 0
+                    use_semver_precedence = features.has(
+                        "organizations:regressions-semver-precedence", group.organization
+                    )
+                    return (
+                        compare_version_relay(
+                            current_release_raw,
+                            release_raw,
+                            semver_precedence=use_semver_precedence,
+                        )
+                        >= 0
+                    )
                 except RelayError:
                     ...
             else:
@@ -177,7 +188,15 @@ class GroupResolution(Model):
                     release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
-                    return compare_version_relay(res_release_raw, release_raw) == 1
+                    use_semver_precedence = features.has(
+                        "organizations:regressions-semver-precedence", group.organization
+                    )
+                    return (
+                        compare_version_relay(
+                            res_release_raw, release_raw, semver_precedence=use_semver_precedence
+                        )
+                        == 1
+                    )
                 except RelayError:
                     ...
 
