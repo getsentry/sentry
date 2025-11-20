@@ -7,6 +7,7 @@ class MonitorDeletionTask(ModelDeletionTask[Monitor]):
         from sentry.monitors import models
 
         return [
+            ModelRelation(models.MonitorIncident, {"monitor_id": instance.id}),
             ModelRelation(models.MonitorCheckIn, {"monitor_id": instance.id}),
             ModelRelation(models.MonitorEnvironment, {"monitor_id": instance.id}),
         ]
