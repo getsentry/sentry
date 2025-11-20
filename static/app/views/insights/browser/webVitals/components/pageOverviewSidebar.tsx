@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -285,10 +284,7 @@ function SeerSuggestionsSection({
     autofix &&
     autofix.length > 0 && (
       <Fragment>
-        <SectionHeading>
-          {t('Seer Suggestions')}
-          <FeatureBadge type="beta" />
-        </SectionHeading>
+        <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
         <Content>
           <SeerSuggestionGrid>
             {autofix &&
