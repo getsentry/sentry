@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 import sentry_sdk
 from django.urls import reverse
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry import features
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
@@ -17,13 +16,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
 )
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.utils import get_dataset_name_from_label_and_event_types
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -82,34 +82,20 @@ def make_rpc_request(
     aggregate: str,
     snuba_params: SnubaParams,
     organization: Organization,
-    dataset: str,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
     query_parts = QueryParts(selected_columns=[aggregate], query=query, equations=[], orderby=[])
     query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
-    extrapolation_mode = None
-    extrapolation_mode_str = None
-    if dataset == Dataset.PerformanceMetrics.value:
-        extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
-        extrapolation_mode_str = "serverOnly"
-    if dataset == Dataset.Transactions.value:
-        extrapolation_mode = ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-        extrapolation_mode_str = "none"
-
     results = Spans.run_timeseries_query(
         params=snuba_params,
         query_string=query_parts["query"],
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
-        config=SearchResolverConfig(
-            extrapolation_mode=extrapolation_mode,
-        ),
+        config=SearchResolverConfig(),
         sampling_mode="NORMAL",
     )
-
-    sentry_sdk.set_tag("extrapolation_mode", extrapolation_mode_str)
 
     assert snuba_params.start is not None
     assert snuba_params.end is not None
@@ -124,7 +110,6 @@ def make_rpc_request(
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         sampling="NORMAL",
-        extrapolationMode=extrapolation_mode_str,
     )
     sentry_sdk.set_extra("eap_call", api_call)
 
@@ -265,6 +250,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
     missing_buckets = 0
     all_zeros = True
+    trigger_action_types: dict[str, int] = defaultdict(int)
     for timestamp, values in aligned_timeseries.items():
         rpc_value = values["rpc_value"]
         snql_value = values["snql_value"]
@@ -274,6 +260,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
 
         if alert_rule.detection_type == AlertRuleDetectionType.STATIC:
             for trigger in rule_triggers:
+                trigger_actions_set = set()
+                trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+                for trigger_action in trigger_actions:
+                    action_type = ActionService.get_name(trigger_action.type)
+                    action_name = action_type if action_type else "unknown"
+                    trigger_actions_set.add(action_name)
                 would_fire = False
                 threshold = trigger.alert_threshold
                 comparison_type = (
@@ -298,6 +290,10 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                         and rpc_value > threshold
                     ):
                         false_negative_misfire += 1
+                        # count number of times actions would trigger on false negative misfire
+                        for action_name in trigger_actions_set:
+                            trigger_action_types[action_name] += 1
+
                 else:
                     if (
                         comparison_type == AlertRuleThresholdType.ABOVE.value
@@ -307,6 +303,9 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                         and rpc_value < threshold
                     ):
                         false_positive_misfire += 1
+                        # count number of times actions would trigger on false positive misfire
+                        for action_name in trigger_actions_set:
+                            trigger_action_types[action_name] += 1
 
         # If the sum is 0, we assume that the numbers must be 0, since we have all positive integers. We still do
         # check the sum in order to protect the division by zero in case for some reason we have -x + x inside of
@@ -330,6 +329,8 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
 
     sentry_sdk.set_tag("false_positive_misfires", false_positive_misfire)
     sentry_sdk.set_tag("false_negative_misfires", false_negative_misfire)
+    for trigger_action_type, count in trigger_action_types.items():
+        sentry_sdk.set_tag(f"trigger_action_type.{trigger_action_type}", count)
 
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
@@ -424,7 +425,6 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snuba_query.aggregate,
         snuba_params=snuba_params,
         organization=organization,
-        dataset=snuba_query.dataset,
     )
 
     try:
