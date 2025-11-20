@@ -305,7 +305,8 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         normalized_url = url.lstrip("/")
 
         # Remove depot prefix to get relative path
-        if normalized_url.startswith(normalized_depot):
+        # Ensure exact match by checking for separator or exact equality
+        if normalized_url.startswith(normalized_depot + "/") or normalized_url == normalized_depot:
             return normalized_url[len(normalized_depot) :].lstrip("/")
 
         return url
