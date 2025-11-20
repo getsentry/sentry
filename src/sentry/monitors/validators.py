@@ -370,7 +370,6 @@ class MonitorValidator(CamelSnakeSerializer):
             name=validated_data["name"],
             slug=validated_data.get("slug"),
             status=validated_data["status"],
-            is_muted=validated_data.get("is_muted", False),
             config=validated_data["config"],
         )
 
@@ -459,6 +458,11 @@ class MonitorValidator(CamelSnakeSerializer):
             ):
                 quotas.backend.disable_seat(DataCategory.MONITOR_SEAT, instance)
 
+        # Forward propagate is_muted to all monitor environments when changed
+        is_muted = params.pop("is_muted", None)
+        if is_muted is not None:
+            MonitorEnvironment.objects.filter(monitor_id=instance.id).update(is_muted=is_muted)
+
         if params:
             instance.update(**params)
             create_audit_entry(
@@ -467,12 +471,6 @@ class MonitorValidator(CamelSnakeSerializer):
                 target_object=instance.id,
                 event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=instance.get_audit_log_data(),
-            )
-
-        # Dual-write is_muted to all monitor environments when changed
-        if "is_muted" in params:
-            MonitorEnvironment.objects.filter(monitor_id=instance.id).update(
-                is_muted=params["is_muted"]
             )
 
         # Update monitor slug in billing
