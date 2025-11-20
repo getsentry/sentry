@@ -16,6 +16,7 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.testutils.cases import TestCase
 
@@ -100,7 +101,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert mock_dispatch_incident_occurrence.call_count == 0
@@ -342,7 +343,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert mock_dispatch_incident_occurrence.call_count == 0
