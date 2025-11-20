@@ -1605,8 +1605,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     )
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
-        run_automation_for_group,
-        start_seer_automation,
+        generate_summary_and_run_automation,
+        run_automation_only_task,
     )
 
     event = job["event"]
@@ -1618,7 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if group.seer_fixability_score is not None:
             return
 
-        if is_issue_eligible_for_seer_automation(group) is False:
+        if not is_issue_eligible_for_seer_automation(group):
             return
 
         # Don't run if there's already a task in progress for this issue
@@ -1630,7 +1630,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return
 
-        start_seer_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id)
     else:
         # Triage signals V0 behaviour
 
@@ -1675,10 +1675,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
-                run_automation_for_group.delay(group.id)
+                run_automation_only_task.delay(group.id)
             else:
                 # No summary yet, generate summary + run automation in one go
-                start_seer_automation.delay(group.id)
+                generate_summary_and_run_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
