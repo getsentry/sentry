@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
-from objectstore_client import ClientError
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
@@ -43,32 +42,6 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
             # Detect content type from the image data
             return HttpResponse(image_data, content_type=result.metadata.content_type)
-
-        except ClientError as e:
-            if e.status == 404:
-                logger.warning(
-                    "Image not found in objectstore",
-                    extra={
-                        "organization_id": organization_id,
-                        "project_id": project_id,
-                        "image_id": image_id,
-                    },
-                )
-
-                # Upload failed, return appropriate error
-                return HttpResponse({"error": "Not found"}, status=404)
-
-            logger.warning(
-                "Failed to retrieve image from objectstore",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project_id,
-                    "image_id": image_id,
-                    "error": str(e),
-                    "status": e.status,
-                },
-            )
-            return HttpResponse({"error": "Failed to retrieve image"}, status=500)
 
         except Exception:
             logger.exception(
