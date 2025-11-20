@@ -4620,7 +4620,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
 
       const askSeer = await screen.findByRole('option', {
-        name: /Ask Seer to build your query/,
+        name: /Ask AI to build your query/,
       });
       expect(askSeer).toBeInTheDocument();
     });
@@ -4815,7 +4815,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
 
         const askSeer = await screen.findByRole('option', {
-          name: /Ask Seer to build your query/,
+          name: /Ask AI to build your query/,
         });
         expect(askSeer).toBeInTheDocument();
         await userEvent.hover(askSeer);
@@ -4841,7 +4841,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(yep);
 
         const askSeer2 = await screen.findByRole('option', {
-          name: /Ask Seer to build your query/,
+          name: /Ask AI to build your query/,
         });
         expect(askSeer2).toBeInTheDocument();
       });
@@ -4877,7 +4877,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
         expect(
-          screen.getByRole('option', {name: /Ask Seer to build your query/i})
+          screen.getByRole('option', {name: /Ask AI to build your query/i})
         ).toBeInTheDocument();
       });
     });
@@ -4912,7 +4912,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-        const askSeerText = screen.getByText(/Ask Seer/);
+        const askSeerText = screen.getByText(/Ask AI to build your query/);
         expect(askSeerText).toBeInTheDocument();
 
         await userEvent.hover(askSeerText);
