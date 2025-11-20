@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -37,6 +38,8 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """
         Return anomaly detection threshold data (yhat_lower, yhat_upper) for a detector.
         """
+        if not features.has("organizations:anomaly-detection-threshold-data", organization):
+            raise ResourceDoesNotExist
 
         try:
             detector = Detector.objects.get(id=int(detector_id), project__organization=organization)
