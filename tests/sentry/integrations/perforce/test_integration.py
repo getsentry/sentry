@@ -1,3 +1,4 @@
+import hashlib
 from unittest.mock import patch
 
 from sentry.integrations.perforce.integration import (
@@ -464,10 +465,13 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
         # Verify integration data structure
         assert integration_data["name"] == "Perforce (ssl:perforce.example.com:1666)"
-        assert (
-            integration_data["external_id"]
-            == f"org-{self.organization.id}:ssl:perforce.example.com:1666"
-        )
+
+        # Verify external_id format: perforce-org-{org_id}-{hash}
+        # Hash is first 8 chars of SHA256(p4port)
+        p4port_hash = hashlib.sha256(b"ssl:perforce.example.com:1666").hexdigest()[:8]
+        expected_external_id = f"perforce-org-{self.organization.id}-{p4port_hash}"
+        assert integration_data["external_id"] == expected_external_id
+
         assert "metadata" in integration_data
 
         # Verify all credentials are in metadata
