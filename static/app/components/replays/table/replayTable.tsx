@@ -95,7 +95,7 @@ export default function ReplayTable({
     <StyledSimpleTable
       data-test-id="replay-table"
       ref={ref}
-      style={{gridTemplateColumns, gridAutoRows: 'min-content'}}
+      style={{gridTemplateColumns}}
     >
       <ReplayTableHeader
         columns={columns}
@@ -157,6 +157,7 @@ function RowWithScrollIntoView({
 
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
+  grid-auto-rows: min-content;
 
   [data-clickable='true'] {
     cursor: pointer;
