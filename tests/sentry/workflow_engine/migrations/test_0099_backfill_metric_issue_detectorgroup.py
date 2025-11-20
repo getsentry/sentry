@@ -86,9 +86,10 @@ class BackfillMetricIssueDetectorGroupTest(TestMigrations, OccurrenceTestMixin):
             group=self.metric_issue_deleted_detector, detector=None
         ).exists()
 
-        assert not DetectorGroup.objects.filter(
-            group=self.metric_issue_no_occurrence
-        ).exists()  # does not exist because we should figure out what to do with this
+        assert DetectorGroup.objects.filter(
+            group=self.metric_issue_no_occurrence,
+            detector=None,
+        ).exists()
 
         assert DetectorGroup.objects.filter(
             group=self.metric_issue_existing_detectorgroup, detector=self.detector2
