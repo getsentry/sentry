@@ -81,6 +81,7 @@ export function CompactSelect<Value extends SelectKey>({
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
+  // also multiple:false must be split into clearable true/false to satisfy TS
   const listProps = useMemo(() => {
     if (multiple) {
       return {
@@ -92,6 +93,18 @@ export function CompactSelect<Value extends SelectKey>({
         grid,
       };
     }
+
+    if (clearable) {
+      return {
+        clearable,
+        multiple,
+        value,
+        onChange,
+        closeOnSelect,
+        grid,
+      };
+    }
+
     return {
       clearable,
       multiple,
