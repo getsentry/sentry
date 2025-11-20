@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 import os
 import re
 from collections import defaultdict
@@ -11,12 +12,15 @@ from typing import Any, Never, Protocol, TypedDict
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry import features, options
 from sentry.api.paginator import SequencePaginator
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -26,6 +30,9 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.search.eap.columns import SearchResolverConfig
+from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_ALIAS,
@@ -37,12 +44,14 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrencesRPC
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
-from sentry.utils import metrics, snuba
+from sentry.utils import metrics, snuba, snuba_rpc
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
@@ -51,6 +60,8 @@ from sentry.utils.snuba import (
     nest_groups,
     raw_snql_query,
 )
+
+logger = logging.getLogger("sentry.tagstore")
 
 _max_unsampled_projects = 50
 if os.environ.get("SENTRY_SINGLE_TENANT"):
@@ -156,6 +167,89 @@ def _make_result[T, U](
         count=totals.get("count", 0),
         top_values=top_values,
     )
+
+
+def debug_log(*ss: str) -> None:
+    logger.info("\n\n")
+    for s in ss:
+        logger.info(s)
+    logger.info("\n\n")
+
+
+def attempt_to_get_tag_values(group: Group) -> None:
+    """
+    Ideal output here is dict[TagName, TagValue]...
+    ... but I'll take any values to see that the query is working.
+    """
+    params = SnubaParams(
+        start=datetime.now() - timedelta(days=30),
+        end=datetime.now(),
+        projects=[group.project],
+        organization=group.project.organization,
+    )
+    referrer = Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES
+    response = OccurrencesRPC.run_table_query(
+        params=params,
+        query_string="has:group_id",  # f"group_id:{group.id}",
+        selected_columns=[
+            "id",
+            "group_id",
+            "sentry.service",
+        ],  # TODO: Need to pass tagKey columns in here?
+        orderby=None,
+        offset=0,
+        limit=3,
+        referrer=referrer,
+        config=SearchResolverConfig(auto_fields=True),
+        sampling_mode="NORMAL",
+    )
+
+    debug_log(f"FOUND {len(response['data'])} VALUES", str(response["data"]))
+
+
+def attempt_to_get_tag_columns(group: Group) -> None:
+    """
+    Ideal output here is set[TagName]...
+    ... but I'll take a list of all columns.
+    """
+    params = SnubaParams(
+        start=datetime.now() - timedelta(days=30),
+        end=datetime.now(),
+        projects=[group.project],
+        organization=group.project.organization,
+    )
+
+    column_definitions = OCCURRENCE_DEFINITIONS
+    resolver = SearchResolver(
+        params=params,
+        config=SearchResolverConfig(auto_fields=True),
+        definitions=column_definitions,
+    )
+    query_filter, _, _ = resolver.resolve_query(
+        None
+        # f"group_id:{group.id}",
+    )
+    referrer = Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES
+    meta = resolver.resolve_meta(referrer=referrer)
+    meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
+    rpc_request = TraceItemAttributeNamesRequest(
+        meta=meta,
+        limit=9999,
+        page_token=PageToken(offset=0),
+        type=AttributeKey.Type.TYPE_STRING,
+        value_substring_match="",
+        intersecting_attributes_filter=query_filter,
+    )
+
+    with handle_query_errors():
+        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+    format_attr = lambda attr: f"Name: {attr.name}, Type: {attr.type}"
+    debug_log(
+        f"FOUND {len(rpc_response.attributes)} COLUMNS",
+        str([format_attr(a) for a in rpc_response.attributes]),
+    )
+
+    raise Exception("I'm Exception # 18")
 
 
 class SnubaTagStorage(TagStorage):
@@ -725,6 +819,8 @@ class SnubaTagStorage(TagStorage):
         tenant_ids=None,
         **kwargs,
     ):
+        # This is the call.
+
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
         # of top values for each key, so the total rows returned should be
@@ -752,6 +848,9 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
+
+        attempt_to_get_tag_values(group)
+        attempt_to_get_tag_columns(group)
 
         values_by_key = snuba.query(
             dataset=dataset,
@@ -852,7 +951,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=empty_filters,
             aggregations=[],
             selected_columns=selected_columns_empty,
-            referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
+            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
             tenant_ids=tenant_ids,
         )
 
