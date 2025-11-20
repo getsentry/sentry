@@ -250,7 +250,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
     missing_buckets = 0
     all_zeros = True
-    trigger_action_types: set[str] = set()
+    trigger_action_types: dict[str, int] = {}
     for timestamp, values in aligned_timeseries.items():
         rpc_value = values["rpc_value"]
         snql_value = values["snql_value"]
@@ -260,10 +260,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
 
         if alert_rule.detection_type == AlertRuleDetectionType.STATIC:
             for trigger in rule_triggers:
+                trigger_actions_set = set()
                 trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
                 for trigger_action in trigger_actions:
                     action_type = ActionService.get_name(trigger_action.type)
-                    trigger_action_types.add(action_type if action_type else "unknown")
+                    action_name = action_type if action_type else "unknown"
+                    trigger_actions_set.add(action_name)
                 would_fire = False
                 threshold = trigger.alert_threshold
                 comparison_type = (
@@ -288,6 +290,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                         and rpc_value > threshold
                     ):
                         false_negative_misfire += 1
+                        # count number of times actions would trigger on false negative misfire
+                        for action_name in trigger_actions_set:
+                            if trigger_action_types.get(action_name):
+                                trigger_action_types[action_name] += 1
+                            else:
+                                trigger_action_types[action_name] = 1
                 else:
                     if (
                         comparison_type == AlertRuleThresholdType.ABOVE.value
@@ -297,6 +305,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                         and rpc_value < threshold
                     ):
                         false_positive_misfire += 1
+                        # count number of times actions would trigger on false positive misfire
+                        for action_name in trigger_actions_set:
+                            if trigger_action_types.get(action_name):
+                                trigger_action_types[action_name] += 1
+                            else:
+                                trigger_action_types[action_name] = 1
 
         # If the sum is 0, we assume that the numbers must be 0, since we have all positive integers. We still do
         # check the sum in order to protect the division by zero in case for some reason we have -x + x inside of
@@ -320,8 +334,8 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
 
     sentry_sdk.set_tag("false_positive_misfires", false_positive_misfire)
     sentry_sdk.set_tag("false_negative_misfires", false_negative_misfire)
-    for trigger_action_type in trigger_action_types:
-        sentry_sdk.set_tag(f"trigger_action_type.{trigger_action_type}", True)
+    for trigger_action_type, count in trigger_action_types.items():
+        sentry_sdk.set_tag(f"trigger_action_type.{trigger_action_type}", count)
 
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
