@@ -91,16 +91,19 @@ function confidenceMessage({
     noSampling
   ) {
     if (!userQuery) {
+      const matchingSpansCount =
+        sampleCount > 1
+          ? t('%s spans', <Count value={sampleCount} />)
+          : t('%s span', <Count value={sampleCount} />);
+
       if (isTopN) {
-        return tct('Span count for top [topEvents] groups: [matchingSpansCount]', {
+        return tct('[matchingSpansCount] for top [topEvents] groups', {
           topEvents,
-          matchingSpansCount: <Count value={sampleCount} />,
+          matchingSpansCount,
         });
       }
 
-      return tct('Span count: [matchingSpansCount]', {
-        matchingSpansCount: <Count value={sampleCount} />,
-      });
+      return matchingSpansCount;
     }
 
     const matchingSpansCount =
@@ -119,17 +122,14 @@ function confidenceMessage({
     );
 
     if (isTopN) {
-      return tct(
-        'Span count for top [topEvents] groups: [matchingSpansCount] of [totalSpansCount]',
-        {
-          topEvents,
-          matchingSpansCount,
-          totalSpansCount,
-        }
-      );
+      return tct('[matchingSpansCount] of [totalSpansCount] for top [topEvents] groups', {
+        matchingSpansCount,
+        totalSpansCount,
+        topEvents,
+      });
     }
 
-    return tct('Span count: [matchingSpansCount] of [totalSpansCount]', {
+    return tct('[matchingSpansCount] of [totalSpansCount]', {
       matchingSpansCount,
       totalSpansCount,
     });

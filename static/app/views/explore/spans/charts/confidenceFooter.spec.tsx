@@ -163,7 +163,7 @@ describe('ConfidenceFooter', () => {
               wrapper: Wrapper,
             }
           );
-          expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('100 spans');
         });
 
         it('loaded with top events', () => {
@@ -179,7 +179,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count for top 5 groups: 100'
+            '100 spans for top 5 groups'
           );
         });
       });
@@ -198,7 +198,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count: 100 matches of 1k spans'
+            '100 matches of 1k spans'
           );
         });
 
@@ -216,7 +216,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count for top 5 groups: 100 matches of 1k spans'
+            '100 matches of 1k spans for top 5 groups'
           );
         });
       });
@@ -235,7 +235,7 @@ describe('ConfidenceFooter', () => {
               wrapper: Wrapper,
             }
           );
-          expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('100 spans');
         });
 
         it('loaded with top events', () => {
@@ -251,7 +251,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count for top 5 groups: 100'
+            '100 spans for top 5 groups'
           );
         });
       });
@@ -270,7 +270,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count: 100 matches of 1k spans'
+            '100 matches of 1k spans'
           );
         });
 
@@ -288,7 +288,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Span count for top 5 groups: 100 matches of 1k spans'
+            '100 matches of 1k spans for top 5 groups'
           );
         });
       });

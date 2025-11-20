@@ -71,16 +71,19 @@ function ConfidenceMessage({
   // No sampling happened, so don't mention estimations.
   if (noSampling) {
     if (!hasUserQuery) {
+      const matchingLogsCount =
+        sampleCount > 1
+          ? t('%s logs', <Count value={sampleCount} />)
+          : t('%s log', <Count value={sampleCount} />);
+
       if (isTopN) {
-        return tct('Log count for top [topEvents] groups: [matchingLogsCount]', {
+        return tct('[matchingLogsCount] for top [topEvents] groups', {
+          matchingLogsCount,
           topEvents,
-          matchingLogsCount: <Count value={sampleCount} />,
         });
       }
 
-      return tct('Log count: [matchingLogsCount]', {
-        matchingLogsCount: <Count value={sampleCount} />,
-      });
+      return matchingLogsCount;
     }
 
     const matchingLogsCount =
@@ -99,17 +102,14 @@ function ConfidenceMessage({
     );
 
     if (isTopN) {
-      return tct(
-        'Log count for top [topEvents] groups: [matchingLogsCount] of [totalLogsCount]',
-        {
-          topEvents,
-          matchingLogsCount,
-          totalLogsCount,
-        }
-      );
+      return tct('[matchingLogsCount] of [totalLogsCount] for top [topEvents] groups', {
+        matchingLogsCount,
+        totalLogsCount,
+        topEvents,
+      });
     }
 
-    return tct('Log count: [matchingLogsCount] of [totalLogsCount]', {
+    return tct('[matchingLogsCount] of [totalLogsCount]', {
       matchingLogsCount,
       totalLogsCount,
     });

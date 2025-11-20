@@ -59,7 +59,7 @@ describe('ConfidenceFooter', () => {
               wrapper: Wrapper,
             }
           );
-          expect(screen.getByTestId('wrapper')).toHaveTextContent('Log count: 100');
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('100 logs');
         });
 
         it('loaded with top events', () => {
@@ -75,7 +75,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Log count for top 5 groups: 100'
+            '100 logs for top 5 groups'
           );
         });
       });
@@ -94,7 +94,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Log count: 100 matches of 1k logs'
+            '100 matches of 1k logs'
           );
         });
 
@@ -111,7 +111,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            'Log count for top 5 groups: 100 matches of 1k logs'
+            '100 matches of 1k logs for top 5 groups'
           );
         });
       });
