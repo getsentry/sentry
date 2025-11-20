@@ -494,7 +494,12 @@ class SymbolicatorSession:
 
 
 def maybe_rewrite_objectstore_url(url: str) -> str:
-    """We need to do this during development/testing to make symbolicator reach Objectstore."""
+    """
+    This is needed during development/testing to make Symbolicator reach Objectstore.
+    This is because Sentry can reach Objectstore on 127.0.0.1 but Symbolicator cannot, as it's running in its own container.
+
+    Note: if you are using a local (not containerized) instance of Symbolicator, you need to disable this logic.
+    """
     if settings.IS_DEV or in_test_environment():
         url = url.replace("127.0.0.1", "objectstore")
     return url
