@@ -138,7 +138,7 @@ export default function ReplayTable({
 function RowWithScrollIntoView({
   children,
   data_replay_row_index,
-  scrollIntoView: isHovered,
+  scrollIntoView,
   variant,
 }: {
   children: React.ReactNode;
@@ -147,13 +147,13 @@ function RowWithScrollIntoView({
   variant: 'default' | 'faded';
 }) {
   useEffect(() => {
-    if (isHovered) {
+    if (scrollIntoView) {
       const row = document.querySelector(
         `div[data-replay-row-index="${data_replay_row_index}"]`
       );
       row?.scrollIntoView();
     }
-  }, [isHovered, data_replay_row_index]);
+  }, [scrollIntoView, data_replay_row_index]);
   return (
     <SimpleTable.Row data-replay-row-index={data_replay_row_index} variant={variant}>
       {children}
