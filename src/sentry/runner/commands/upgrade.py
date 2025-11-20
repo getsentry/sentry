@@ -3,6 +3,7 @@ from django.conf import settings
 from django.db import connections
 from django.db.utils import ProgrammingError
 
+from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.runner.decorators import configuration
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
@@ -64,10 +65,24 @@ def _upgrade(
     _check_big_ints()
     _check_history()
 
+    no_migrations_to_run = True
+
     for db_conn in settings.DATABASES.keys():
         # Run migrations on all non-read replica connections.
         # This is used for sentry.io as our production database runs on multiple hosts.
         if not settings.DATABASES[db_conn].get("REPLICA_OF", False):
+            # We want the noop case to be quickly skipped.
+            click.echo(f"Checking for migrations to run for {db_conn}")
+            conn = connections[db_conn]
+            executor = SentryMigrationExecutor(conn)
+            targets = executor.loader.graph.leaf_nodes()
+            plan = executor.migration_plan(targets)
+            if not plan:
+                click.echo(f"No migrations to run for {db_conn}")
+                continue
+
+            no_migrations_to_run = False
+
             click.echo(f"Running migrations for {db_conn}")
             dj_call_command(
                 "migrate",
@@ -97,7 +112,7 @@ def _upgrade(
 
         call_command("sentry.runner.commands.repair.repair")
 
-    if run_post_upgrade:
+    if not no_migrations_to_run and run_post_upgrade:
         post_upgrade.send(sender=SiloMode.get_current_mode(), interactive=interactive)
 
 
