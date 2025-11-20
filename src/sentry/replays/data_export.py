@@ -576,26 +576,29 @@ def export_replay_blob_data[T](
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
-):
+) -> list[T]:
     # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
     # from doing the same work over and over again. However, we'd need to catch the exception,
     # look-up any active runs, and, if no active runs, schedule a new run. This is a bit much for
     # now.
     #
     # transfer_job_name = f"{source_bucket}/{project_id}/{start_date_rounded_to_day}"
-
+    jobs = []
     for retention_days in (30, 60, 90):
-        create_transfer_job(
-            gcp_project_id=gcp_project_id,
-            transfer_job_name=None,
-            source_bucket=source_bucket,
-            source_prefix=f"{retention_days}/{project_id}/",
-            destination_bucket=destination_bucket,
-            destination_prefix=destination_prefix,
-            notification_topic=pubsub_topic_name,
-            job_description="Session Replay EU Compliance Export",
-            do_create_transfer_job=do_create_transfer_job,
+        jobs.append(
+            create_transfer_job(
+                gcp_project_id=gcp_project_id,
+                transfer_job_name=None,
+                source_bucket=source_bucket,
+                source_prefix=f"{retention_days}/{project_id}/",
+                destination_bucket=destination_bucket,
+                destination_prefix=destination_prefix,
+                notification_topic=pubsub_topic_name,
+                job_description="Session Replay EU Compliance Export",
+                do_create_transfer_job=do_create_transfer_job,
+            )
         )
+    return jobs
 
 
 def export_replay_data(
