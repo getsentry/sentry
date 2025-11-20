@@ -13,6 +13,7 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.validators import ConfigValidator
@@ -454,7 +455,7 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         )
 
         # Verify monitor.is_muted is True
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
     def test_is_muted_some_environments_unmuted(self):
         """Test that monitor.is_muted returns False when any environment is unmuted."""
@@ -475,7 +476,7 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         )
 
         # Verify monitor.is_muted is False
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
     def test_is_muted_all_environments_unmuted(self):
         """Test that monitor.is_muted returns False when all environments are unmuted."""
@@ -496,12 +497,12 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         )
 
         # Verify monitor.is_muted is False
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
     def test_is_muted_no_environments(self):
         """Test that monitor.is_muted returns False when there are no environments."""
         monitor = self.create_monitor()
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
     def test_is_muted_single_environment(self):
         """Test is_muted works correctly with a single environment."""
@@ -514,7 +515,7 @@ class MonitorIsMutedPropertyTestCase(TestCase):
             is_muted=True,
         )
 
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
         # Test with unmuted environment
         monitor2 = self.create_monitor()
@@ -525,4 +526,4 @@ class MonitorIsMutedPropertyTestCase(TestCase):
             is_muted=False,
         )
 
-        assert monitor2.is_muted is False
+        assert is_monitor_muted(monitor2) is False
