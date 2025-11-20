@@ -426,11 +426,22 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": True,
             },
             {
+                "name": "auth_type",
+                "type": "choice",
+                "label": "Authentication Type",
+                "choices": [
+                    ["password", "Password"],
+                    ["ticket", "P4 Ticket"],
+                ],
+                "help": "Select whether you're providing a password or a P4 ticket. Tickets are obtained via 'p4 login -p' and don't require re-authentication.",
+                "required": True,
+            },
+            {
                 "name": "password",
                 "type": "secret",
-                "label": "Password or P4 Ticket",
+                "label": "Password / Ticket",
                 "placeholder": "••••••••",
-                "help": "Perforce password OR P4 authentication ticket. Tickets are obtained via 'p4 login -p' and are more secure than passwords. Both are supported in this field.",
+                "help": "Your Perforce password or P4 authentication ticket (depending on the authentication type selected above).",
                 "required": True,
             },
             {
@@ -587,6 +598,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         metadata = {
             "p4port": p4port,
             "user": installation_data.get("user", ""),
+            "auth_type": installation_data.get("auth_type", "password"),  # Default to password
             "password": installation_data.get("password", ""),
         }
 
