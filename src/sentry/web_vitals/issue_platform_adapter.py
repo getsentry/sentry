@@ -68,9 +68,13 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
 
     # TODO: Add better titles and subtitles
     if data["vital_grouping"] == "rendering":
-        title = "Render time Web Vital scores need improvement"
+        title = f"The page {transaction} was slow to load and render"
+    elif data["vital_grouping"] == "cls":
+        title = f"The page {transaction} had layout shifts while loading"
+    elif data["vital_grouping"] == "inp":
+        title = f"The page {transaction} responded slowly to user interactions"
     else:
-        title = f"{data['vital_grouping'].upper()} score needs improvement"
+        raise ValueError(f"Invalid vital grouping: {data['vital_grouping']}")
     subtitle_parts = []
     for vital in data["scores"]:
         a_or_an = "an" if vital in ("lcp", "fcp", "inp") else "a"
