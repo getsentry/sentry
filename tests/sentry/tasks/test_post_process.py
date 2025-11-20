@@ -3109,6 +3109,7 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
     ):
         """Test that with event count >= 10 and cached summary exists, we run automation directly."""
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
@@ -3148,6 +3149,7 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
     ):
         """Test that with event count >= 10 and no cached summary, we generate summary + run automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
