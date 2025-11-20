@@ -32,14 +32,16 @@ export default function Playlist() {
   const {allMobileProj} = useAllMobileProj({});
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
   return (
-    <ReplayTable
-      columns={columns}
-      error={null}
-      highlightedRowIndex={currentReplayIndex}
-      isPending={replays ? false : true}
-      query={location.query}
-      replays={replays ?? []}
-      showDropdownFilters={false}
-    />
+    <div>
+      <ReplayTable
+        columns={columns}
+        error={null}
+        highlightedRowIndex={currentReplayIndex}
+        isPending={replays ? false : true}
+        query={location.query}
+        replays={replays ?? []}
+        showDropdownFilters={false}
+      />
+    </div>
   );
 }
