@@ -151,6 +151,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
@@ -1147,7 +1148,7 @@ class SnubaTestCase(BaseTestCase):
                 files[f"item_{i}"] = trace_item.SerializeToString()
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
                     files=files,
                 ).status_code
                 == 200
@@ -1164,7 +1165,7 @@ class SnubaTestCase(BaseTestCase):
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
         )
         assert response.status_code == 200
@@ -1175,7 +1176,7 @@ class SnubaTestCase(BaseTestCase):
             for i, trace_metric in enumerate(trace_metrics)
         }
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
         )
         assert response.status_code == 200
@@ -1186,7 +1187,7 @@ class SnubaTestCase(BaseTestCase):
             for i, profile_function in enumerate(profile_functions)
         }
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
         )
         assert response.status_code == 200
@@ -2266,7 +2267,7 @@ class ProfilesSnubaTestCase(
                 files[f"item_{i}"] = trace_item.SerializeToString()
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
                     files=files,
                 ).status_code
                 == 200
@@ -3897,7 +3898,7 @@ class ReplayEAPTestCase(BaseTestCase):
 
         files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
         )
         assert response.status_code == 200
@@ -4044,7 +4045,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
             f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
         }
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
         )
         assert response.status_code == 200

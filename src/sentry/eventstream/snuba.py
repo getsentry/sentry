@@ -18,6 +18,7 @@ from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics, snuba
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
@@ -498,7 +499,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
-                "/tests/entities/eap_items/insert_bytes",
+                EAP_ITEMS_INSERT_ENDPOINT,
                 fields={"item_0": trace_item.SerializeToString()},
             )
 
