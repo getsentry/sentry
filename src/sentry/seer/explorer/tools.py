@@ -74,7 +74,7 @@ def execute_table_query(
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
-        To prevent excessive queries and timeouts, either stats_period or *both* start and end should be provided.
+        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Providing start or end with stats_period will result in a ValueError.
     """
     _validate_date_params(stats_period=stats_period, start=start, end=end)
@@ -160,8 +160,8 @@ def execute_timeseries_query(
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
 
-        To prevent excessive queries and timeouts, either stats_period or *both* start and end should be provided.
-        Providing start or end with stats_period will result in a 400 ApiError.
+        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
+        Providing start or end with stats_period will result in a ValueError.
     """
     _validate_date_params(stats_period=stats_period, start=start, end=end)
 
