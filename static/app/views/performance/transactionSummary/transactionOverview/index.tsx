@@ -151,7 +151,7 @@ function OTelOverviewContentWrapper() {
 
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...(newFilter ? filterToLocationQuery(newFilter) : undefined),
+      ...filterToLocationQuery(newFilter),
     };
 
     if (newFilter === SpanOperationBreakdownFilter.NONE) {
