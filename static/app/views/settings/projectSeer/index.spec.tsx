@@ -867,6 +867,19 @@ describe('ProjectSeer', () => {
         },
       });
 
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      // Mock for the Form's empty apiEndpoint POST
+      MockApiClient.addMockResponse({
+        url: '',
+        method: 'POST',
+        body: {},
+      });
+
       const seerPreferencesPostRequest = MockApiClient.addMockResponse({
         url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
         method: 'POST',

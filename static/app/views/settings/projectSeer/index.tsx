@@ -9,6 +9,7 @@ import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
@@ -109,20 +110,21 @@ function CodingAgentSettings({
   autofixAutomationTuning: boolean;
   canWriteProject: boolean;
   handleAutoCreatePrChange: (value: boolean) => void;
-  preference: any;
+  preference: ProjectSeerPreferences | null | undefined;
 }) {
   if (!preference?.automation_handoff || !autofixAutomationTuning) {
     return null;
   }
 
+  const initialValue = preference?.automation_handoff?.auto_create_pr ?? false;
+
   return (
     <Form
-      key={`coding-agent-${preference?.automation_handoff?.auto_create_pr ?? false}`}
-      saveOnBlur
+      key="coding-agent-settings"
       apiMethod="POST"
-      apiEndpoint=""
+      saveOnBlur
       initialData={{
-        auto_create_pr: preference?.automation_handoff?.auto_create_pr ?? false,
+        auto_create_pr: initialValue,
       }}
     >
       <JsonForm
@@ -138,6 +140,8 @@ function CodingAgentSettings({
                 ),
                 saveOnBlur: true,
                 type: 'boolean',
+                getData: () => ({}),
+                getValue: () => initialValue,
                 disabled: !canWriteProject,
                 onChange: handleAutoCreatePrChange,
               } satisfies FieldObject,
@@ -323,6 +327,12 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
+  const automationTuning = Boolean(
+    isTriageSignalsFeatureOn
+      ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+      : (project.autofixAutomationTuning ?? 'off')
+  );
+
   return (
     <Fragment>
       <Form
@@ -338,9 +348,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           // Same DB field, different UI: toggle (boolean) vs dropdown (string)
-          autofixAutomationTuning: isTriageSignalsFeatureOn
-            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
-            : (project.autofixAutomationTuning ?? 'off'),
+          autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
@@ -361,11 +369,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       <CodingAgentSettings
         preference={preference}
         handleAutoCreatePrChange={handleAutoCreatePrChange}
-        autofixAutomationTuning={
-          isTriageSignalsFeatureOn
-            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
-            : (project.autofixAutomationTuning ?? 'off')
-        }
+        autofixAutomationTuning={automationTuning}
         canWriteProject={canWriteProject}
       />
     </Fragment>
