@@ -30,7 +30,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         self.history: list[WorkflowFireHistory] = []
         self.workflow = self.create_workflow(organization=self.organization)
         self.detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             type=ErrorGroupType.slug,
         )
         DetectorGroup.objects.create(
@@ -47,7 +47,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             )
         self.group_2 = self.create_group()
         self.detector_2 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             type=MetricIssue.slug,
         )
         DetectorGroup.objects.create(
