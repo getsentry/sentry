@@ -317,8 +317,12 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """
         Get list of depots/streams from Perforce server.
 
+        Args:
+            query: Optional search query to filter depot names
+            page_number_limit: Maximum number of repositories to return
+
         Returns:
-            List of repository dictionaries
+            List of repository dictionaries (limited by page_number_limit if provided)
         """
         try:
             client = self.get_client()
@@ -341,6 +345,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                     }
                 )
 
+                # Apply pagination limit if specified
+                if page_number_limit and len(repositories) >= page_number_limit:
+                    break
+
             return repositories
 
         except ApiError:
@@ -355,14 +363,15 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             client = self.get_client()
             depot_path = repo.config.get("depot_path", repo.name)
 
-            # Try to list files to verify access
-            result = client.check_file(
-                repo=type("obj", (object,), {"config": {"depot_path": depot_path}})(),
-                path="...",
-                version=None,
-            )
+            # Verify depot exists by checking depot list instead of listing all files
+            # Using "..." wildcard would fetch metadata for all files in large repos
+            depots = client.get_depots()
 
-            return result is not None
+            # Extract depot name from path (e.g., "//depot" -> "depot")
+            depot_name = depot_path.lstrip("/").split("/")[0]
+
+            # Check if depot exists in the list
+            return any(depot["name"] == depot_name for depot in depots)
 
         except Exception:
             return False
