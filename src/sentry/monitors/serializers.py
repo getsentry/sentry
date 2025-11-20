@@ -219,7 +219,7 @@ class MonitorSerializer(Serializer):
         # A monitor is muted only if it has environments AND all of them are muted
         is_muted_data = {
             item.id: bool(monitor_envs_by_id.get(item.id, []))
-            and not any(not env.is_muted for env in monitor_envs_by_id.get(item.id, []))
+            and all(env.is_muted for env in monitor_envs_by_id.get(item.id, []))
             for item in item_list
         }
 
