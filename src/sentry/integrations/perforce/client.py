@@ -85,9 +85,12 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         if self.client_name:
             p4.client = self.client_name
 
-        p4.exception_level = 1  # Only errors raise exceptions
+        # Lower exception level to allow connection with SSL trust warnings
+        # After connection, we'll assert the fingerprint with run_trust
+        p4.exception_level = 0  # Warnings don't raise exceptions
 
         # Connect to Perforce server
+        # For SSL connections, this may succeed with warnings about trust
         try:
             p4.connect()
         except P4Exception as e:
@@ -114,6 +117,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     f"Failed to establish SSL trust: {trust_error}. "
                     f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
                 )
+
+        # Restore normal exception level for subsequent commands
+        p4.exception_level = 1  # Only errors raise exceptions
 
         # Authenticate based on auth_type
         # - password: Requires run_login() to exchange password for session ticket
