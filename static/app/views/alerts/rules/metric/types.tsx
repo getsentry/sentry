@@ -147,6 +147,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
   errors?: Array<{detail: string}>;
+  extrapolationMode?: ExtrapolationMode;
   /**
    * Returned with the expand=latestIncident query parameter
    */
