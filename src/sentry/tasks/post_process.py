@@ -1595,33 +1595,100 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
     from sentry.seer.autofix.utils import (
         is_issue_eligible_for_seer_automation,
         is_seer_scanner_rate_limited,
     )
-    from sentry.tasks.autofix import start_seer_automation
+    from sentry.tasks.autofix import (
+        generate_issue_summary_only,
+        generate_summary_and_run_automation,
+        run_automation_only_task,
+    )
 
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
-    if group.seer_fixability_score is not None:
-        return
+    # Default behaviour
+    if not features.has("projects:triage-signals-v0", group.project):
+        # Only run on issues with no existing scan
+        if group.seer_fixability_score is not None:
+            return
 
-    if is_issue_eligible_for_seer_automation(group) is False:
-        return
+        if not is_issue_eligible_for_seer_automation(group):
+            return
 
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return
+        # Don't run if there's already a task in progress for this issue
+        lock_key, lock_name = get_issue_summary_lock_key(group.id)
+        lock = locks.get(lock_key, duration=1, name=lock_name)
+        if lock.locked():
+            return
 
-    if is_seer_scanner_rate_limited(group.project, group.organization):
-        return
+        if is_seer_scanner_rate_limited(group.project, group.organization):
+            return
 
-    start_seer_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id)
+    else:
+        # Triage signals V0 behaviour
+
+        # If event count < 10, only generate summary (no automation)
+        if group.times_seen_with_pending < 10:
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                return
+
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
+
+            # Atomically set cache to prevent duplicate summary generation
+            summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
+            if not cache.add(summary_dispatch_cache_key, True, timeout=30):
+                return  # Another process already dispatched summary generation
+
+            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
+
+            generate_issue_summary_only.delay(group.id)
+        else:
+            # Event count >= 10: run automation
+            # Long-term check to avoid re-running
+            if (
+                group.seer_autofix_last_triggered is not None
+                or group.seer_fixability_score
+                is not None  # TODO: Remove this once fixability is generated with generate_issue_summary_only
+                or group.project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.OFF
+            ):
+                return
+
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
+
+            # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
+            automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
+            if not cache.add(automation_dispatch_cache_key, True, timeout=300):
+                return  # Another process already dispatched automation
+
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                # Summary exists, run automation directly
+                run_automation_only_task.delay(group.id)
+            else:
+                # Rate limit check before generating summary
+                if is_seer_scanner_rate_limited(group.project, group.organization):
+                    return
+
+                # No summary yet, generate summary + run automation in one go
+                generate_summary_and_run_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

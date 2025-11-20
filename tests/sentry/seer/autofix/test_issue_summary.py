@@ -18,8 +18,8 @@ from sentry.seer.autofix.issue_summary import (
     _fetch_user_preference,
     _get_event,
     _get_stopping_point_from_fixability,
-    _run_automation,
     get_issue_summary,
+    run_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
@@ -611,7 +611,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_trigger_autofix_task.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -623,7 +623,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that issue summary is still returned when _run_automation throws an exception."""
+        """Test that issue summary is still returned when run_automation throws an exception."""
         mock_get_acknowledgement.return_value = True
 
         # Set up event and seer response
@@ -641,7 +641,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         mock_call_seer.return_value = mock_summary
 
-        # Make _run_automation raise an exception
+        # Make run_automation raise an exception
         mock_run_automation.side_effect = Exception("Automation failed")
 
         # Call get_issue_summary and verify it still returns successfully
@@ -652,7 +652,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         expected_response["event_id"] = event.event_id
         assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
 
-        # Verify _run_automation was called and failed
+        # Verify run_automation was called and failed
         mock_run_automation.assert_called_once()
         mock_call_seer.assert_called_once()
 
@@ -681,7 +681,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                     possible_cause="cause",
                 ),
             ) as mock_call_seer,
-            patch("sentry.seer.autofix.issue_summary._run_automation"),
+            patch("sentry.seer.autofix.issue_summary.run_automation"),
             patch(
                 "sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement",
                 return_value=True,
@@ -693,7 +693,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.assert_called_once_with(self.group, serialized_event, None)
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -705,7 +705,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that should_run_automation=False prevents _run_automation from being called."""
+        """Test that should_run_automation=False prevents run_automation from being called."""
         mock_get_acknowledgement.return_value = True
         event = Mock(
             event_id="test_event_id",
@@ -743,7 +743,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
         mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
-        # Verify that _run_automation was NOT called
+        # Verify that run_automation was NOT called
         mock_run_automation.assert_not_called()
 
         # Check if the cache was set correctly
@@ -798,7 +798,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.70),
         )
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
 
@@ -822,7 +822,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.50),
         )
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
@@ -848,7 +848,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
         ):
-            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+            run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
@@ -1001,7 +1001,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = "solution"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should be limited to SOLUTION by user preference
@@ -1031,7 +1031,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = "open_pr"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should use ROOT_CAUSE from fixability, not OPEN_PR from user
@@ -1061,7 +1061,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = None
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should use OPEN_PR from fixability
