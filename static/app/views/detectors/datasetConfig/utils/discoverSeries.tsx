@@ -5,8 +5,9 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   EAP_EXTRAPOLATION_MODE_MAP,
-  type ExtrapolationMode,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 /**
  * Transform EventsStats API response into Series format for AreaChart
@@ -127,6 +128,10 @@ export function getDiscoverSeriesQueryOptions({
         statsPeriod,
         start,
         end,
+        sampling:
+          extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
         extrapolationMode: extrapolationMode
           ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
           : undefined,

@@ -1211,6 +1211,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
       confidence,
       seriesSamplingInfo,
+      extrapolationMode,
     } = this.state;
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
@@ -1261,6 +1262,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       confidence,
       seriesSamplingInfo,
       traceItemType: traceItemType ?? undefined,
+      extrapolationMode,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

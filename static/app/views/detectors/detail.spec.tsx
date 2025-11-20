@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
@@ -436,6 +437,7 @@ describe('DetectorDetails', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               extrapolationMode: 'serverOnly',
+              sampling: SAMPLING_MODE.NORMAL,
             }),
           })
         );
