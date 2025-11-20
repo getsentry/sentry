@@ -1,4 +1,4 @@
-import {useEffect, type RefObject} from 'react';
+import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -108,7 +108,6 @@ export default function ReplayTable({
       )}
       {replays.map((replay, rowIndex) => (
         <RowWithScrollIntoView
-          data_replay_row_index={rowIndex}
           scrollIntoView={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
@@ -137,25 +136,20 @@ export default function ReplayTable({
 
 function RowWithScrollIntoView({
   children,
-  data_replay_row_index,
   scrollIntoView,
-  variant,
+  ...props
 }: {
   children: React.ReactNode;
-  data_replay_row_index: number;
   scrollIntoView: boolean;
-  variant: 'default' | 'faded';
-}) {
+} & React.ComponentProps<typeof SimpleTable.Row>) {
+  const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollIntoView) {
-      const row = document.querySelector(
-        `div[data-replay-row-index="${data_replay_row_index}"]`
-      );
-      row?.scrollIntoView();
+      rowRef.current?.scrollIntoView();
     }
-  }, [scrollIntoView, data_replay_row_index]);
+  }, [scrollIntoView]);
   return (
-    <SimpleTable.Row data-replay-row-index={data_replay_row_index} variant={variant}>
+    <SimpleTable.Row variant={props.variant} ref={rowRef} {...props}>
       {children}
     </SimpleTable.Row>
   );
