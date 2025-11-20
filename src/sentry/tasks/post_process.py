@@ -1595,6 +1595,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
     from sentry.seer.autofix.issue_summary import (
         get_issue_summary_cache_key,
         get_issue_summary_lock_key,
@@ -1653,8 +1654,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
-            # Check seer_last_triggered first (long-term check to avoid re-running)
-            if group.seer_autofix_last_triggered is not None:
+            # Long-term check to avoid re-running
+            if (
+                group.seer_autofix_last_triggered is not None
+                or group.project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.OFF
+            ):
                 return
 
             # Early returns for eligibility checks (cheap checks first)
