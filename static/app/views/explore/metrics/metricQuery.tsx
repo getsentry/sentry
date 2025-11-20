@@ -4,6 +4,7 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -11,12 +12,19 @@ import {
   isVisualize,
   Visualize,
   VisualizeFunction,
-  type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
 
 export interface TraceMetric {
   name: string;
   type: string;
+}
+
+function isTraceMetric(value: unknown): value is TraceMetric {
+  if (value === null || !defined(value) || typeof value !== 'object') {
+    return false;
+  }
+
+  return 'name' in value && !!value.name && 'type' in value && !!value.type;
 }
 
 export interface BaseMetricQuery {
@@ -38,37 +46,21 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  if (!isTraceMetric(json.metric)) {
+    return null;
+  }
+
   const metric = json.metric;
-  if (defined(metric) && typeof metric !== 'object') {
-    return null;
-  }
-
-  const query = json.query;
-  if (typeof query !== 'string') {
-    return null;
-  }
-
-  const rawAggregateFields = json.aggregateFields;
-  if (!Array.isArray(rawAggregateFields)) {
-    return null;
-  }
-
-  const visualizes = rawAggregateFields
-    .filter<BaseVisualize>(isBaseVisualize)
-    .flatMap(vis => Visualize.fromJSON(vis));
+  const query = parseQuery(json.query);
+  const visualizes = parseVisualizes(json.aggregateFields);
 
   if (!visualizes.length) {
     return null;
   }
 
-  const groupBys = rawAggregateFields.filter<GroupBy>(isGroupBy);
-
+  const groupBys = parseGroupBys(json.aggregateFields);
   const aggregateFields = [...visualizes, ...groupBys];
-
-  const aggregateSortBys = json.aggregateSortBys;
-  if (!Array.isArray(aggregateSortBys)) {
-    return null;
-  }
+  const aggregateSortBys = parseAggregateSortBys(json.aggregateSortBys, aggregateFields);
 
   return {
     metric,
@@ -154,13 +146,24 @@ export function defaultSortBys(fields: string[]): Sort[] {
   return [];
 }
 
-export function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('per_second(value)')];
+function defaultVisualize(): Visualize {
+  return new VisualizeFunction('per_second(value)');
 }
 
-export function defaultAggregateSortBys(_: AggregateField[]): Sort[] {
-  // TODO: Handle aggregate fields for compound sort-by.
-  return [{field: 'per_second(value)', kind: 'desc'}];
+function defaultGroupBys(): GroupBy[] {
+  return [];
+}
+
+export function defaultAggregateFields(): AggregateField[] {
+  return [defaultVisualize(), ...defaultGroupBys()];
+}
+
+export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
+  const visualize = aggregateFields.find(isVisualize);
+  if (!defined(visualize)) {
+    return [];
+  }
+  return [{field: visualize.yAxis, kind: 'desc'}];
 }
 
 export function stripMetricParamsFromLocation(location: Location): Location {
@@ -172,4 +175,42 @@ export function stripMetricParamsFromLocation(location: Location): Location {
   delete target.query.metric;
 
   return target;
+}
+
+function parseQuery(value: unknown): string {
+  return typeof value === 'string' ? value : defaultQuery();
+}
+
+function parseVisualizes(value: unknown): Visualize[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const baseVisualize = value.find(isBaseVisualize);
+  return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
+}
+
+function parseGroupBys(value: unknown): GroupBy[] {
+  if (!Array.isArray(value)) {
+    return defaultGroupBys();
+  }
+
+  return value.filter<GroupBy>(isGroupBy);
+}
+
+function parseAggregateSortBys(
+  value: unknown,
+  aggregateFields: AggregateField[]
+): Sort[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return defaultAggregateSortBys(aggregateFields);
+  }
+
+  if (value.length > 0) {
+    if (value.some(v => !validateAggregateSort(v, aggregateFields))) {
+      return defaultAggregateSortBys(aggregateFields);
+    }
+  }
+
+  return value;
 }
