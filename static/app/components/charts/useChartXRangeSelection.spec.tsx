@@ -276,7 +276,7 @@ describe('useChartXRangeSelection', () => {
       };
 
       act(() => {
-        result.current.onBrushEnd(mockEvent as any, mockEchartsInstance as any);
+        result.current.onBrushEnd(mockEvent as any, mockEchartsInstance);
       });
 
       // Wait for effect to run

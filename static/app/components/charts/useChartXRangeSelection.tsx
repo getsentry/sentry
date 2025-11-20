@@ -257,7 +257,6 @@ export function useChartXRangeSelection({
   useEffect(() => {
     window.addEventListener('click', handleOutsideClick, {capture: true});
 
-    // eslint-disable-next-line consistent-return
     return () => {
       window.removeEventListener('click', handleOutsideClick, {capture: true});
     };
