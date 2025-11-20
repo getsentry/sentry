@@ -186,8 +186,7 @@ class Symbolicator:
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(minidump.stored_id)
-            storage_url = storage_url.replace("localhost", "objectstore")
-            storage_url = storage_url.replace("127.0.0.1", "objectstore")
+            storage_url = maybe_rewrite_objectstore_url(storage_url)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -233,8 +232,7 @@ class Symbolicator:
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(report.stored_id)
-            storage_url = storage_url.replace("localhost", "objectstore")
-            storage_url = storage_url.replace("127.0.0.1", "objectstore")
+            storage_url = maybe_rewrite_objectstore_url(storage_url)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -492,3 +490,10 @@ class SymbolicatorSession:
 
     def reset_worker_id(self):
         self.worker_id = uuid.uuid4().hex
+
+
+# We need to do this when running tests to make symbolicator reach Objectstore
+def maybe_rewrite_objectstore_url(url: str) -> str:
+    if settings.IS_DEV:
+        url = url.replace("127.0.0.1", "objectstore")
+    return url
