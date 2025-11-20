@@ -451,6 +451,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
             "installation_data": {
                 "p4port": "ssl:perforce.example.com:1666",
                 "user": "sentry-bot",
+                "auth_type": "password",
                 "password": "initial_password",
                 "client": "sentry-workspace",
                 "ssl_fingerprint": "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD",
@@ -473,6 +474,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         metadata = integration_data["metadata"]
         assert metadata["p4port"] == "ssl:perforce.example.com:1666"
         assert metadata["user"] == "sentry-bot"
+        assert metadata["auth_type"] == "password"
         assert metadata["password"] == "initial_password"
         assert metadata["client"] == "sentry-workspace"
         assert (
@@ -495,9 +497,17 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
         # Test get_organization_config returns form schema
         org_config = installation.get_organization_config()
-        assert len(org_config) == 6  # 6 configuration fields
+        assert len(org_config) == 7  # 7 configuration fields (added auth_type)
         field_names = {field["name"] for field in org_config}
-        assert field_names == {"p4port", "user", "password", "ssl_fingerprint", "client", "web_url"}
+        assert field_names == {
+            "p4port",
+            "user",
+            "auth_type",
+            "password",
+            "ssl_fingerprint",
+            "client",
+            "web_url",
+        }
 
         # Verify field types
         field_types = {field["name"]: field["type"] for field in org_config}

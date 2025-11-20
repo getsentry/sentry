@@ -57,6 +57,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self.p4port = metadata.get("p4port", "localhost:1666")
         self.user = metadata.get("user", "")
         self.password = metadata.get("password")
+        self.auth_type = metadata.get(
+            "auth_type", "password"
+        )  # Default to password for backwards compat
         self.client_name = metadata.get("client")
         self.ssl_fingerprint = metadata.get("ssl_fingerprint")
 
@@ -113,8 +116,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
                 )
 
-        # Authenticate if password provided
-        if self.password:
+        # Authenticate based on auth_type
+        # - password: Requires run_login() to exchange password for session ticket
+        # - ticket: Already authenticated via p4.password, no login needed
+        if self.password and self.auth_type == "password":
             try:
                 p4.run_login()
             except self.P4Exception as login_error:
@@ -122,7 +127,24 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     p4.disconnect()
                 except Exception:
                     pass
-                raise ApiUnauthorized(f"Failed to authenticate with Perforce: {login_error}")
+                raise ApiUnauthorized(
+                    f"Failed to authenticate with Perforce: {login_error}. "
+                    "Verify your password is correct."
+                )
+        elif self.password and self.auth_type == "ticket":
+            # Ticket authentication: p4.password is already set to the ticket
+            # Verify ticket works by running a test command
+            try:
+                p4.run("info")
+            except self.P4Exception as e:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiUnauthorized(
+                    f"Failed to authenticate with Perforce ticket: {e}. "
+                    "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
+                )
 
         try:
             yield p4
