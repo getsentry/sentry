@@ -49,7 +49,13 @@ function confidenceMessage({
   const maybeWarning =
     confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
   const maybeTooltip =
-    confidence === 'low' ? <_LowAccuracyFullTooltip noSampling={noSampling} /> : null;
+    confidence === 'low' ? (
+      <_LowAccuracyFullTooltip
+        noSampling={noSampling}
+        dataScanned={dataScanned}
+        userQuery={userQuery}
+      />
+    ) : null;
 
   // The multi query mode does not fetch the raw span counts
   // so make sure to have a backup when this happens.
@@ -304,9 +310,13 @@ function confidenceMessage({
 function _LowAccuracyFullTooltip({
   noSampling,
   children,
+  dataScanned,
+  userQuery,
 }: {
   noSampling: boolean;
   children?: React.ReactNode;
+  dataScanned?: 'full' | 'partial';
+  userQuery?: string;
 }) {
   return (
     <Tooltip
@@ -317,9 +327,21 @@ function _LowAccuracyFullTooltip({
           )}
           <br />
           <br />
-          {t(
-            "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
-          )}
+          {dataScanned === 'partial' && userQuery
+            ? t(
+                "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
+              )
+            : dataScanned === 'partial'
+              ? t(
+                  "You can try adjusting your query by narrowing the date range or increasing the chart's time interval."
+                )
+              : userQuery
+                ? t(
+                    "You can try adjusting your query by removing filters or increasing the chart's time interval."
+                  )
+                : t(
+                    "You can try adjusting your query by increasing the chart's time interval."
+                  )}
           {/* Do not show if no sampling happened to the data points in the series as they are already at 100% sampling  */}
           {!noSampling && (
             <Fragment>

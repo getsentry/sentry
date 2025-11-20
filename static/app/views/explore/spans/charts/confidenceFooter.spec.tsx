@@ -27,6 +27,11 @@ describe('ConfidenceFooter', () => {
             /You may not have enough span samples for a high accuracy estimation of your query./
           )
         ).toBeInTheDocument();
+        expect(
+          await screen.findByText(
+            /You can try adjusting your query by increasing the chart's time interval./
+          )
+        ).toBeInTheDocument();
       });
 
       it('loaded 1 with grouping', async () => {
@@ -42,6 +47,11 @@ describe('ConfidenceFooter', () => {
         expect(
           await screen.findByText(
             /You may not have enough span samples for a high accuracy estimation of your query./
+          )
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText(
+            /You can try adjusting your query by increasing the chart's time interval./
           )
         ).toBeInTheDocument();
       });
@@ -61,6 +71,11 @@ describe('ConfidenceFooter', () => {
             /You may not have enough span samples for a high accuracy estimation of your query./
           )
         ).toBeInTheDocument();
+        expect(
+          await screen.findByText(
+            /You can try adjusting your query by increasing the chart's time interval./
+          )
+        ).toBeInTheDocument();
       });
 
       it('loaded 10 with grouping', async () => {
@@ -76,6 +91,11 @@ describe('ConfidenceFooter', () => {
         expect(
           await screen.findByText(
             /You may not have enough span samples for a high accuracy estimation of your query./
+          )
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText(
+            /You can try adjusting your query by increasing the chart's time interval./
           )
         ).toBeInTheDocument();
       });
@@ -298,6 +318,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 1 with grouping', async () => {
@@ -320,6 +345,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -345,6 +375,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 10 with grouping', async () => {
@@ -367,6 +402,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -460,6 +500,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 1 with grouping', async () => {
@@ -482,6 +527,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -507,6 +557,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 10 with grouping', async () => {
@@ -529,6 +584,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -625,6 +685,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 1 with grouping', async () => {
@@ -648,6 +713,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -674,6 +744,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 10 with grouping', async () => {
@@ -697,6 +772,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -795,6 +875,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by removing filters or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 1 with grouping', async () => {
@@ -818,6 +903,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by removing filters or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
@@ -844,6 +934,11 @@ describe('ConfidenceFooter', () => {
                 /You may not have enough span samples for a high accuracy estimation of your query./
               )
             ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by removing filters or increasing the chart's time interval./
+              )
+            ).toBeInTheDocument();
           });
 
           it('loaded 10 with grouping', async () => {
@@ -867,6 +962,11 @@ describe('ConfidenceFooter', () => {
             expect(
               await screen.findByText(
                 /You may not have enough span samples for a high accuracy estimation of your query./
+              )
+            ).toBeInTheDocument();
+            expect(
+              await screen.findByText(
+                /You can try adjusting your query by removing filters or increasing the chart's time interval./
               )
             ).toBeInTheDocument();
           });
