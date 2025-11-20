@@ -31,7 +31,7 @@ releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1005_add_groupemailthread_project_date_index
+sentry: 1006_drop_legacy_incidentseen_incidentsubscription
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0048_delete_uptime_status_columns
 
-workflow_engine: 0100_move_is_single_written_to_pending
+workflow_engine: 0101_remove_is_single_written_field
