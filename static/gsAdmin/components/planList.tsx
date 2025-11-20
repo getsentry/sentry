@@ -87,6 +87,12 @@ function PlanList({
       return productInfo;
     });
 
+  availableProducts.forEach(productInfo => {
+    const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
+    const enabled = subscription.addOns?.[productInfo.apiName]?.enabled;
+    formModel.setValue(addOnKey, enabled);
+  });
+
   return (
     <Form
       onSubmit={onSubmit}
@@ -177,10 +183,10 @@ function PlanList({
         <StyledFormSection>
           <h4>Available Products</h4>
           {availableProducts.map(productInfo => {
-            const addOnKey = `addOn${toTitleCase(productInfo.apiName)}`;
+            const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
             return (
               <CheckboxField
-                key={productInfo.productName}
+                key={productInfo.apiName}
                 data-test-id={`checkbox-${productInfo.productName}`}
                 label={toTitleCase(productInfo.productName)}
                 name={addOnKey}
