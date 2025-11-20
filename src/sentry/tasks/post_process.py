@@ -1661,6 +1661,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Long-term check to avoid re-running
             if (
                 group.seer_autofix_last_triggered is not None
+                or group.seer_fixability_score
+                is not None  # TODO: Remove this once fixability is generated with generate_issue_summary_only
                 or group.project.get_option("sentry:autofix_automation_tuning")
                 == AutofixAutomationTuningSettings.OFF
             ):

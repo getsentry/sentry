@@ -3213,6 +3213,48 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
         # Should not call automation since seer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+    def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
+        self, mock_run_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that with event count >= 10 and seer_fixability_score exists, we skip automation."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Update group times_seen and set seer_fixability_score (but not seer_autofix_last_triggered)
+        group = event.group
+        group.times_seen = 10
+        group.seer_fixability_score = 0.5
+        group.save()
+        # Also update the event's cached group reference
+        event.group.times_seen = 10
+        event.group.seer_fixability_score = 0.5
+
+        # Cache a summary for this group
+        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+
+        cache_key = get_issue_summary_cache_key(group.id)
+        cache.set(cache_key, {"summary": "test summary"}, 3600)
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should not call automation since seer_fixability_score exists
+        mock_run_automation.assert_not_called()
+
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
