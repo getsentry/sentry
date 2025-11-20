@@ -30,6 +30,10 @@ function UpdateRetentionSettingsModal({
 }: ModalProps) {
   const api = useApi();
 
+  const [orgStandard, setOrgStandard] = useState<number | null | string>(
+    subscription.orgRetention?.standard ?? null
+  );
+
   const [logBytesStandard, setLogBytesStandard] = useState<number | null | string>(
     subscription.categories.logBytes?.retention?.standard ?? null
   );
@@ -78,7 +82,12 @@ function UpdateRetentionSettingsModal({
       };
     }
 
-    const data = {retentions};
+    const orgRetention = {
+      standard: orgStandard === null || orgStandard === '' ? null : Number(orgStandard),
+      downsampled: null,
+    };
+
+    const data = {retentions, orgRetention};
 
     api.request(`/_admin/${organization.slug}/retention-settings/`, {
       method: 'POST',
@@ -110,6 +119,12 @@ function UpdateRetentionSettingsModal({
         </div>
         <br />
         <Form onSubmit={onSubmit} submitLabel="Update Settings" onCancel={closeModal}>
+          <NumberField
+            name="orgStandard"
+            label="Org Retention"
+            defaultValue={orgStandard}
+            onChange={setOrgStandard}
+          />
           {hasCategoryFeature(DataCategory.LOG_BYTE, subscription, organization) && (
             <Fragment>
               <NumberField
