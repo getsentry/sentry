@@ -1,10 +1,12 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
 
 from sentry.search.utils import DEVICE_CLASS
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import SnubaRPCError
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
 
@@ -2439,6 +2441,58 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
                 "aggregate"
             ]
         )
+
+    @patch("sentry.utils.snuba_rpc.timeseries_rpc")
+    def test_debug_param_with_error(self, mock_query) -> None:
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+        mock_query.side_effect = SnubaRPCError("test")
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "debug": True,
+            },
+        )
+
+        assert response.status_code == 500, response.content
+        assert response.data["detail"] == "Internal error. Please try again."
+        assert "meta" in response.data
+        assert "debug_info" in response.data["meta"]
+
+        assert (
+            "FUNCTION_COUNT"
+            == response.data["meta"]["debug_info"]["query"]["expressions"][0]["aggregation"][
+                "aggregate"
+            ]
+        )
+
+        # Need to reset the mock, otherwise previous query is still attached
+        mock_query.side_effect = SnubaRPCError("test")
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+
+        assert response.status_code == 500, response.content
+        assert response.data["detail"] == "Internal error. Please try again."
+        assert "meta" not in response.data
+        assert "debug_info" not in response.data
 
     def test_groupby_non_existent_attribute(self):
         self.store_spans(
