@@ -503,30 +503,41 @@ class SnubaEventStream(SnubaProtocolEventStream):
             )
 
             if resp.status == 200:
-                metrics.incr("eventstream.eap.occurrence_insert.success")
+                metrics.incr(
+                    "eventstream.eap.occurrence_insert.success",
+                    tags={"backend": "snuba_http"},
+                )
             else:
                 logger.warning(
-                    "Failed to insert EAP occurrence item",
+                    "Failed to insert EAP occurrence item via Snuba HTTP",
                     extra={
                         "status": resp.status,
                         "organization_id": trace_item.organization_id,
                         "project_id": trace_item.project_id,
                         "item_id": trace_item.item_id.decode("utf-8"),
                         "trace_id": trace_item.trace_id,
+                        "backend": "snuba_http",
                     },
                 )
-                metrics.incr("eventstream.eap.occurrence_insert.failure")
+                metrics.incr(
+                    "eventstream.eap.occurrence_insert.failure",
+                    tags={"backend": "snuba_http"},
+                )
         except Exception:
             logger.exception(
-                "Exception while inserting EAP occurrence item",
+                "Exception while inserting EAP occurrence item via Snuba HTTP",
                 extra={
                     "organization_id": trace_item.organization_id,
                     "project_id": trace_item.project_id,
                     "item_id": trace_item.item_id.decode("utf-8"),
                     "trace_id": trace_item.trace_id,
+                    "backend": "snuba_http",
                 },
             )
-            metrics.incr("eventstream.eap.occurrence_insert.failure")
+            metrics.incr(
+                "eventstream.eap.occurrence_insert.failure",
+                tags={"backend": "snuba_http"},
+            )
 
     def requires_post_process_forwarder(self) -> bool:
         return False
