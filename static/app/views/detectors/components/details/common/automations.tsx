@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Stack} from '@sentry/scraps/layout';
@@ -27,7 +27,6 @@ type Props = {
 export function DetectorDetailsAutomations({detector}: Props) {
   const organization = useOrganization();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {mutate: updateDetector} = useUpdateDetector();
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -65,15 +64,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           setWorkflowIds={setWorkflowIds}
         />
       ),
-      {
-        ariaLabel: t('Connect Alerts'),
-        shouldCloseOnInteractOutside: el => {
-          if (!ref.current) {
-            return true;
-          }
-          return !ref.current.contains(el);
-        },
-      }
+      {ariaLabel: t('Connect Alerts')}
     );
   };
 
@@ -98,7 +89,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
       title={t('Connected Alerts')}
       trailingItems={
         <Button
-          ref={ref}
           size="xs"
           onClick={toggleDrawer}
           disabled={!canEditWorkflowConnections}
@@ -125,7 +115,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
               </Stack>
               <Stack gap="sm" align="center">
                 <Button
-                  ref={ref}
                   size="xs"
                   onClick={toggleDrawer}
                   disabled={!canEditWorkflowConnections}
