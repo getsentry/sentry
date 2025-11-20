@@ -149,7 +149,7 @@ function RowWithScrollIntoView({
     }
   }, [scrollIntoView]);
   return (
-    <SimpleTable.Row variant={props.variant} ref={rowRef} {...props}>
+    <SimpleTable.Row {...props} ref={rowRef}>
       {children}
     </SimpleTable.Row>
   );
