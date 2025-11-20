@@ -3,9 +3,12 @@ Tests for SafeDeleteModel validation that ensures deleted models are added to
 historical_silo_assignments.
 """
 
+from typing import cast
+
 import pytest
 from django.db import connection, models
 
+from sentry.db.postgres.schema import SafePostgresDatabaseSchemaEditor
 from sentry.new_migrations.monkey.models import SafeDeleteModel
 from sentry.new_migrations.monkey.state import DeletionAction, SentryProjectState
 from sentry.testutils.cases import TestCase
@@ -17,7 +20,7 @@ class SafeDeleteModelTest(TestCase):
     historical_silo_assignments.
     """
 
-    def test_delete_model_without_historical_assignment_fails(self):
+    def test_delete_model_without_historical_assignment_fails(self) -> None:
         """
         When deleting a model that is not in historical_silo_assignments and
         cannot be found, SafeDeleteModel should raise a ValueError in test
@@ -52,13 +55,18 @@ class SafeDeleteModelTest(TestCase):
         with connection.schema_editor() as schema_editor:
             # This should raise ValueError because the table is not in historical_silo_assignments
             with pytest.raises(ValueError) as exc_info:
-                operation.database_forwards("sentry", schema_editor, from_state, to_state)
+                operation.database_forwards(
+                    "sentry",
+                    cast(SafePostgresDatabaseSchemaEditor, schema_editor),
+                    from_state,
+                    to_state,
+                )
 
             assert "Cannot determine database for deleted model" in str(exc_info.value)
             assert "sentry_fake_deleted_table_not_in_router" in str(exc_info.value)
             assert "historical_silo_assignments" in str(exc_info.value)
 
-    def test_delete_model_with_move_to_pending_skips_validation(self):
+    def test_delete_model_with_move_to_pending_skips_validation(self) -> None:
         """
         MOVE_TO_PENDING operations should not trigger the validation check
         since the model class still exists at that point.
@@ -78,4 +86,9 @@ class SafeDeleteModelTest(TestCase):
 
         with connection.schema_editor() as schema_editor:
             # Should not raise - MOVE_TO_PENDING exits early
-            operation.database_forwards("sentry", schema_editor, from_state, to_state)
+            operation.database_forwards(
+                "sentry",
+                cast(SafePostgresDatabaseSchemaEditor, schema_editor),
+                from_state,
+                to_state,
+            )
