@@ -538,31 +538,31 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         # These are the actions that are healed from the old email action data blobs
         # It removes targetIdentifier for IssueOwner targets (since that shouldn't be set for those)
-        # It also removes the fallthroughType for Team and Member targets (since that shouldn't be set for those)
+        # It also removes the fallthrough_type for Team and Member targets (since that shouldn't be set for those)
         self.HEALED_EMAIL_ACTION_DATA_BLOBS = [
             # IssueOwners (targetIdentifier is "None")
             {
                 "targetType": "IssueOwners",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "ActiveMembers",
+                "fallthrough_type": "ActiveMembers",
             },
             # NoOne Fallthrough (targetIdentifier is "")
             {
                 "targetType": "IssueOwners",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
+                "fallthrough_type": "NoOne",
             },
             # AllMembers Fallthrough (targetIdentifier is None)
             {
                 "targetType": "IssueOwners",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "AllMembers",
+                "fallthrough_type": "AllMembers",
             },
             # NoOne Fallthrough (targetIdentifier is "None")
             {
                 "targetType": "IssueOwners",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
+                "fallthrough_type": "NoOne",
             },
             # ActiveMembers Fallthrough
             {
@@ -587,10 +587,8 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob(self) -> None:
         for expected, healed in zip(EMAIL_ACTION_DATA_BLOBS, self.HEALED_EMAIL_ACTION_DATA_BLOBS):
             action_data = pop_keys_from_data_blob(expected, Action.Type.EMAIL)
-
             # pop the targetType from the action_data
             target_type = EmailActionHelper.get_target_type_object(action_data.pop("targetType"))
-
             # Handle all possible targetIdentifier formats
             target_identifier: str | None = str(expected["targetIdentifier"])
             if target_identifier in ("None", "", None):
@@ -605,7 +603,6 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
                 },
             )
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
-
             assert blob == healed
 
 

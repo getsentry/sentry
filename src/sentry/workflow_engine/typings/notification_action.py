@@ -99,7 +99,7 @@ class EmailFieldMappingKeys(StrEnum):
     """
 
     FALLTHROUGH_TYPE_KEY = "fallthrough_type"
-    TARGET_TYPE_KEY = "target_type"
+    TARGET_TYPE_KEY = "targetType"
 
 
 class ActionFieldMapping(TypedDict):
