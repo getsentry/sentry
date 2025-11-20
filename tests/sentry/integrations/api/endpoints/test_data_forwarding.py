@@ -356,7 +356,7 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         assert response.data["provider"] == DataForwarderProviderSlug.SEGMENT
 
         data_forwarder = DataForwarder.objects.get(id=response.data["id"])
-        assert data_forwarder.project.count() == 0
+        assert data_forwarder.projects.count() == 0
 
     def test_create_sqs_fifo_queue_validation(self) -> None:
         payload = {

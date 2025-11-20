@@ -69,17 +69,6 @@ class DataForwarderSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert "provider" in serializer.errors
 
-        # Missing project_ids
-        serializer = DataForwarderSerializer(
-            data={
-                "organization_id": self.organization.id,
-                "provider": DataForwarderProviderSlug.SEGMENT,
-                "config": {"write_key": "test_key"},
-            }
-        )
-        assert not serializer.is_valid()
-        assert "project_ids" in serializer.errors
-
     def test_provider_choice_validation(self) -> None:
         # Valid providers
         provider_configs = {
