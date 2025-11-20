@@ -12,7 +12,7 @@ interface Props {
 const Context = createContext<{
   currentReplayIndex: number;
   replays: ReplayListRecord[] | undefined;
-}>({currentReplayIndex: -1, replays: []});
+}>({currentReplayIndex: -1, replays: undefined});
 
 export function ReplayPlaylistProvider({children, currentReplay, replays}: Props) {
   const currentReplayIndex = useMemo(
