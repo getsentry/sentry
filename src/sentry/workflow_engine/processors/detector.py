@@ -106,16 +106,16 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
 
 @dataclass
 class EventDetectors:
-    issue_stream_detector: Detector
+    issue_stream_detector: Detector | None = None
     event_detector: Detector | None = None
 
     @cached_property
-    def preferred_detector(self) -> Detector:
+    def preferred_detector(self) -> Detector | None:
         """
         The preferred detector is the one that should be used for the event,
         if we need to use a singular detector (for example, in logging)
         """
-        return self.event_detector if self.event_detector else self.issue_stream_detector
+        return self.event_detector or self.issue_stream_detector
 
     @cached_property
     def detectors(self) -> list[Detector]:
@@ -133,11 +133,20 @@ def get_detectors_for_event(
 
     You can pass in an optional detector to include in the list. This is used for Activity updates.
     """
-    detectors = EventDetectors(
-        issue_stream_detector=Detector.get_issue_stream_detector_for_project(
-            event_data.event.project_id
+    detectors = EventDetectors()
+    try:
+        detectors.issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+            event_data.group.project_id
         )
-    )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        logger.exception(
+            "Issue stream detector not found for event",
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
+        )
 
     if detector:
         detectors.event_detector = detector

@@ -454,7 +454,7 @@ def process_workflows(
         event_detectors = get_detectors_for_event(event_data, detector)
 
         if not event_detectors.preferred_detector:
-            raise ValueError("Unable to determine the detector for the event")
+            raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
         log_context.add_extras(detector_id=event_detectors.preferred_detector.id)
         organization = event_data.event.project.organization
