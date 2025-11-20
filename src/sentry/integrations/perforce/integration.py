@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -562,8 +563,10 @@ class PerforceIntegrationProvider(IntegrationProvider):
         )
 
         # Create unique external_id per organization to ensure private integrations
-        # Format: "org-{org_id}:{p4port}" e.g. "org-123:ssl:perforce.company.com:1666"
-        external_id = f"org-{organization_id}:{p4port}"
+        # Use hash to avoid exceeding 64-character external_id limit with long hostnames
+        # Format: "perforce-org-{org_id}-{hash}" where hash is first 8 chars of SHA256(p4port)
+        p4port_hash = hashlib.sha256(p4port.encode("utf-8")).hexdigest()[:8]
+        external_id = f"perforce-org-{organization_id}-{p4port_hash}"
 
         # Store credentials in Integration.metadata
         metadata = {
