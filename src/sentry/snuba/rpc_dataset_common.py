@@ -108,6 +108,18 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
     return False
 
 
+def log_rpc_request(message: str, rpc_request):
+    rpc_debug_json = json.loads(MessageToJson(rpc_request))
+    logger.info(
+        message,
+        extra={
+            "rpc_query": rpc_debug_json,
+            "referrer": rpc_request.meta.referrer,
+            "trace_item_type": rpc_request.meta.trace_item_type,
+        },
+    )
+
+
 class RPCBase:
     """Utility Methods"""
 
@@ -322,6 +334,8 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
+        if debug:
+            log_rpc_request("Running a table query with debug on", rpc_request)
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
@@ -531,6 +545,8 @@ class RPCBase:
     def _run_timeseries_rpc(
         self, debug: bool, rpc_request: TimeSeriesRequest
     ) -> TimeSeriesResponse:
+        if debug:
+            log_rpc_request("Running a timeseries query with debug on", rpc_request)
         try:
             return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
@@ -793,10 +809,19 @@ class RPCBase:
             requests.append(other_request)
 
         """Run the query"""
-        timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
-        rpc_response = timeseries_rpc_response[0]
-        if len(timeseries_rpc_response) > 1:
-            other_response = timeseries_rpc_response[1]
+        if params.debug:
+            for rpc_request in requests:
+                log_rpc_request("Running a top events query with debug on", rpc_request)
+        try:
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+            rpc_response = timeseries_rpc_response[0]
+            if len(timeseries_rpc_response) > 1:
+                other_response = timeseries_rpc_response[1]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if params.debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
 
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)

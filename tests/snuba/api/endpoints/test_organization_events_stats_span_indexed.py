@@ -2442,6 +2442,68 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             ]
         )
 
+    def test_debug_with_top_events(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "field": ["transaction"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "topEvents": 2,
+                "debug": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert (
+            "FUNCTION_COUNT"
+            == response.data["bar"]["meta"]["debug_info"]["query"]["expressions"][0]["aggregation"][
+                "aggregate"
+            ]
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "field": ["transaction"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "topEvents": 2,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert "debug_info" not in response.data["bar"]["meta"]
+
     @patch("sentry.utils.snuba_rpc.timeseries_rpc")
     def test_debug_param_with_error(self, mock_query) -> None:
         self.user = self.create_user("superuser@example.com", is_superuser=True)
