@@ -492,8 +492,8 @@ class SymbolicatorSession:
         self.worker_id = uuid.uuid4().hex
 
 
-# We need to do this when running tests to make symbolicator reach Objectstore
 def maybe_rewrite_objectstore_url(url: str) -> str:
+    """We need to do this when running tests to make symbolicator reach Objectstore."""
     if settings.IS_DEV:
         url = url.replace("127.0.0.1", "objectstore")
     return url
