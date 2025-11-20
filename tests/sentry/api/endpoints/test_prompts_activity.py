@@ -89,10 +89,6 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 
-    def test_dismiss_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_dismiss()
-
     def test_snooze(self) -> None:
         data = {
             "organization_id": self.org.id,
@@ -119,10 +115,6 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "snoozed_ts" in resp.data["data"]
 
-    def test_snooze_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_snooze()
-
     def test_visible(self) -> None:
         data = {
             "organization_id": self.org.id,
@@ -148,10 +140,6 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert resp.data["data"].get("dismissed_ts") is None
         assert resp.data["data"].get("snoozed_ts") is None
-
-    def test_visible_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_visible()
 
     def test_visible_after_dismiss(self) -> None:
         data = {
