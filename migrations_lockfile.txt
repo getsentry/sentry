@@ -9,7 +9,7 @@ discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
-feedback: 0006_safe_del_feedback_model
+feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
@@ -27,16 +27,16 @@ preprod: 0018_add_preprod_artifact_app_icon_id_field
 
 prevent: 0002_alter_integration_id_not_null
 
-releases: 0003_real_delete_dual_written_commit_tables
+releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1006_drop_legacy_incidentseen_incidentsubscription
+sentry: 1007_cleanup_failed_safe_deletes
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0003_use_encrypted_char_field
 
-uptime: 0048_delete_uptime_status_columns
+uptime: 0049_cleanup_failed_safe_deletes
 
-workflow_engine: 0101_remove_is_single_written_field
+workflow_engine: 0102_cleanup_failed_safe_deletes
