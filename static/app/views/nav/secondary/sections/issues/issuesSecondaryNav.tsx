@@ -64,7 +64,7 @@ export function IssuesSecondaryNav() {
               to={`${baseUrl}/dynamic-groups/`}
               analyticsItemName="issues_dynamic_groups"
             >
-              {t('Dynamic Groups')}
+              {t('Top Issues')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}

@@ -397,7 +397,7 @@ function DynamicGrouping() {
             to: `/organizations/${organization.slug}/issues/`,
           },
           {
-            label: t('Dynamic Grouping'),
+            label: t('Top Issues'),
           },
         ]}
       />
@@ -405,7 +405,7 @@ function DynamicGrouping() {
       <PageHeader>
         <Flex justify="between" align="start" gap="sm">
           <div style={{flex: 1}}>
-            <Heading as="h1">{t('Dynamic Grouping')}</Heading>
+            <Heading as="h1">{t('Top Issues')}</Heading>
           </div>
           {clusterData.length > 0 && !showInput && (
             <Flex gap="sm" style={{flexShrink: 0}}>
