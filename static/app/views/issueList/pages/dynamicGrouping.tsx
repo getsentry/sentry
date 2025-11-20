@@ -8,6 +8,8 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Disclosure} from 'sentry/components/core/disclosure';
+import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -262,7 +264,8 @@ function DynamicGrouping() {
   const [clusterData, setClusterData] = useState<ClusterSummary[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(true);
-  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
+  const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
+  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
 
   // Load from localStorage on mount
@@ -354,6 +357,12 @@ function DynamicGrouping() {
   const filteredAndSortedClusters = useMemo(() => {
     return [...clusterData]
       .filter((cluster: ClusterSummary) => {
+        // Filter by fixability score - hide clusters below threshold
+        const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
+        if (fixabilityScore < minFixabilityScore) {
+          return false;
+        }
+
         // If "Assigned to Me" filter is enabled, only show clusters assigned to the user
         if (filterByAssignedToMe) {
           return isClusterAssignedToMe(cluster);
@@ -364,7 +373,7 @@ function DynamicGrouping() {
         (a: ClusterSummary, b: ClusterSummary) =>
           (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
       );
-  }, [clusterData, filterByAssignedToMe, isClusterAssignedToMe]);
+  }, [clusterData, filterByAssignedToMe, minFixabilityScore, isClusterAssignedToMe]);
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
@@ -391,9 +400,6 @@ function DynamicGrouping() {
         <Flex justify="between" align="start" gap="sm">
           <div style={{flex: 1}}>
             <Heading as="h1">{t('Dynamic Grouping')}</Heading>
-            <Subheading variant="muted">
-              {t('AI-powered clustering of related issues across your organization.')}
-            </Subheading>
           </div>
           {clusterData.length > 0 && !showInput && (
             <Flex gap="sm" style={{flexShrink: 0}}>
@@ -439,6 +445,17 @@ function DynamicGrouping() {
         </Container>
       ) : (
         <Fragment>
+          <Flex marginBottom="lg">
+            <Text size="sm" variant="muted">
+              {tn(
+                'Viewing %s issue in %s cluster',
+                'Viewing %s issues across %s clusters',
+                totalIssues,
+                filteredAndSortedClusters.length
+              )}
+            </Text>
+          </Flex>
+
           <Container
             padding="md"
             border="primary"
@@ -446,27 +463,41 @@ function DynamicGrouping() {
             marginBottom="lg"
             background="primary"
           >
-            <Flex gap="md" align="center" justify="between">
-              <Flex gap="sm" align="center">
-                <Checkbox
-                  checked={filterByAssignedToMe}
-                  onChange={e => setFilterByAssignedToMe(e.target.checked)}
-                  aria-label={t('Show only issues assigned to me')}
-                  size="sm"
-                />
-                <Text size="sm" variant="muted">
-                  {t('Only show issues assigned to me')}
+            <Disclosure>
+              <Disclosure.Title>
+                <Text size="sm" bold>
+                  {t('More Filters')}
                 </Text>
-              </Flex>
-              <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
-                {tn(
-                  'Viewing %s issue in %s cluster',
-                  'Viewing %s issues across %s clusters',
-                  totalIssues,
-                  filteredAndSortedClusters.length
-                )}
-              </Text>
-            </Flex>
+              </Disclosure.Title>
+              <Disclosure.Content>
+                <AdvancedFilterContent>
+                  <Flex gap="sm" align="center">
+                    <Checkbox
+                      checked={filterByAssignedToMe}
+                      onChange={e => setFilterByAssignedToMe(e.target.checked)}
+                      aria-label={t('Show only issues assigned to me')}
+                      size="sm"
+                    />
+                    <Text size="sm" variant="muted">
+                      {t('Only show issues assigned to me')}
+                    </Text>
+                  </Flex>
+                  <Flex gap="sm" align="center">
+                    <Text size="sm" variant="muted">
+                      {t('Minimum fixability score (%)')}
+                    </Text>
+                    <NumberInput
+                      min={0}
+                      max={100}
+                      value={minFixabilityScore}
+                      onChange={value => setMinFixabilityScore(value ?? 0)}
+                      aria-label={t('Minimum fixability score')}
+                      size="sm"
+                    />
+                  </Flex>
+                </AdvancedFilterContent>
+              </Disclosure.Content>
+            </Disclosure>
           </Container>
 
           <CardsGrid>
@@ -493,13 +524,7 @@ const PageContainer = styled('div')`
 `;
 
 const PageHeader = styled('div')`
-  margin-bottom: ${space(4)};
-`;
-
-const Subheading = styled(Text)`
-  margin-top: ${space(1)};
-  font-size: 15px;
-  line-height: 1.5;
+  margin-bottom: ${space(2)};
 `;
 
 const CardsGrid = styled('div')`
@@ -683,6 +708,13 @@ const JsonTextarea = styled('textarea')`
   &::placeholder {
     color: ${p => p.theme.subText};
   }
+`;
+
+const AdvancedFilterContent = styled('div')`
+  padding: ${space(2)} 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
 `;
 
 export default DynamicGrouping;
