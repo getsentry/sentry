@@ -32,6 +32,7 @@ type Props = {
   onChange: (value: any) => any;
   organization: Organization;
   value: any;
+  ariaLabel?: string;
   disabled?: boolean;
   onInputChange?: (value: any) => any;
   placeholder?: string;
@@ -174,7 +175,7 @@ class SelectMembers extends Component<Props, State> {
   };
 
   render() {
-    const {placeholder, styles} = this.props;
+    const {placeholder, styles, ariaLabel} = this.props;
 
     // If memberList is still loading we need to disable a placeholder Select,
     // otherwise `react-select` will call `loadOptions` and prematurely load
@@ -185,6 +186,7 @@ class SelectMembers extends Component<Props, State> {
 
     return (
       <StyledSelectControl
+        aria-label={ariaLabel}
         filterOption={(option: FilterOption<MentionableUser>, filterText: string) =>
           option?.data?.searchKey?.indexOf(filterText) > -1
         }

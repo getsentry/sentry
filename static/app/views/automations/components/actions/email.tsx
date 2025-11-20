@@ -130,7 +130,7 @@ function IdentifierField() {
     return (
       <SelectWrapper>
         <SelectMembers
-          aria-label={t('User')}
+          ariaLabel={t('User')}
           organization={organization}
           key={`${actionId}.config.targetIdentifier`}
           value={action.config.targetIdentifier}
