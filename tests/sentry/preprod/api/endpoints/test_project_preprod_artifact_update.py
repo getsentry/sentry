@@ -215,7 +215,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_missing_dsym_binaries_empty_array(self) -> None:
         """Test that empty missing_dsym_binaries array converts to has_missing_dsym_binaries=False."""
-        apple_info = {"missing_dsym_binaries": []}
+        apple_info: dict[str, Any] = {"missing_dsym_binaries": []}
         data = {
             "artifact_type": 1,
             "apple_app_info": apple_info,
@@ -235,7 +235,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         """Test that non-empty missing_dsym_binaries array converts to has_missing_dsym_binaries=True."""
         # Even a large list should just convert to True
         large_list = [f"VeryLongLibraryName{i:04d}.dylib" for i in range(40)]
-        apple_info = {"missing_dsym_binaries": large_list}
+        apple_info: dict[str, Any] = {"missing_dsym_binaries": large_list}
         data = {
             "artifact_type": 1,
             "apple_app_info": apple_info,
