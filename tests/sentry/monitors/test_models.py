@@ -313,39 +313,33 @@ class MonitorEnvironmentTestCase(TestCase):
         assert fingerprint1 == f"crons:{monitor_env1.id}"
         assert fingerprint2 == f"crons:{monitor_env2.id}"
 
-    def test_ensure_environment_inherits_muted_state(self):
-        """Test that new environments inherit is_muted from their monitor."""
-        # Test with muted monitor
-        muted_monitor = self.create_monitor(is_muted=True)
+    def test_ensure_environment_matches_monitor_muted_state(self):
+        """Test that new environments match the monitor's computed is_muted state.
+
+        When creating a new environment, it will be muted if the monitor's is_muted
+        property returns True (i.e., all existing environments are muted).
+        """
+        # Create monitor with all existing environments muted
+        muted_monitor = self.create_monitor()
+        # Create first environment as muted
+        self.create_monitor_environment(
+            monitor=muted_monitor,
+            environment_id=self.environment.id,
+            is_muted=True,
+        )
+
+        # New environment matches the monitor's computed muted state (all envs muted = True)
         muted_env = MonitorEnvironment.objects.ensure_environment(
             self.project, muted_monitor, "production"
         )
         assert muted_env.is_muted is True
 
-        # Test with unmuted monitor
-        unmuted_monitor = self.create_monitor(is_muted=False)
+        # Test with monitor that has no muted environments
+        unmuted_monitor = self.create_monitor()
         unmuted_env = MonitorEnvironment.objects.ensure_environment(
             self.project, unmuted_monitor, "staging"
         )
         assert unmuted_env.is_muted is False
-
-    def test_ensure_environment_does_not_override_existing(self):
-        """Test that ensure_environment doesn't override existing environment's is_muted."""
-        monitor = self.create_monitor(is_muted=True)
-
-        # Create an environment with is_muted=False
-        existing_env = self.create_monitor_environment(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            is_muted=False,
-        )
-
-        # Call ensure_environment again - should return existing
-        env = MonitorEnvironment.objects.ensure_environment(
-            self.project, monitor, self.environment.name
-        )
-        assert env.id == existing_env.id
-        assert env.is_muted is False  # Should not be overridden
 
 
 class CronMonitorDataSourceHandlerTest(TestCase):
@@ -438,12 +432,12 @@ class CronMonitorDataSourceHandlerTest(TestCase):
             CronMonitorDataSourceHandler.get_current_instance_count(self.organization)
 
 
-class MonitorEnsureIsMutedTestCase(TestCase):
-    """Test the ensure_is_muted() dual-write logic for Monitor."""
+class MonitorIsMutedPropertyTestCase(TestCase):
+    """Test the is_muted computed property for Monitor."""
 
-    def test_ensure_is_muted_all_environments_muted(self):
-        """Test that monitor becomes muted when all environments are muted."""
-        monitor = self.create_monitor(is_muted=False)
+    def test_is_muted_all_environments_muted(self):
+        """Test that monitor.is_muted returns True when all environments are muted."""
+        monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
         env2 = self.create_environment(name="staging")
 
@@ -459,16 +453,12 @@ class MonitorEnsureIsMutedTestCase(TestCase):
             is_muted=True,
         )
 
-        # Call ensure_is_muted
-        monitor.ensure_is_muted()
-
-        # Verify monitor is now muted
-        monitor.refresh_from_db()
+        # Verify monitor.is_muted is True
         assert monitor.is_muted is True
 
-    def test_ensure_is_muted_some_environments_unmuted(self):
-        """Test that monitor becomes unmuted when any environment is unmuted."""
-        monitor = self.create_monitor(is_muted=True)
+    def test_is_muted_some_environments_unmuted(self):
+        """Test that monitor.is_muted returns False when any environment is unmuted."""
+        monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
         env2 = self.create_environment(name="staging")
 
@@ -484,16 +474,12 @@ class MonitorEnsureIsMutedTestCase(TestCase):
             is_muted=False,
         )
 
-        # Call ensure_is_muted
-        monitor.ensure_is_muted()
-
-        # Verify monitor is now unmuted
-        monitor.refresh_from_db()
+        # Verify monitor.is_muted is False
         assert monitor.is_muted is False
 
-    def test_ensure_is_muted_all_environments_unmuted(self):
-        """Test that monitor becomes unmuted when all environments are unmuted."""
-        monitor = self.create_monitor(is_muted=True)
+    def test_is_muted_all_environments_unmuted(self):
+        """Test that monitor.is_muted returns False when all environments are unmuted."""
+        monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
         env2 = self.create_environment(name="staging")
 
@@ -509,34 +495,18 @@ class MonitorEnsureIsMutedTestCase(TestCase):
             is_muted=False,
         )
 
-        # Call ensure_is_muted
-        monitor.ensure_is_muted()
-
-        # Verify monitor is unmuted
-        monitor.refresh_from_db()
+        # Verify monitor.is_muted is False
         assert monitor.is_muted is False
 
-    def test_ensure_is_muted_no_environments(self):
-        """Test that monitor is_muted remains unchanged when there are no environments."""
-        monitor = self.create_monitor(is_muted=True)
+    def test_is_muted_no_environments(self):
+        """Test that monitor.is_muted returns False when there are no environments."""
+        monitor = self.create_monitor()
+        assert monitor.is_muted is False
 
-        # Call ensure_is_muted with no environments
-        monitor.ensure_is_muted()
-
-        # Verify monitor is_muted is unchanged
-        monitor.refresh_from_db()
-        assert monitor.is_muted is True
-
-        # Also test with an unmuted monitor
-        monitor2 = self.create_monitor(is_muted=False)
-        monitor2.ensure_is_muted()
-        monitor2.refresh_from_db()
-        assert monitor2.is_muted is False
-
-    def test_ensure_is_muted_single_environment(self):
-        """Test ensure_is_muted works correctly with a single environment."""
+    def test_is_muted_single_environment(self):
+        """Test is_muted works correctly with a single environment."""
         # Test with muted environment
-        monitor = self.create_monitor(is_muted=False)
+        monitor = self.create_monitor()
         env = self.create_environment(name="production")
         self.create_monitor_environment(
             monitor=monitor,
@@ -544,12 +514,10 @@ class MonitorEnsureIsMutedTestCase(TestCase):
             is_muted=True,
         )
 
-        monitor.ensure_is_muted()
-        monitor.refresh_from_db()
         assert monitor.is_muted is True
 
         # Test with unmuted environment
-        monitor2 = self.create_monitor(is_muted=True)
+        monitor2 = self.create_monitor()
         env2 = self.create_environment(name="staging")
         self.create_monitor_environment(
             monitor=monitor2,
@@ -557,39 +525,4 @@ class MonitorEnsureIsMutedTestCase(TestCase):
             is_muted=False,
         )
 
-        monitor2.ensure_is_muted()
-        monitor2.refresh_from_db()
         assert monitor2.is_muted is False
-
-    def test_ensure_is_muted_unmuting_one_environment_unmutes_monitor(self):
-        """Test that unmuting one environment when all were muted also unmutes the monitor."""
-        # Start with monitor and all environments muted
-        monitor = self.create_monitor(is_muted=True)
-        env1 = self.create_environment(name="production")
-        env2 = self.create_environment(name="staging")
-
-        monitor_env1 = self.create_monitor_environment(
-            monitor=monitor,
-            environment_id=env1.id,
-            is_muted=True,
-        )
-        monitor_env2 = self.create_monitor_environment(
-            monitor=monitor,
-            environment_id=env2.id,
-            is_muted=True,
-        )
-
-        # Verify initial state - all muted
-        assert monitor.is_muted is True
-        assert monitor_env1.is_muted is True
-        assert monitor_env2.is_muted is True
-
-        # Unmute one environment
-        monitor_env1.update(is_muted=False)
-
-        # Call ensure_is_muted
-        monitor.ensure_is_muted()
-
-        # Verify monitor is now unmuted
-        monitor.refresh_from_db()
-        assert monitor.is_muted is False

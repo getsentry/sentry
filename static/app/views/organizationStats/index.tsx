@@ -7,7 +7,6 @@ import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -19,15 +18,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {
-  DataCategory,
-  DataCategoryExact,
-  type DataCategoryInfo,
-  type PageFilters,
-} from 'sentry/types/core';
+import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -39,7 +33,6 @@ import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {ChartDataTransform} from './usageChart';
@@ -335,29 +328,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     );
   }
 
-  renderEstimationDisclaimer() {
-    if (
-      this.dataCategory === DATA_CATEGORY_INFO.profile_duration.plural ||
-      this.dataCategory === DATA_CATEGORY_INFO.profile_duration_ui.plural
-    ) {
-      return (
-        <EstimationText data-test-id="estimation-text">
-          {tct(
-            '*This is an estimation, and may not be 100% accurate. [estimateLink: How we calculate estimated usage]',
-            {
-              estimateLink: (
-                <ExternalLink
-                  href={`${getPricingDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}#how-can-i-estimate-usage-for-continuous-profiling-on-the-backend`}
-                />
-              ),
-            }
-          )}
-        </EstimationText>
-      );
-    }
-    return null;
-  }
-
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
@@ -384,10 +354,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             <div>
               <Layout.Main width="full">
                 <HookHeader organization={organization} />
-                <ControlsWrapper>
-                  {this.renderProjectPageControl()}
-                  {this.renderEstimationDisclaimer()}
-                </ControlsWrapper>
+                <ControlsWrapper>{this.renderProjectPageControl()}</ControlsWrapper>
                 {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
@@ -469,10 +436,4 @@ const PageControl = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const EstimationText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: ${p => p.theme.text.lineHeightBody};
 `;
