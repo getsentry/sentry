@@ -103,7 +103,7 @@ def execute_table_query(
     except client.ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail else str(e.body)}
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
         raise
 
 
