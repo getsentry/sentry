@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from contextlib import contextmanager
 from typing import Any
 
 from P4 import P4, P4Exception
@@ -17,7 +18,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -40,33 +41,40 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Initialize Perforce client.
 
         Args:
-            integration: Integration instance
-            org_integration: Organization integration instance containing per-org config
+            integration: Integration instance containing credentials in metadata
+            org_integration: Organization integration instance (required for API compatibility)
         """
         self.integration = integration
         self.org_integration = org_integration
         self.P4 = P4
         self.P4Exception = P4Exception
 
-        # Extract configuration from org_integration
+        # Extract configuration from integration.metadata
         if not org_integration:
             raise IntegrationError("Organization Integration is required for Perforce")
 
-        config = org_integration.config
-        self.p4port = config.get("p4port", "localhost:1666")
-        self.user = config.get("user", "")
-        self.password = config.get("password")
-        self.client_name = config.get("client")
-        self.ssl_fingerprint = config.get("ssl_fingerprint")
+        metadata = integration.metadata
+        self.p4port = metadata.get("p4port", "localhost:1666")
+        self.user = metadata.get("user", "")
+        self.password = metadata.get("password")
+        self.client_name = metadata.get("client")
+        self.ssl_fingerprint = metadata.get("ssl_fingerprint")
 
+    @contextmanager
     def _connect(self):
         """
-        Create and connect a P4 instance with SSL support.
+        Context manager for P4 connections with automatic cleanup.
+
+        Yields a connected P4 instance and ensures disconnection on exit.
 
         Uses P4Python API:
         - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
         - p4.run_trust(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_trust.html
         - p4.run_login(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_login.html
+
+        Example:
+            with self._connect() as p4:
+                result = p4.run("info")
         """
         p4 = self.P4()
         p4.port = self.p4port
@@ -78,27 +86,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         p4.exception_level = 1  # Only errors raise exceptions
 
+        # Connect to Perforce server
         try:
             p4.connect()
-
-            if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
-                try:
-                    p4.run_trust("-i", self.ssl_fingerprint)
-                except self.P4Exception as trust_error:
-                    p4.disconnect()
-                    raise ApiError(
-                        f"Failed to establish SSL trust: {trust_error}. "
-                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                    )
-
-            if self.password:
-                try:
-                    p4.run_login()
-                except self.P4Exception as login_error:
-                    p4.disconnect()
-                    raise ApiError(f"Failed to authenticate with Perforce: {login_error}")
-
-            return p4
         except self.P4Exception as e:
             error_msg = str(e)
             # Provide helpful error message for SSL issues
@@ -109,13 +99,41 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 )
             raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
-    def _disconnect(self, p4):
-        """Disconnect P4 instance."""
+        # Establish SSL trust if needed
+        if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
+            try:
+                p4.run_trust("-i", self.ssl_fingerprint)
+            except self.P4Exception as trust_error:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiError(
+                    f"Failed to establish SSL trust: {trust_error}. "
+                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                )
+
+        # Authenticate if password provided
+        if self.password:
+            try:
+                p4.run_login()
+            except self.P4Exception as login_error:
+                try:
+                    p4.disconnect()
+                except Exception:
+                    pass
+                raise ApiUnauthorized(f"Failed to authenticate with Perforce: {login_error}")
+
         try:
-            if p4.connected():
-                p4.disconnect()
-        except Exception:
-            pass
+            yield p4
+        finally:
+            # Ensure cleanup
+            try:
+                if p4.connected():
+                    p4.disconnect()
+            except Exception as e:
+                # Log disconnect failures as they may indicate connection leaks
+                logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
@@ -132,19 +150,17 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             File info dict if exists, None otherwise
         """
-        p4 = self._connect()
-        try:
-            depot_path = self.build_depot_path(repo, path)
-            result = p4.run("files", depot_path)
+        with self._connect() as p4:
+            try:
+                depot_path = self.build_depot_path(repo, path)
+                result = p4.run("files", depot_path)
 
-            if result and len(result) > 0:
-                return result[0]
-            return None
+                if result and len(result) > 0:
+                    return result[0]
+                return None
 
-        except self.P4Exception:
-            return None
-        finally:
-            self._disconnect(p4)
+            except self.P4Exception:
+                return None
 
     def build_depot_path(self, repo: Repository, path: str, stream: str | None = None) -> str:
         """
@@ -212,8 +228,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Returns:
             List of depot info dictionaries
         """
-        p4 = self._connect()
-        try:
+        with self._connect() as p4:
             depots = p4.run("depots")
             return [
                 {
@@ -223,8 +238,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 }
                 for depot in depots
             ]
-        finally:
-            self._disconnect(p4)
 
     def get_user(self, username: str) -> dict[str, Any] | None:
         """
@@ -238,9 +251,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns:
             User info dictionary with Email and FullName fields, or None if not found
+
+        Raises:
+            P4Exception: For connection or transient errors that may be retryable
         """
-        p4 = self._connect()
-        try:
+        with self._connect() as p4:
             result = p4.run("user", "-o", username)
             if result and len(result) > 0:
                 user_info = result[0]
@@ -249,11 +264,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     "full_name": user_info.get("FullName", ""),
                     "username": user_info.get("User", username),
                 }
+            # User not found - return None (not an error condition)
             return None
-        except self.P4Exception:
-            return None
-        finally:
-            self._disconnect(p4)
 
     def get_changes(
         self, depot_path: str, max_changes: int = 20, start_cl: str | None = None
