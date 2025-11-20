@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge/tag';
 import {Button} from '@sentry/scraps/button';
 import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout/flex';
@@ -175,16 +176,20 @@ export function SizeCompareItemDiffTable({
         {currentDiffItems.map((diffItem, index) => {
           let changeTypeLabel: string;
           let changeTypeIcon: React.ReactNode;
+          let changeTypeTagType: 'success' | 'error' | 'warning';
           switch (diffItem.type) {
             case 'added':
+              changeTypeTagType = 'error';
               changeTypeLabel = t('Added');
               changeTypeIcon = <IconAdd />;
               break;
             case 'removed':
+              changeTypeTagType = 'success';
               changeTypeLabel = t('Removed');
               changeTypeIcon = <IconSubtract />;
               break;
             default:
+              changeTypeTagType = 'warning';
               changeTypeLabel = t('Modified');
               changeTypeIcon = <IconFix />;
               break;
@@ -193,21 +198,16 @@ export function SizeCompareItemDiffTable({
           return (
             <SimpleTable.Row key={startIndex + index}>
               <SimpleTable.RowCell>
-                <ChangeTag changeType={diffItem.type}>
-                  {changeTypeIcon}
+                <Tag icon={changeTypeIcon} type={changeTypeTagType}>
                   {changeTypeLabel}
-                </ChangeTag>
+                </Tag>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
                 <Tooltip
                   title={
                     diffItem.path ? (
-                      <Flex
-                        align="start"
-                        gap="xs"
-                        style={{maxWidth: '100%', textAlign: 'left'}}
-                      >
-                        <FilePathTooltipText>{diffItem.path}</FilePathTooltipText>
+                      <Flex align="start" gap="xs">
+                        <Text monospace>{diffItem.path}</Text>
                         <CopyToClipboardButton
                           borderless
                           size="zero"
@@ -288,48 +288,13 @@ const SimpleTableHeader = styled(SimpleTable.Header)`
   border-right: 0px;
 `;
 
-const ChangeTag = styled('span')<{changeType: DiffType}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border-radius: 3px;
-  font-size: ${p => p.theme.fontSize.sm};
-  background-color: ${p => {
-    switch (p.changeType) {
-      case 'increased':
-      case 'decreased':
-        return p.theme.warningFocus + '14'; // Add transparency (14 = 7% opacity)
-      case 'added':
-        return p.theme.dangerFocus + '14'; // Add transparency (14 = 7% opacity)
-      case 'removed':
-        return p.theme.successFocus + '14'; // Add transparency (14 = 7% opacity)
-      default:
-        throw new Error(`Invalid change type: ${p.changeType}`);
-    }
-  }};
-  color: ${p => {
-    switch (p.changeType) {
-      case 'increased':
-      case 'decreased':
-        return p.theme.warningText;
-      case 'added':
-        return p.theme.dangerText;
-      case 'removed':
-        return p.theme.successText;
-      default:
-        throw new Error(`Invalid change type: ${p.changeType}`);
-    }
-  }};
-`;
-
-const FilePathTooltipText = styled('span')`
-  flex: 1;
-  overflow-wrap: break-word;
-  word-break: break-all;
-  white-space: normal;
-  user-select: text;
-`;
+// const FilePathTooltipText = styled('span')`
+//   flex: 1;
+//   overflow-wrap: break-word;
+//   word-break: break-all;
+//   white-space: normal;
+//   user-select: text;
+// `;
 
 const ChangeAmountCell = styled(SimpleTable.RowCell)<{changeType: DiffType}>`
   align-items: end;

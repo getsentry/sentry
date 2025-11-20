@@ -246,7 +246,18 @@ interface SizeMetricDiffItem {
   metrics_artifact_type: MetricsArtifactType;
 }
 
+export type InsightStatus = 'new' | 'resolved' | 'unresolved';
+
+export interface InsightDiffItem {
+  file_diffs: DiffItem[];
+  group_diffs: DiffItem[];
+  insight_type: string;
+  status: InsightStatus;
+  total_savings_change: number;
+}
+
 export interface SizeAnalysisComparisonResults {
   diff_items: DiffItem[];
+  insight_diff_items: InsightDiffItem[];
   size_metric_diff_item: SizeMetricDiffItem;
 }
