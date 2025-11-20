@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
@@ -380,7 +380,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 @scopedstats.timer()
 def _get_associated_workflows(
-    detectors: list[Detector], environment: Environment | None, event_data: WorkflowEventData
+    detectors: Collection[Detector], environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
@@ -453,7 +453,7 @@ def process_workflows(
     try:
         event_detectors = get_detectors_for_event(event_data, detector)
 
-        if not event_detectors.preferred_detector:
+        if not event_detectors:
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
         log_context.add_extras(detector_id=event_detectors.preferred_detector.id)

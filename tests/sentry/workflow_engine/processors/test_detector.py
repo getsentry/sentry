@@ -870,22 +870,25 @@ class TestGetDetectorsForEvent(TestCase):
         )
         event_data = WorkflowEventData(event=activity, group=self.group)
         result = get_detectors_for_event(event_data, detector=self.detector)
+        assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == [self.issue_stream_detector, self.detector]
+        assert result.detectors == {self.issue_stream_detector, self.detector}
 
     def test_error_event(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
+        assert result is not None
         assert result.preferred_detector == self.error_detector
-        assert result.detectors == [self.issue_stream_detector, self.error_detector]
+        assert result.detectors == {self.issue_stream_detector, self.error_detector}
 
     def test_metric_issue(self) -> None:
         self.group_event.occurrence = self.occurrence
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
+        assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == [self.issue_stream_detector, self.detector]
+        assert result.detectors == {self.issue_stream_detector, self.detector}
 
     def test_event_without_detector(self) -> None:
         occurrence = IssueOccurrence(
@@ -907,16 +910,16 @@ class TestGetDetectorsForEvent(TestCase):
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
+        assert result is not None
         assert result.preferred_detector == self.issue_stream_detector
-        assert result.detectors == [self.issue_stream_detector]
+        assert result.detectors == {self.issue_stream_detector}
 
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
         self.error_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event(event_data)
-        assert result.preferred_detector is None
-        assert result.detectors == []
+        assert result is None
 
 
 class TestGetDetectorByEvent(TestCase):
