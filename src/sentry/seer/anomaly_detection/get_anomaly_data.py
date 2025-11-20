@@ -20,7 +20,7 @@ from sentry.seer.anomaly_detection.types import (
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
-    SeerAlertDataResponse,
+    SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
@@ -324,7 +324,7 @@ def get_anomaly_threshold_data_from_seer(
         return None
 
     try:
-        results: SeerAlertDataResponse = json.loads(response.data.decode("utf-8"))
+        results: SeerDetectorDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
             "Failed to parse Seer detector data response",

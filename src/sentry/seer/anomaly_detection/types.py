@@ -117,7 +117,7 @@ class AnomalyThresholdDataPoint(TypedDict):
     yhat_upper: float
 
 
-class SeerAlertDataResponse(TypedDict):
+class SeerDetectorDataResponse(TypedDict):
     success: bool
     message: str | None
     data: list[AnomalyThresholdDataPoint]
