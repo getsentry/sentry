@@ -442,3 +442,202 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "Either main_binary_identifier or build_number must be provided"
             in response.json()["error"]
         )
+
+    def test_codesigning_type_filters_current_artifact(self):
+        """Test that codesigning_type parameter filters the current artifact correctly"""
+        # Create an iOS artifact with development codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create another artifact with app-store codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "app-store"},
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier&codesigning_type=development",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should only find the development artifact
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
+        assert data["current"]["build_number"] == 42
+
+    def test_codesigning_type_filters_updates(self):
+        """Test that updates are filtered by the same codesigning_type as the current artifact"""
+        # Create current iOS artifact with development codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create update with development codesigning (should be returned)
+        self._create_ios_artifact(
+            main_binary_identifier="different-identifier",
+            build_version="1.1.0",
+            build_number=50,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create update with app-store codesigning (should NOT be returned)
+        self._create_ios_artifact(
+            main_binary_identifier="another-identifier",
+            build_version="1.2.0",
+            build_number=60,
+            extras={"codesigning_type": "app-store"},
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
+
+        # Should only return the development update (1.1.0), not app-store (1.2.0)
+        assert data["update"] is not None
+        assert data["update"]["build_version"] == "1.1.0"
+        assert data["update"]["build_number"] == 50
+
+    def test_codesigning_type_no_matching_update(self):
+        """Test that no update is returned when codesigning_type doesn't match"""
+        # Create current iOS artifact with development codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create update with app-store codesigning only
+        self._create_ios_artifact(
+            main_binary_identifier="different-identifier",
+            build_version="1.1.0",
+            build_number=50,
+            extras={"codesigning_type": "app-store"},
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
+
+        # Should not return update because codesigning_type doesn't match
+        assert data["update"] is None
+
+    def test_codesigning_type_with_build_configuration(self):
+        """Test that codesigning_type works correctly with build configurations"""
+        debug_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+            project=self.project, name="debug"
+        )
+
+        # Create current artifact with debug configuration and development codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            build_configuration=debug_config,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create update with same configuration and codesigning type
+        self._create_ios_artifact(
+            main_binary_identifier="different-identifier",
+            build_version="1.1.0",
+            build_number=50,
+            build_configuration=debug_config,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create update with same configuration but different codesigning type
+        self._create_ios_artifact(
+            main_binary_identifier="another-identifier",
+            build_version="1.2.0",
+            build_number=60,
+            build_configuration=debug_config,
+            extras={"codesigning_type": "app-store"},
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier&build_configuration=debug",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
+
+        # Should return 1.1.0 (matching codesigning_type), not 1.2.0
+        assert data["update"] is not None
+        assert data["update"]["build_version"] == "1.1.0"
+        assert data["update"]["build_number"] == 50
+
+    def test_codesigning_type_provided_explicitly(self):
+        """Test that explicitly provided codesigning_type parameter is used for filtering"""
+        # Create artifact with development codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "development"},
+        )
+
+        # Create artifact with app-store codesigning
+        self._create_ios_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+            extras={"codesigning_type": "app-store"},
+        )
+
+        # Request specifically for app-store
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier&codesigning_type=app-store",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should find the app-store artifact
+        assert data["current"] is not None
