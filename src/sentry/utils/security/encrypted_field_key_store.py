@@ -63,7 +63,10 @@ class FernetKeyStore:
                     sentry_sdk.capture_exception(e)
 
         cls._is_loaded = True
-        logger.info("Successfully loaded %d Fernet encryption keys.", len(cls._keys))
+        if cls._keys:
+            logger.info("Successfully loaded %d Fernet encryption keys.", len(cls._keys))
+        else:
+            logger.info("No Fernet encryption keys loaded.")
 
     @classmethod
     def get_fernet_for_key_id(cls, key_id: str) -> Fernet:
