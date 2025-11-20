@@ -40,7 +40,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         try:
             detector = Detector.objects.get(id=int(detector_id), project__organization=organization)
-        except Detector.DoesNotExist:
+        except (Detector.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         start = request.GET.get("start")
