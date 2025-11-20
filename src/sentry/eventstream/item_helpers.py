@@ -90,4 +90,6 @@ def encode_attributes(
             continue
         attributes[f"tags[{key}]"] = _encode_value(value)
 
+    attributes["cpaul_fake_array"] = _encode_value([1, 2, 3])
+
     return attributes

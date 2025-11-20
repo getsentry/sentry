@@ -215,6 +215,7 @@ class Spans(rpc_dataset_common.RPCBase):
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)
+        # HM!
         request = GetTraceRequest(
             meta=meta,
             trace_id=trace_id,

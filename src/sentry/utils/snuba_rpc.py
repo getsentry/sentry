@@ -158,6 +158,9 @@ def _make_rpc_requests(
 
 
 def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+    """
+    This endpoint allows you to request attribute names for traces matching some filters.
+    """
     resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
@@ -165,6 +168,11 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 
 
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
+    """
+    This endpoints allows you to request values for a given attribute key.
+    You can filter the values by a substring match.
+    You cannot apply other filters (e.g. group_id) to this query.
+    """
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
@@ -172,6 +180,10 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
 
 
 def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
+    """
+    This function is intended for queries using certain "special" attributes, not querying
+    by arbitrary attributes.
+    """
     resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
     response = GetTracesResponse()
     response.ParseFromString(resp.data)

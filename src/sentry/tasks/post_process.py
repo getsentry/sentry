@@ -541,11 +541,6 @@ def post_process_group(
             # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
-
-                logger.info(
-                    "post_process.skipped",
-                    extra={"cache_key": cache_key, "reason": "missing_cache"},
-                )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
@@ -669,10 +664,6 @@ def run_post_process_job(job: PostProcessJob) -> None:
     if group_event.group and not group_event.group.issue_type.allow_post_process_group(
         group_event.group.organization
     ):
-        metrics.incr(
-            "post_process.skipped_feature_disabled",
-            tags={"issue_type": group_event.group.issue_type.slug},
-        )
         return
 
     if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -1540,7 +1531,6 @@ def detect_new_escalation(job: PostProcessJob):
         or not has_valid_status
         or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
     ):
-        metrics.incr("tasks.post_process.detect_new_escalation.skipping_detection")
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
@@ -1562,20 +1552,8 @@ def detect_new_escalation(job: PostProcessJob):
                     data={"event_id": job["event"].event_id},
                 )
                 auto_update_priority(group, PriorityChangeReason.ESCALATING)
-            logger.info(
-                "tasks.post_process.detect_new_escalation",
-                extra={
-                    **extra,
-                    "group_hourly_event_rate": group_hourly_event_rate,
-                    "project_escalation_rate": project_escalation_rate,
-                    "has_escalated": job["has_escalated"],
-                },
-            )
     except UnableToAcquireLock as error:
         extra["error"] = error
-        logger.warning(
-            "tasks.post_process.detect_new_escalation.unable_to_acquire_lock", extra=extra
-        )
         return
 
 
