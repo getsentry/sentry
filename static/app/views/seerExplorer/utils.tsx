@@ -172,10 +172,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   get_metric_attributes: (args, isLoading) => {
     const metricName = args.metric_name || '';
-    const timestamp = args.timestamp || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Double-clicking on metric '${metricName}' at ${timestamp}...`
-      : `Double-clicked on metric '${metricName}' at ${timestamp}`;
+      ? `Double-clicking on metric '${metricName}' from trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' from trace ${shortTraceId}`;
   },
 };
 
