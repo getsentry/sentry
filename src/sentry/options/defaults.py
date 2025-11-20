@@ -3026,6 +3026,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Custom Rule Samples Fulfilled notifications
+register(
+    "notifications.platform-rate.custom-rule-samples-fulfilled",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
