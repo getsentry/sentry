@@ -499,13 +499,13 @@ function replaceTokensWithText(
     text,
     tokens,
     focusOverride: incomingFocusOverride,
-    shouldCommitQuery = true,
+    shouldCommitQuery,
   }: {
     getFieldDefinition: FieldDefinitionGetter;
+    shouldCommitQuery: boolean;
     text: string;
     tokens: Array<TokenResult<Token>>;
     focusOverride?: FocusOverride;
-    shouldCommitQuery?: boolean;
   }
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, tokens, text);
@@ -516,7 +516,9 @@ function replaceTokensWithText(
 
   // Only update the committed query if we aren't in the middle of creating a filter
   const committedQuery =
-    incomingFocusOverride?.part === 'value' ? state.committedQuery : newQuery;
+    incomingFocusOverride?.part === 'value' && shouldCommitQuery
+      ? state.committedQuery
+      : newQuery;
 
   if (incomingFocusOverride) {
     return {
@@ -924,6 +926,7 @@ export function useQueryBuilderState({
               tokens: [action.token],
               text: '',
               getFieldDefinition,
+              shouldCommitQuery: true,
             }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
             previousAction: action.type,
@@ -997,6 +1000,7 @@ export function useQueryBuilderState({
               text: action.text,
               focusOverride: action.focusOverride,
               getFieldDefinition,
+              shouldCommitQuery: true,
             }),
             previousAction: action.type,
           };
