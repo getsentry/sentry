@@ -69,7 +69,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
-        "workflow_engine.DataConditionGroup", null=True, blank=True
+        "workflow_engine.DataConditionGroup", null=True, blank=True, unique=True
     )
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
