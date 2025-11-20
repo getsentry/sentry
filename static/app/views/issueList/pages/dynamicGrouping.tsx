@@ -238,19 +238,10 @@ function ClusterCard({
       </Flex>
 
       <Flex justify="end" align="center" gap="xs" paddingTop="md">
-        <Button
-          size="sm"
-          priority="primary"
-          onClick={() => onRemove(cluster.cluster_id)}
-          title={t('Resolve this cluster')}
-        >
+        <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
           {t('Resolve')}
         </Button>
-        <Button
-          size="sm"
-          onClick={() => onRemove(cluster.cluster_id)}
-          title={t('Ignore this cluster')}
-        >
+        <Button size="sm" onClick={() => onRemove(cluster.cluster_id)}>
           {t('Ignore')}
         </Button>
         <Link
