@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
     TimeSeries,
     TimeSeriesRequest,
+    TimeSeriesResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
@@ -321,7 +322,13 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+        try:
+            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
         sentry_sdk.set_tag(
             "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
         )
@@ -519,6 +526,18 @@ class RPCBase:
             return ts_filter, params
         else:
             raise InvalidSearchQuery("start, end and interval are required")
+
+    @classmethod
+    def _run_timeseries_rpc(
+        self, debug: bool, rpc_request: TimeSeriesRequest
+    ) -> TimeSeriesResponse:
+        try:
+            return snuba_rpc.timeseries_rpc([rpc_request])[0]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
 
     @classmethod
     def process_timeseries_list(cls, timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
