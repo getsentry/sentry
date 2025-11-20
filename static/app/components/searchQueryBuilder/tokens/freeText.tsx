@@ -41,6 +41,8 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import type {FilterKeyItem} from './filterKeyListBox/types';
+
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
@@ -409,6 +411,24 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
+  const renderItem = useCallback(
+    (keyItem: FilterKeyItem) =>
+      itemIsSection(keyItem) ? (
+        <Section title={keyItem.label} key={keyItem.key}>
+          {keyItem.options.map(child => (
+            <Item {...child} key={child.key}>
+              {child.label}
+            </Item>
+          ))}
+        </Section>
+      ) : (
+        <Item {...keyItem} key={keyItem.key}>
+          {keyItem.label}
+        </Item>
+      ),
+    []
+  );
+
   return (
     <Fragment>
       <HiddenText
@@ -690,21 +710,12 @@ function SearchQueryBuilderInputInternal({
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
       >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
+        {/* `useComboBoxState` inside the combo box component eagerly iterates
+        `children`, which can be very slow if there are many items. If the combo
+        box is not even open, do not pass any `children`. This prevents the
+        combo box from iterating anything while it's closed, which improves
+        render performance when the combo box is closed. */}
+        {isOpen ? renderItem : null}
       </SearchQueryBuilderCombobox>
     </Fragment>
   );
