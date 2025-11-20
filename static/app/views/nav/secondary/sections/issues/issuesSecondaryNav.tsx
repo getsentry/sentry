@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -16,54 +18,35 @@ export function IssuesSecondaryNav() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
 
-  const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
-
   return (
     <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        {!hasIssueTaxonomy && (
-          <SecondaryNav.Section id="issues-feed">
-            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-              {t('Feed')}
-            </SecondaryNav.Item>
+        <SecondaryNav.Section id="issues-feed">
+          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+            {t('Feed')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="issues-types">
+          {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
             <SecondaryNav.Item
-              to={`${baseUrl}/feedback/`}
-              analyticsItemName="issues_feedback"
+              key={key}
+              to={`${baseUrl}/${key}/`}
+              end
+              analyticsItemName={`issues_types_${key}`}
             >
-              {t('User Feedback')}
+              {label}
             </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
-        {hasIssueTaxonomy && (
-          <Fragment>
-            <SecondaryNav.Section id="issues-feed">
-              <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-                {t('Feed')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-            <SecondaryNav.Section id="issues-types">
-              {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-                <SecondaryNav.Item
-                  key={key}
-                  to={`${baseUrl}/${key}/`}
-                  end
-                  analyticsItemName={`issues_types_${key}`}
-                >
-                  {label}
-                </SecondaryNav.Item>
-              ))}
-              <SecondaryNav.Item
-                to={`${baseUrl}/feedback/`}
-                analyticsItemName="issues_feedback"
-              >
-                {t('User Feedback')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-          </Fragment>
-        )}
+          ))}
+          <SecondaryNav.Item
+            to={`${baseUrl}/feedback/`}
+            analyticsItemName="issues_feedback"
+          >
+            {t('User Feedback')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-views-all">
           <SecondaryNav.Item
             to={`${baseUrl}/views/`}
@@ -81,8 +64,17 @@ export function IssuesSecondaryNav() {
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const user = useUser();
+  const organization = useOrganization();
   const {layout} = useNavContext();
   const isSticky = layout === NavLayout.SIDEBAR;
+
+  const shouldRedirectToWorkflowEngineUI =
+    !user.isStaff && organization.features.includes('workflow-engine-ui');
+
+  const alertsLink = shouldRedirectToWorkflowEngineUI
+    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    : `${baseUrl}/alerts/rules/`;
 
   return (
     <StickyBottomSection
@@ -92,8 +84,8 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       isSticky={isSticky}
     >
       <SecondaryNav.Item
-        to={`${baseUrl}/alerts/rules/`}
-        activeTo={`${baseUrl}/alerts/`}
+        to={alertsLink}
+        {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
         analyticsItemName="issues_alerts"
       >
         {t('Alerts')}

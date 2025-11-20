@@ -18,22 +18,25 @@ class TestQueryPreprocessing(TestCase):
         self.g3 = self.create_group(id=3)
         self.create_group(id=4)
 
-        self.gr21 = GroupRedirect.objects.create(
-            organization_id=self.g1.project.organization_id,
-            group_id=self.g1.id,
-            previous_group_id=self.g2.id,
-            date_added=datetime.now(UTC) - timedelta(hours=1),
-        )
         self.gr31 = GroupRedirect.objects.create(
+            id=10001,
             organization_id=self.g1.project.organization_id,
             group_id=self.g1.id,
             previous_group_id=self.g3.id,
             date_added=datetime.now(UTC) - timedelta(hours=4),
         )
+        self.gr21 = GroupRedirect.objects.create(
+            id=10002,
+            organization_id=self.g1.project.organization_id,
+            group_id=self.g1.id,
+            previous_group_id=self.g2.id,
+            date_added=datetime.now(UTC) - timedelta(hours=1),
+        )
 
     def test_get_all_related_groups_query(self) -> None:
         """
         What we want is for this to return the newest redirects first.
+        What we're technically doing is taking the redirects with the highest IDs.
         """
         assert _get_all_related_redirects_query({self.g1.id})[0] == (self.g1.id, self.g2.id)
 

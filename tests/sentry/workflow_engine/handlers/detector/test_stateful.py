@@ -403,6 +403,26 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
 
+    def test_evaluate__counter_reset_for_non_none_group_key(self) -> None:
+        self.group_key = "group1"
+
+        # Trigger HIGH priority
+        result = self.handler.evaluate(self.packet(1, Level.HIGH))
+        assert result == {}
+        result = self.handler.evaluate(self.packet(2, Level.HIGH))
+        assert result[self.group_key].priority == Level.HIGH
+
+        # Evaluate again at HIGH priority (same as current state)
+        result = self.handler.evaluate(self.packet(3, Level.HIGH))
+        assert result == {}
+
+        # Evaluate at MEDIUM priority - should require 2 evaluations to trigger
+        result = self.handler.evaluate(self.packet(4, Level.MEDIUM))
+        assert result == {}
+
+        result = self.handler.evaluate(self.packet(5, Level.MEDIUM))
+        assert result[self.group_key].priority == Level.MEDIUM
+
     def test_evaluate__condition_hole(self):
         detector = self.create_detector(
             name="Stateful Detector",

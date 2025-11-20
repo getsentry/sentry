@@ -50,6 +50,7 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
+import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
@@ -373,6 +374,11 @@ export function EventDetailsContent({
           <OurlogsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
+      <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
+        <Feature features="tracemetrics-enabled" organization={organization}>
+          <MetricsSection event={event} group={group} project={project} />
+        </Feature>
+      </ErrorBoundary>
       {hasStreamlinedUI &&
         event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
@@ -422,7 +428,7 @@ export function EventDetailsContent({
             />
           </EntryErrorBoundary>
         )}
-      {event.groupID && (
+      {event.groupID && issueTypeConfig.groupingInfo.enabled && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}

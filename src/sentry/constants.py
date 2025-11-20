@@ -122,6 +122,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "corp",
         "customers",
         "de",
+        "de2",
         "debug",
         "devinfra",
         "docs",
@@ -213,6 +214,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "themonitor",
         "trust",
         "us",
+        "us2",
         "vs",
         "welcome",
         "www",
@@ -704,8 +706,8 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
-GITHUB_COMMENT_BOT_DEFAULT = True
-GITLAB_COMMENT_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = False
+GITLAB_COMMENT_BOT_DEFAULT = False
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False

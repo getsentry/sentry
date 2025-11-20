@@ -19,16 +19,9 @@ export function IconClose({
 }: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon
-      {...props}
-      data-test-id={dataTestId}
-      kind={theme.isChonk ? 'stroke' : 'path'}
-    >
+    <SvgIcon {...props} data-test-id={dataTestId}>
       {theme.isChonk ? (
-        <Fragment>
-          <line x1="12.24" y1="3.76" x2="3.75" y2="12.25" />
-          <line x1="12.24" y1="12.25" x2="3.75" y2="3.76" />
-        </Fragment>
+        <path d="M12.72 2.22C13.01 1.93 13.49 1.93 13.78 2.22C14.07 2.51 14.07 2.99 13.78 3.28L9.06 8L13.78 12.72C14.07 13.01 14.07 13.49 13.78 13.78C13.49 14.07 13.01 14.07 12.72 13.78L8 9.06L3.28 13.78C2.99 14.07 2.51 14.07 2.22 13.78C1.93 13.49 1.93 13.01 2.22 12.72L6.94 8L2.22 3.28C1.93 2.99 1.93 2.51 2.22 2.22C2.51 1.93 2.99 1.93 3.28 2.22L8 6.94L12.72 2.22Z" />
       ) : isCircled ? (
         <Fragment>
           <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />

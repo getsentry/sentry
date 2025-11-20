@@ -24,7 +24,12 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
@@ -137,9 +142,9 @@ describe('DetectorEdit', () => {
         expect.anything()
       );
 
-      // Redirect to the monitors list
+      // Redirect to the detector type-specific list page (metrics for MetricDetectorFixture)
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/monitors/`
+        `/organizations/${organization.slug}/monitors/metrics/`
       );
     });
 
@@ -312,6 +317,9 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
+              config: {
+                detectionType: 'static',
+              },
               dataSources: [
                 {
                   environment: 'production',
@@ -330,7 +338,6 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
             },
           })
         );
@@ -438,7 +445,7 @@ describe('DetectorEdit', () => {
       );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value
-      await userEvent.click(screen.getByText('Custom').closest('label')!);
+      await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
       const resolutionInput = await screen.findByLabelText('Resolution threshold');
       expect(resolutionInput).toHaveValue(10);
     });
@@ -625,6 +632,56 @@ describe('DetectorEdit', () => {
 
       // Verify interval changed to 15 minutes
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('prefills thresholdType from anomaly detection condition when editing dynamic detector', async () => {
+      const dynamicDetector = MetricDetectorFixture({
+        name: 'Dynamic Detector',
+        projectId: project.id,
+        config: {
+          detectionType: 'dynamic',
+        },
+        conditionGroup: {
+          id: 'cg-dynamic',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-anomaly',
+              type: DataConditionType.ANOMALY_DETECTION,
+              comparison: {
+                sensitivity: AlertRuleSensitivity.HIGH,
+                seasonality: 'auto',
+                thresholdType: AlertRuleThresholdType.BELOW,
+              },
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/`,
+        body: dynamicDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${dynamicDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'Dynamic Detector'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
+
+      // Verify thresholdType field is prefilled with "Below"
+      expect(screen.getByText('Below')).toBeInTheDocument();
     });
 
     it('calls anomaly API when using dynamic detection', async () => {
