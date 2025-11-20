@@ -29,6 +29,7 @@ from sentry.net.http import Session
 from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 MAX_ATTEMPTS = 3
 
@@ -493,7 +494,7 @@ class SymbolicatorSession:
 
 
 def maybe_rewrite_objectstore_url(url: str) -> str:
-    """We need to do this when running tests to make symbolicator reach Objectstore."""
-    if settings.IS_DEV:
+    """We need to do this during development/testing to make symbolicator reach Objectstore."""
+    if settings.IS_DEV or in_test_environment():
         url = url.replace("127.0.0.1", "objectstore")
     return url
