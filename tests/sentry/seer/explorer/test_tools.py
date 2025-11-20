@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import BaseModel
@@ -297,6 +297,45 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             rows = result["data"]
             assert "id" in rows[0]
             assert "timestamp" in rows[0]
+
+      def test_tracemetrics_table_query_uses_org_projects(self):
+          extra_project = self.create_project(organization=self.organization)
+          mock_response = Mock()
+          mock_response.data = {"data": []}
+
+          with patch("sentry.seer.explorer.tools.client.get", return_value=mock_response) as mock_get:
+              result = execute_table_query(
+                  org_id=self.organization.id,
+                  dataset="tracemetrics",
+                  fields=["trace"],
+                  stats_period="1h",
+                  sort="-timestamp",
+                  per_page=5,
+              )
+
+          assert result == {"data": []}
+          params = mock_get.call_args.kwargs["params"]
+          assert sorted(params["project"]) == sorted([self.project.id, extra_project.id])
+          assert "projectSlug" not in params or params["projectSlug"] is None
+
+      def test_tracemetrics_timeseries_query_uses_org_projects(self):
+          extra_project = self.create_project(organization=self.organization)
+          mock_response = Mock()
+          mock_response.data = {"data": []}
+
+          with patch("sentry.seer.explorer.tools.client.get", return_value=mock_response) as mock_get:
+              result = execute_timeseries_query(
+                  org_id=self.organization.id,
+                  dataset="tracemetrics",
+                  query="",
+                  stats_period="1h",
+                  y_axes=["count()"],
+              )
+
+          assert result == {"count()": {"data": []}}
+          params = mock_get.call_args.kwargs["params"]
+          assert sorted(params["project"]) == sorted([self.project.id, extra_project.id])
+          assert "projectSlug" not in params or params["projectSlug"] is None
 
     def test_spans_query_nonexistent_organization(self):
         """Test queries handle nonexistent organization gracefully"""

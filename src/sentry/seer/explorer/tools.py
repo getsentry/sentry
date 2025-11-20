@@ -34,6 +34,33 @@ from sentry.utils.dates import parse_stats_period
 logger = logging.getLogger(__name__)
 
 
+def _default_project_ids_for_dataset(
+    *, organization: Organization, dataset: str
+) -> list[int] | None:
+    """
+    Return the default list of project IDs to query for a dataset when none are specified.
+
+    Trace Metrics currently requires explicit project IDs (the special -1 "all projects" value is
+    rejected), so we resolve all active projects in the organization instead of relying on the
+    sentinel value.
+    """
+    if dataset == "tracemetrics":
+        project_ids = list(
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+                "id", flat=True
+            )
+        )
+        if not project_ids:
+            logger.warning(
+                "default_project_ids.no_active_projects",
+                extra={"org_id": organization.id, "dataset": dataset},
+            )
+            return None
+        return project_ids
+
+    return [ALL_ACCESS_PROJECT_ID]
+
+
 def execute_table_query(
     *,
     org_id: int,
@@ -63,7 +90,12 @@ def execute_table_query(
         return None
 
     if not project_ids and not project_slugs:
-        project_ids = [ALL_ACCESS_PROJECT_ID]
+        default_project_ids = _default_project_ids_for_dataset(
+            organization=organization, dataset=dataset
+        )
+        if default_project_ids is None:
+            return None
+        project_ids = default_project_ids
     # Note if both project_ids and project_slugs are provided, the API request will 400.
 
     if sort:
@@ -135,7 +167,12 @@ def execute_timeseries_query(
 
     group_by = group_by or []
     if not project_ids and not project_slugs:
-        project_ids = [ALL_ACCESS_PROJECT_ID]
+        default_project_ids = _default_project_ids_for_dataset(
+            organization=organization, dataset=dataset
+        )
+        if default_project_ids is None:
+            return None
+        project_ids = default_project_ids
     # Note if both project_ids and project_slugs are provided, the API request will 400.
 
     params: dict[str, Any] = {
