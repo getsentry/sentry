@@ -1,6 +1,8 @@
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
@@ -59,6 +61,8 @@ export function PrebuiltDashboardRenderer({prebuiltId}: PrebuiltDashboardRendere
 
 const usePopulateLinkedDashboards = (dashboard: PrebuiltDashboard) => {
   const {widgets} = dashboard;
+  const organization = useOrganization();
+
   const linkedDashboardsWithStaticDashboardIds = widgets
     .flatMap(widget => {
       return widget.queries
@@ -67,11 +71,39 @@ const usePopulateLinkedDashboards = (dashboard: PrebuiltDashboard) => {
     })
     .filter(linkedDashboard => linkedDashboard.staticDashboardId !== undefined);
 
-  if (!linkedDashboardsWithStaticDashboardIds.length) {
+  const hasLinkedDashboards = linkedDashboardsWithStaticDashboardIds.length > 0;
+  const path = `/organizations/${organization.slug}/dashboards/`;
+
+  const {data, isLoading} = useApiQuery<DashboardDetails[]>(
+    [
+      path,
+      {
+        query: {
+          prebuiltId: linkedDashboardsWithStaticDashboardIds.map(
+            d => d.staticDashboardId
+          ),
+        },
+      },
+    ],
+    {
+      enabled: hasLinkedDashboards,
+      staleTime: 0,
+      retry: false,
+    }
+  );
+
+  if (!hasLinkedDashboards) {
     return {dashboard, isLoading: false};
   }
 
-  // TODO we should fetch the real dashboard id here, this requires BROWSE-128
+  linkedDashboardsWithStaticDashboardIds.forEach(linkedDashboard => {
+    const dasboardId = data?.find(
+      d => d.prebuiltId === linkedDashboard.staticDashboardId
+    )?.id;
+    if (dasboardId) {
+      linkedDashboard.dashboardId = dasboardId;
+    }
+  });
 
-  return {dashboard, isLoading: false};
+  return {dashboard, isLoading};
 };

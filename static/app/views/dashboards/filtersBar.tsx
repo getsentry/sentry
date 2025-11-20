@@ -90,10 +90,21 @@ export default function FiltersBar({
       [];
 
     if (hasDrillDownFlowsFeature) {
-      return [
-        ...globalFilters,
+      const finalFilters = [...globalFilters];
+      const temporaryFilters = [
         ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
       ];
+      finalFilters.forEach(filter => {
+        // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
+        const temporaryFilter = temporaryFilters.find(
+          tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
+        );
+        if (temporaryFilter) {
+          filter.value = temporaryFilter.value;
+          temporaryFilters.splice(temporaryFilters.indexOf(temporaryFilter), 1);
+        }
+      });
+      return [...finalFilters, ...temporaryFilters];
     }
 
     return globalFilters;
