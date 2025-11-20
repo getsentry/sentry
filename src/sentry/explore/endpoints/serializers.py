@@ -204,7 +204,10 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
         for key in query_keys:
             if data.get(key) is not None:
-                query[key] = data[key]
+                value = data[key]
+                if key in ("start", "end"):
+                    value = value.isoformat()
+                query[key] = value
 
         if "query" in data:
             query["query"] = []
