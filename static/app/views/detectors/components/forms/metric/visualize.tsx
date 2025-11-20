@@ -93,15 +93,18 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
   return <Tag type={tagType}>{text}</Tag>;
 }
 
-const SPAN_LOGS_NOT_ALLOWED_AGGREGATES = [
+const LOGS_NOT_ALLOWED_AGGREGATES = [
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
 ];
 
-function getEAPAllowedAggregates(): Array<[string, string]> {
-  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
-    aggregate => !SPAN_LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate)
-  ).map(aggregate => [aggregate, aggregate]);
+function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
+  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(aggregate => {
+    if (dataset === DetectorDataset.LOGS) {
+      return !LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate);
+    }
+    return true;
+  }).map(aggregate => [aggregate, aggregate]);
 }
 
 function getAggregateOptions(
@@ -110,7 +113,7 @@ function getAggregateOptions(
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
   if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
-    return getEAPAllowedAggregates();
+    return getEAPAllowedAggregates(dataset);
   }
 
   // For other datasets, extract function-type options from tableFieldOptions
@@ -120,7 +123,7 @@ function getAggregateOptions(
 
   // If no function options available, fall back to the predefined aggregates
   if (functionOptions.length === 0) {
-    return getEAPAllowedAggregates();
+    return getEAPAllowedAggregates(dataset);
   }
 
   return functionOptions.sort((a, b) => a[1].localeCompare(b[1]));
