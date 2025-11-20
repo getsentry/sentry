@@ -537,6 +537,7 @@ describe('ProjectSeer', () => {
               handoff_point: 'root_cause',
               target: 'cursor_background_agent',
               integration_id: 123,
+              auto_create_pr: false,
             },
           }),
         })
@@ -695,6 +696,207 @@ describe('ProjectSeer', () => {
         expect(projectPutRequest).toHaveBeenCalledWith(
           expect.any(String),
           expect.objectContaining({data: {autofixAutomationTuning: 'off'}})
+        );
+      });
+    });
+  });
+
+  describe('Auto Create PR Setting', () => {
+    it('does not render when stopping point is not cursor_handoff', async () => {
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: initialProject},
+      });
+
+      // Wait for the page to load
+      await screen.findByText(/Automation/i);
+
+      // The toggle should NOT be visible when stopping point is not cursor_handoff
+      expect(
+        screen.queryByRole('checkbox', {
+          name: /Auto-Create Pull Requests/i,
+        })
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders and loads initial value when cursor_handoff is selected', async () => {
+      MockApiClient.clearMockResponses();
+
+      const orgWithCursorFeature = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'integrations-cursor'],
+      });
+
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
+
+      // Mock preferences with automation_handoff including auto_create_pr
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            organization_id: orgWithCursorFeature.id,
+            project_id: project.id,
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 123,
+              auto_create_pr: true,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithCursorFeature,
+        outletContext: {project: initialProject},
+      });
+
+      // Wait for the toggle to load
+      const toggle = await screen.findByRole('checkbox', {
+        name: /Auto-Create Pull Requests/i,
+      });
+
+      // Verify it's checked
+      await waitFor(() => {
+        expect(toggle).toBeChecked();
+      });
+    });
+
+    it('calls update mutation when toggled', async () => {
+      MockApiClient.clearMockResponses();
+
+      const orgWithCursorFeature = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'integrations-cursor'],
+      });
+
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
+
+      // Mock preferences with automation_handoff
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 123,
+              auto_create_pr: false,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithCursorFeature,
+        outletContext: {project: initialProject},
+      });
+
+      // Find and click the toggle
+      const toggle = await screen.findByRole('checkbox', {
+        name: /Auto-Create Pull Requests/i,
+      });
+      expect(toggle).not.toBeChecked();
+
+      await userEvent.click(toggle);
+
+      // Wait for the POST request to be called
+      await waitFor(() => {
+        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              automation_handoff: expect.objectContaining({
+                auto_create_pr: true,
+              }),
+              repositories: expect.any(Array),
+            }),
+          })
         );
       });
     });

@@ -100,6 +100,55 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
+function CodingAgentSettings({
+  preference,
+  handleAutoCreatePrChange,
+  canWriteProject,
+  autofixAutomationTuning,
+}: {
+  autofixAutomationTuning: boolean;
+  canWriteProject: boolean;
+  handleAutoCreatePrChange: (value: boolean) => void;
+  preference: any;
+}) {
+  if (!preference?.automation_handoff || !autofixAutomationTuning) {
+    return null;
+  }
+
+  return (
+    <Form
+      key={`coding-agent-${preference?.automation_handoff?.auto_create_pr ?? false}`}
+      saveOnBlur
+      apiMethod="POST"
+      apiEndpoint=""
+      initialData={{
+        auto_create_pr: preference?.automation_handoff?.auto_create_pr ?? false,
+      }}
+    >
+      <JsonForm
+        forms={[
+          {
+            title: t('Cursor Agent Settings'),
+            fields: [
+              {
+                name: 'auto_create_pr',
+                label: t('Auto-Create Pull Requests'),
+                help: t(
+                  'When enabled, Cursor Cloud Agents will automatically create pull requests after making code changes.'
+                ),
+                saveOnBlur: true,
+                type: 'boolean',
+                disabled: !canWriteProject,
+                onChange: handleAutoCreatePrChange,
+              } satisfies FieldObject,
+            ],
+          },
+        ]}
+      />
+    </Form>
+  );
+}
+
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -146,6 +195,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             handoff_point: 'root_cause',
             target: 'cursor_background_agent',
             integration_id: parseInt(cursorIntegration.id, 10),
+            auto_create_pr: false,
           },
         });
       } else {
@@ -157,6 +207,23 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       }
     },
     [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+  );
+
+  const handleAutoCreatePrChange = useCallback(
+    (value: boolean) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          auto_create_pr: value,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
   );
 
   const automatedRunStoppingPointField = {
@@ -291,6 +358,16 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           )}
         />
       </Form>
+      <CodingAgentSettings
+        preference={preference}
+        handleAutoCreatePrChange={handleAutoCreatePrChange}
+        autofixAutomationTuning={
+          isTriageSignalsFeatureOn
+            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+            : (project.autofixAutomationTuning ?? 'off')
+        }
+        canWriteProject={canWriteProject}
+      />
     </Fragment>
   );
 }
