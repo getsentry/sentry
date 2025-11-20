@@ -1,9 +1,13 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  waitFor,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -13,9 +17,12 @@ describe('SimilarIssuesDrawer', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({features: ['similarity-view']});
   const group = GroupFixture();
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/similar/`,
+    },
+    route: '/organizations/:orgId/issues/:groupId/similar/',
+  };
   let mockSimilarIssues: jest.Mock;
 
   beforeEach(() => {
@@ -53,8 +60,7 @@ describe('SimilarIssuesDrawer', () => {
   it('renders the content as expected', async () => {
     render(<SimilarIssuesDrawer group={group} project={project} />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(
