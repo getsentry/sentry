@@ -1,5 +1,3 @@
-import {cloneElement, isValidElement} from 'react';
-
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -29,140 +27,120 @@ interface AlertRuleDetector {
 }
 
 /**
- * Base component for workflow engine redirects that conditionally redirects
- * users based on feature flags.
+ * HoC that wraps a component to handle workflow engine redirects based on feature flags.
  */
-function WorkflowEngineRedirect({
-  children,
-  redirectTo,
-  ...props
-}: {
-  children: React.ReactNode;
-  redirectTo: string;
-}) {
-  const user = useUser();
-  const organization = useOrganization();
+function withWorkflowEngineRedirect(
+  Component: React.ComponentType<any>,
+  redirectTo: string
+) {
+  return function WorkflowEngineRedirectWrapper(props: any) {
+    const user = useUser();
+    const organization = useOrganization();
 
-  const shouldRedirect =
-    !user.isStaff && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect =
+      !user.isStaff && organization.features.includes('workflow-engine-ui');
 
-  if (shouldRedirect) {
-    return <Redirect to={redirectTo} />;
-  }
+    if (shouldRedirect) {
+      return <Redirect to={redirectTo} />;
+    }
 
-  // Pass through all props to children
-  if (isValidElement(children)) {
-    return cloneElement(children, props);
-  }
-
-  return children;
+    return <Component {...props} />;
+  };
 }
 
 /**
- * Base component for workflow engine redirects that require fetching
- * workflow data from an issue alert rule before redirecting.
+ * HoC that wraps a component to handle workflow engine
+ * redirects for issue alert rules. Fetches workflow data if needed and
+ * shows loading state while requests are in flight.
  */
-function WorkflowEngineRedirectWithRuleData({
-  children,
-  makeRedirectPath,
-  ...props
-}: {
-  children: React.ReactNode;
-  makeRedirectPath: (workflowId: string, orgSlug: string) => string;
-}) {
-  const user = useUser();
-  const organization = useOrganization();
-  const {ruleId} = useParams();
+function withRuleRedirect(
+  Component: React.ComponentType<any>,
+  makeRedirectPath: (workflowId: string, orgSlug: string) => string
+) {
+  return function WorkflowEngineRedirectWrapper(props: any) {
+    const user = useUser();
+    const organization = useOrganization();
+    const {ruleId} = useParams();
 
-  const shouldRedirect =
-    !user.isStaff && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect =
+      !user.isStaff && organization.features.includes('workflow-engine-ui');
 
-  const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
-    [
-      `/organizations/${organization.slug}/alert-rule-workflow/`,
-      {query: {rule_id: ruleId}},
-    ],
-    {
-      staleTime: 0,
-      enabled: shouldRedirect && !!ruleId,
-      retry: false,
+    const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
+      [
+        `/organizations/${organization.slug}/alert-rule-workflow/`,
+        {query: {rule_id: ruleId}},
+      ],
+      {
+        staleTime: 0,
+        enabled: shouldRedirect && !!ruleId,
+        retry: false,
+      }
+    );
+
+    if (shouldRedirect) {
+      if (isPending) {
+        return <LoadingIndicator />;
+      }
+      if (alertRuleWorkflow) {
+        return (
+          <Redirect
+            to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)}
+          />
+        );
+      }
     }
-  );
 
-  if (shouldRedirect) {
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-    if (alertRuleWorkflow) {
-      return (
-        <Redirect
-          to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)}
-        />
-      );
-    }
-  }
-
-  // Pass through all props to children
-  if (isValidElement(children)) {
-    return cloneElement(children, props);
-  }
-
-  return children;
+    return <Component {...props} />;
+  };
 }
 
 /**
- * Base component for workflow engine redirects that require fetching
- * workflow data from a metric alert rule before redirecting.
+ * HoC that wraps a component to handle workflow engine
+ * redirects for metric alert rules. Fetches detector data if needed and
+ * shows loading state while requests are in flight.
  */
-function WorkflowEngineRedirectWithAlertRuleData({
-  children,
-  makeRedirectPath,
-  ...props
-}: {
-  children: React.ReactNode;
-  makeRedirectPath: (detectorId: string, orgSlug: string) => string;
-}) {
-  const user = useUser();
-  const organization = useOrganization();
-  const {ruleId, detectorId} = useParams();
+function withAlertRuleRedirect(
+  Component: React.ComponentType<any>,
+  makeRedirectPath: (detectorId: string, orgSlug: string) => string
+) {
+  return function WorkflowEngineRedirectWrapper(props: any) {
+    const user = useUser();
+    const organization = useOrganization();
+    const {ruleId, detectorId} = useParams();
 
-  const shouldRedirect =
-    !user.isStaff && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect =
+      !user.isStaff && organization.features.includes('workflow-engine-ui');
 
-  const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
-    [
-      `/organizations/${organization.slug}/alert-rule-detector/`,
-      {query: {alert_rule_id: ruleId}},
-    ],
-    {
-      staleTime: 0,
-      enabled: shouldRedirect && !!ruleId && !detectorId,
-      retry: false,
+    const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
+      [
+        `/organizations/${organization.slug}/alert-rule-detector/`,
+        {query: {alert_rule_id: ruleId}},
+      ],
+      {
+        staleTime: 0,
+        enabled: shouldRedirect && !!ruleId && !detectorId,
+        retry: false,
+      }
+    );
+
+    if (shouldRedirect) {
+      if (detectorId) {
+        return <Redirect to={makeRedirectPath(detectorId, organization.slug)} />;
+      }
+      if (isPending) {
+        return <LoadingIndicator />;
+      }
+      if (alertRuleDetector) {
+        return (
+          <Redirect
+            to={makeRedirectPath(alertRuleDetector.detectorId, organization.slug)}
+          />
+        );
+      }
     }
-  );
 
-  if (shouldRedirect) {
-    if (detectorId) {
-      return <Redirect to={makeRedirectPath(detectorId, organization.slug)} />;
-    }
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-    if (alertRuleDetector) {
-      return (
-        <Redirect
-          to={makeRedirectPath(alertRuleDetector.detectorId, organization.slug)}
-        />
-      );
-    }
-  }
-
-  // Pass through all props to children
-  if (isValidElement(children)) {
-    return cloneElement(children, props);
-  }
-
-  return children;
+    return <Component {...props} />;
+  };
 }
 
 const getDetectionType = (type: string | undefined): string | null => {
@@ -176,96 +154,37 @@ const getDetectionType = (type: string | undefined): string | null => {
   }
 };
 
-export function WorkflowEngineRedirectToDetectorCreate({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  const organization = useOrganization();
+export function withDetectorCreateRedirect(Component: React.ComponentType<any>) {
+  return function WorkflowEngineRedirectWrapper(props: any) {
+    const organization = useOrganization();
+    const {alertType} = useParams();
+    const detectorType = getDetectionType(alertType);
 
-  const {alertType} = useParams();
-  const detectorType = getDetectionType(alertType);
+    const redirectPath = detectorType
+      ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
+      : makeMonitorCreatePathname(organization.slug);
 
-  const redirectPath = detectorType
-    ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
-    : makeMonitorCreatePathname(organization.slug);
-
-  return (
-    <WorkflowEngineRedirect redirectTo={redirectPath} {...props}>
-      {children}
-    </WorkflowEngineRedirect>
-  );
+    const WrappedComponent = withWorkflowEngineRedirect(Component, redirectPath);
+    return <WrappedComponent {...props} />;
+  };
 }
 
-export function WorkflowEngineRedirectToAutomationDetails({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <WorkflowEngineRedirectWithRuleData
-      makeRedirectPath={(workflowId, orgSlug) =>
-        makeAutomationDetailsPathname(orgSlug, workflowId)
-      }
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirectWithRuleData>
+export const withAutomationDetailsRedirect = (Component: React.ComponentType<any>) =>
+  withRuleRedirect(Component, (workflowId, orgSlug) =>
+    makeAutomationDetailsPathname(orgSlug, workflowId)
   );
-}
 
-export function WorkflowEngineRedirectToAutomationEdit({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <WorkflowEngineRedirectWithRuleData
-      makeRedirectPath={(workflowId, orgSlug) =>
-        makeAutomationEditPathname(orgSlug, workflowId)
-      }
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirectWithRuleData>
+export const withAutomationEditRedirect = (Component: React.ComponentType<any>) =>
+  withRuleRedirect(Component, (workflowId, orgSlug) =>
+    makeAutomationEditPathname(orgSlug, workflowId)
   );
-}
 
-export function WorkflowEngineRedirectToDetectorDetails({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <WorkflowEngineRedirectWithAlertRuleData
-      makeRedirectPath={(detectorId, orgSlug) =>
-        makeMonitorDetailsPathname(orgSlug, detectorId)
-      }
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirectWithAlertRuleData>
+export const withDetectorDetailsRedirect = (Component: React.ComponentType<any>) =>
+  withAlertRuleRedirect(Component, (detectorId, orgSlug) =>
+    makeMonitorDetailsPathname(orgSlug, detectorId)
   );
-}
 
-export function WorkflowEngineRedirectToDetectorEdit({
-  children,
-  ...props
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <WorkflowEngineRedirectWithAlertRuleData
-      makeRedirectPath={(detectorId, orgSlug) =>
-        makeMonitorEditPathname(orgSlug, detectorId)
-      }
-      {...props}
-    >
-      {children}
-    </WorkflowEngineRedirectWithAlertRuleData>
+export const withDetectorEditRedirect = (Component: React.ComponentType<any>) =>
+  withAlertRuleRedirect(Component, (detectorId, orgSlug) =>
+    makeMonitorEditPathname(orgSlug, detectorId)
   );
-}
