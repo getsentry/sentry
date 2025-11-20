@@ -1651,6 +1651,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not cache.add(summary_dispatch_cache_key, True, timeout=30):
                 return  # Another process already dispatched summary generation
 
+            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
+
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1671,16 +1675,16 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
 
-            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                return
-
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
                 run_automation_only_task.delay(group.id)
             else:
+                # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+                if is_seer_scanner_rate_limited(group.project, group.organization):
+                    return
+
                 # No summary yet, generate summary + run automation in one go
                 generate_summary_and_run_automation.delay(group.id)
 
