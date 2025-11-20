@@ -269,8 +269,12 @@ def export_to_encrypted_tarball(
 
 
 def is_control_model(model):
-    meta = model._meta
-    return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
+    # Check where the router actually sends this model instead of relying on metadata.
+    # Models without silo_limit (like Django's built-in models) may route to different
+    # databases depending on the router configuration.
+    using = router.db_for_write(model)
+    # In test environments, "control" database = control silo, "default" = region silo
+    return using == "control"
 
 
 def clear_model(model, *, reset_pks: bool):
