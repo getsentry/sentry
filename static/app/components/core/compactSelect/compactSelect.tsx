@@ -64,7 +64,6 @@ export function CompactSelect<Value extends SelectKey>({
   onSectionToggle,
   multiple,
   clearable,
-  disallowEmptySelection,
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
@@ -85,6 +84,7 @@ export function CompactSelect<Value extends SelectKey>({
   const listProps = useMemo(() => {
     if (multiple) {
       return {
+        clearable,
         multiple,
         value,
         onChange,
@@ -93,13 +93,14 @@ export function CompactSelect<Value extends SelectKey>({
       };
     }
     return {
+      clearable,
       multiple,
       value,
       onChange,
       closeOnSelect,
       grid,
     };
-  }, [multiple, value, onChange, closeOnSelect, grid]);
+  }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
@@ -127,7 +128,6 @@ export function CompactSelect<Value extends SelectKey>({
         {...listProps}
         items={itemsWithKey}
         onSectionToggle={onSectionToggle}
-        disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
         size={size}
         sizeLimit={sizeLimit}

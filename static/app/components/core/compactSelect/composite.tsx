@@ -134,7 +134,6 @@ type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
 
 function Region<Value extends SelectKey>({
   options,
-  disallowEmptySelection,
   isOptionDisabled,
   size,
   compositeIndex,
@@ -147,7 +146,6 @@ function Region<Value extends SelectKey>({
     <List
       {...props}
       items={itemsWithKey}
-      disallowEmptySelection={disallowEmptySelection}
       isOptionDisabled={isOptionDisabled}
       shouldFocusWrap={false}
       compositeIndex={compositeIndex}

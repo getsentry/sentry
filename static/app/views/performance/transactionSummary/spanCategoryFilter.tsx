@@ -92,7 +92,6 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   return (
     <CompactSelect
       clearable
-      disallowEmptySelection={false}
       menuTitle={t('Filter by category')}
       options={categoryOptions}
       value={selectedCategory ?? undefined}

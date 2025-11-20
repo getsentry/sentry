@@ -565,7 +565,6 @@ export default function AssigneeSelectorDropdown({
         className={className}
         menuWidth={275}
         position="bottom-end"
-        disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
           group.assignedTo

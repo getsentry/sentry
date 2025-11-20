@@ -36,9 +36,10 @@ import {
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
-  extends ListProps<any>,
+  extends Omit<ListProps<any>, 'disallowEmptySelection'>,
     Omit<
       AriaListBoxOptions<any>,
+      | 'disallowEmptySelection'
       | 'disabledKeys'
       | 'selectedKeys'
       | 'defaultSelectedKeys'
@@ -48,6 +49,7 @@ interface BaseListProps<Value extends SelectKey>
     >,
     Omit<
       AriaGridListOptions<any>,
+      | 'disallowEmptySelection'
       | 'disabledKeys'
       | 'selectedKeys'
       | 'defaultSelectedKeys'
@@ -165,7 +167,7 @@ function List<Value extends SelectKey>({
   onChange,
   grid,
   multiple,
-  disallowEmptySelection,
+  clearable,
   isOptionDisabled,
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
@@ -198,7 +200,6 @@ function List<Value extends SelectKey>({
         disabledKeys,
         // react-aria turns all keys into strings
         selectedKeys: value?.map(getEscapedKey),
-        disallowEmptySelection,
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
           const selectedOptions = getSelectedOptions<Value>(items, selection);
@@ -223,7 +224,7 @@ function List<Value extends SelectKey>({
       disabledKeys,
       // react-aria turns all keys into strings
       selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
-      disallowEmptySelection: disallowEmptySelection ?? true,
+      disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
@@ -250,7 +251,7 @@ function List<Value extends SelectKey>({
     isOptionDisabled,
     hiddenOptions,
     multiple,
-    disallowEmptySelection,
+    clearable,
     compositeIndex,
     saveSelectedOptions,
     closeOnSelect,

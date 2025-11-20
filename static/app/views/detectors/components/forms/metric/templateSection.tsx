@@ -120,7 +120,6 @@ export function TemplateSection() {
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
-          disallowEmptySelection={false}
           trigger={(triggerProps, isOpen) => {
             return (
               <StyledTriggerButton

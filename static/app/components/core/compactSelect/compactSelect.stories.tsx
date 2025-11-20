@@ -303,6 +303,7 @@ export default Storybook.story('CompactSelect', story => {
 
         <CompactSelect
           value={value}
+          clearable
           onChange={newValue => {
             setValue(newValue.value);
           }}

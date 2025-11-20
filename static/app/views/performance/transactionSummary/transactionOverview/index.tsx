@@ -143,7 +143,7 @@ function OTelOverviewContentWrapper() {
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
-  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter | undefined) => {
     trackAnalytics('performance_views.filter_dropdown.selection', {
       organization,
       action: newFilter as string,
@@ -151,7 +151,7 @@ function OTelOverviewContentWrapper() {
 
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...filterToLocationQuery(newFilter),
+      ...(newFilter ? filterToLocationQuery(newFilter) : undefined),
     };
 
     if (newFilter === SpanOperationBreakdownFilter.NONE) {
@@ -249,7 +249,7 @@ function OverviewContentWrapper() {
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
-  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter | undefined) => {
     trackAnalytics('performance_views.filter_dropdown.selection', {
       organization,
       action: newFilter as string,
