@@ -208,7 +208,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
-            "A default query of `is:unresolved issue.priority:[high,medium]` is applied. "
+            "A default query of `is:unresolved` is applied. "
             "To return all results, use an empty query value (i.e. ``?query=`). "
         ),
         parameters=[
