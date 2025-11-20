@@ -69,10 +69,8 @@ function PanelContainers({
                   onClick={onUnminimize}
                 >
                   <Flex direction="column" align="center" gap="lg">
-                    <IconSeer variant="waiting" size="lg" color="purple400" />
-                    <Text variant="muted">
-                      Press Tab ⇥ or click to continue with Seer
-                    </Text>
+                    <IconSeer variant="waiting" size="lg" />
+                    <Text>Press Tab ⇥ or click to continue with Seer</Text>
                   </Flex>
                 </MinimizedOverlay>
               )}

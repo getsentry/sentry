@@ -223,7 +223,8 @@ export function getToolsStringFromBlock(block: Block): string[] {
 function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
-  const shortIdPattern = /\b([A-Z0-9_]{2,}-[A-Z0-9]+)\b/g;
+  // First segment must contain at least one uppercase letter (all letters must be uppercase)
+  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
