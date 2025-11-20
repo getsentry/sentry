@@ -1,5 +1,10 @@
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+    IntegrationError,
+)
 
 # https://discord.com/developers/docs/topics/opcodes-and-status-codes#json
 DISCORD_HALT_ERROR_CODES = [
@@ -10,10 +15,19 @@ DISCORD_HALT_ERROR_CODES = [
 
 
 def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
+    try:
+        translate_discord_api_error(error)
+    except IntegrationConfigurationError as e:
+        lifecycle.record_halt(e)
+    except IntegrationError as e:
+        lifecycle.record_failure(e)
+
+
+def translate_discord_api_error(error: ApiError) -> None:
     if isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
-        lifecycle.record_halt(error)
+        raise IntegrationError(error.text) from error
     elif error.json and error.json.get("code") in DISCORD_HALT_ERROR_CODES:
-        lifecycle.record_halt(error)
+        raise IntegrationConfigurationError(error.text) from error
     else:
-        lifecycle.record_failure(error)
+        raise IntegrationError(error.text) from error
