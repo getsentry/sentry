@@ -106,8 +106,7 @@ interface BaseListProps<Value extends SelectKey>
  * clearing the selection.
  * `value` can be `undefined` to represent no selection.
  */
-export interface SingleClearableListProps<Value extends SelectKey>
-  extends BaseListProps<Value> {
+interface SingleClearableListProps<Value extends SelectKey> extends BaseListProps<Value> {
   clearable: true;
   onChange: (selectedOption: SelectOption<Value> | undefined) => void;
   value: Value | undefined;
@@ -125,7 +124,7 @@ export type SingleListProps<Value extends SelectKey> =
   | SingleClearableListProps<Value>
   | SingleUnclearableListProps<Value>;
 
-export interface SingleUnclearableListProps<Value extends SelectKey>
+interface SingleUnclearableListProps<Value extends SelectKey>
   extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
