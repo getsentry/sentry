@@ -197,7 +197,7 @@ describe('CheckoutOverview', () => {
       />
     );
 
-    expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
+    expect(screen.getByTestId('legacySeer-reserved')).toBeInTheDocument();
     expect(screen.getByText('Seer')).toBeInTheDocument();
   });
 
@@ -224,7 +224,7 @@ describe('CheckoutOverview', () => {
       />
     );
 
-    expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('legacySeer-reserved')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer')).not.toBeInTheDocument();
   });
 });

@@ -676,8 +676,10 @@ export function useSubmitCheckout({
 
       // seer automation alert
       const alreadyHasSeer =
-        !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
-      const justBoughtSeer = _variables.data.addOnSeer && !alreadyHasSeer;
+        !isTrialPlan(subscription.plan) &&
+        (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
+      const justBoughtSeer =
+        (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
 
       // refresh org and subscription state
       // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
@@ -783,8 +785,9 @@ export async function submitCheckout(
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
     const alreadyHasSeer =
-      !isTrialPlan(subscription.plan) && subscription.addOns?.seer?.enabled;
-    const justBoughtSeer = data.addOnSeer && !alreadyHasSeer;
+      !isTrialPlan(subscription.plan) &&
+      (subscription.addOns?.seer?.enabled || subscription.addOns?.legacySeer?.enabled);
+    const justBoughtSeer = (data.addOnLegacySeer || data.addOnSeer) && !alreadyHasSeer;
 
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this

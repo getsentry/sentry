@@ -286,7 +286,7 @@ describe('AmCheckout > ReviewAndConfirm', () => {
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
       organization,
       subscription,
-      seer: {
+      legacySeer: {
         enabled: true,
         previously_enabled: false,
       },

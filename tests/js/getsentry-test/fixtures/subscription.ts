@@ -261,7 +261,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
 /**
  * Returns a subscription with self-serve paid Seer reserved budget.
  */
-export function SubscriptionWithSeerFixture(props: Props): TSubscription {
+export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
   const subscription = SubscriptionFixture(props);
   if (!subscription.planDetails.addOnCategories[AddOnCategory.LEGACY_SEER]) {
     return subscription;

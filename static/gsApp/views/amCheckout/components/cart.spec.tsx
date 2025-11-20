@@ -170,7 +170,7 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Continuous profile hours');
     expect(planItem).toHaveTextContent('Available');
 
-    const seerItem = screen.getByTestId('summary-item-product-seer');
+    const seerItem = screen.getByTestId('summary-item-product-legacySeer');
     expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
