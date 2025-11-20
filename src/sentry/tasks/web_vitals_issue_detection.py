@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 
 from sentry import features, options
+from sentry.constants import ObjectStatus
 from sentry.issue_detection.performance_detection import get_merged_settings
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -18,6 +20,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.web_vitals.issue_platform_adapter import send_web_vitals_issue_to_platform
 from sentry.web_vitals.query import get_trace_by_web_vital_measurement
 from sentry.web_vitals.types import (
@@ -28,6 +31,7 @@ from sentry.web_vitals.types import (
 
 logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
 
+PROJECTS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT_LIMIT = 5
 DEFAULT_START_TIME_DELTA = {"days": 7}  # Low scores within this time range create web vital issues
 SCORE_THRESHOLD = 0.9  # Scores below this threshold will create web vital issues
@@ -42,13 +46,11 @@ VITAL_GROUPING_MAP: dict[WebVitalIssueDetectionType, WebVitalIssueDetectionGroup
 }
 
 
-def get_enabled_project_ids() -> list[int]:
-    """
-    Get the list of project IDs that are explicitly enabled for Web Vitals issue detection.
-
-    Returns the allowlist from system options.
-    """
-    return options.get("issue-detection.web-vitals-detection.projects-allowlist")
+def all_active_projects_with_flags() -> Generator[tuple[int, int]]:
+    yield from RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
+        result_value_getter=lambda item: item[0],
+    )
 
 
 @instrumented_task(
@@ -63,12 +65,25 @@ def run_web_vitals_issue_detection() -> None:
     if not options.get("issue-detection.web-vitals-detection.enabled"):
         return
 
-    enabled_project_ids = get_enabled_project_ids()
-    if not enabled_project_ids:
-        return
+    project_ids_generator = all_active_projects_with_flags()
 
+    project_ids_batch = []
+    for project_id, flags in project_ids_generator:
+        if flags & Project.flags.has_transactions:
+            project_ids_batch.append(project_id)
+
+        if len(project_ids_batch) >= PROJECTS_PER_BATCH:
+            dispatch_detection_for_project_ids(project_ids_batch)
+            project_ids_batch = []
+
+    # Last batch
+    if project_ids_batch:
+        dispatch_detection_for_project_ids(project_ids_batch)
+
+
+def dispatch_detection_for_project_ids(project_ids: list[int]) -> None:
     # Spawn a sub-task for each project
-    projects = Project.objects.filter(id__in=enabled_project_ids).select_related("organization")
+    projects = Project.objects.filter(id__in=project_ids).select_related("organization")
     projects_checked_count = 0
     projects_dispatched_count = 0
 

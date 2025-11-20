@@ -225,8 +225,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
-  const missingDsymBinaries =
-    buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
+  const missingDsymBinaries = appSizeData.missing_dsym_binaries;
 
   const missingProguardMapping =
     buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;

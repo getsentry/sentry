@@ -22,7 +22,7 @@ import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountF
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssueListItem;
