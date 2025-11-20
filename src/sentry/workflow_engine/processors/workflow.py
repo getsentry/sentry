@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import DefaultDict
@@ -12,8 +12,7 @@ from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -42,9 +41,6 @@ from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
-
-DetectorId = int | None
-DataConditionGroupId = int
 
 
 class WorkflowDataConditionGroupType(StrEnum):
@@ -76,36 +72,6 @@ def delete_workflow(workflow: Workflow) -> bool:
         workflow.delete()
 
     return True
-
-
-@dataclass
-class DelayedWorkflowItem:
-    workflow: Workflow
-    event: GroupEvent
-    delayed_when_group_id: DataConditionGroupId | None
-    delayed_if_group_ids: list[DataConditionGroupId]
-    passing_if_group_ids: list[DataConditionGroupId]
-
-    # Used to pick the end of the time window in snuba querying.
-    # Should be close to when fast conditions were evaluated to try to be consistent.
-    timestamp: datetime
-
-    def buffer_key(self) -> str:
-        when_condition_group_str = (
-            str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
-        )
-        if_condition_groups = ",".join(str(id) for id in sorted(self.delayed_if_group_ids))
-        passing_if_groups = ",".join(str(id) for id in sorted(self.passing_if_group_ids))
-        return f"{self.workflow.id}:{self.event.group.id}:{when_condition_group_str}:{if_condition_groups}:{passing_if_groups}"
-
-    def buffer_value(self) -> str:
-        return json.dumps(
-            {
-                "event_id": self.event.event_id,
-                "occurrence_id": self.event.occurrence_id,
-                "timestamp": self.timestamp,
-            }
-        )
 
 
 @scopedstats.timer()
@@ -548,6 +514,7 @@ def process_workflows(
     workflow_evaluation_data.triggered_workflows = triggered_workflows
 
     if not triggered_workflows and not queue_items_by_workflow_id:
+        # TODO - re-think tainted once the actions are removed from process_workflows.
         return WorkflowEvaluation(
             tainted=True,
             msg="No items were triggered or queued for slow evaluation",
@@ -567,6 +534,7 @@ def process_workflows(
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
+    workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     if not actions:
         return WorkflowEvaluation(
@@ -586,4 +554,4 @@ def process_workflows(
     )
 
     fire_actions(actions, detector, event_data)
-    return WorkflowEvaluation(tainted=False, msg=None, data=workflow_evaluation_data)
+    return WorkflowEvaluation(tainted=False, data=workflow_evaluation_data)
