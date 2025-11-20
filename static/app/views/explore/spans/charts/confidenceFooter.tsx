@@ -6,7 +6,6 @@ import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
 import {
   Placeholder,
   WarningIcon,
@@ -26,13 +25,11 @@ type Props = {
 };
 
 export function ConfidenceFooter(props: Props) {
-  const previousProps = usePrevious(props, props.isLoading);
-  return (
-    <Container>{confidenceMessage(props.isLoading ? previousProps : props)}</Container>
-  );
+  return <Container>{confidenceMessage(props)}</Container>;
 }
 
 function confidenceMessage({
+  dataScanned,
   extrapolate,
   rawSpanCounts,
   sampleCount,
@@ -42,86 +39,241 @@ function confidenceMessage({
   isLoading,
   userQuery,
 }: Props) {
-  const isTopN = defined(topEvents) && topEvents > 1;
-
-  if (!defined(sampleCount) || isLoading) {
+  if (isLoading || !defined(sampleCount)) {
     return <Placeholder width={180} />;
   }
 
-  if (
-    // Extrapolation disabled, so don't mention extrapolation.
-    (defined(extrapolate) && !extrapolate) ||
-    // High confidence without user query means we're in a default query.
-    // We check for high confidence here because we still want to show the
-    // tooltip here if it's low confidence
-    (confidence === 'high' && !userQuery)
-  ) {
-    return isTopN
-      ? tct('Span count for top [topEvents] groups: [matchingSpansCount]', {
-          topEvents,
-          matchingSpansCount: <Count value={sampleCount} />,
-        })
-      : tct('Span count: [matchingSpansCount]', {
-          matchingSpansCount: <Count value={sampleCount} />,
-        });
-  }
-
+  const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
-  const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
+
+  const maybeWarning =
+    confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
+  const maybeTooltip =
+    confidence === 'low' ? (
+      <_LowAccuracyFullTooltip
+        noSampling={noSampling}
+        dataScanned={dataScanned}
+        userQuery={userQuery}
+      />
+    ) : null;
 
   // The multi query mode does not fetch the raw span counts
   // so make sure to have a backup when this happens.
   if (!defined(rawSpanCounts)) {
     const matchingSpansCount =
-      sampleCount > 1
-        ? t('%s spans', <Count value={sampleCount} />)
-        : t('%s span', <Count value={sampleCount} />);
+      sampleCount === 1
+        ? t('%s span', <Count value={sampleCount} />)
+        : t('%s spans', <Count value={sampleCount} />);
 
-    if (confidence === 'high') {
+    if (isTopN) {
+      return tct(
+        '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]]',
+        {
+          maybeWarning,
+          topEvents,
+          maybeTooltip,
+          matchingSpansCount,
+        }
+      );
+    }
+
+    return tct('[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]]', {
+      maybeWarning,
+      maybeTooltip,
+      matchingSpansCount,
+    });
+  }
+
+  if (
+    // Extrapolation disabled, so don't mention estimations.
+    (defined(extrapolate) && !extrapolate) ||
+    // No sampling happened, so don't mention estimations.
+    noSampling
+  ) {
+    if (!userQuery) {
+      const matchingSpansCount =
+        sampleCount > 1
+          ? t('%s spans', <Count value={sampleCount} />)
+          : t('%s span', <Count value={sampleCount} />);
+
       if (isTopN) {
-        return tct('Extrapolated from [matchingSpansCount] for top [topEvents] groups', {
+        return tct('[matchingSpansCount] for top [topEvents] groups', {
           topEvents,
           matchingSpansCount,
         });
       }
 
-      return tct('Extrapolated from [matchingSpansCount]', {
+      return matchingSpansCount;
+    }
+
+    const matchingSpansCount =
+      sampleCount > 1
+        ? t('%s matches', <Count value={sampleCount} />)
+        : t('%s match', <Count value={sampleCount} />);
+
+    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+      rawSpanCounts.highAccuracy.count > 1 ? (
+        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+      ) : (
+        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+      )
+    ) : (
+      <Placeholder width={40} />
+    );
+
+    if (isTopN) {
+      return tct('[matchingSpansCount] of [totalSpansCount] for top [topEvents] groups', {
         matchingSpansCount,
+        totalSpansCount,
+        topEvents,
       });
     }
 
-    if (isTopN) {
+    return tct('[matchingSpansCount] of [totalSpansCount]', {
+      matchingSpansCount,
+      totalSpansCount,
+    });
+  }
+
+  // no user query means it's showing the total number of spans scanned
+  // so no need to mention how many matched
+  if (!userQuery) {
+    // partial scans means that we didnt scan all the data so it's useful
+    // to mention the total number of spans available
+    if (dataScanned === 'partial') {
+      const matchingSpansCount =
+        sampleCount > 1
+          ? t('%s samples', <Count value={sampleCount} />)
+          : t('%s sample', <Count value={sampleCount} />);
+
+      const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+        rawSpanCounts.highAccuracy.count > 1 ? (
+          t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+        ) : (
+          t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+        )
+      ) : (
+        <Placeholder width={40} />
+      );
+
+      if (isTopN) {
+        return tct(
+          '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
+          {
+            maybeWarning,
+            topEvents,
+            maybeTooltip,
+            matchingSpansCount,
+            totalSpansCount,
+          }
+        );
+      }
+
       return tct(
-        'Extrapolated from [tooltip:[matchingSpansCount]] for top [topEvents] groups',
+        '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
         {
-          topEvents,
+          maybeWarning,
+          maybeTooltip,
           matchingSpansCount,
-          tooltip: lowAccuracyFullSampleCount,
+          totalSpansCount,
         }
       );
     }
 
-    return tct('Extrapolated from [tooltip:[matchingSpansCount]]', {
+    // otherwise, a full scan was done
+    // full scan means we scanned all the data available so no need to repeat that information twice
+
+    const matchingSpansCount =
+      sampleCount > 1
+        ? t('%s spans', <Count value={sampleCount} />)
+        : t('%s span', <Count value={sampleCount} />);
+
+    if (isTopN) {
+      return tct(
+        '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]]',
+        {
+          maybeWarning,
+          maybeTooltip,
+          topEvents,
+          matchingSpansCount,
+        }
+      );
+    }
+
+    return tct('[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]]', {
+      maybeWarning,
+      maybeTooltip,
       matchingSpansCount,
-      tooltip: lowAccuracyFullSampleCount,
     });
   }
+
+  // otherwise, a user query was specified
+  // with a user query, it means we should tell the user how many of the scanned spans
+  // matched the user query
+
+  // partial scans means that we didnt scan all the data so it's useful
+  // to mention the total number of spans available
+  if (dataScanned === 'partial') {
+    const matchingSpansCount =
+      sampleCount > 1
+        ? t('%s matches', <Count value={sampleCount} />)
+        : t('%s match', <Count value={sampleCount} />);
+
+    const scannedSpansCount = rawSpanCounts.normal.count ? (
+      rawSpanCounts.normal.count > 1 ? (
+        t('%s samples', <Count value={rawSpanCounts.normal.count} />)
+      ) : (
+        t('%s sample', <Count value={rawSpanCounts.normal.count} />)
+      )
+    ) : (
+      <Placeholder width={40} />
+    );
+
+    const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
+      rawSpanCounts.highAccuracy.count > 1 ? (
+        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+      ) : (
+        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+      )
+    ) : (
+      <Placeholder width={40} />
+    );
+
+    if (isTopN) {
+      return tct(
+        '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]] after scanning [scannedSpansCount] of [totalSpansCount]',
+        {
+          maybeWarning,
+          maybeTooltip,
+          matchingSpansCount,
+          scannedSpansCount,
+          totalSpansCount,
+          topEvents,
+        }
+      );
+    }
+
+    return tct(
+      '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] after scanning [scannedSpansCount] of [totalSpansCount]',
+      {
+        maybeWarning,
+        maybeTooltip,
+        matchingSpansCount,
+        scannedSpansCount,
+        totalSpansCount,
+      }
+    );
+  }
+
+  // otherwise, a full scan was done
+  // full scan means we scanned all the data available so no need to repeat that information twice
 
   const matchingSpansCount =
     sampleCount > 1
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const downSampledSpansCount = rawSpanCounts.normal.count ? (
-    rawSpanCounts.normal.count > 1 ? (
-      t('%s samples', <Count value={rawSpanCounts.normal.count} />)
-    ) : (
-      t('%s sample', <Count value={rawSpanCounts.normal.count} />)
-    )
-  ) : (
-    <Placeholder width={40} />
-  );
-  const allSpansCount = rawSpanCounts.highAccuracy.count ? (
+  const totalSpansCount = rawSpanCounts.highAccuracy.count ? (
     rawSpanCounts.highAccuracy.count > 1 ? (
       t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
     ) : (
@@ -131,46 +283,26 @@ function confidenceMessage({
     <Placeholder width={40} />
   );
 
-  if (confidence === 'high') {
-    if (isTopN) {
-      return tct(
-        'Extrapolated from [matchingSpansCount] for top [topEvents] groups in [allSpansCount]',
-        {
-          topEvents,
-          matchingSpansCount,
-          allSpansCount,
-        }
-      );
-    }
-
-    return tct('Extrapolated from [matchingSpansCount] in [allSpansCount]', {
-      matchingSpansCount,
-      allSpansCount,
-    });
-  }
-
   if (isTopN) {
     return tct(
-      '[warning] Extrapolated from [matchingSpansCount] for top [topEvents] groups after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
+      '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
       {
-        warning: <WarningIcon />,
+        maybeWarning,
         topEvents,
+        maybeTooltip,
         matchingSpansCount,
-        downSampledSpansCount,
-        allSpansCount,
-        tooltip: lowAccuracyFullSampleCount,
+        totalSpansCount,
       }
     );
   }
 
   return tct(
-    '[warning] Extrapolated from [matchingSpansCount] after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
+    '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
     {
-      warning: <WarningIcon />,
+      maybeWarning,
+      maybeTooltip,
       matchingSpansCount,
-      downSampledSpansCount,
-      allSpansCount,
-      tooltip: lowAccuracyFullSampleCount,
+      totalSpansCount,
     }
   );
 }
@@ -178,24 +310,42 @@ function confidenceMessage({
 function _LowAccuracyFullTooltip({
   noSampling,
   children,
+  dataScanned,
+  userQuery,
 }: {
   noSampling: boolean;
   children?: React.ReactNode;
+  dataScanned?: 'full' | 'partial';
+  userQuery?: string;
 }) {
   return (
     <Tooltip
       title={
         <div>
           {t(
-            'You may not have enough span samples for a high accuracy extrapolation of your query.'
+            'You may not have enough span samples for a high accuracy estimation of your query.'
           )}
           <br />
-          {t(
-            "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
-          )}
+          <br />
+          {dataScanned === 'partial' && userQuery
+            ? t(
+                "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
+              )
+            : dataScanned === 'partial'
+              ? t(
+                  "You can try adjusting your query by narrowing the date range or increasing the chart's time interval."
+                )
+              : userQuery
+                ? t(
+                    "You can try adjusting your query by removing filters or increasing the chart's time interval."
+                  )
+                : t(
+                    "You can try adjusting your query by increasing the chart's time interval."
+                  )}
           {/* Do not show if no sampling happened to the data points in the series as they are already at 100% sampling  */}
           {!noSampling && (
             <Fragment>
+              <br />
               <br />
               {t(
                 'You can also increase your sampling rates to get more samples and accurate trends.'
@@ -204,7 +354,7 @@ function _LowAccuracyFullTooltip({
           )}
         </div>
       }
-      maxWidth={270}
+      maxWidth={300}
       showUnderline
     >
       {children}
