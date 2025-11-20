@@ -3053,7 +3053,9 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 
         # Ensure event count < 10
         group = event.group
-        assert group.times_seen < 10
+        # Set times_seen_pending to 0 to ensure times_seen_with_pending < 10
+        group.times_seen_pending = 0
+        assert group.times_seen_with_pending < 10
 
         self.call_post_process_group(
             is_new=True,
@@ -3117,23 +3119,30 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 
         # Update group times_seen to simulate >= 10 events
         group = event.group
-        group.times_seen = 10
+        group.times_seen = 1
         group.save()
         # Also update the event's cached group reference
-        event.group.times_seen = 10
+        event.group.times_seen = 1
 
-        # Cache a summary for this group
-        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+        # Mock buffer backend to return pending increments
+        from sentry import buffer
 
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
 
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            # Cache a summary for this group
+            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+
+            cache_key = get_issue_summary_cache_key(group.id)
+            cache.set(cache_key, {"summary": "test summary"}, 3600)
+
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
 
         # Should call run_automation_only_task since summary exists
         mock_run_automation.assert_called_once_with(group.id)
@@ -3157,17 +3166,24 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 
         # Update group times_seen to simulate >= 10 events
         group = event.group
-        group.times_seen = 10
+        group.times_seen = 1
         group.save()
         # Also update the event's cached group reference
-        event.group.times_seen = 10
+        event.group.times_seen = 1
 
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
+        # Mock buffer backend to return pending increments
+        from sentry import buffer
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
 
         # Should call generate_summary_and_run_automation to generate summary + run automation
         mock_generate_summary_and_run_automation.assert_called_once_with(group.id)
@@ -3190,25 +3206,32 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 
         # Update group times_seen and seer_autofix_last_triggered
         group = event.group
-        group.times_seen = 10
+        group.times_seen = 1
         group.seer_autofix_last_triggered = timezone.now()
         group.save()
         # Also update the event's cached group reference
-        event.group.times_seen = 10
+        event.group.times_seen = 1
         event.group.seer_autofix_last_triggered = group.seer_autofix_last_triggered
 
-        # Cache a summary for this group
-        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+        # Mock buffer backend to return pending increments
+        from sentry import buffer
 
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
 
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            # Cache a summary for this group
+            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+
+            cache_key = get_issue_summary_cache_key(group.id)
+            cache.set(cache_key, {"summary": "test summary"}, 3600)
+
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
 
         # Should not call automation since seer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
@@ -3232,25 +3255,32 @@ class TriageSignalsV0TestMixin(BasePostProgressGroupMixin):
 
         # Update group times_seen and set seer_fixability_score (but not seer_autofix_last_triggered)
         group = event.group
-        group.times_seen = 10
+        group.times_seen = 1
         group.seer_fixability_score = 0.5
         group.save()
         # Also update the event's cached group reference
-        event.group.times_seen = 10
+        event.group.times_seen = 1
         event.group.seer_fixability_score = 0.5
 
-        # Cache a summary for this group
-        from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+        # Mock buffer backend to return pending increments
+        from sentry import buffer
 
-        cache_key = get_issue_summary_cache_key(group.id)
-        cache.set(cache_key, {"summary": "test summary"}, 3600)
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
 
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            # Cache a summary for this group
+            from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+
+            cache_key = get_issue_summary_cache_key(group.id)
+            cache.set(cache_key, {"summary": "test summary"}, 3600)
+
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
 
         # Should not call automation since seer_fixability_score exists
         mock_run_automation.assert_not_called()

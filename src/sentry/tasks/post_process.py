@@ -1636,7 +1636,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         # Triage signals V0 behaviour
 
         # If event count < 10, only generate summary (no automation)
-        if group.times_seen < 10:
+        if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
