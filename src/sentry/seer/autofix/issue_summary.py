@@ -290,7 +290,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -402,7 +402,7 @@ def _generate_summary(
 
     if should_run_automation:
         try:
-            _run_automation(group, user, event, source)
+            run_automation(group, user, event, source)
         except Exception:
             logger.exception(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
