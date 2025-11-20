@@ -15,6 +15,8 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldValueType,
+  getFieldDefinition,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -91,13 +93,27 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
   return <Tag type={tagType}>{text}</Tag>;
 }
 
+const LOGS_NOT_ALLOWED_AGGREGATES = [
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.FAILURE_COUNT,
+];
+
+function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
+  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(aggregate => {
+    if (dataset === DetectorDataset.LOGS) {
+      return !LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate);
+    }
+    return true;
+  }).map(aggregate => [aggregate, aggregate]);
+}
+
 function getAggregateOptions(
   dataset: DetectorDataset,
   tableFieldOptions: Record<string, SelectValue<FieldValue>>
 ): Array<[string, string]> {
   // For spans dataset, use the predefined aggregates
   if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   // For other datasets, extract function-type options from tableFieldOptions
@@ -107,7 +123,7 @@ function getAggregateOptions(
 
   // If no function options available, fall back to the predefined aggregates
   if (functionOptions.length === 0) {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => [aggregate, aggregate]);
+    return getEAPAllowedAggregates(dataset);
   }
 
   return functionOptions.sort((a, b) => a[1].localeCompare(b[1]));
@@ -218,15 +234,32 @@ export function Visualize() {
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
     if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
+      // Use field definition to determine what options should be displayed
+      const fieldDefinition = getFieldDefinition(
+        aggregate,
+        dataset === DetectorDataset.SPANS ? 'span' : 'log'
+      );
+      let isTypeAllowed = (_valueType: FieldValueType) => true;
+      if (fieldDefinition?.parameters?.[0]?.kind === 'column') {
+        const columnTypes = fieldDefinition?.parameters[0]?.columnTypes;
+        isTypeAllowed = (valueType: FieldValueType) =>
+          typeof columnTypes === 'function'
+            ? columnTypes({key: '', valueType})
+            : columnTypes.includes(valueType);
+      }
       const spanColumnOptions: Array<[string, string]> = [
-        ...Object.values(stringSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
-        ...Object.values(numericSpanTags).map((tag): [string, string] => [
-          tag.key,
-          prettifyTagKey(tag.name),
-        ]),
+        ...(isTypeAllowed(FieldValueType.STRING)
+          ? Object.values(stringSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
+        ...(isTypeAllowed(FieldValueType.NUMBER)
+          ? Object.values(numericSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
       ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
@@ -239,7 +272,7 @@ export function Visualize() {
       )
       .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
-  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions]);
+  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions, aggregate]);
 
   const fieldOptionsDropdown = useMemo(() => {
     return fieldOptions.map(([value, label]) => ({
