@@ -69,14 +69,6 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       }))
   );
 
-  if (isError) {
-    return (
-      <Tooltip title={t('Error loading span categories')}>
-        <CompactSelect disabled options={[]} />
-      </Tooltip>
-    );
-  }
-
   const onChange = (selectedOption: SelectOption<string> | null) => {
     setSelectedCategory(selectedOption?.value ?? undefined);
 
@@ -88,6 +80,14 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       },
     });
   };
+
+  if (isError) {
+    return (
+      <Tooltip title={t('Error loading span categories')}>
+        <CompactSelect disabled options={[]} value={undefined} onChange={onChange} />
+      </Tooltip>
+    );
+  }
 
   return (
     <CompactSelect

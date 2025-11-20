@@ -362,7 +362,7 @@ class TestConvertProfileToExecutionTree:
         assert len(root.children) == 0
 
     def test_convert_profile_single_thread_fallback(self) -> None:
-        """Test fallback to single thread when no MainThread is found."""
+        """Test fallback to first sample's thread when no MainThread is found."""
         profile_data: dict[str, Any] = {
             "profile": {
                 "frames": [
@@ -433,7 +433,7 @@ class TestConvertProfileToExecutionTree:
         result = convert_profile_to_execution_tree(profile_data)
         assert len(result) == 1
 
-        # Should only contain the main function from MainThread
+        # Should only contain the main function from MainThread (selected because it has in_app frames)
         root = result[0]
         assert root.function == "main_function"
 
@@ -554,3 +554,157 @@ class TestConvertProfileToExecutionTree:
         # Verify sample counts
         assert short_func.sample_count == 1
         assert long_func.sample_count == 3
+
+    def test_convert_profile_selects_thread_with_most_in_app_frames(self) -> None:
+        """Test that the thread with the most in_app frames is selected."""
+        profile_data: dict[str, Any] = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main_function",
+                        "module": "app",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "worker_function_1",
+                        "module": "app",
+                        "filename": "worker.py",
+                        "lineno": 20,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "worker_function_2",
+                        "module": "app",
+                        "filename": "worker.py",
+                        "lineno": 30,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "worker_function_3",
+                        "module": "app",
+                        "filename": "worker.py",
+                        "lineno": 40,
+                        "in_app": True,
+                    },
+                ],
+                "stacks": [[0], [1, 2, 3]],  # MainThread has 1 frame, WorkerThread has 3 frames
+                "samples": [
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "1",  # MainThread - 1 in_app frame
+                        "stack_id": 0,
+                    },
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "2",  # WorkerThread - 3 in_app frames (should be selected)
+                        "stack_id": 1,
+                    },
+                ],
+                "thread_metadata": {
+                    "1": {"name": "MainThread"},
+                    "2": {"name": "WorkerThread"},
+                },
+            }
+        }
+
+        result = convert_profile_to_execution_tree(profile_data)
+        assert len(result) == 1
+
+        # Should contain worker_function_3 from WorkerThread (thread with most in_app frames)
+        root = result[0]
+        assert root.function == "worker_function_3"
+        assert len(root.children) == 1
+        assert root.children[0].function == "worker_function_2"
+        assert len(root.children[0].children) == 1
+        assert root.children[0].children[0].function == "worker_function_1"
+
+    def test_convert_profile_fallback_to_mainthread_when_no_in_app_frames(self) -> None:
+        """Test fallback to MainThread when no threads have in_app frames."""
+        profile_data: dict[str, Any] = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "stdlib_function",
+                        "module": "stdlib",
+                        "filename": "/usr/lib/stdlib.py",
+                        "lineno": 100,
+                        "in_app": False,
+                    },
+                    {
+                        "function": "another_stdlib_function",
+                        "module": "stdlib",
+                        "filename": "/usr/lib/stdlib.py",
+                        "lineno": 200,
+                        "in_app": False,
+                    },
+                ],
+                "stacks": [[0, 1]],
+                "samples": [
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "1",  # MainThread
+                        "stack_id": 0,
+                    },
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "2",  # WorkerThread
+                        "stack_id": 0,
+                    },
+                ],
+                "thread_metadata": {
+                    "1": {"name": "MainThread"},
+                    "2": {"name": "WorkerThread"},
+                },
+            }
+        }
+
+        result = convert_profile_to_execution_tree(profile_data)
+        assert len(result) == 1
+
+        # Should contain all frames from MainThread (including system frames)
+        root = result[0]
+        assert root.function == "another_stdlib_function"
+        assert len(root.children) == 1
+        assert root.children[0].function == "stdlib_function"
+
+    def test_convert_profile_fallback_to_first_sample_when_no_mainthread_no_in_app(self) -> None:
+        """Test fallback to first sample's thread when no MainThread and no in_app frames."""
+        profile_data: dict[str, Any] = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "stdlib_function",
+                        "module": "stdlib",
+                        "filename": "/usr/lib/stdlib.py",
+                        "lineno": 100,
+                        "in_app": False,
+                    },
+                ],
+                "stacks": [[0]],
+                "samples": [
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "worker1",  # First sample - should be selected
+                        "stack_id": 0,
+                    },
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "worker2",
+                        "stack_id": 0,
+                    },
+                ],
+                "thread_metadata": {
+                    "worker1": {"name": "WorkerThread1"},
+                    "worker2": {"name": "WorkerThread2"},
+                },
+            }
+        }
+
+        result = convert_profile_to_execution_tree(profile_data)
+        assert len(result) == 1
+
+        # Should contain frames from worker1 (first sample's thread)
+        root = result[0]
+        assert root.function == "stdlib_function"

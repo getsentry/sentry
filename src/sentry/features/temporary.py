@@ -50,6 +50,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ai-insights-generations-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables flag for org specific runs on alerts comparison script for spans migration
+    manager.add("organizations:alerts-timeseries-comparison", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anomaly detection feature for EAP spans
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anr frame analysis
@@ -88,8 +90,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the ingestion of profile functions metrics into EAP
     manager.add("projects:profile-functions-metrics-eap-ingestion", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable querying profile candidates with exponentially growing datetime range chunks
-    manager.add("organizations:profiling-flamegraph-use-increased-chunks-query-strategy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables read only dashboards

@@ -14,7 +14,6 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
@@ -67,8 +66,11 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
         return AutofixStoppingPoint.SOLUTION
-    else:
+    # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
+    elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
+    else:
+        return AutofixStoppingPoint.OPEN_PR
 
 
 def _fetch_user_preference(project_id: int) -> str | None:
@@ -105,22 +107,30 @@ def _fetch_user_preference(project_id: int) -> str | None:
 def _apply_user_preference_upper_bound(
     fixability_suggestion: AutofixStoppingPoint | None,
     user_preference: str | None,
-) -> AutofixStoppingPoint | None:
+) -> AutofixStoppingPoint:
     """
     Apply user preference as an upper bound on the fixability-based stopping point.
     Returns the more conservative (earlier) stopping point between the two.
     """
-    if fixability_suggestion is None or user_preference is None:
+    # If fixability is None but user preference exists, use user preference
+    if fixability_suggestion is None and user_preference is not None:
+        return AutofixStoppingPoint(user_preference)
+    # If fixability exists but user preference is None, use fixability
+    elif fixability_suggestion is not None and user_preference is None:
         return fixability_suggestion
-
-    user_stopping_point = AutofixStoppingPoint(user_preference)
-
-    return (
-        fixability_suggestion
-        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
-        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
-        else user_stopping_point
-    )
+    # If both are None, return ROOT_CAUSE as default
+    elif fixability_suggestion is None and user_preference is None:
+        return AutofixStoppingPoint.ROOT_CAUSE
+    # Both are not None - return the more conservative one
+    else:
+        assert fixability_suggestion is not None and user_preference is not None  # for mypy
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+        return (
+            fixability_suggestion
+            if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+            <= STOPPING_POINT_HIERARCHY[user_stopping_point]
+            else user_stopping_point
+        )
 
 
 @instrumented_task(
@@ -408,9 +418,6 @@ def _generate_summary(
 
 def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
-        return
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(

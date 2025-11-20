@@ -21,6 +21,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -34,6 +35,10 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         super().setUp()
         self.login_as(self.user)
         self.project = self.create_project(organization=self.organization)
+        self.detector = self.create_detector(project=self.project)
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
         self.workflow = self.create_workflow()
 
     def setup_pd_service(self) -> PagerDutyServiceDict:
@@ -94,7 +99,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert mock_send_trigger.call_count == 1
         pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
         assert pagerduty_data is not None
-        assert pagerduty_data["payload"]["summary"].startswith("[Test Detector]:")
+        assert pagerduty_data["payload"]["summary"].startswith(f"[{self.detector.name}]:")
 
     @mock.patch.object(NotifyEventAction, "after")
     @mock.patch(
