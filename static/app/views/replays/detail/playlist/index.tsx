@@ -1,5 +1,3 @@
-import {useRef} from 'react';
-
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayBrowserColumn,
@@ -10,6 +8,7 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {useLocation} from 'sentry/utils/useLocation';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
@@ -19,15 +18,22 @@ const VISIBLE_COLUMNS = [
   ReplayCountErrorsColumn,
 ];
 
+const MOBILE_COLUMNS = [
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+];
+
 export default function Playlist() {
   const {replays, currentReplayIndex} = useReplayPlaylist();
-  const tableRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  const {allMobileProj} = useAllMobileProj({});
+  const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
   return (
     <ReplayTable
-      ref={tableRef}
-      columns={VISIBLE_COLUMNS}
+      columns={columns}
       error={null}
       highlightedRowIndex={currentReplayIndex}
       isPending={replays ? false : true}
