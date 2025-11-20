@@ -124,6 +124,7 @@ export enum SpanFields {
 
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
+  DB_OPERATION = 'db.operation',
 
   // Mobile fields
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
@@ -245,6 +246,7 @@ export type SpanNumberFields =
 
 // TODO: Enforce that these fields all come from SpanFields
 export type SpanStringFields =
+  | SpanFields.DB_OPERATION
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD

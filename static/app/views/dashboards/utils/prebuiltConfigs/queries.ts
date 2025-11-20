@@ -25,17 +25,17 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.system',
-          name: 'span.system',
+          key: SpanFields.DB_SYSTEM,
+          name: SpanFields.DB_SYSTEM,
           kind: FieldKind.TAG,
         },
-        value: 'span.system:postgresql',
+        value: '',
       },
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.action',
-          name: 'span.action',
+          key: SpanFields.DB_OPERATION,
+          name: SpanFields.DB_OPERATION,
           kind: FieldKind.TAG,
         },
         value: '',
