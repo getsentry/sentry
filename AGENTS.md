@@ -103,6 +103,10 @@ sentry django migrate
 # Create new migration
 sentry django makemigrations
 
+# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
+./bin/update-migration <migration_name_or_number> <app_label>
+# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
+
 # Reset database
 make reset-db
 ```
