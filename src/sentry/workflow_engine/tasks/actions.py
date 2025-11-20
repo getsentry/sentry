@@ -77,10 +77,7 @@ def trigger_action(
     detector_id: int | None = None,  # TODO: remove
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
-    from sentry.workflow_engine.processors.detector import (
-        get_detector_by_group,
-        get_detector_from_event_data,
-    )
+    from sentry.workflow_engine.processors.detector import get_detector_from_event_data
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -102,12 +99,10 @@ def trigger_action(
             has_reappeared=has_reappeared,
             has_escalated=has_escalated,
         )
-        detector = get_detector_from_event_data(event_data)
     elif activity_id is not None:
         event_data = build_workflow_event_data_from_activity(
             activity_id=activity_id, group_id=group_id
         )
-        detector = get_detector_by_group(event_data.group)
     else:
         # This should never happen, and if it does, need to investigate
         logger.error(
@@ -115,6 +110,8 @@ def trigger_action(
             extra={"event_id": event_id, "activity_id": activity_id},
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
+
+    detector = get_detector_from_event_data(event_data)
 
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
