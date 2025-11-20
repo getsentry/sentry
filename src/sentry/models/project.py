@@ -717,6 +717,19 @@ class Project(Model):
                 organization_id=organization.id
             )
 
+            # Update DataConditionGroups used as when_condition_group in transferred workflows
+            # DataConditionGroups are never shared, so transfer all when_condition_groups
+            when_condition_group_ids = (
+                Workflow.objects.filter(
+                    id__in=exclusive_workflow_ids, when_condition_group_id__isnull=False
+                )
+                .values_list("when_condition_group_id", flat=True)
+                .distinct()
+            )
+            DataConditionGroup.objects.filter(id__in=when_condition_group_ids).update(
+                organization_id=organization.id
+            )
+
         # Manually move over external issues to the new org
         linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
             "linked_id", flat=True
