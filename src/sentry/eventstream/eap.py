@@ -8,9 +8,9 @@ from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import (
     DeleteTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import (
-    TRACE_ITEM_TYPE_OCCURRENCE,
     RequestMeta,
     TraceItemFilterWithType,
+    TraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -43,7 +43,7 @@ def delete_groups_from_eap_rpc(
         and_filter=AndFilter(filters=[project_filter, group_id_filter])
     )
     filter_with_type = TraceItemFilterWithType(
-        item_type=TRACE_ITEM_TYPE_OCCURRENCE,
+        item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
         filter=combined_filter,
     )
 
@@ -53,6 +53,7 @@ def delete_groups_from_eap_rpc(
             project_ids=[project_id],
             referrer=referrer,
             cogs_category="deletions",
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
         ),
         filters=[filter_with_type],
     )
