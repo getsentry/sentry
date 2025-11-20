@@ -96,7 +96,6 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     on_silent=DataConditionGroup.DoesNotExist,
 )
 def process_workflows_event(
-    project_id: int,
     event_id: str,
     group_id: int,
     occurrence_id: str | None,
@@ -104,6 +103,7 @@ def process_workflows_event(
     has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
+    project_id: int | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
@@ -114,7 +114,6 @@ def process_workflows_event(
     with recorder.record():
         try:
             event_data = build_workflow_event_data_from_event(
-                project_id=project_id,
                 event_id=event_id,
                 group_id=group_id,
                 occurrence_id=occurrence_id,

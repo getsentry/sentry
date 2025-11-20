@@ -14,7 +14,7 @@ export function getAggregateSortBysFromLocation(
   const sortBys = decodeSorts(location.query?.[key]);
 
   if (sortBys.length > 0) {
-    if (sortBys.every(sort => validateSort(sort, aggregateFields))) {
+    if (sortBys.every(sort => validateAggregateSort(sort, aggregateFields))) {
       return sortBys;
     }
   }
@@ -22,7 +22,10 @@ export function getAggregateSortBysFromLocation(
   return null;
 }
 
-function validateSort(sort: Sort, aggregateFields: AggregateField[]): boolean {
+export function validateAggregateSort(
+  sort: Sort,
+  aggregateFields: AggregateField[]
+): boolean {
   return aggregateFields.some(aggregateField => {
     if (isGroupBy(aggregateField)) {
       return aggregateField.groupBy === sort.field;

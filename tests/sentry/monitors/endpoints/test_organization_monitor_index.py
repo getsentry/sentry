@@ -12,7 +12,7 @@ from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
 from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
@@ -150,7 +150,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self._create_monitor(name="A monitor"),
             self._create_monitor(name="ZA monitor"),
         ]
-        monitors.sort(key=lambda m: (m.is_muted, m.name))
+        monitors.sort(key=lambda m: (is_monitor_muted(m), m.name))
 
         response = self.get_success_response(self.organization.slug, sort="muted")
         self.check_valid_response(response, monitors)
@@ -388,6 +388,45 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         # Confirm we only see the one 'ok' environment
         assert len(response.data[0]["environments"]) == 1
         assert response.data[0]["environments"][0]["status"] == "ok"
+
+    def test_is_muted_calculated_from_all_envs_not_filtered(self) -> None:
+        """Test that isMuted field is calculated from ALL environments, not just filtered ones"""
+        # Monitor with prod unmuted, dev muted
+        monitor = self._create_monitor(name="Test Monitor")
+        self._create_monitor_environment(monitor, name="prod", is_muted=False)
+        self._create_monitor_environment(monitor, name="dev", is_muted=True)
+
+        # When viewing all environments, monitor should NOT be muted
+        # (because not ALL environments are muted)
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["isMuted"] is False
+
+        # When filtering to only "prod" environment, monitor should STILL not be muted
+        # even though we're only displaying prod in the environments array
+        response = self.get_success_response(self.organization.slug, environment=["prod"])
+        assert response.data[0]["isMuted"] is False
+        assert len(response.data[0]["environments"]) == 1
+        assert response.data[0]["environments"][0]["name"] == "prod"
+
+        # When filtering to only "dev" environment (which is muted),
+        # monitor should STILL not be muted because prod is unmuted
+        response = self.get_success_response(self.organization.slug, environment=["dev"])
+        assert response.data[0]["isMuted"] is False
+        assert len(response.data[0]["environments"]) == 1
+        assert response.data[0]["environments"][0]["name"] == "dev"
+
+        # Now mute ALL environments
+        monitor.monitorenvironment_set.update(is_muted=True)
+
+        # Monitor should now be muted regardless of environment filter
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["isMuted"] is True
+
+        response = self.get_success_response(self.organization.slug, environment=["prod"])
+        assert response.data[0]["isMuted"] is True
+
+        response = self.get_success_response(self.organization.slug, environment=["dev"])
+        assert response.data[0]["isMuted"] is True
 
 
 class CreateOrganizationMonitorTest(MonitorTestCase):
@@ -655,8 +694,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         env_one.refresh_from_db()
         env_two.refresh_from_db()
-        assert monitor_one.is_muted
-        assert monitor_two.is_muted
+        assert is_monitor_muted(monitor_one)
+        assert is_monitor_muted(monitor_two)
         assert env_one.is_muted
         assert env_two.is_muted
         assert_org_audit_log_exists(
@@ -681,8 +720,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         env_one.refresh_from_db()
         env_two.refresh_from_db()
-        assert not monitor_one.is_muted
-        assert not monitor_two.is_muted
+        assert not is_monitor_muted(monitor_one)
+        assert not is_monitor_muted(monitor_two)
         assert not env_one.is_muted
         assert not env_two.is_muted
 
@@ -763,5 +802,5 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
 
         monitor.refresh_from_db()
         env.refresh_from_db()
-        assert not monitor.is_muted
+        assert not is_monitor_muted(monitor)
         assert not env.is_muted

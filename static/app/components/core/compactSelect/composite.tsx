@@ -65,13 +65,15 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends ControlProps {
+export interface CompositeSelectProps
+  extends Omit<ControlProps, 'triggerProps' | 'trigger'> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
+  trigger: NonNullable<ControlProps['trigger']>;
 }
 
 /**

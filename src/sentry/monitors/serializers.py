@@ -1,6 +1,8 @@
 from collections import defaultdict
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
+from itertools import groupby
+from operator import attrgetter
 from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
@@ -198,6 +200,30 @@ class MonitorSerializer(Serializer):
             for actor, serialized_actor in zip(filtered_actors, actors_serialized)
         }
 
+        # Query ALL environments (unfiltered) to determine muted status
+        # A monitor is muted only if ALL its environments are muted
+        all_monitor_environments = (
+            MonitorEnvironment.objects.filter(monitor__in=item_list)
+            .exclude(
+                status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+            )
+            .order_by("monitor_id")
+        )
+
+        # Group environments by monitor
+        monitor_envs_by_id = {
+            monitor_id: list(envs)
+            for monitor_id, envs in groupby(all_monitor_environments, key=attrgetter("monitor_id"))
+        }
+
+        # A monitor is muted only if it has environments AND all of them are muted
+        is_muted_data = {
+            item.id: bool(monitor_envs_by_id.get(item.id, []))
+            and not any(not env.is_muted for env in monitor_envs_by_id.get(item.id, []))
+            for item in item_list
+        }
+
+        # Now query the filtered environments for serialization
         monitor_environments_qs = (
             MonitorEnvironment.objects.filter(monitor__in=item_list)
             .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
@@ -213,6 +239,7 @@ class MonitorSerializer(Serializer):
 
         monitor_environments = list(monitor_environments_qs)
         serialized_monitor_environments = defaultdict(list)
+
         for monitor_env, serialized in zip(
             monitor_environments, serialize(monitor_environments, user)
         ):
@@ -227,6 +254,7 @@ class MonitorSerializer(Serializer):
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
                 "owner": actor_data.get(item.owner_actor),
+                "is_muted": is_muted_data[item.id],
             }
             for item in item_list
         }
@@ -245,7 +273,7 @@ class MonitorSerializer(Serializer):
         result: MonitorSerializerResponse = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
-            "isMuted": obj.is_muted,
+            "isMuted": attrs["is_muted"],
             "isUpserting": obj.is_upserting,
             "name": obj.name,
             "slug": obj.slug,
