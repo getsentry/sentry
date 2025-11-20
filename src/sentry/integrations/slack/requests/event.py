@@ -78,8 +78,10 @@ class SlackEventRequest(SlackDMRequest):
     def validate_integration(self) -> None:
         super().validate_integration()
 
-        if (self.text in COMMANDS) or (
-            self.type == "link_shared" and has_discover_links(self.links)
+        if (
+            (self.text in COMMANDS)
+            or (self.type == "link_shared" and has_discover_links(self.links))
+            or self.type == "app_mention"
         ):
             self._validate_identity()
 

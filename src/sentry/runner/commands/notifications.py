@@ -334,7 +334,7 @@ def exec_slack() -> None:
     client = install.get_client()
 
     # Thread in #testing-hooks
-    # resp = client.conversations_replies(channel="C09SVK9L9AP", ts="1763151689.958609")
+    resp = client.conversations_replies(channel="C09SVK9L9AP", ts="1763151689.958609")
 
     # Thread in #private-eye
     # resp = client.conversations_replies(channel="C09TF5Q5509", ts="1763153818.713719")
@@ -343,6 +343,6 @@ def exec_slack() -> None:
     # resp = client.users_info(user="U09AP9526L8")
 
     # React to a message in #testing-hooks, 'will this fire'
-    resp = client.reactions_add(channel="C09SVK9L9AP", name="eyes", timestamp="1763151979.634929")
+    # resp = client.reactions_add(channel="C09SVK9L9AP", name="eyes", timestamp="1763151979.634929")
 
     print(json.dumps(resp.data, indent=2))
