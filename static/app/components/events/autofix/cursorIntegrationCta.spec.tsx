@@ -109,7 +109,7 @@ describe('CursorIntegrationCta', () => {
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
         'href',
-        'https://docs.sentry.io/integrations/cursor/'
+        'https://docs.sentry.io/organization/integrations/cursor/'
       );
     });
   });

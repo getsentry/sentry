@@ -21,7 +21,7 @@ type Props = {
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
+export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
