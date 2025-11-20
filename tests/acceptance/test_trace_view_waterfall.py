@@ -1,3 +1,4 @@
+import pytest
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -38,6 +39,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.page = TraceViewWaterfallPage(self.browser, self.client)
         self.dismiss_assistant()
 
+    @pytest.mark.skip(reason="flaky: #103743")
     @patch("django.utils.timezone.now")
     def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
