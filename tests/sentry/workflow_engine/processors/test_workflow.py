@@ -297,7 +297,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.event_data.group.project_id = 0
+        self.issue_stream_detector.delete()
+        self.error_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice

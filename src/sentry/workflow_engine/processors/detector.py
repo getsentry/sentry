@@ -131,7 +131,8 @@ def get_detectors_for_event(
     We always return at least the issue stream detector.
     If the event has an associated detector, we return it too.
 
-    You can pass in an optional detector to include in the list. This is used for Activity updates.
+    If the detector is passed in, use that instead of searching for a detector.
+    This is used for Activity updates.
     """
     detectors = EventDetectors()
     try:
@@ -148,10 +149,8 @@ def get_detectors_for_event(
             },
         )
 
-    if detector:
+    if detector is not None:
         detectors.event_detector = detector
-
-    if not isinstance(event_data.event, GroupEvent):
         return detectors
 
     try:
