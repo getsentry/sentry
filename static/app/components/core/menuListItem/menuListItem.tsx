@@ -41,7 +41,7 @@ export type MenuListItemProps = {
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
    */
-  details?: React.ReactNode;
+  details?: ExtraContent;
   /**
    * Whether the item is disabled (if true, the item will be grayed out and
    * non-interactive).
@@ -172,7 +172,9 @@ function BaseMenuListItem({
                   priority={priority}
                   {...detailsProps}
                 >
-                  {details}
+                  {typeof details === 'function'
+                    ? details({disabled, isFocused, isSelected})
+                    : details}
                 </Details>
               )}
             </LabelWrap>
@@ -188,7 +190,9 @@ function BaseMenuListItem({
       </Tooltip>
       {showDetailsInOverlay && details && isFocused && (
         <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
-          {details}
+          {typeof details === 'function'
+            ? details({disabled, isFocused, isSelected})
+            : details}
         </DetailsOverlay>
       )}
     </MenuItemWrap>

@@ -7,7 +7,6 @@ import type {
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
-  details: React.ReactNode;
   hideCheck: boolean;
   showDetailsInOverlay: boolean;
   textValue: string;
