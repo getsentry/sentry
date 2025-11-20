@@ -36,7 +36,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -481,6 +481,296 @@ class ProjectTest(APITestCase, TestCase):
         project = self.create_project(create_default_detectors=True)
         assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
         assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
+
+    def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
+        """
+        Test that transferring a project properly handles MetricIssue Detectors and their Workflows.
+
+        This test verifies the complex chain of related objects is correctly transferred:
+        - A MetricIssue Detector (attached to the project)
+        - A QuerySubscription (data source for the detector)
+        - A DataSource (links the detector to the query subscription)
+        - A Workflow (connected to the detector via DetectorWorkflow)
+
+        When the project is transferred to a new organization, the following must happen:
+        1. The project's organization_id is updated
+        2. The detector remains attached to the project
+        3. The DataSource's organization_id is updated to the new organization
+        4. The QuerySubscription's project_id remains valid
+        5. The Workflow's organization_id is updated to the new organization
+        6. The DetectorWorkflow relationship is preserved
+        """
+        from sentry.incidents.grouptype import MetricIssue
+        from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+        from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+        from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        from sentry.snuba.models import QuerySubscription, SnubaQuery
+        from sentry.workflow_engine.models import DataSource, Detector, DetectorWorkflow, Workflow
+
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project = self.create_project(teams=[team])
+
+        # Create a SnubaQuery for the detector
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+        )
+
+        # Create a QuerySubscription
+        query_subscription = QuerySubscription.objects.create(
+            project=project,
+            snuba_query=snuba_query,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+        )
+
+        # Create a MetricIssue Detector with the QuerySubscription as data source
+        detector = Detector.objects.create(
+            project=project,
+            name="Test Metric Issue Detector",
+            type=MetricIssue.slug,
+            config={"detection_type": AlertRuleDetectionType.STATIC},
+        )
+
+        # Create a DataSource linking the detector to the query subscription
+        data_source = DataSource.objects.create(
+            organization=from_org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        data_source.detectors.add(detector)
+
+        # Create a Workflow connected to the detector
+        workflow = Workflow.objects.create(
+            name="Test Workflow",
+            organization=from_org,
+            config={},
+        )
+        DetectorWorkflow.objects.create(
+            detector=detector,
+            workflow=workflow,
+        )
+
+        # Verify initial state
+        assert detector.project_id == project.id
+        assert data_source.organization_id == from_org.id
+        assert workflow.organization_id == from_org.id
+        assert query_subscription.project_id == project.id
+
+        # Transfer the project
+        project.transfer_to(organization=to_org)
+
+        # Refresh objects
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        data_source.refresh_from_db()
+        workflow.refresh_from_db()
+        query_subscription.refresh_from_db()
+
+        # Expected behavior after transfer:
+        # 1. Project should be in the new organization
+        assert project.organization_id == to_org.id
+
+        # 2. Detector should still be attached to the project
+        assert detector.project_id == project.id
+
+        # 3. DataSource organization should be updated to the new organization
+        assert data_source.organization_id == to_org.id
+
+        # 4. QuerySubscription project should be updated to reflect the project's new org
+        assert query_subscription.project_id == project.id
+
+        # 5. Workflow should be updated to the new organization
+        assert workflow.organization_id == to_org.id
+
+        # 6. DetectorWorkflow relationship should still exist
+        assert DetectorWorkflow.objects.filter(
+            detector=detector,
+            workflow=workflow,
+        ).exists()
+
+    def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project = self.create_project(teams=[team])
+
+        # Create a detector for this project
+        detector = self.create_detector(project=project)
+
+        # Create a workflow and connect it to the detector
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        # Create a DataConditionGroup and connect it to the workflow
+        condition_group = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=condition_group
+        )
+
+        # Verify initial state
+        assert detector.project_id == project.id
+        assert workflow.organization_id == from_org.id
+        assert condition_group.organization_id == from_org.id
+
+        # Transfer the project
+        project.transfer_to(organization=to_org)
+
+        # Refresh objects
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow.refresh_from_db()
+        condition_group.refresh_from_db()
+
+        # Expected behavior after transfer:
+        # 1. Project should be in the new organization
+        assert project.organization_id == to_org.id
+
+        # 2. Detector should still be attached to the project
+        assert detector.project_id == project.id
+
+        # 3. Workflow should be updated to the new organization
+        assert workflow.organization_id == to_org.id
+
+        # 4. DataConditionGroup should be updated to the new organization
+        assert condition_group.organization_id == to_org.id
+
+        # 5. WorkflowDataConditionGroup relationship should be preserved
+        wdcg = condition_group.workflowdataconditiongroup_set.first()
+        assert wdcg is not None
+        assert wdcg.workflow_id == workflow.id
+
+    def test_transfer_to_organization_does_not_transfer_shared_workflows(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        # Create two projects in the same organization
+        project_a = self.create_project(teams=[team], name="Project A")
+        project_b = self.create_project(teams=[team], organization=from_org, name="Project B")
+
+        # Create detectors for both projects
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        # Create a SHARED workflow connected to both detectors
+        shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        # Create an EXCLUSIVE workflow only for project_a
+        exclusive_workflow = self.create_workflow(organization=from_org, name="Exclusive Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=exclusive_workflow)
+
+        # Create DataConditionGroups for both workflows
+        shared_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+
+        exclusive_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=exclusive_workflow, condition_group=exclusive_dcg
+        )
+
+        # Verify initial state
+        assert shared_workflow.organization_id == from_org.id
+        assert exclusive_workflow.organization_id == from_org.id
+        assert shared_dcg.organization_id == from_org.id
+        assert exclusive_dcg.organization_id == from_org.id
+
+        # Transfer project_a to the new organization
+        project_a.transfer_to(organization=to_org)
+
+        # Refresh all objects
+        project_a.refresh_from_db()
+        project_b.refresh_from_db()
+        detector_a.refresh_from_db()
+        detector_b.refresh_from_db()
+        shared_workflow.refresh_from_db()
+        exclusive_workflow.refresh_from_db()
+        shared_dcg.refresh_from_db()
+        exclusive_dcg.refresh_from_db()
+
+        # Expected behavior after transfer:
+
+        # 1. Both projects' basic attributes are correct
+        assert project_a.organization_id == to_org.id
+        assert project_b.organization_id == from_org.id
+
+        # 2. Detectors follow their projects
+        assert detector_a.project_id == project_a.id
+        assert detector_b.project_id == project_b.id
+
+        # 3. SHARED workflow should NOT transfer (still in old org)
+        # because it's used by detector_b which remains in from_org
+        assert shared_workflow.organization_id == from_org.id
+
+        # 4. EXCLUSIVE workflow SHOULD transfer (moved to new org)
+        # because it's only used by detector_a
+        assert exclusive_workflow.organization_id == to_org.id
+
+        # 5. DataConditionGroups follow their workflows
+        assert shared_dcg.organization_id == from_org.id
+        assert exclusive_dcg.organization_id == to_org.id
+
+        # 6. Both detectors should still be connected to their workflows
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_b, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=exclusive_workflow
+        ).exists()
+
+    def test_transfer_to_organization_with_detector_workflow_condition_group(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project = self.create_project(teams=[team])
+
+        # Create a detector with a workflow_condition_group
+        detector = self.create_detector(project=project)
+        workflow_condition_group = self.create_data_condition_group(organization=from_org)
+
+        # Assign the condition group directly to the detector
+        detector.workflow_condition_group = workflow_condition_group
+        detector.save()
+
+        # Verify initial state
+        assert detector.project_id == project.id
+        assert detector.workflow_condition_group_id == workflow_condition_group.id
+        assert workflow_condition_group.organization_id == from_org.id
+
+        # Transfer the project
+        project.transfer_to(organization=to_org)
+
+        # Refresh objects
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow_condition_group.refresh_from_db()
+
+        # Expected behavior after transfer:
+        # 1. Project should be in the new organization
+        assert project.organization_id == to_org.id
+
+        # 2. Detector should still be attached to the project
+        assert detector.project_id == project.id
+
+        # 3. workflow_condition_group should transfer because it's exclusively owned by the detector
+        assert workflow_condition_group.organization_id == to_org.id
+
+        # 4. The FK relationship should be preserved
+        assert detector.workflow_condition_group_id == workflow_condition_group.id
 
 
 class ProjectOptionsTests(TestCase):
