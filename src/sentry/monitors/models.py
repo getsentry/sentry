@@ -325,7 +325,7 @@ class Monitor(Model):
             "name": self.name,
             "status": self.status,
             "config": self.config,
-            "is_muted": self.is_muted,
+            "is_muted": is_monitor_muted(self),
             "slug": self.slug,
             "owner_user_id": self.owner_user_id,
             "owner_team_id": self.owner_team_id,
@@ -433,22 +433,22 @@ class Monitor(Model):
         self.guid = uuid4()
         return old_pk
 
-    @property
-    def is_muted(self) -> bool:
-        """
-        A monitor is considered muted if ALL of its environments are muted.
-        If a monitor has no environments, it is considered unmuted.
-        """
-        env_counts = MonitorEnvironment.objects.filter(monitor_id=self.id).aggregate(
-            total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
-        )
 
-        # If no environments exist, monitor is not muted
-        if env_counts["total"] == 0:
-            return False
+def is_monitor_muted(monitor: Monitor) -> bool:
+    """
+    A monitor is considered muted if ALL of its environments are muted.
+    If a monitor has no environments, it is considered unmuted.
+    """
+    env_counts = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
+        total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
+    )
 
-        # Monitor is muted only if ALL environments are muted
-        return env_counts["total"] == env_counts["muted"]
+    # If no environments exist, monitor is not muted
+    if env_counts["total"] == 0:
+        return False
+
+    # Monitor is muted only if ALL environments are muted
+    return env_counts["total"] == env_counts["muted"]
 
 
 def check_organization_monitor_limit(organization_id: int) -> None:
@@ -637,7 +637,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": monitor.is_muted},
+            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
         )
 
         # recompute per-project monitor check-in rate limit quota
