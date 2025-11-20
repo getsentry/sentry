@@ -4,8 +4,8 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {
   ProductPageFiltersContainerContext,
   usePageFilterProps,
+  useProductPageFiltersContainerContextValue,
 } from 'sentry/components/organizations/pageFilters/product/context';
-import {useProductPageFiltersContainerContextValue} from 'sentry/components/organizations/pageFilters/product/utils';
 import {DataCategory} from 'sentry/types/core';
 
 interface ProductPageFiltersContainerProps {

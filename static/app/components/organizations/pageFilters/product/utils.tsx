@@ -1,48 +1,9 @@
-import {useMemo, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import type {ProductPageFiltersContextValue} from 'sentry/components/organizations/pageFilters/product/context';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
-
-export function useProductPageFiltersContainerContextValue({
-  dataCategories,
-}: {
-  dataCategories: DataCategory[];
-}): ProductPageFiltersContextValue {
-  const organization = useOrganization();
-
-  return useMemo(() => {
-    if (dataCategories.length <= 0) {
-      return {};
-    }
-
-    const productPageFiltersContextValues = dataCategories
-      .map(dataCategory =>
-        getProductPageFiltersContainerContextValueForDataCategory(
-          dataCategory,
-          organization
-        )
-      )
-      .filter(value => defined(value.maxPickableDays));
-
-    if (productPageFiltersContextValues.length <= 0) {
-      return {};
-    }
-
-    return productPageFiltersContextValues.reduce((val, cur) => {
-      if (!defined(val.maxPickableDays)) {
-        return cur;
-      }
-      if (!defined(cur.maxPickableDays)) {
-        return val;
-      }
-      return val.maxPickableDays > cur.maxPickableDays ? val : cur;
-    }, productPageFiltersContextValues[0]!);
-  }, [dataCategories, organization]);
-}
 
 export function getProductPageFiltersContainerContextValueForDataCategory(
   dataCategory: DataCategory,

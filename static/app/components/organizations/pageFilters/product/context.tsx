@@ -16,7 +16,7 @@ export type ProductPageFiltersContextValue = Pick<
 export const ProductPageFiltersContainerContext =
   createContext<ProductPageFiltersContextValue | null>(null);
 
-export function useProductPageFiltersContainerContext() {
+function useProductPageFiltersContainerContext() {
   const context = useContext(ProductPageFiltersContainerContext);
   if (context === null) {
     throw new Error(
