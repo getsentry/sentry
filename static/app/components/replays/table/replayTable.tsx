@@ -48,18 +48,6 @@ export default function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
 
-  useEffect(() => {
-    if (highlightedRowIndex < 0) {
-      return;
-    }
-
-    const highlightedRow = tableRef.current?.querySelector<HTMLElement>(
-      `[data-replay-row-index='${highlightedRowIndex}']`
-    );
-
-    highlightedRow?.scrollIntoView({behavior: 'smooth'});
-  }, [highlightedRowIndex]);
-
   if (isPending) {
     return (
       <StyledSimpleTable
@@ -120,8 +108,9 @@ export default function ReplayTable({
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
       {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row
-          data-replay-row-index={rowIndex}
+        <RowWithScrollIntoView
+          data_replay_row_index={rowIndex}
+          isHovered={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
@@ -141,9 +130,41 @@ export default function ReplayTable({
               />
             </RowCell>
           ))}
-        </SimpleTable.Row>
+        </RowWithScrollIntoView>
       ))}
     </StyledSimpleTable>
+  );
+}
+
+function RowWithScrollIntoView({
+  children,
+  data_replay_row_index,
+  isHovered,
+  key,
+  variant,
+}: {
+  children: React.ReactNode;
+  data_replay_row_index: number;
+  isHovered: boolean;
+  key: string;
+  variant: 'default' | 'faded';
+}) {
+  useEffect(() => {
+    if (isHovered) {
+      const row = document.querySelector(
+        `div[data-replay-row-index="${data_replay_row_index}"]`
+      );
+      row?.scrollIntoView();
+    }
+  }, [isHovered, data_replay_row_index]);
+  return (
+    <SimpleTable.Row
+      data-replay-row-index={data_replay_row_index}
+      key={key}
+      variant={variant}
+    >
+      {children}
+    </SimpleTable.Row>
   );
 }
 
