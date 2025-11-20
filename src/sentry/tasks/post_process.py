@@ -1644,15 +1644,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Early returns for eligibility checks (cheap checks first)
             if not is_issue_eligible_for_seer_automation(group):
                 return
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                return
 
             # Atomically set cache to prevent duplicate summary generation
             summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
             if not cache.add(summary_dispatch_cache_key, True, timeout=30):
                 return  # Another process already dispatched summary generation
 
-            # Generate summary (no automation)
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1663,13 +1660,15 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Early returns for eligibility checks (cheap checks first)
             if not is_issue_eligible_for_seer_automation(group):
                 return
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                return
 
             # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
             automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
             if not cache.add(automation_dispatch_cache_key, True, timeout=300):
                 return  # Another process already dispatched automation
+
+            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
 
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
