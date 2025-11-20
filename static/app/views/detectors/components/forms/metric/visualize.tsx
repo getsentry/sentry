@@ -39,11 +39,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-const LOCKED_SPAN_COUNT_OPTION = {
-  value: DEFAULT_VISUALIZATION_FIELD,
-  label: t('spans'),
-};
-
 /**
  * Render a tag badge for field types, similar to dashboard widget builder
  */
@@ -93,18 +88,43 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
   return <Tag type={tagType}>{text}</Tag>;
 }
 
+/**
+ * Aggregate options not allowed for the logs dataset
+ */
 const LOGS_NOT_ALLOWED_AGGREGATES = [
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
+  AggregationKey.APDEX,
 ];
 
+/**
+ * Additional aggregate options for the spans dataset
+ */
+const EXTRA_AGGREGATES = [AggregationKey.APDEX];
+
+/**
+ * Locks the options because they usually need to count something specific
+ */
+const LOCKED_SPAN_AGGREGATES = {
+  [AggregationKey.APDEX]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: t('span.duration'),
+  },
+  [AggregationKey.COUNT]: {
+    value: DEFAULT_VISUALIZATION_FIELD,
+    label: t('spans'),
+  },
+};
+
 function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
-  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(aggregate => {
-    if (dataset === DetectorDataset.LOGS) {
-      return !LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate);
-    }
-    return true;
-  }).map(aggregate => [aggregate, aggregate]);
+  return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...EXTRA_AGGREGATES]
+    .filter(aggregate => {
+      if (dataset === DetectorDataset.LOGS) {
+        return !LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate);
+      }
+      return true;
+    })
+    .map(aggregate => [aggregate, aggregate]);
 }
 
 function getAggregateOptions(
@@ -226,10 +246,9 @@ export function Visualize() {
 
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
 
-  const aggregateOptions = useMemo(
-    () => datasetConfig.getAggregateOptions(organization, tags, customMeasurements),
-    [organization, tags, datasetConfig, customMeasurements]
-  );
+  const aggregateOptions = useMemo(() => {
+    return datasetConfig.getAggregateOptions(organization, tags, customMeasurements);
+  }, [organization, tags, datasetConfig, customMeasurements]);
 
   const fieldOptions = useMemo(() => {
     // For Spans dataset, use span-specific options from the provider
@@ -333,8 +352,18 @@ export function Visualize() {
     updateAggregateFunction(aggregate, newParameters);
   };
 
+  // Type guard for locked span aggregates
+  const isLockedSpanAggregate = (
+    agg: string
+  ): agg is keyof typeof LOCKED_SPAN_AGGREGATES => {
+    return agg in LOCKED_SPAN_AGGREGATES;
+  };
+
   const lockSpanOptions =
-    dataset === DetectorDataset.SPANS && aggregate === AggregationKey.COUNT;
+    dataset === DetectorDataset.SPANS && isLockedSpanAggregate(aggregate);
+
+  // Get locked option if applicable, with proper type narrowing
+  const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
     <Flex direction="column" gap="md">
@@ -368,15 +397,13 @@ export function Visualize() {
                 <StyledVisualizeSelect
                   searchable
                   triggerProps={{
-                    children: lockSpanOptions
-                      ? LOCKED_SPAN_COUNT_OPTION.label
+                    children: lockedOption
+                      ? lockedOption.label
                       : parameters[index] || param.defaultValue || t('Select metric'),
                   }}
-                  options={
-                    lockSpanOptions ? [LOCKED_SPAN_COUNT_OPTION] : fieldOptionsDropdown
-                  }
+                  options={lockedOption ? [lockedOption] : fieldOptionsDropdown}
                   value={
-                    lockSpanOptions
+                    lockedOption
                       ? DEFAULT_VISUALIZATION_FIELD
                       : parameters[index] || param.defaultValue || ''
                   }
@@ -404,6 +431,7 @@ export function Visualize() {
                 />
               ) : (
                 <StyledParameterInput
+                  size="md"
                   placeholder={param.defaultValue || t('Enter value')}
                   value={parameters[index] || ''}
                   onChange={e => {
