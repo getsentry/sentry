@@ -53,6 +53,8 @@ describe('EnvironmentSelector', () => {
     // Select "prod"
     await userEvent.click(screen.getByRole('option', {name: 'prod'}));
 
+    // Trigger label is updated
+    expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
     expect(mockOnChange).toHaveBeenCalledWith('prod');
   });
 });

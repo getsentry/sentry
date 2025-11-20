@@ -228,6 +228,7 @@ function List<Value extends SelectKey>({
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
         // Save selected options in SelectContext, to update the trigger label
+        saveSelectedOptions(compositeIndex, selectedOption);
         onChange?.(selectedOption);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
