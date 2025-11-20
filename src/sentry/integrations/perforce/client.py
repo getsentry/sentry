@@ -357,35 +357,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # User not found - return None (not an error condition)
             return None
 
-    def get_user(self, username: str) -> dict[str, Any] | None:
-        """
-        Get user information from Perforce.
-
-        Uses p4 user command to fetch user details including email and full name.
-        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_user.html
-
-        Args:
-            username: Perforce username
-
-        Returns:
-            User info dictionary with Email and FullName fields, or None if not found
-        """
-        p4 = self._connect()
-        try:
-            result = p4.run("user", "-o", username)
-            if result and len(result) > 0:
-                user_info = result[0]
-                return {
-                    "email": user_info.get("Email", ""),
-                    "full_name": user_info.get("FullName", ""),
-                    "username": user_info.get("User", username),
-                }
-            return None
-        except self.P4Exception:
-            return None
-        finally:
-            self._disconnect(p4)
-
     def get_changes(
         self,
         depot_path: str,

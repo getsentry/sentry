@@ -204,10 +204,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if url.startswith("p4://"):
             return True
 
-        if self.org_integration:
-            web_url = self.org_integration.config.get("web_url")
-            if web_url and url.startswith(web_url):
-                return True
+        web_url = self.model.metadata.get("web_url")
+        if web_url and url.startswith(web_url):
+            return True
 
         return False
 
@@ -579,6 +578,23 @@ class PerforceIntegrationProvider(IntegrationProvider):
             "p4port": p4port,
             "user": installation_data.get("user", ""),
             "auth_type": installation_data.get("auth_type", "password"),  # Default to password
+            "password": installation_data.get("password", ""),
+        }
+
+        # Add optional fields if provided
+        if installation_data.get("client"):
+            metadata["client"] = installation_data["client"]
+
+        if installation_data.get("ssl_fingerprint"):
+            metadata["ssl_fingerprint"] = installation_data["ssl_fingerprint"]
+
+        if installation_data.get("web_url"):
+            metadata["web_url"] = installation_data["web_url"]
+
+        # Store credentials in Integration.metadata
+        metadata = {
+            "p4port": p4port,
+            "user": installation_data.get("user", ""),
             "password": installation_data.get("password", ""),
         }
 
