@@ -95,7 +95,7 @@ export default function ReplayTable({
     <StyledSimpleTable
       data-test-id="replay-table"
       ref={ref}
-      style={{gridTemplateColumns}}
+      style={{gridTemplateColumns, gridAutoRows: 'min-content'}}
     >
       <ReplayTableHeader
         columns={columns}
