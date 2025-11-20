@@ -910,6 +910,14 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.preferred_detector == self.issue_stream_detector
         assert result.detectors == [self.issue_stream_detector]
 
+    def test_no_detectors(self) -> None:
+        self.issue_stream_detector.delete()
+        self.error_detector.delete()
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result.preferred_detector is None
+        assert result.detectors == []
+
 
 class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
