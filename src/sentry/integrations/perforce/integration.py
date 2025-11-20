@@ -24,7 +24,7 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
@@ -199,6 +199,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         Returns:
             Formatted URL if the file exists, None otherwise
+
+        Raises:
+            ApiUnauthorized: For authentication failures (should be shown to user)
+            IntegrationError: For configuration errors (should be shown to user)
         """
         try:
             client = self.get_client()
@@ -208,8 +212,14 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 return None
             # File exists, return formatted URL
             return self.format_source_url(repo, filepath, branch)
+        except (ApiUnauthorized, IntegrationError):
+            # Re-raise auth/config errors so they're visible to users
+            raise
+        except ApiError:
+            # Re-raise API errors for visibility
+            raise
         except Exception:
-            # If any error occurs (auth, connection, etc), return None
+            # For other errors (e.g., file not found), return None
             return None
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
@@ -233,9 +243,8 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         full_path = client.build_depot_path(repo, filepath, branch)
 
         # If Swarm web viewer is configured, use it
-        web_url = None
-        if self.org_integration:
-            web_url = self.org_integration.config.get("web_url")
+        # Web URL is stored in Integration.metadata
+        web_url = self.model.metadata.get("web_url")
 
         if web_url:
             # Extract file revision from filepath if present (e.g., "file.cpp#1")
@@ -277,14 +286,14 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         depot_path = repo.config.get("depot_path", repo.name)
 
         # Handle Swarm web viewer URLs
-        if self.org_integration:
-            web_url = self.org_integration.config.get("web_url")
-            if web_url and url.startswith(web_url):
-                # Strip Swarm base URL and /files prefix
-                # e.g., "https://swarm.example.com/files//depot/path/file.cpp" -> "//depot/path/file.cpp"
-                url = url[len(web_url) :]
-                if url.startswith("/files"):
-                    url = url[6:]  # Remove "/files"
+        # Web URL is stored in Integration.metadata
+        web_url = self.model.metadata.get("web_url")
+        if web_url and url.startswith(web_url):
+            # Strip Swarm base URL and /files prefix
+            # e.g., "https://swarm.example.com/files//depot/path/file.cpp" -> "//depot/path/file.cpp"
+            url = url[len(web_url) :]
+            if url.startswith("/files"):
+                url = url[6:]  # Remove "/files"
 
         # Remove p4:// prefix
         if url.startswith("p4://"):
