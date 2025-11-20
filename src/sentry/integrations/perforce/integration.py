@@ -650,6 +650,7 @@ class PerforceInstallationView:
                                     "p4port": form_data.get("p4port"),
                                     "user": form_data.get("user"),
                                     "password": form_data.get("password"),
+                                    "auth_type": form_data.get("auth_type", "password"),
                                     "client": form_data.get("client"),
                                     "ssl_fingerprint": form_data.get("ssl_fingerprint"),
                                 }
