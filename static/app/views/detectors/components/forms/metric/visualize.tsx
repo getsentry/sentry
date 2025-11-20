@@ -116,6 +116,13 @@ const LOCKED_SPAN_AGGREGATES = {
   },
 };
 
+// Type guard for locked span aggregates
+const isLockedSpanAggregate = (
+  agg: string
+): agg is keyof typeof LOCKED_SPAN_AGGREGATES => {
+  return agg in LOCKED_SPAN_AGGREGATES;
+};
+
 function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
   return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...EXTRA_AGGREGATES]
     .filter(aggregate => {
@@ -350,13 +357,6 @@ export function Visualize() {
     const newParameters = [...parameters];
     newParameters[paramIndex] = value;
     updateAggregateFunction(aggregate, newParameters);
-  };
-
-  // Type guard for locked span aggregates
-  const isLockedSpanAggregate = (
-    agg: string
-  ): agg is keyof typeof LOCKED_SPAN_AGGREGATES => {
-    return agg in LOCKED_SPAN_AGGREGATES;
   };
 
   const lockSpanOptions =
