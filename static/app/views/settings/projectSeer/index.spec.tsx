@@ -661,7 +661,7 @@ describe('ProjectSeer', () => {
       ).toBeChecked();
     });
 
-    it('saves "always" when toggled ON, "off" when toggled OFF', async () => {
+    it('saves "medium" when toggled ON, "off" when toggled OFF', async () => {
       const projectPutRequest = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
@@ -685,7 +685,7 @@ describe('ProjectSeer', () => {
       await waitFor(() => {
         expect(projectPutRequest).toHaveBeenCalledWith(
           expect.any(String),
-          expect.objectContaining({data: {autofixAutomationTuning: 'always'}})
+          expect.objectContaining({data: {autofixAutomationTuning: 'medium'}})
         );
       });
 
