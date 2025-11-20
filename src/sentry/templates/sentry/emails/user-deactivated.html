@@ -1,0 +1,29 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>Account Deactivated</h3>
+  <p>Your Sentry account has been deactivated and is scheduled for permanent deletion.</p>
+  <table>
+    <tr>
+      <td style="width:36px;vertical-align:top;padding-right:15px;">
+        {% avatar_for_email account 36 %}
+      </td>
+      <td>
+        <strong>{{ account.email }}</strong><br />
+        {{ ip_address }}<br />
+        <strong>Deactivated:</strong> {{ deactivation_datetime }} UTC<br />
+        <strong>Scheduled Deletion:</strong> {{ scheduled_deletion_datetime }} UTC
+      </td>
+    </tr>
+  </table>
+  <p>You have until <strong>{{ scheduled_deletion_datetime }} UTC</strong> to reactivate your account. After this time, your account and all associated data will be permanently deleted.</p>
+  <p>To reactivate your account, please log in before the scheduled deletion date.</p>
+  <h4>Don't recognize this activity?</h4>
+  <p>If you didn't trigger this action, we recommend you immediately log in to reactivate your account and review your account security. If you determine that this activity is malicious please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}

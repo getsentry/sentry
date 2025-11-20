@@ -3178,6 +3178,13 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3591,12 +3598,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The allowlist of organization IDs for which deletion from EAP is enabled.
+# Controls whether deletion from EAP is enabled.
 register(
-    "eventstream.eap.deletion_enabled.organization_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "eventstream.eap.deletion-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.

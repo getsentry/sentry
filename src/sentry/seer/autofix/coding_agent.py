@@ -225,12 +225,14 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound("No repos to run agents")
+        raise NotFound(
+            "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
+        )
 
     prompt = get_coding_agent_prompt(run_id, trigger_source)
 
     if not prompt:
-        raise APIException("No prompt to send to agents.")
+        raise APIException("Issue fetching prompt to send to coding agents.")
 
     successes = []
     failures = []

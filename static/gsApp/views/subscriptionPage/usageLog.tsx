@@ -165,7 +165,7 @@ function UsageLog({location, subscription}: Props) {
           clearable
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
-          defaultValue={selectedEventName}
+          value={selectedEventName}
           onClear={() => handleEventFilter(null)}
           onChange={option => {
             handleEventFilter(option.value);

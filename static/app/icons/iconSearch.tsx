@@ -7,12 +7,9 @@ import {SvgIcon} from './svgIcon';
 export function IconSearch(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props}>
       {theme.isChonk ? (
-        <Fragment>
-          <circle className="cls-1" cx="7" cy="7" r="4.25" />
-          <line className="cls-1" x1="13.25" y1="13.25" x2="10" y2="10" />
-        </Fragment>
+        <path d="M6.75 0C10.48 0 13.5 3.02 13.5 6.75C13.5 8.34 12.95 9.81 12.02 10.96L15.78 14.72C16.07 15.01 16.07 15.49 15.78 15.78C15.49 16.07 15.01 16.07 14.72 15.78L10.96 12.02C9.81 12.95 8.34 13.5 6.75 13.5C3.02 13.5 0 10.48 0 6.75C0 3.02 3.02 0 6.75 0ZM6.75 1.5C3.85 1.5 1.5 3.85 1.5 6.75C1.5 9.65 3.85 12 6.75 12C9.65 12 12 9.65 12 6.75C12 3.85 9.65 1.5 6.75 1.5Z" />
       ) : (
         <Fragment>
           <path d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z" />
