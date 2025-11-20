@@ -17,6 +17,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
@@ -143,34 +144,22 @@ def get_project_seer_preferences(project_id: int):
     Returns:
         PreferenceResponse object if successful, None otherwise
     """
-    from pydantic import ValidationError
+    path = "/v1/project-preference"
+    body = orjson.dumps({"project_id": project_id})
 
-    from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse
+    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+    response = make_signed_seer_api_request(
+        connection_pool,
+        path,
+        body=body,
+        timeout=5,
+    )
 
-    try:
-        path = "/v1/project-preference"
-        body = orjson.dumps({"project_id": project_id})
+    if response.status == 200:
+        result = orjson.loads(response.data)
+        return PreferenceResponse.validate(result)
 
-        connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
-        response = make_signed_seer_api_request(
-            connection_pool,
-            path,
-            body=body,
-            timeout=5,
-        )
-
-        if response.status == 200:
-            result = orjson.loads(response.data)
-            return PreferenceResponse.validate(result)
-    except (orjson.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError) as e:
-        logger.warning(
-            "seer.get_project_preferences_failed",
-            extra={
-                "project_id": project_id,
-                "error": str(e),
-            },
-        )
-    return None
+    raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
