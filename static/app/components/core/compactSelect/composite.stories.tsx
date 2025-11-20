@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -78,12 +80,11 @@ export default Storybook.story('CompositeSelect', story => {
           <code>options</code>.
         </p>
         <CompositeSelect
-          triggerProps={{
-            children: 'Select an Option',
-            showChevron: false,
-            icon: <IconSentry />,
-            size: 'sm',
-          }}
+          trigger={props => (
+            <Button icon={<IconSentry />} size="sm" {...props}>
+              Select an Option
+            </Button>
+          )}
         >
           <CompositeSelect.Region
             label="Month"
@@ -125,12 +126,11 @@ export default Storybook.story('CompositeSelect', story => {
 
         <Flex gap="md">
           <CompositeSelect
-            triggerProps={{
-              size: 'sm',
-              icon: <IconSentry />,
-              children: 'Composite Select Single Select',
-              showChevron: false,
-            }}
+            trigger={props => (
+              <Button icon={<IconSentry />} size="sm" {...props}>
+                Composite Select Single Select
+              </Button>
+            )}
           >
             <CompositeSelect.Region
               label="Mains"
