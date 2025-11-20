@@ -757,8 +757,8 @@ class TestGetStoppingPointFromFixability:
         [
             (0.0, None),
             (0.39, None),
-            (0.40, AutofixStoppingPoint.SOLUTION),
-            (0.65, AutofixStoppingPoint.SOLUTION),
+            (0.40, AutofixStoppingPoint.ROOT_CAUSE),
+            (0.65, AutofixStoppingPoint.ROOT_CAUSE),
             (0.66, AutofixStoppingPoint.CODE_CHANGES),
             (0.77, AutofixStoppingPoint.CODE_CHANGES),
             (0.78, AutofixStoppingPoint.OPEN_PR),
@@ -824,7 +824,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
@@ -1019,7 +1019,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def test_fixability_limits_permissive_user_preference(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
-        """Medium fixability (SOLUTION) used despite user allowing OPEN_PR"""
+        """Medium fixability (ROOT_CAUSE) used despite user allowing OPEN_PR"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -1027,15 +1027,15 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.50),  # Medium = SOLUTION
+            scores=SummarizeIssueScores(fixability_score=0.50),  # Medium = ROOT_CAUSE
         )
         mock_fetch.return_value = "open_pr"
 
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
-        # Should use SOLUTION from fixability, not OPEN_PR from user
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
+        # Should use ROOT_CAUSE from fixability, not OPEN_PR from user
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
