@@ -13,10 +13,9 @@ from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import DataSourceDetector, Detector
-from sentry.workflow_engine.types import DetectorException
 
 
-@extend_schema(tags=["Alerts"])
+@extend_schema(tags=["Workflows"])
 @region_silo_endpoint
 class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
@@ -40,7 +39,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """
 
         try:
-            detector = Detector.objects.get(id=detector_id, project__organization=organization)
+            detector = Detector.objects.get(id=int(detector_id), project__organization=organization)
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -58,14 +57,19 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
         if not data_source_detector:
-            raise DetectorException("Could not find detector, data source not found.")
+            return Response(
+                {"detail": "Could not find detector, data source not found"}, status=500
+            )
         data_source = data_source_detector.data_source
 
         try:
             query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
         except QuerySubscription.DoesNotExist:
-            raise DetectorException(
-                f"Could not find detector, query subscription {data_source.source_id} not found."
+            return Response(
+                {
+                    "detail": f"Could not find detector, query subscription {data_source.source_id} not found"
+                },
+                status=500,
             )
 
         data = get_anomaly_threshold_data_from_seer(

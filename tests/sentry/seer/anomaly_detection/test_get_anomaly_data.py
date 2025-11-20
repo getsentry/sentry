@@ -5,18 +5,20 @@ from urllib3.response import HTTPResponse
 
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.testutils.cases import TestCase
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class GetAnomalyThresholdDataFromSeerTest(TestCase):
+class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
-        subscription = self.create_alert_rule(
-            organization=self.create_organization(),
-            projects=[self.create_project()],
-        ).snuba_query.subscriptions.first()
-        assert subscription is not None
-        self.subscription: QuerySubscription = subscription
+        with self.tasks():
+            self.snuba_query = self.create_snuba_query()
+            self.subscription = QuerySubscription.objects.create(
+                project=self.project,
+                status=QuerySubscription.Status.ACTIVE.value,
+                subscription_id="123",
+                snuba_query=self.snuba_query,
+            )
 
     def _mock_response(self, status: int, data: bytes) -> Mock:
         response = Mock(spec=HTTPResponse)

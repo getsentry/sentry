@@ -309,12 +309,12 @@ def get_anomaly_threshold_data_from_seer(
             body=json.dumps(payload).encode("utf-8"),
         )
     except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection alert data endpoint")
+        logger.warning("Timeout error when hitting anomaly detection detector data endpoint")
         return None
 
     if response.status >= 400:
         logger.error(
-            "Error when hitting Seer alert data endpoint",
+            "Error when hitting Seer detector data endpoint",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -327,7 +327,7 @@ def get_anomaly_threshold_data_from_seer(
         results: SeerAlertDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
-            "Failed to parse Seer alert data response",
+            "Failed to parse Seer detector data response",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -338,7 +338,7 @@ def get_anomaly_threshold_data_from_seer(
     if not results.get("success"):
         detailed_error_message = results.get("message", "<unknown>")
         # We want Sentry to group them by error message.
-        msg = f"Error when hitting Seer alert data endpoint: {detailed_error_message}"
+        msg = f"Error when hitting Seer detector data endpoint: {detailed_error_message}"
         logger.warning(msg)
         return None
 
