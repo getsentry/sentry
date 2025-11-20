@@ -18,6 +18,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
+import Redirect from 'sentry/components/redirect';
 import {IconChat, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -381,6 +382,11 @@ function DynamicGrouping() {
       0
     );
   }, [filteredAndSortedClusters]);
+
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+  if (!hasTopIssuesUI) {
+    return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
+  }
 
   return (
     <PageContainer>
