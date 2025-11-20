@@ -46,9 +46,9 @@ def _default_project_ids_for_dataset(
     """
     if dataset == "tracemetrics":
         project_ids = list(
-            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
-                "id", flat=True
-            )
+            Project.objects.filter(
+                organization=organization, status=ObjectStatus.ACTIVE
+            ).values_list("id", flat=True)
         )
         if not project_ids:
             logger.warning(
