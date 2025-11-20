@@ -62,7 +62,7 @@ def generate_issue_summary_only(group_id: int) -> None:
     )
     # TODO: Generate fixability score here and check for it in run_automation around line 316
     # That will make sure that even after adding fixability here it's not re-triggered.
-    # Currently fixability will only be generated after 10 when run_automation is called
+    # Currently fixability will only be generated after 10 events when run_automation is called
 
 
 @instrumented_task(
