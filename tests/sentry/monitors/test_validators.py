@@ -11,7 +11,13 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, get_cron_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorStatus,
+    ScheduleType,
+    get_cron_monitor,
+    is_monitor_muted,
+)
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
@@ -326,7 +332,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
 
         # Monitor has no environments, so is_muted returns False regardless of input
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
 
 class MonitorValidatorUpdateTest(MonitorTestCase):
@@ -536,7 +542,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert validator.is_valid()
 
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is True
+        assert is_monitor_muted(updated_monitor) is True
 
         # Verify the environment was also muted
         env.refresh_from_db()
@@ -570,7 +576,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         )
         assert validator.is_valid()
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is True
+        assert is_monitor_muted(updated_monitor) is True
 
         # Verify both environments are now muted
         env1.refresh_from_db()
@@ -594,7 +600,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         )
 
         # Verify monitor is muted (all environments are muted)
-        assert self.monitor.is_muted is True
+        assert is_monitor_muted(self.monitor) is True
 
         # Unmute the monitor via validator
         validator = MonitorValidator(
@@ -609,7 +615,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         )
         assert validator.is_valid()
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is False
+        assert is_monitor_muted(updated_monitor) is False
 
         # Verify both environments are now unmuted
         env1.refresh_from_db()
@@ -708,7 +714,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.name == "New Name"
         assert updated_monitor.slug == "new-slug"
-        assert updated_monitor.is_muted is False
+        assert is_monitor_muted(updated_monitor) is False
         assert updated_monitor.owner_team_id == self.team.id
 
     def test_update_slug_already_exists(self):
@@ -1064,7 +1070,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.config["schedule"] == schedule
         assert monitor.status == status
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id is None
 

@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_timeout_at
@@ -354,7 +355,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
 
     def test_can_unmute(self) -> None:
         monitor = self._create_monitor()
@@ -367,7 +368,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert not monitor.is_muted
+        assert not is_monitor_muted(monitor)
 
     def test_timezone(self) -> None:
         monitor = self._create_monitor()

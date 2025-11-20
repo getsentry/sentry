@@ -3,7 +3,7 @@ from rest_framework import status
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.monitors.grouptype import MonitorIncidentType
-from sentry.monitors.models import Monitor, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.testutils.cases import APITestCase
@@ -205,7 +205,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         )
         assert monitor.name == "Full Config Monitor"
         assert monitor.status == ObjectStatus.DISABLED
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
         assert monitor.config["schedule"] == "*/30 * * * *"
         assert monitor.config["checkin_margin"] == 15
         assert monitor.config["max_runtime"] == 120

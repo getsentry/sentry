@@ -1,6 +1,6 @@
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, is_monitor_muted
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -72,7 +72,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Initially monitor should be unmuted
         monitor.refresh_from_db()
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
         # Mute first environment
         self.get_success_response(
@@ -85,7 +85,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Monitor should still be unmuted (one environment is unmuted)
         monitor.refresh_from_db()
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
 
         # Mute second environment
         self.get_success_response(
@@ -98,7 +98,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Now monitor should be muted (all environments are muted)
         monitor.refresh_from_db()
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
     def test_unmuting_one_environment_unmutes_monitor(self) -> None:
         """Test that unmuting one environment when all were muted also unmutes the monitor."""
@@ -111,7 +111,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Verify initial state
         monitor.refresh_from_db()
-        assert monitor.is_muted is True
+        assert is_monitor_muted(monitor) is True
 
         # Unmute one environment via the endpoint
         self.get_success_response(
@@ -124,7 +124,7 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 
         # Monitor should now be unmuted
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
         env1.refresh_from_db()
         assert env1.is_muted is False
         env2.refresh_from_db()
