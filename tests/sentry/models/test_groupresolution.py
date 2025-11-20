@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers import Feature
 
 
 class GroupResolutionTest(TestCase):
@@ -218,46 +218,47 @@ class GroupResolutionTest(TestCase):
 
             resolution.delete()
 
-    def test_for_semver_with_build_metadata_without_precedence(self) -> None:
+    def test_for_semver_with_build_code(self) -> None:
         """
-        Test that build metadata is compared by default (semver_precedence=False).
+        Test that build code is ignored in regression detection when feature
+        flag "organizations:regressions-semver-precedence" is enabled.
         """
+        # resolving in next release: regression if old release < new release
         grp_resolution = GroupResolution.objects.create(
             release=self.old_semver_release_with_build,
             current_release_version=self.old_semver_release_with_build.version,
             group=self.group,
             type=GroupResolution.Type.in_next_release,
         )
+        # old release < new release -> regression
         assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+        with Feature({"organizations:regressions-semver-precedence": True}):
+            # versions treated as equal -> no regression
+            assert GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
         grp_resolution.delete()
 
+        # resolving in release: regression if old release =< new release
         grp_resolution = GroupResolution.objects.create(
             release=self.old_semver_release_with_build,
             group=self.group,
             type=GroupResolution.Type.in_release,
         )
+        # old release < new release -> regression
         assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+        with Feature({"organizations:regressions-semver-precedence": True}):
+            # versions treated as equal -> regression
+            assert not GroupResolution.has_resolution(
+                self.group, self.new_semver_release_with_build
+            )
         grp_resolution.delete()
 
-    @with_feature("organizations:regressions-semver-precedence")
-    def test_for_semver_with_build_metadata_with_precedence(self) -> None:
-        """
-        Test that build metadata is ignored with semver_precedence=True.
-        """
+        # version comparison without build code should still work as normal
         grp_resolution = GroupResolution.objects.create(
-            release=self.old_semver_release_with_build,
-            current_release_version=self.old_semver_release_with_build.version,
-            group=self.group,
-            type=GroupResolution.Type.in_next_release,
-        )
-        assert GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
-        grp_resolution.delete()
-
-        # resolve in_release - same version means regression
-        grp_resolution = GroupResolution.objects.create(
-            release=self.old_semver_release_with_build,
+            release=self.new_semver_release,
             group=self.group,
             type=GroupResolution.Type.in_release,
         )
-        assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+        with Feature({"organizations:regressions-semver-precedence": True}):
+            assert GroupResolution.has_resolution(self.group, self.old_semver_release)
+            assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
         grp_resolution.delete()
