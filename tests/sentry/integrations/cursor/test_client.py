@@ -11,7 +11,9 @@ class CursorAgentClientTest(TestCase):
         super().setUp()
         self.api_key = "test_api_key"
         self.webhook_secret = "test_webhook_secret"
-        self.client = CursorAgentClient(api_key=self.api_key, webhook_secret=self.webhook_secret)
+        self.cursor_client = CursorAgentClient(
+            api_key=self.api_key, webhook_secret=self.webhook_secret
+        )
         self.webhook_url = "https://example.com/webhook"
 
         self.repo_definition = SeerRepoDefinition(
@@ -54,7 +56,7 @@ class CursorAgentClientTest(TestCase):
         )
 
         # Launch the agent
-        self.client.launch(webhook_url=self.webhook_url, request=request)
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
 
         # Assert that post was called with correct parameters
         mock_post.assert_called_once()
@@ -95,7 +97,7 @@ class CursorAgentClientTest(TestCase):
         )
 
         # Launch the agent
-        self.client.launch(webhook_url=self.webhook_url, request=request)
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
 
         # Assert that post was called with correct parameters
         mock_post.assert_called_once()
@@ -135,7 +137,7 @@ class CursorAgentClientTest(TestCase):
         )
 
         # Launch the agent
-        self.client.launch(webhook_url=self.webhook_url, request=request)
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
 
         # Assert that post was called with correct parameters
         mock_post.assert_called_once()
