@@ -601,6 +601,14 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      sampling:
+        dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+        this.props.traceItemType === TraceItemDataset.SPANS
+          ? extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
+          : undefined,
+
       extrapolationMode: extrapolationMode
         ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
         : undefined,
@@ -630,19 +638,7 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest
-          {...baseProps}
-          period={period}
-          dataLoadedCallback={onDataLoaded}
-          sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-            this.props.traceItemType === TraceItemDataset.SPANS
-              ? extrapolationMode === ExtrapolationMode.NONE
-                ? SAMPLING_MODE.HIGH_ACCURACY
-                : SAMPLING_MODE.NORMAL
-              : undefined
-          }
-        >
+        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
           {({
             loading,
             errored,
