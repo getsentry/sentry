@@ -483,7 +483,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                     />
                                   ),
                                   docsLink: (
-                                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                                    <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
                                   ),
                                 }
                               )}
@@ -504,7 +504,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                     <Link to="/settings/integrations/cursor/" />
                                   ),
                                   docsLink: (
-                                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                                    <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
                                   ),
                                 }
                               )}

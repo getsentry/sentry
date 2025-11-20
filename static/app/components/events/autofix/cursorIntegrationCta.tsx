@@ -124,7 +124,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
               'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Cloud Agents for seamless code fixes. [docsLink:Read the docs] to learn more.',
               {
                 docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
                 ),
               }
             )}
@@ -161,7 +161,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
                   <Link to={`/settings/projects/${project.slug}/seer/`} />
                 ),
                 docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
                 ),
               }
             )}
@@ -190,7 +190,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
             'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Cloud Agents. [docsLink:Read the docs] to learn more.',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
               ),
             }
           )}
