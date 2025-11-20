@@ -346,14 +346,17 @@ class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
         response = self.get_error_response(self.organization.slug, status_code=400, **payload)
         assert "config" in str(response.data).lower()
 
-    def test_create_missing_project_ids(self) -> None:
+    def test_create_without_project_ids(self) -> None:
         payload = {
             "provider": DataForwarderProviderSlug.SEGMENT,
             "config": {"write_key": "test_key"},
         }
 
-        response = self.get_error_response(self.organization.slug, status_code=400, **payload)
-        assert "project_ids" in str(response.data).lower()
+        response = self.get_success_response(self.organization.slug, status_code=201, **payload)
+        assert response.data["provider"] == DataForwarderProviderSlug.SEGMENT
+
+        data_forwarder = DataForwarder.objects.get(id=response.data["id"])
+        assert data_forwarder.projects.count() == 0
 
     def test_create_sqs_fifo_queue_validation(self) -> None:
         payload = {
