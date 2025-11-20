@@ -1,4 +1,4 @@
-import {useId, useMemo} from 'react';
+import {useId, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
 import type {DistributiveOmit} from '@sentry/scraps/types';
@@ -119,6 +119,8 @@ export function CompactSelect<Value extends SelectKey>({
 
   const controlDisabled = disabled ?? options?.length === 0;
 
+  const [listKey, setListKey] = useState(0);
+
   return (
     <Control
       {...controlProps}
@@ -134,11 +136,13 @@ export function CompactSelect<Value extends SelectKey>({
           } else {
             onChange(undefined);
           }
+          setListKey(key => key + 1);
         }
       }}
     >
       <List
         {...listProps}
+        key={listKey}
         items={itemsWithKey}
         onSectionToggle={onSectionToggle}
         isOptionDisabled={isOptionDisabled}

@@ -284,6 +284,14 @@ export function Control({
     },
   });
 
+  /**
+   * Clears selection values
+   */
+  const clearSelection = () => {
+    setSelectedOptions([]);
+    onClear?.();
+  };
+
   // Manage overlay position
   const {
     isOpen: overlayIsOpen,
@@ -516,7 +524,7 @@ export function Control({
                       ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                       : menuHeaderTrailingItems}
                     {clearable && showClearButton && (
-                      <ClearButton onClick={onClear} size="zero" borderless>
+                      <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
                       </ClearButton>
                     )}
