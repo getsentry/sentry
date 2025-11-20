@@ -118,11 +118,12 @@ class PerforceInstallationForm(forms.Form):
         ),
         required=False,
     )
-    web_url = forms.CharField(
+    web_url = forms.URLField(
         label=_("Helix Swarm URL (Optional)"),
         help_text=_("Optional: URL to Helix Swarm web viewer for browsing files"),
-        widget=forms.TextInput(attrs={"placeholder": "https://swarm.company.com"}),
+        widget=forms.URLInput(attrs={"placeholder": "https://swarm.company.com"}),
         required=False,
+        assume_scheme="https",
     )
 
     def clean_p4port(self):
@@ -179,10 +180,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if url.startswith("p4://"):
             return True
 
-        if self.org_integration:
-            web_url = self.org_integration.config.get("web_url")
-            if web_url and url.startswith(web_url):
-                return True
+        web_url = self.model.metadata.get("web_url")
+        if web_url and url.startswith(web_url):
+            return True
 
         return False
 
@@ -454,6 +454,9 @@ class PerforceIntegrationProvider(IntegrationProvider):
         even if multiple orgs connect to the same Perforce server. This ensures
         credentials and configuration are isolated per organization.
 
+        Credentials are stored in Integration.metadata since each integration
+        is unique per organization (external_id includes org_id).
+
         Args:
             state: Installation state from pipeline
 
@@ -469,21 +472,38 @@ class PerforceIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Organization ID is required for Perforce integration")
 
         # Use p4port if available, otherwise fall back to host:port for legacy
+        installation_data = state.get("installation_data", {})
         p4port = (
-            state.get("p4port") or f"{state.get('host', 'localhost')}:{state.get('port', '1666')}"
+            installation_data.get("p4port")
+            or state.get("p4port")
+            or f"{state.get('host', 'localhost')}:{state.get('port', '1666')}"
         )
 
         # Create unique external_id per organization to ensure private integrations
         # Format: "org-{org_id}:{p4port}" e.g. "org-123:ssl:perforce.company.com:1666"
         external_id = f"org-{organization_id}:{p4port}"
 
+        # Store credentials in Integration.metadata
+        metadata = {
+            "p4port": p4port,
+            "user": installation_data.get("user", ""),
+            "password": installation_data.get("password", ""),
+        }
+
+        # Add optional fields if provided
+        if installation_data.get("client"):
+            metadata["client"] = installation_data["client"]
+
+        if installation_data.get("ssl_fingerprint"):
+            metadata["ssl_fingerprint"] = installation_data["ssl_fingerprint"]
+
+        if installation_data.get("web_url"):
+            metadata["web_url"] = installation_data["web_url"]
+
         return {
             "name": state.get("name", f"Perforce ({p4port})"),
             "external_id": external_id,
-            "metadata": {},
-            "post_install_data": {
-                "installation_data": state.get("installation_data", {}),
-            },
+            "metadata": metadata,
         }
 
     def post_install(
@@ -495,39 +515,11 @@ class PerforceIntegrationProvider(IntegrationProvider):
     ) -> None:
         """
         Actions after installation.
-        Sets organization-level configuration from installation pipeline state.
+
+        Configuration is now stored in Integration.metadata (set by build_integration),
+        so no additional setup is needed per organization.
         """
-        from sentry.integrations.services.integration import integration_service
-
-        installation_data = extra.get("installation_data", {})
-
-        # Store per-organization configuration
-        org_integration_config = {
-            "p4port": installation_data.get("p4port", "localhost:1666"),
-            "user": installation_data.get("user", ""),
-            "password": installation_data.get("password", ""),
-        }
-
-        # Add optional fields if provided
-        if installation_data.get("client"):
-            org_integration_config["client"] = installation_data.get("client")
-
-        if installation_data.get("ssl_fingerprint"):
-            org_integration_config["ssl_fingerprint"] = installation_data.get("ssl_fingerprint")
-
-        if installation_data.get("web_url"):
-            org_integration_config["web_url"] = installation_data.get("web_url")
-
-        # Update organization integration with configuration
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration.id, organization_id=organization.id
-        )
-
-        if org_integration:
-            integration_service.update_organization_integration(
-                org_integration_id=org_integration.id,
-                config=org_integration_config,
-            )
+        pass
 
     def setup(self) -> None:
         """Setup integration provider."""
