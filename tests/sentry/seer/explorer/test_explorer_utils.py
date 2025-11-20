@@ -615,9 +615,10 @@ class TestConvertProfileToExecutionTree:
         # Should contain worker_function_3 from WorkerThread (thread with most in_app frames)
         root = result[0]
         assert root.function == "worker_function_3"
-        assert len(root.children) == 2
+        assert len(root.children) == 1
         assert root.children[0].function == "worker_function_2"
-        assert root.children[1].function == "worker_function_1"
+        assert len(root.children[0].children) == 1
+        assert root.children[0].children[0].function == "worker_function_1"
 
     def test_convert_profile_fallback_to_mainthread_when_no_in_app_frames(self) -> None:
         """Test fallback to MainThread when no threads have in_app frames."""
