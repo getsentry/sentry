@@ -355,7 +355,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             page_number_limit: Ignored (kept for base class compatibility)
 
         Returns:
-            List of repository dictionaries
+            List of repository dictionaries (limited by page_number_limit if provided)
         """
         try:
             client = self.get_client()
@@ -377,6 +377,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
+
+                # Apply pagination limit if specified
+                if page_number_limit and len(repositories) >= page_number_limit:
+                    break
 
             return repositories
 
