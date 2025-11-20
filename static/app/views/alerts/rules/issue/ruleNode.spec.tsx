@@ -293,8 +293,7 @@ describe('RuleNode', () => {
         {
           id: IssueAlertFilterType.ISSUE_CATEGORY,
           value: 1,
-        },
-        OrganizationFixture({features: ['issue-taxonomy']})
+        }
       );
 
       await userEvent.click(await screen.findByText('error'));
@@ -330,8 +329,7 @@ describe('RuleNode', () => {
       {
         id: IssueAlertFilterType.ISSUE_CATEGORY,
         value: 2,
-      },
-      OrganizationFixture({features: ['issue-taxonomy']})
+      }
     );
 
     await screen.findByText(

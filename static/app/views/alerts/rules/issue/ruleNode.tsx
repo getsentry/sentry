@@ -29,7 +29,7 @@ import {
 } from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IssueCategory} from 'sentry/types/group';
-import {VALID_ISSUE_CATEGORIES_V2} from 'sentry/types/group';
+import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
@@ -157,20 +157,14 @@ function getChoices({
   data,
   fieldConfig,
   name,
-  organization,
   selectedValue,
-}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name' | 'organization'> & {
+}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name'> & {
   selectedValue?: string;
 }) {
-  if (
-    data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-    name === 'value' &&
-    organization.features.includes('issue-taxonomy')
-  ) {
+  if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
     return fieldConfig.choices.filter(
       ([value, label]: [string | number, string]) =>
-        VALID_ISSUE_CATEGORIES_V2.includes(label as IssueCategory) ||
-        value === selectedValue
+        VALID_ISSUE_CATEGORIES.includes(label as IssueCategory) || value === selectedValue
     );
   }
 
@@ -185,7 +179,6 @@ function ChoiceField({
   onReset,
   name,
   fieldConfig,
-  organization,
 }: FieldProps) {
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
@@ -205,7 +198,6 @@ function ChoiceField({
     data,
     fieldConfig,
     name,
-    organization,
     selectedValue: initialVal,
   }).map(([value, label]: [string | number, string]) => ({
     value: `${value}`,
@@ -526,12 +518,9 @@ function RuleNode({
       );
     }
 
-    // While `issue-taxonomy` is being rolled out, both the old and new categories are supported.
-    // This will display a banner to nudge users towards selecting a new category.
     if (
       data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
-      organization.features.includes('issue-taxonomy') &&
-      !VALID_ISSUE_CATEGORIES_V2.includes(
+      !VALID_ISSUE_CATEGORIES.includes(
         getSelectedCategoryLabel({data, node}) as IssueCategory
       )
     ) {
