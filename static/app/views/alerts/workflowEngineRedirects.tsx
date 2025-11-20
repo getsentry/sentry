@@ -31,11 +31,11 @@ interface AlertRuleDetector {
  * redirects for issue alert rules. Fetches workflow data if needed and
  * shows loading state while requests are in flight.
  */
-function withRuleRedirect(
-  Component: React.ComponentType<any>,
+function withRuleRedirect<P extends Record<string, any>>(
+  Component: React.ComponentType<P>,
   makeRedirectPath: (workflowId: string, orgSlug: string) => string
 ) {
-  return function WorkflowEngineRedirectWrapper(props: any) {
+  return function WorkflowEngineRedirectWrapper(props: P) {
     const user = useUser();
     const organization = useOrganization();
     const {ruleId} = useParams();
@@ -68,7 +68,7 @@ function withRuleRedirect(
       }
     }
 
-    return <Component {...props} />;
+    return <Component {...(props as any)} />;
   };
 }
 
@@ -77,11 +77,11 @@ function withRuleRedirect(
  * redirects for metric alert rules. Fetches detector data if needed and
  * shows loading state while requests are in flight.
  */
-function withAlertRuleRedirect(
-  Component: React.ComponentType<any>,
+function withAlertRuleRedirect<P extends Record<string, any>>(
+  Component: React.ComponentType<P>,
   makeRedirectPath: (detectorId: string, orgSlug: string) => string
 ) {
-  return function WorkflowEngineRedirectWrapper(props: any) {
+  return function WorkflowEngineRedirectWrapper(props: P) {
     const user = useUser();
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
@@ -117,26 +117,34 @@ function withAlertRuleRedirect(
       }
     }
 
-    return <Component {...props} />;
+    return <Component {...(props as any)} />;
   };
 }
 
-export const withAutomationDetailsRedirect = (Component: React.ComponentType<any>) =>
+export const withAutomationDetailsRedirect = <P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) =>
   withRuleRedirect(Component, (workflowId, orgSlug) =>
     makeAutomationDetailsPathname(orgSlug, workflowId)
   );
 
-export const withAutomationEditRedirect = (Component: React.ComponentType<any>) =>
+export const withAutomationEditRedirect = <P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) =>
   withRuleRedirect(Component, (workflowId, orgSlug) =>
     makeAutomationEditPathname(orgSlug, workflowId)
   );
 
-export const withDetectorDetailsRedirect = (Component: React.ComponentType<any>) =>
+export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) =>
   withAlertRuleRedirect(Component, (detectorId, orgSlug) =>
     makeMonitorDetailsPathname(orgSlug, detectorId)
   );
 
-export const withDetectorEditRedirect = (Component: React.ComponentType<any>) =>
+export const withDetectorEditRedirect = <P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) =>
   withAlertRuleRedirect(Component, (detectorId, orgSlug) =>
     makeMonitorEditPathname(orgSlug, detectorId)
   );
@@ -152,8 +160,10 @@ const getDetectionType = (type: string | undefined): string | null => {
   }
 };
 
-export function withDetectorCreateRedirect(Component: React.ComponentType<any>) {
-  return function WorkflowEngineRedirectWrapper(props: any) {
+export function withDetectorCreateRedirect<P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) {
+  return function WorkflowEngineRedirectWrapper(props: P) {
     const user = useUser();
     const organization = useOrganization();
     const {alertType} = useParams();
@@ -170,6 +180,6 @@ export function withDetectorCreateRedirect(Component: React.ComponentType<any>) 
       return <Redirect to={redirectPath} />;
     }
 
-    return <Component {...props} />;
+    return <Component {...(props as any)} />;
   };
 }
