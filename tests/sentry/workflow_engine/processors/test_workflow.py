@@ -39,6 +39,7 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -345,6 +346,21 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert result.data.triggered_workflows == {self.error_workflow}
         assert result.data.triggered_actions is not None
         assert len(result.data.triggered_actions) == 0
+
+    def test_multiple_detectors(self) -> None:
+        issue_stream_workflow, issue_stream_detector, _, _ = self.create_detector_and_workflow(
+            name_prefix="issue_stream",
+            workflow_triggers=self.create_data_condition_group(),
+            detector_type=IssueStreamGroupType.slug,
+        )
+        self.create_detector_workflow(
+            detector=issue_stream_detector,
+            workflow=self.error_workflow,
+        )
+
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow, issue_stream_workflow}
+        assert result.data.associated_detector == self.error_detector
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):

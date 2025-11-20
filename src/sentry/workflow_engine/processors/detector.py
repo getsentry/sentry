@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
+from functools import cached_property
 from typing import NamedTuple
 
 import sentry_sdk
@@ -100,6 +102,55 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
         project, IssueStreamGroupType.slug
     )
+
+
+@dataclass
+class EventDetectors:
+    issue_stream_detector: Detector
+    event_detector: Detector | None = None
+
+    @cached_property
+    def preferred_detector(self) -> Detector:
+        """
+        The preferred detector is the one that should be used for the event,
+        if we need to use a singular detector (for example, in logging)
+        """
+        return self.event_detector if self.event_detector else self.issue_stream_detector
+
+    @cached_property
+    def detectors(self) -> list[Detector]:
+        return [d for d in [self.issue_stream_detector, self.event_detector] if d is not None]
+
+
+def get_detectors_for_event(
+    event_data: WorkflowEventData, detector: Detector | None = None
+) -> EventDetectors:
+    """
+    Returns a list of detectors for the event to process workflows for.
+
+    We always return at least the issue stream detector.
+    If the event has an associated detector, we return it too.
+
+    You can pass in an optional detector to include in the list. This is used for Activity updates.
+    """
+    detectors = EventDetectors(
+        issue_stream_detector=Detector.get_issue_stream_detector_for_project(
+            event_data.event.project_id
+        )
+    )
+
+    if detector:
+        detectors.event_detector = detector
+
+    if not isinstance(event_data.event, GroupEvent):
+        return detectors
+
+    try:
+        detectors.event_detector = get_detector_by_event(event_data)
+    except Detector.DoesNotExist:
+        pass
+
+    return detectors
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
