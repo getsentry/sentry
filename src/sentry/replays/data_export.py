@@ -45,7 +45,6 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-EXPORT_JOB_DURATION_DEFAULT = timedelta(days=5)
 EXPORT_JOB_SOURCE_BUCKET = "sentry-replays"
 EXPORT_QUERY_ROWS_PER_PAGE = 1000
 EXPORT_QUERY_PAGES_PER_TASK = 10
@@ -140,7 +139,6 @@ def create_transfer_job[T](
     destination_bucket: str,
     destination_prefix: str,
     job_description: str,
-    job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     notification_topic: str | None = None,
     get_current_datetime: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
@@ -149,9 +147,9 @@ def create_transfer_job[T](
     Create a transfer-job which copies a bucket by prefix to another bucket.
 
     Transfer jobs are templates for transfer-job-runs. Transfer jobs are run based on a schedule.
-    They start immediately and run until the job_duration value. Automatic run creation based on
-    the schedule is one-time only. If it fails or you want to run the transfer-job twice you will
-    need to manually create a transfer-job-run on the second attempt.
+    To run a job once, the schedule start and end dates are set to the same day.
+    Automatic run creation based on the schedule is one-time only. If it fails or you want to run
+    the transfer-job twice you will need to manually create a transfer-job-run on the second attempt.
 
     Failure notifications are handled by pubsub. When the transfer service fails it will send a
     notification to the specified topic. That topic should be configured to propagate the failure
@@ -162,15 +160,14 @@ def create_transfer_job[T](
     :param source_bucket:
     :param source_prefix:
     :param destination_bucket:
-    :param job_duration: The amount of time the job should take to complete. Longer runs put less
-        pressure on our buckets.
     :param destination_prefix:
     :param notification_topic: topic to which we'll notify the success or failure of the transfer.
     :param do_create_transfer_job: Injected function which creates the transfer-job.
     :param get_current_datetime: Injected function which computes the current datetime.
     """
     date_job_starts = get_current_datetime()
-    date_job_ends = date_job_starts + job_duration
+    # To make this a one-shot job, the start and end dates must be the same.
+    date_job_ends = date_job_starts
 
     transfer_job = TransferJob(
         description=job_description,
@@ -576,7 +573,6 @@ def export_replay_blob_data[T](
     gcp_project_id: str,
     destination_bucket: str,
     destination_prefix: str,
-    job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
@@ -598,7 +594,6 @@ def export_replay_blob_data[T](
             destination_prefix=destination_prefix,
             notification_topic=pubsub_topic_name,
             job_description="Session Replay EU Compliance Export",
-            job_duration=job_duration,
             do_create_transfer_job=do_create_transfer_job,
         )
 
@@ -608,7 +603,6 @@ def export_replay_data(
     gcp_project_id: str,
     destination_bucket: str,
     destination_prefix: str,
-    blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     database_rows_per_page: int = EXPORT_QUERY_ROWS_PER_PAGE,
     database_pages_per_task: int = EXPORT_QUERY_PAGES_PER_TASK,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
@@ -620,7 +614,6 @@ def export_replay_data(
             "organization_id": organization_id,
             "gcp_project_id": gcp_project_id,
             "destination_bucket": destination_bucket,
-            "blob_export_job_duration": str(blob_export_job_duration),
             "database_rows_per_page": database_rows_per_page,
             "database_pages_per_task": database_pages_per_task,
             "source_bucket": source_bucket,
@@ -658,7 +651,6 @@ def export_replay_data(
             destination_prefix=destination_prefix,
             pubsub_topic_name=pubsub_topic_name,
             source_bucket=source_bucket,
-            job_duration=blob_export_job_duration,
             do_create_transfer_job=request_create_transfer_job,
         )
         logger.info("Successfully scheduled recording export job.")
