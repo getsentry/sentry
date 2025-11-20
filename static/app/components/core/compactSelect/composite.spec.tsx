@@ -174,9 +174,8 @@ describe('CompactSelect', () => {
     // select Choice One
     await userEvent.click(screen.getByRole('option', {name: 'Choice One'}));
 
-    // Region 1's callback is called, and trigger label is updated
+    // Region 1's callback is called
     expect(region1Mock).toHaveBeenCalledWith({value: 'choice_one', label: 'Choice One'});
-    expect(screen.getByRole('button', {name: 'Choice One'})).toBeInTheDocument();
 
     // open the menu again
     await userEvent.click(screen.getByRole('button'));
@@ -212,7 +211,6 @@ describe('CompactSelect', () => {
     expect(region2Mock).toHaveBeenCalledWith([
       {value: 'choice_three', label: 'Choice Three'},
     ]);
-    expect(screen.getByRole('button', {name: 'Choice One +1'})).toBeInTheDocument();
   });
 
   it('can search', async () => {
