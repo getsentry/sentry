@@ -711,7 +711,7 @@ export const CREDIT_INVOICE_ITEM_TYPES = [
   'credit_applied', // Deprecated: replaced by balance_change
 ] as const;
 
-export type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
+type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
 
 /**
  * Fee-related invoice item types (taxes, penalties).
@@ -719,25 +719,23 @@ export type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
  */
 export const FEE_INVOICE_ITEM_TYPES = ['sales_tax', 'cancellation_fee'] as const;
 
-export type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
+type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
 
 /**
  * Seer/AI-related invoice item types (special billing for AI features).
- * Exported as const array to enable runtime usage in filters.
  */
-export const SEER_INVOICE_ITEM_TYPES = [
+const _SEER_INVOICE_ITEM_TYPES = [
   'reserved_seer_budget', // Special case: shared budget for seer_autofix and seer_scanner
   'reserved_seer_users', // Special case: reserved prevent users (PREVENT_USER category maps to this)
   'activated_seer_users', // Activation-based prevent users billing (PREVENT_USER category)
 ] as const;
 
-export type SeerInvoiceItemType = (typeof SEER_INVOICE_ITEM_TYPES)[number];
+type SeerInvoiceItemType = (typeof _SEER_INVOICE_ITEM_TYPES)[number];
 
 /**
  * Legacy/deprecated invoice item types (AM1 plans and old formats).
- * Exported as const array to enable runtime usage in filters.
  */
-export const LEGACY_INVOICE_ITEM_TYPES = [
+const _LEGACY_INVOICE_ITEM_TYPES = [
   'ondemand', // Legacy: generic ondemand for AM1 plans
   'attachments', // Legacy: AM1 plans
   'transactions', // Legacy: AM1 plans
@@ -745,22 +743,22 @@ export const LEGACY_INVOICE_ITEM_TYPES = [
   'reserved', // Deprecated: legacy name for reserved_events
 ] as const;
 
-export type LegacyInvoiceItemType = (typeof LEGACY_INVOICE_ITEM_TYPES)[number];
+type LegacyInvoiceItemType = (typeof _LEGACY_INVOICE_ITEM_TYPES)[number];
 
 /**
  * Core subscription type.
  */
-export type SubscriptionInvoiceItemType = 'subscription';
+type SubscriptionInvoiceItemType = 'subscription';
 
 /**
  * Balance change can be both credit (negative) or fee (positive).
  */
-export type BalanceChangeInvoiceItemType = 'balance_change';
+type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
  * Unknown invoice item type (empty string).
  */
-export type UnknownInvoiceItemType = '';
+type UnknownInvoiceItemType = '';
 
 /**
  * Static invoice item types that are not tied to data categories.
