@@ -786,6 +786,7 @@ def get_issue_and_event_details(
 
     # First fetch event by ID if issue_id is not provided. Use this to get the issue ID, if any.
     if issue_id is None:
+        uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
         events_result = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[selected_event],
@@ -857,6 +858,7 @@ def get_issue_and_event_details(
         elif selected_event == "recommended":
             event = group.get_recommended_event()
         else:
+            uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
             event = eventstore.backend.get_event_by_id(
                 project_id=group.project_id,
                 event_id=selected_event,
