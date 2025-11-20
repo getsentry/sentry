@@ -100,7 +100,7 @@ export default function FiltersBar({
           tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
         );
         if (temporaryFilter) {
-          filter.value = temporaryFilter.value;
+          filter = {...filter, value: temporaryFilter.value};
           temporaryFilters.splice(temporaryFilters.indexOf(temporaryFilter), 1);
         }
       });

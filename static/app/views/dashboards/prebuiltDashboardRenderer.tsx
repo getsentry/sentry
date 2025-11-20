@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -63,26 +65,27 @@ const usePopulateLinkedDashboards = (dashboard: PrebuiltDashboard) => {
   const {widgets} = dashboard;
   const organization = useOrganization();
 
-  const linkedDashboardsWithStaticDashboardIds = widgets
-    .flatMap(widget => {
-      return widget.queries
-        .flatMap(query => query.linkedDashboards ?? [])
-        .filter(defined);
-    })
-    .filter(linkedDashboard => linkedDashboard.staticDashboardId !== undefined);
+  const prebuiltIds = useMemo(
+    () =>
+      widgets
+        .flatMap(widget => {
+          return widget.queries
+            .flatMap(query => query.linkedDashboards ?? [])
+            .filter(defined);
+        })
+        .map(d => d.staticDashboardId)
+        .filter(defined),
+    [widgets]
+  );
 
-  const hasLinkedDashboards = linkedDashboardsWithStaticDashboardIds.length > 0;
+  const hasLinkedDashboards = prebuiltIds.length > 0;
   const path = `/organizations/${organization.slug}/dashboards/`;
 
   const {data, isLoading} = useApiQuery<DashboardDetails[]>(
     [
       path,
       {
-        query: {
-          prebuiltId: linkedDashboardsWithStaticDashboardIds.map(
-            d => d.staticDashboardId
-          ),
-        },
+        query: {prebuiltId: prebuiltIds.sort()},
       },
     ],
     {
@@ -92,18 +95,30 @@ const usePopulateLinkedDashboards = (dashboard: PrebuiltDashboard) => {
     }
   );
 
-  if (!hasLinkedDashboards) {
-    return {dashboard, isLoading: false};
-  }
-
-  linkedDashboardsWithStaticDashboardIds.forEach(linkedDashboard => {
-    const dasboardId = data?.find(
-      d => d.prebuiltId === linkedDashboard.staticDashboardId
-    )?.id;
-    if (dasboardId) {
-      linkedDashboard.dashboardId = dasboardId;
+  return useMemo(() => {
+    if (!hasLinkedDashboards || !data) {
+      return {dashboard, isLoading: false};
     }
-  });
 
-  return {dashboard, isLoading};
+    const populatedDashboard = {
+      ...dashboard,
+      widgets: widgets.map(widget => ({
+        ...widget,
+        queries: widget.queries.map(query => ({
+          ...query,
+          linkedDashboards: query.linkedDashboards?.map(linkedDashboard => {
+            if (!linkedDashboard.staticDashboardId) {
+              return linkedDashboard;
+            }
+            const dashboardId = data.find(
+              d => d.prebuiltId === linkedDashboard.staticDashboardId
+            )?.id;
+            return dashboardId ? {...linkedDashboard, dashboardId} : linkedDashboard;
+          }),
+        })),
+      })),
+    };
+
+    return {dashboard: populatedDashboard, isLoading};
+  }, [dashboard, widgets, data, hasLinkedDashboards, isLoading]);
 };
