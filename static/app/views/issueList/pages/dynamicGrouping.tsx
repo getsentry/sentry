@@ -9,13 +9,22 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Link} from 'sentry/components/core/link';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventMessage from 'sentry/components/events/eventMessage';
+import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
+import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import IssueReplayCount from 'sentry/components/group/issueReplayCount';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
+import {IconChat, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -44,6 +53,84 @@ interface ClusterSummary {
   title: string;
 }
 
+// Compact issue preview for dynamic grouping - no short ID or quick fix icon
+function CompactIssuePreview({group}: {group: Group}) {
+  const organization = useOrganization();
+  const {getReplayCountForIssue} = useReplayCountForIssues();
+
+  const showReplayCount =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(organization, group.project) &&
+    group.issueCategory &&
+    !!getReplayCountForIssue(group.id, group.issueCategory);
+
+  const issuesPath = `/organizations/${organization.slug}/issues/`;
+  const {subtitle} = getTitle(group);
+
+  const items = [
+    group.project ? (
+      <ShadowlessProjectBadge project={group.project} avatarSize={12} hideName />
+    ) : null,
+    group.isUnhandled ? <UnhandledTag /> : null,
+    group.count ? (
+      <EventCount>{tn('%s event', '%s events', group.count)}</EventCount>
+    ) : null,
+    group.lifetime || group.firstSeen || group.lastSeen ? (
+      <TimesTag
+        lastSeen={group.lifetime?.lastSeen || group.lastSeen}
+        firstSeen={group.lifetime?.firstSeen || group.firstSeen}
+      />
+    ) : null,
+    group.numComments > 0 ? (
+      <CommentsLink
+        to={{
+          pathname: `${issuesPath}${group.id}/activity/`,
+          query: {filter: 'comments'},
+        }}
+      >
+        <IconChat
+          size="xs"
+          color={
+            group.subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
+          }
+        />
+        <span>{group.numComments}</span>
+      </CommentsLink>
+    ) : null,
+    showReplayCount ? <IssueReplayCount group={group} /> : null,
+  ].filter(defined);
+
+  return (
+    <CompactIssueWrapper>
+      <CompactTitle>
+        {group.isBookmarked && (
+          <IconWrapper>
+            <IconStar isSolid color="yellow300" size="xs" />
+          </IconWrapper>
+        )}
+        <EventOrGroupTitle data={group} withStackTracePreview />
+      </CompactTitle>
+      <CompactMessage
+        data={group}
+        level={group.level}
+        message={getMessage(group)}
+        type={group.type}
+      />
+      {subtitle && <CompactLocation>{subtitle}</CompactLocation>}
+      {items.length > 0 && (
+        <CompactExtra>
+          {items.map((item, i) => (
+            <Fragment key={i}>
+              {item}
+              {i < items.length - 1 ? <CompactSeparator /> : null}
+            </Fragment>
+          ))}
+        </CompactExtra>
+      )}
+    </CompactIssueWrapper>
+  );
+}
+
 // Fetch and display actual issues from the group_ids
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
@@ -70,7 +157,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
     return (
       <Flex direction="column" gap="sm">
         {[0, 1, 2].map(i => (
-          <Placeholder key={i} height="60px" />
+          <Placeholder key={i} height="70px" />
         ))}
       </Flex>
     );
@@ -87,10 +174,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
           key={group.id}
           to={`/organizations/${organization.slug}/issues/${group.id}/`}
         >
-          <Flex direction="column" gap="xs">
-            <EventOrGroupHeader data={group} source="dynamic-grouping" />
-            <EventOrGroupExtraDetails data={group} showLifetime={false} />
-          </Flex>
+          <CompactIssuePreview group={group} />
         </IssuePreviewContainer>
       ))}
     </Flex>
@@ -503,6 +587,87 @@ const IssuePreviewContainer = styled(Link)`
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transform: translateX(2px);
   }
+`;
+
+const CompactIssueWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.75)};
+`;
+
+const CompactTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.textColor};
+  line-height: 1.4;
+  ${p => p.theme.overflowEllipsis};
+
+  & em {
+    font-size: ${p => p.theme.fontSize.sm};
+    font-style: normal;
+    font-weight: ${p => p.theme.fontWeight.normal};
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const CompactMessage = styled(EventMessage)`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.4;
+`;
+
+const CompactLocation = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.3;
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const CompactExtra = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column dense;
+  gap: ${space(0.75)};
+  justify-content: start;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.xs};
+  line-height: 1.2;
+
+  & > a {
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const CompactSeparator = styled('div')`
+  height: 10px;
+  width: 1px;
+  background-color: ${p => p.theme.innerBorder};
+  border-radius: 1px;
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
+`;
+
+const CommentsLink = styled(Link)`
+  display: inline-grid;
+  gap: ${space(0.5)};
+  align-items: center;
+  grid-auto-flow: column;
+  color: ${p => p.theme.textColor};
+`;
+
+const IconWrapper = styled('span')`
+  display: inline-flex;
+  margin-right: ${space(0.5)};
+`;
+
+const EventCount = styled('span')`
+  color: ${p => p.theme.textColor};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const JsonTextarea = styled('textarea')`
