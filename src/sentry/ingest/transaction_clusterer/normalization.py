@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import orjson
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 
 # Ported from Relay:
 # https://github.com/getsentry/relay/blob/aad4b6099d12422e88dd5df49abae11247efdd99/relay-event-normalization/src/regexes.rs#L9
@@ -54,11 +54,9 @@ TRANSACTION_NAME_NORMALIZER_REGEX = re.compile(
 
 
 def normalize_segment_name(segment_span: CompatibleSpan):
-    attributes = segment_span.get("attributes") or {}
-    segment_name = segment_span.get("name")
-    if attr := attributes.get(ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME):
-        if attr["type"] == "string":
-            segment_name = attr["value"]  # type: ignore[assignment]
+    segment_name = attribute_value(
+        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
+    ) or segment_span.get("name")
     if segment_name:
         _scrub_identifiers(segment_span, segment_name)
 

@@ -63,7 +63,7 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    _normalize_segment_name(segment_span, spans, project.organization)
+    _normalize_segment_name(segment_span, project.organization)
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
@@ -144,18 +144,17 @@ def _enrich_spans(
 
 
 @metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
-def _normalize_segment_name(
-    segment_span: CompatibleSpan, spans: Sequence[CompatibleSpan], organization: Organization
-) -> None:
+def _normalize_segment_name(segment_span: CompatibleSpan, organization: Organization) -> None:
     if not features.has("organizations:normalize_segment_names_in_span_enrichment", organization):
         return
 
-    attributes = segment_span.get("attributes") or {}
-    segment_name = attributes.get(ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME) or segment_span.get("name")
+    segment_name = attribute_value(
+        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
+    ) or segment_span.get("name")
     if not segment_name:
         return
 
-    source = attributes.get(ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
+    source = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
     unknown_if_parameterized = not source
     known_to_be_unparameterized = source == "url"
     if unknown_if_parameterized or known_to_be_unparameterized:

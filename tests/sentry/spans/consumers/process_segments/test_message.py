@@ -297,7 +297,10 @@ class TestSpansTask(TestCase):
     def test_segment_name_normalization_checks_source(self):
         _, segment_span = self.generate_basic_spans()
         segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
-        segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = "route"
+        segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
+            "type": "string",
+            "value": "route",
+        }
 
         with self.feature("organizations:normalize_segment_names_in_span_enrichment"):
             processed_spans = process_segment([segment_span])
