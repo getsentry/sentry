@@ -7,6 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {useProductDatePageFilterProps} from 'sentry/components/organizations/pageFilters/product/context';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
@@ -85,18 +86,12 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type LogsTabProps = PickableDays;
-
-export function LogsTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: LogsTabProps) {
+export function LogsTabContent() {
+  const datePageFilterProps = useProductDatePageFilterProps();
   const pageFilters = usePageFilters();
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
@@ -290,9 +285,7 @@ export function LogsTabContent({
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
+                {...datePageFilterProps}
                 searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>

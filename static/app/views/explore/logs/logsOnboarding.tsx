@@ -18,6 +18,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {useProductDatePageFilterProps} from 'sentry/components/organizations/pageFilters/product/context';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -40,7 +41,6 @@ import {
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -380,15 +380,10 @@ const OnboardingContainer = styled('div')`
 type LogsTabOnboardingProps = {
   organization: Organization;
   project: Project;
-} & PickableDays;
+};
 
-export function LogsTabOnboarding({
-  organization,
-  project,
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: LogsTabOnboardingProps) {
+export function LogsTabOnboarding({organization, project}: LogsTabOnboardingProps) {
+  const datePageFilterProps = useProductDatePageFilterProps();
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -396,11 +391,7 @@ export function LogsTabOnboarding({
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
         </ExploreFilterSection>
         <OnboardingContainer>

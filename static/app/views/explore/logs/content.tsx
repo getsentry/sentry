@@ -2,12 +2,13 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProductPageFiltersContainer} from 'sentry/components/organizations/pageFilters/product/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -21,7 +22,6 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -57,23 +57,12 @@ function FeedbackButton() {
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
-      <PageFiltersContainer
-        maxPickableDays={maxPickableDays}
-        defaultSelection={{
-          datetime: {
-            period: defaultPeriod,
-            start: null,
-            end: null,
-            utc: null,
-          },
-        }}
-      >
+      <ProductPageFiltersContainer dataCategories={[DataCategory.LOG_BYTE]}>
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
@@ -86,22 +75,15 @@ export default function LogsContent() {
                   <LogsTabOnboarding
                     organization={organization}
                     project={onboardingProject}
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
                   />
                 ) : (
-                  <LogsTabContent
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
-                  />
+                  <LogsTabContent />
                 )}
               </LogsPageDataProvider>
             </TraceItemAttributeProvider>
           </Layout.Page>
         </LogsQueryParamsProvider>
-      </PageFiltersContainer>
+      </ProductPageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
