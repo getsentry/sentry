@@ -16,6 +16,10 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
 )
+from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import (
+    DeleteTraceItemsRequest,
+    DeleteTraceItemsResponse,
+)
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
 from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesRequest, GetTracesResponse
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
@@ -192,6 +196,17 @@ def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResp
     """
     resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
     response = TraceItemDetailsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def delete_trace_items_rpc(req: DeleteTraceItemsRequest) -> DeleteTraceItemsResponse:
+    """
+    An RPC which deletes trace items matching the filters specified in the request.
+    Used for deleting EAP trace items (e.g. occurrences).
+    """
+    resp = _make_rpc_request("EndpointDeleteTraceItems", "v1", req.meta.referrer, req)
+    response = DeleteTraceItemsResponse()
     response.ParseFromString(resp.data)
     return response
 
