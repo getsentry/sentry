@@ -203,7 +203,7 @@ def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResp
 def delete_trace_items_rpc(req: DeleteTraceItemsRequest) -> DeleteTraceItemsResponse:
     """
     An RPC which deletes trace items matching the filters specified in the request.
-    Used for deleting EAP trace items (e.g. occurrences.
+    Used for deleting EAP trace items (e.g. occurrences).
     """
     resp = _make_rpc_request("EndpointDeleteTraceItems", "v1", req.meta.referrer, req)
     response = DeleteTraceItemsResponse()
