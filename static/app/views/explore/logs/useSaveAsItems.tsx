@@ -77,9 +77,10 @@ export function useSaveAsItems({
   );
 
   const saveAsQuery = useMemo(() => {
-    // Show "Existing Query" if we have a non-prebuilt saved query, otherwise "A New Query"
+    const items = [];
+
     if (defined(id) && savedQuery?.isPrebuilt === false) {
-      return {
+      items.push({
         key: 'update-query',
         textValue: t('Existing Query'),
         label: <span>{t('Existing Query')}</span>,
@@ -98,10 +99,10 @@ export function useSaveAsItems({
             Sentry.captureException(error);
           }
         },
-      };
+      });
     }
 
-    return {
+    items.push({
       key: 'save-query',
       label: <span>{t('A New Query')}</span>,
       textValue: t('A New Query'),
@@ -119,7 +120,9 @@ export function useSaveAsItems({
           traceItemDataset: TraceItemDataset.LOGS,
         });
       },
-    };
+    });
+
+    return items;
   }, [id, savedQuery?.isPrebuilt, updateQuery, saveQuery, organization]);
 
   const saveAsAlert = useMemo(() => {
@@ -235,7 +238,7 @@ export function useSaveAsItems({
   return useMemo(() => {
     const saveAs = [];
     if (isLogsEnabled(organization)) {
-      saveAs.push(saveAsQuery);
+      saveAs.push(...saveAsQuery);
       saveAs.push(saveAsAlert);
       saveAs.push(saveAsDashboard);
     }
