@@ -3,21 +3,21 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
+import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 
-describe('UserFeedbackEmpty', () => {
+describe('FeedbackEmptyState', () => {
   const project = ProjectFixture({id: '1'});
   const projectWithReports = ProjectFixture({id: '2', hasUserReports: true});
   const projectWithoutReports = ProjectFixture({id: '3'});
 
   it('renders empty', () => {
-    render(<UserFeedbackEmpty />);
+    render(<FeedbackEmptyState />);
   });
 
   it('renders landing for project with no user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project]));
 
-    render(<UserFeedbackEmpty />);
+    render(<FeedbackEmptyState />);
 
     expect(
       screen.getByRole('heading', {name: 'What do users think?'})
@@ -27,7 +27,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders warning for project with any user feedback', () => {
     act(() => ProjectsStore.loadInitialData([projectWithReports]));
 
-    render(<UserFeedbackEmpty />);
+    render(<FeedbackEmptyState />);
 
     expect(
       screen.getByText('Sorry, no user reports match your filters.')
@@ -37,7 +37,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders warning for projects with any user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
-    render(<UserFeedbackEmpty />);
+    render(<FeedbackEmptyState />);
 
     expect(
       screen.getByText('Sorry, no user reports match your filters.')
@@ -47,7 +47,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders warning for project query with user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
-    render(<UserFeedbackEmpty projectIds={[projectWithReports.id]} />);
+    render(<FeedbackEmptyState projectIds={[projectWithReports.id]} />);
 
     expect(
       screen.getByText('Sorry, no user reports match your filters.')
@@ -57,7 +57,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders landing for project query without any user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
-    render(<UserFeedbackEmpty projectIds={[project.id]} />);
+    render(<FeedbackEmptyState projectIds={[project.id]} />);
 
     expect(
       screen.getByRole('heading', {name: 'What do users think?'})
@@ -67,7 +67,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders warning for multi project query with any user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
-    render(<UserFeedbackEmpty projectIds={[project.id, projectWithReports.id]} />);
+    render(<FeedbackEmptyState projectIds={[project.id, projectWithReports.id]} />);
 
     expect(
       screen.getByText('Sorry, no user reports match your filters.')
@@ -77,7 +77,7 @@ describe('UserFeedbackEmpty', () => {
   it('renders landing for multi project query without any user feedback', () => {
     act(() => ProjectsStore.loadInitialData([project, projectWithoutReports]));
 
-    render(<UserFeedbackEmpty projectIds={[project.id, projectWithoutReports.id]} />);
+    render(<FeedbackEmptyState projectIds={[project.id, projectWithoutReports.id]} />);
 
     expect(
       screen.getByRole('heading', {name: 'What do users think?'})

@@ -12,10 +12,10 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
@@ -79,7 +79,7 @@ function GroupUserFeedback() {
           </FilterMessage>
         )}
         {reportList.length === 0 ? (
-          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
+          <FeedbackEmptyState projectIds={[group.project.id]} issueTab />
         ) : (
           <Fragment>
             {reportList.map((item, idx) => (

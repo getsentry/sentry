@@ -8,7 +8,7 @@ import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
   frame: ReplayFrame;
