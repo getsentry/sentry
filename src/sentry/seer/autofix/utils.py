@@ -133,6 +133,46 @@ autofix_connection_pool = connection_from_url(
 )
 
 
+def get_project_seer_preferences(project_id: int):
+    """
+    Fetch Seer project preferences from the Seer API.
+
+    Args:
+        project_id: The project ID to fetch preferences for
+
+    Returns:
+        PreferenceResponse object if successful, None otherwise
+    """
+    from pydantic import ValidationError
+
+    from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse
+
+    try:
+        path = "/v1/project-preference"
+        body = orjson.dumps({"project_id": project_id})
+
+        connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+        response = make_signed_seer_api_request(
+            connection_pool,
+            path,
+            body=body,
+            timeout=5,
+        )
+
+        if response.status == 200:
+            result = orjson.loads(response.data)
+            return PreferenceResponse.validate(result)
+    except (orjson.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError) as e:
+        logger.warning(
+            "seer.get_project_preferences_failed",
+            extra={
+                "project_id": project_id,
+                "error": str(e),
+            },
+        )
+    return None
+
+
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)

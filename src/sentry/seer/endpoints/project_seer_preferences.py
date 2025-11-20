@@ -61,6 +61,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     integration_id = serializers.IntegerField(required=True)
+    auto_create_pr = serializers.BooleanField(required=False, default=False)
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
@@ -79,6 +80,7 @@ class SeerAutomationHandoffConfiguration(BaseModel):
     handoff_point: AutofixHandoffPoint
     target: Literal["cursor_background_agent"]
     integration_id: int
+    auto_create_pr: bool = False
 
 
 class SeerProjectPreference(BaseModel):
