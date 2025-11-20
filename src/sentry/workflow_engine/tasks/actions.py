@@ -67,7 +67,6 @@ def build_trigger_action_task_params(
 @retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
     action_id: int,
-    detector_id: int,
     workflow_id: int,
     event_id: str | None,
     activity_id: int | None,
@@ -76,8 +75,10 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
+    detector_id: int | None = None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.processors.detector import get_detector_from_event_data
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -88,19 +89,14 @@ def trigger_action(
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
-    detector = Detector.objects.get(id=detector_id)
 
-    metrics.incr(
-        "workflow_engine.tasks.trigger_action_task_started",
-        tags={"action_type": action.type, "detector_type": detector.type},
-        sample_rate=1.0,
-    )
-
-    project_id = detector.project_id
+    # TODO: remove detector usage from this task
+    detector: Detector | None = None
+    if detector_id is not None:
+        detector = Detector.objects.get(id=detector_id)
 
     if event_id is not None:
         event_data = build_workflow_event_data_from_event(
-            project_id=project_id,
             event_id=event_id,
             group_id=group_id,
             workflow_id=workflow_id,
@@ -109,7 +105,6 @@ def trigger_action(
             has_reappeared=has_reappeared,
             has_escalated=has_escalated,
         )
-
     elif activity_id is not None:
         event_data = build_workflow_event_data_from_activity(
             activity_id=activity_id, group_id=group_id
@@ -122,6 +117,15 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
+    if not detector:
+        detector = get_detector_from_event_data(event_data)
+
+    metrics.incr(
+        "workflow_engine.tasks.trigger_action_task_started",
+        tags={"action_type": action.type, "detector_type": detector.type},
+        sample_rate=1.0,
+    )
+
     should_trigger_actions = should_fire_workflow_actions(
         detector.project.organization, event_data.group.type
     )
@@ -130,7 +134,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data, detector)
+            action.trigger(event_data)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

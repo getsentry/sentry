@@ -30,6 +30,7 @@ from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
     get_detector_by_event,
+    get_detector_by_group,
     get_detectors_by_groupevents_bulk,
     process_detectors,
 )
@@ -1022,6 +1023,33 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
 
             assert result == {}
             mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
+
+
+class TestGetDetectorByGroup(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
+        self.detector = self.create_detector(project=self.project, type="metric_issue")
+        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
+
+    def test_uses_detector_group(self) -> None:
+        DetectorGroup.objects.create(detector=self.detector, group=self.group)
+
+        assert get_detector_by_group(self.group) == self.detector
+
+    def test_error_group(self) -> None:
+        assert get_detector_by_group(self.group) == self.error_detector
+
+    def test_type_detector(self) -> None:
+        self.group.update(type=MetricIssue.type_id)
+        assert get_detector_by_group(self.group) == self.detector
+
+    def test_issue_stream_fallback(self) -> None:
+        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
+
+        assert get_detector_by_group(self.group) == self.issue_stream_detector
 
 
 class TestAssociateNewGroupWithDetector(TestCase):
