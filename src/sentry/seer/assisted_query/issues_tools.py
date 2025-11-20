@@ -479,7 +479,7 @@ def execute_issues_query(
     stats_period: str = "7d",
     sort: str | None = None,
     limit: int = 25,
-) -> list[dict[str, Any]] | None:
+) -> list[dict[str, Any]] | dict[str, Any] | None:
     """
     Execute an issues query by calling the issues endpoint.
 
@@ -492,7 +492,7 @@ def execute_issues_query(
         limit: Number of results to return (default 25)
 
     Returns:
-        List of issues, or None if organization doesn't exist
+        List of issues, dict with error key if 400 error occurred, or None if organization doesn't exist
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -515,14 +515,19 @@ def execute_issues_query(
     if sort:
         params["sort"] = sort
 
-    resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/issues/",
-        params=params,
-    )
-
-    return resp.data
+    try:
+        resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/issues/",
+            params=params,
+        )
+        return resp.data
+    except client.ApiError as e:
+        if e.status_code == 400:
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def get_issues_stats(

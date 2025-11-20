@@ -320,6 +320,63 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         )
         assert table_result is None
 
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_spans_table_query_error_handling(self, mock_client_get):
+        """Test error handling for API errors: 400 errors return error dict, non-400 errors are re-raised"""
+        # Test 400 error with dict body containing detail
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="invalid_field:value",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_detail_msg
+        assert "data" not in result
+
+        # Test 400 error with string body
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="malformed query",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_body
+        assert "data" not in result
+
+        # Test non-400 errors are re-raised
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=self.default_span_fields,
+                query="",
+                stats_period="1h",
+                sort="-timestamp",
+                per_page=10,
+            )
+
+        assert exc_info.value.status_code == 500
+
     def test_spans_timeseries_with_groupby(self):
         """Test timeseries query with group_by parameter for aggregates"""
         result = execute_timeseries_query(
