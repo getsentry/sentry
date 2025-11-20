@@ -347,6 +347,60 @@ function DBQueryInjectionVulnerabilityEvidence({
   );
 }
 
+function AIDetectedSpanEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const transactionName = evidenceData.transaction ?? event.title;
+
+  const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+    organization,
+    projectID: event.projectID,
+    transaction: transactionName,
+    query: {},
+  });
+
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
+
+  const eventDetailsLocation = generateLinkToEventInTraceView({
+    traceSlug,
+    eventId: event.eventID,
+    timestamp: event.endTimestamp ?? '',
+    location,
+    organization,
+  });
+
+  const actionButton = projectSlug ? (
+    <LinkButton size="xs" to={eventDetailsLocation}>
+      {t('View Full Trace')}
+    </LinkButton>
+  ) : undefined;
+
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>
+      <Tooltip title={t('View Transaction Summary')} skipWrapper>
+        <Link to={transactionSummaryLocation}>{transactionName}</Link>
+      </Tooltip>
+    </pre>,
+    actionButton
+  );
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        transactionRow,
+        makeRow(t('Explanation'), evidenceData.explanation),
+        makeRow(t('Impact'), evidenceData.impact),
+        makeRow(t('Evidence'), evidenceData.evidence),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -368,6 +422,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -401,7 +456,6 @@ export function SpanEvidenceKeyValueList({
       />
     );
   }
-
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (

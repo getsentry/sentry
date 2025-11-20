@@ -27,7 +27,6 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -724,14 +723,12 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_opened(
         self,
         mock_record: MagicMock,
         mock_metrics: MagicMock,
-        mock_open_pr_comment_workflow_delay: MagicMock,
     ) -> None:
         group = self.create_group(project=self.project, short_id=7)
         repo = Repository.objects.create(
@@ -762,30 +759,7 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-        mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
-
         assert_success_metric(mock_record)
-
-        mock_open_pr_comment_workflow_delay.assert_called_with(
-            pr_id=pr.id,
-        )
-
-    @patch("sentry.integrations.github.webhook.metrics")
-    def test_opened_missing_option(self, mock_metrics: MagicMock) -> None:
-        Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="35129377",
-            provider="integrations:github",
-            name="baxterthehacker/public-repo",
-        )
-
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_open_pr_bot", value=False
-        )
-
-        self._create_integration_and_send_pull_request_opened_event()
-
-        assert mock_metrics.incr.call_count == 0
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics: MagicMock) -> None:

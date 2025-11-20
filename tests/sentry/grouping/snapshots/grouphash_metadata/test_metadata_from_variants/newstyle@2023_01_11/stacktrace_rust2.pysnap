@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:42:06.357773+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouphash_metadata.py
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
 ---
 hash_basis: stacktrace
 hashing_metadata: {
@@ -31,7 +29,7 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            frame* (marked in-app by custom stack trace rule (family:native function:log_demo::* +app))
               function*
                 "log_demo::main"
           type*

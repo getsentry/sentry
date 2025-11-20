@@ -197,7 +197,6 @@ describe('DetectorEdit', () => {
               },
               config: {
                 detectionType: 'static',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {
@@ -219,6 +218,61 @@ describe('DetectorEdit', () => {
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           `/organizations/${organization.slug}/monitors/123/`
+        );
+      });
+    });
+
+    it('prefills form when selecting a template', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByLabelText('Throughput'));
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Number of Errors'})
+      );
+
+      // Verify form fields are pre-filled with template values
+      await waitFor(() => {
+        expect(screen.getByText('Errors')).toBeInTheDocument();
+      });
+
+      // Set threshold and submit
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '50'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              type: 'metric_issue',
+              dataSources: [
+                expect.objectContaining({
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  environment: null,
+                  eventTypes: expect.arrayContaining(['error', 'default']),
+                  query: 'is:unresolved',
+                  queryType: 0,
+                  timeWindow: 3600,
+                }),
+              ],
+            }),
+          })
         );
       });
     });
@@ -282,7 +336,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count_unique(tags[sentry:user])',
@@ -352,7 +406,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -570,15 +624,23 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               owner: null,
               workflowIds: [],
-              // Dynamic detection should have empty conditions (no resolution thresholds)
+              // Dynamic detection should have anomaly detection condition
               conditionGroup: {
-                conditions: [],
+                conditions: [
+                  {
+                    type: 'anomaly_detection',
+                    comparison: {
+                      sensitivity: 'high',
+                      seasonality: 'auto',
+                      thresholdType: 0,
+                    },
+                    conditionResult: 75,
+                  },
+                ],
                 logicType: 'any',
               },
               config: {
                 detectionType: 'dynamic',
-                sensitivity: 'high',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {
@@ -656,7 +718,7 @@ describe('DetectorEdit', () => {
                 url: 'https://uptime.example.com',
               },
             ],
-            name: 'New MonitorUptime Monitor',
+            name: 'Uptime Monitor',
             description: 'This is my uptime monitor description',
             projectId: '2',
             type: 'uptime_domain_failure',

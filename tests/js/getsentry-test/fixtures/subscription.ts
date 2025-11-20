@@ -97,6 +97,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       zipCode: '94242',
       expMonth: 12,
       expYear: 2077,
+      brand: 'Visa',
     },
     billingPeriodEnd: '2018-10-24',
     onDemandSpendUsed: 0,

@@ -23,13 +23,9 @@ class TestEAPDeletion(TestCase):
             matching_items_count=150,
         )
 
-        with self.options(
-            {"eventstream.eap.deletion_enabled.organization_allowlist": [self.organization_id]}
-        ):
-            delete_events_from_eap(
-                self.organization_id, self.project_id, self.group_ids, Dataset.Events
-            )
-
+        delete_events_from_eap(
+            self.organization_id, self.project_id, self.group_ids, Dataset.Events
+        )
         assert mock_rpc.call_count == 1
 
         request = mock_rpc.call_args[0][0]
@@ -50,29 +46,17 @@ class TestEAPDeletion(TestCase):
 
         many_group_ids = [10, 20, 30, 40, 50]
 
-        with self.options(
-            {"eventstream.eap.deletion_enabled.organization_allowlist": [self.organization_id]}
-        ):
-            delete_events_from_eap(
-                self.organization_id, self.project_id, many_group_ids, Dataset.Events
-            )
+        delete_events_from_eap(
+            self.organization_id, self.project_id, many_group_ids, Dataset.Events
+        )
 
         request = mock_rpc.call_args[0][0]
         group_filter = request.filters[0].filter.and_filter.filters[1]
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap.snuba_rpc.rpc")
-    def test_organization_not_in_allowlist_skips_deletion(self, mock_rpc):
-        with self.options({"eventstream.eap.deletion_enabled.organization_allowlist": [456, 789]}):
-            delete_events_from_eap(
-                self.organization_id, self.project_id, self.group_ids, Dataset.Events
-            )
-
-        mock_rpc.assert_not_called()
-
-    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
-    def test_empty_allowlist_skips_deletion(self, mock_rpc):
-        with self.options({"eventstream.eap.deletion_enabled.organization_allowlist": []}):
+    def test_eap_deletion_disabled_skips_deletion(self, mock_rpc):
+        with self.options({"eventstream.eap.deletion-enabled": False}):
             delete_events_from_eap(
                 self.organization_id, self.project_id, self.group_ids, Dataset.Events
             )
@@ -86,3 +70,15 @@ class TestEAPDeletion(TestCase):
                 project_id=self.project_id,
                 group_ids=[],
             )
+
+    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    def test_exception_does_not_propagate(self, mock_rpc):
+        mock_rpc.side_effect = Exception("RPC connection failed")
+
+        # Should not raise - exception should be caught
+        try:
+            delete_events_from_eap(
+                self.organization_id, self.project_id, self.group_ids, Dataset.Events
+            )
+        except Exception:
+            pytest.fail("Exception should have been caught and not propagated")

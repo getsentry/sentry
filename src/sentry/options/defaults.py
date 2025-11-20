@@ -842,7 +842,6 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1158,6 +1157,14 @@ register(
     type=Bool,
     default=True,
     flags=FLAG_MODIFIABLE_BOOL,
+)
+
+# Maximum token count for stacktraces sent to Seer for similarity analysis
+register(
+    "seer.similarity.max_token_count",
+    type=Int,
+    default=7000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -3171,6 +3178,13 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3364,15 +3378,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
@@ -3529,13 +3534,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -3575,14 +3573,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3608,12 +3598,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The allowlist of organization IDs for which deletion from EAP is enabled.
+# Controls whether deletion from EAP is enabled.
 register(
-    "eventstream.eap.deletion_enabled.organization_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "eventstream.eap.deletion-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
@@ -3665,18 +3655,17 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables or disables Github webhook routing based on the type of webhook
-register(
-    "github.webhook-type-routing.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.scanner_no_consent.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )

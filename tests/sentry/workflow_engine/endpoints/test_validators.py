@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -67,7 +68,7 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
             "field2",
         ]
 
-    def create_source(self, validated_data) -> MockModel:
+    def create_source(self, validated_data: Any) -> MockModel:
         return MockModel.objects.create()
 
 
@@ -95,7 +96,7 @@ class MockDataConditionValidator(MetricIssueComparisonConditionValidator):
 class MockConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
-    def validate_conditions(self, value) -> list:
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for condition in value:
             MockDataConditionValidator(data=condition).is_valid(raise_exception=True)
 

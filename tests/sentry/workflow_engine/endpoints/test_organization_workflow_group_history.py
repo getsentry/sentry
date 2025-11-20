@@ -32,7 +32,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
-                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
@@ -41,7 +40,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
-                is_single_written=True,
             )
         )
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
@@ -96,7 +94,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -119,7 +117,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             self.user,
             WorkflowGroupHistorySerializer(),
         )
-        assert resp["X-Hits"] == "4"
+        assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
     def test_invalid_dates_error(self) -> None:
         self.get_error_response(
