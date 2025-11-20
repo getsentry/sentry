@@ -56,7 +56,7 @@ def delete_groups_from_eap_rpc(
         ),
         filters=[filter_with_type],
     )
-    response = snuba_rpc.rpc(request, DeleteTraceItemsResponse)
+    response = snuba_rpc.delete_trace_items_rpc(request)
 
     return response
 
