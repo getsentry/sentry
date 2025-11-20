@@ -37,6 +37,7 @@ declare global {
   }
 
   namespace React {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
@@ -138,7 +139,6 @@ export type ReservedBudgetCategory = {
 export enum AddOnCategory {
   SEER = 'seer',
   PREVENT = 'prevent',
-  LEGACY_SEER = 'legacySeer',
 }
 
 export type AddOnCategoryInfo = {
@@ -158,11 +158,6 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
-
-type RetentionSettings = {
-  downsampled: number | null;
-  standard: number | null;
-};
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -209,7 +204,9 @@ export type Plan = {
     Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
-  retentions?: Partial<Record<DataCategory, RetentionSettings>>;
+  retentions?: Partial<
+    Record<DataCategory, {downsampled: number | null; standard: number}>
+  >;
 };
 
 type PendingChanges = {
@@ -381,7 +378,6 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
-  orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
     brand: string;
