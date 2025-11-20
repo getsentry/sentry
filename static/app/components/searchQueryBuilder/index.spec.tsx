@@ -4385,6 +4385,57 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      describe('pasting text', () => {
+        it('should not replace raw search keys on paste', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+          await userEvent.paste('randomValue');
+
+          // Should have the pasted text
+          expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
+        });
+
+        it('not should replace raw search keys on paste, leaving other tokens intact', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox span.description:test"
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+          await userEvent.paste('randomValue');
+          await userEvent.keyboard('{Escape}');
+
+          // leaves unrelated filter key tokens intact
+          expect(
+            screen.getByRole('row', {name: 'browser.name:firefox'})
+          ).toBeInTheDocument();
+
+          // leaves the same filter key minus the wildcard contains operator intact
+          expect(
+            screen.getByRole('row', {name: 'span.description:test'})
+          ).toBeInTheDocument();
+
+          // Should have the pasted text
+          expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
+          // Focus should be at the end of the pasted text
+          expect(
+            screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+          ).toHaveFocus();
+        });
+      });
+
       describe('on commit', () => {
         it('should replace the raw search key with the defined key:value', async () => {
           render(
@@ -4404,6 +4455,27 @@ describe('SearchQueryBuilder', () => {
               name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
             })
           ).toBeInTheDocument();
+          expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('on blur', () => {
+        it('should not replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          const input = getLastInput();
+          await userEvent.click(input);
+          await userEvent.keyboard('randomValue');
+          await userEvent.click(document.body);
+
+          expect(screen.getByRole('row', {name: `randomValue`})).toBeInTheDocument();
           expect(getLastInput()).toHaveFocus();
         });
       });
