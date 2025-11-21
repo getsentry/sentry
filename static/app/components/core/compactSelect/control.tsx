@@ -166,7 +166,7 @@ export interface ControlProps
    * Called when the clear button is clicked (applicable only when `clearable` is
    * true).
    */
-  onClear?: () => void;
+  onClear?: (props: {overlayState: OverlayTriggerState}) => void;
   /**
    * Called when the menu is opened or closed.
    */
@@ -185,9 +185,6 @@ export interface ControlProps
    * menu items.
    */
   searchable?: boolean;
-  shouldCloseOnSelect?: (props: {
-    selectedOptions: Array<SelectOption<SelectKey>>;
-  }) => boolean;
   size?: FormSize;
   /**
    * Optional replacement for the default trigger button. Note that the replacement must
@@ -221,7 +218,6 @@ export function Control({
   onInteractOutside,
   shouldCloseOnInteractOutside,
   shouldCloseOnBlur,
-  shouldCloseOnSelect,
   preventOverflowOptions,
   flipOptions,
   disabled,
@@ -294,10 +290,7 @@ export function Control({
    */
   const clearSelection = () => {
     setSelectedOptions([]);
-    if (shouldCloseOnSelect?.({selectedOptions: []})) {
-      overlayState?.close();
-    }
-    onClear?.();
+    onClear?.({overlayState});
   };
 
   // Manage overlay position

@@ -127,18 +127,15 @@ export function CompactSelect<Value extends SelectKey>({
       grid={grid}
       size={size}
       clearable={clearable}
-      shouldCloseOnSelect={({selectedOptions}) =>
-        shouldCloseOnSelect({
-          ...listProps,
-          selectedOptions,
-        })
-      }
-      onClear={() => {
+      onClear={({overlayState}) => {
         if (clearable) {
           if (multiple) {
             onChange([]);
           } else {
             onChange(undefined);
+          }
+          if (shouldCloseOnSelect?.({...listProps, selectedOptions: []})) {
+            overlayState?.close();
           }
         }
       }}
