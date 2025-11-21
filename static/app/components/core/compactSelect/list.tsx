@@ -53,10 +53,6 @@ interface BaseListProps<Value extends SelectKey>
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
-   * This list's index number inside composite select menus.
-   */
-  compositeIndex?: number;
-  /**
    * Whether to render a grid list rather than a list box.
    *
    * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
@@ -164,7 +160,6 @@ export function List<Value extends SelectKey>({
   isOptionDisabled,
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
-  compositeIndex = 0,
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
