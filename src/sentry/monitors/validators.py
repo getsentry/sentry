@@ -686,6 +686,28 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
             return monitor_validator.update(instance, monitor_validator.validated_data)
 
 
+class MonitorDataSourceListField(serializers.ListField):
+    """
+    Custom ListField that properly binds the Monitor instance to child validators.
+
+    When updating a detector, we need to ensure the MonitorDataSourceValidator
+    knows about the existing Monitor so slug validation works correctly.
+    """
+
+    def to_internal_value(self, data):
+        # If we're updating (parent has instance), bind the Monitor instance to child validator
+        if hasattr(self.parent, "instance") and self.parent.instance:
+            detector = self.parent.instance
+            monitor = get_cron_monitor(detector)
+
+            # Bind the monitor instance so slug validation recognizes this as an update
+            # Type ignore: self.child is typed as Field but is actually MonitorDataSourceValidator
+            self.child.instance = monitor  # type: ignore[attr-defined]
+            self.child.partial = self.parent.partial  # type: ignore[attr-defined]
+
+        return super().to_internal_value(data)
+
+
 class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     """
     Validator for monitor incident detection configuration.
@@ -694,7 +716,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
+    data_sources = MonitorDataSourceListField(child=MonitorDataSourceValidator(), required=False)
 
     def validate_enabled(self, value: bool) -> bool:
         """
