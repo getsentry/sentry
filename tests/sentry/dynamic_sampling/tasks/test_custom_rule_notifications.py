@@ -142,10 +142,6 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         with self.tasks():
             custom_rule_notifications()
 
-        # test the rule was marked as notification_sent
-        self.rule.refresh_from_db()
-        assert self.rule.notification_sent
-
         # Verify email was sent
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
@@ -191,3 +187,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
             in str(html_content)
         )
         assert "View in Discover" in str(html_content)
+
+        # test the rule was marked as notification_sent
+        self.rule.refresh_from_db()
+        assert self.rule.notification_sent is True
