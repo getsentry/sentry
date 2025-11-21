@@ -53,6 +53,7 @@ def delete_groups_from_eap_rpc(
             project_ids=[project_id],
             referrer=referrer,
             cogs_category="deletions",
+            trace_item_type=TRACE_ITEM_TYPE_OCCURRENCE,
         ),
         filters=[filter_with_type],
     )
