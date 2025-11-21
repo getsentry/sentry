@@ -356,7 +356,7 @@ class StatefulDetectorHandler(
 
     def _build_evidence_data_sources(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> list[dict[str, Any]] | None:
+    ) -> list[dict[str, Any]]:
         try:
             data_sources = list(
                 DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
@@ -375,7 +375,7 @@ class StatefulDetectorHandler(
             logger.exception(
                 "Failed to serialize data source definition when building workflow engine evidence data"
             )
-            return None
+            return []
 
     def _build_workflow_engine_evidence_data(
         self,
