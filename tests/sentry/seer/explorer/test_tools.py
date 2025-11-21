@@ -38,9 +38,12 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@pytest.mark.django_db(databases=["default", "control"])
+def _get_utc_iso_without_timezone(dt: datetime) -> str:
+    """Seer and Sentry UI pass iso timestamps in this format."""
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "")
+
+
 class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    databases = {"default", "control"}
     default_span_fields = [
         "id",
         "span.op",
@@ -55,6 +58,8 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     def setUp(self):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
+        self.two_mins_ago = before_now(minutes=2)
+        self.one_min_ago = before_now(minutes=1)
 
         # Create spans using the exact pattern from working tests
         spans = [
@@ -87,7 +92,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
                     "description": "Redis GET user:123",
                     "sentry_tags": {"op": "cache.get", "transaction": "api/user/profile"},
                 },
-                start_ts=self.ten_mins_ago,
+                start_ts=self.one_min_ago,
                 duration=25,
             ),
         ]
@@ -115,6 +120,46 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Each data point is [timestamp, [{"count": value}]]
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 4
+
+    def test_spans_timeseries_count_metric_start_end_filter(self):
+        """Test timeseries query with count() metric using real data, filtered by start and end"""
+        # Since this is a small range, we need to specify the interval. The event endpoint's
+        # get_rollup fx doesn't go below 15m when calculating from date range.
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            query="",
+            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+            end=_get_utc_iso_without_timezone(self.two_mins_ago),
+            interval="1m",
+            y_axes=["count()"],
+        )
+
+        assert result is not None
+        # Result is now dict from events-stats endpoint
+        assert "count()" in result
+        assert "data" in result["count()"]
+
+        data_points = result["count()"]["data"]
+        assert len(data_points) > 0
+
+        # Each data point is [timestamp, [{"count": value}]]
+        total_count = sum(point[1][0]["count"] for point in data_points if point[1])
+        assert total_count == 3  # Should exclude the span created at 1 minute ago
+
+    def test_spans_timeseries_count_metric_start_end_errors_with_stats_period(self):
+        with pytest.raises(
+            ValueError, match="stats_period and start/end cannot be provided together"
+        ):
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                query="",
+                stats_period="1h",
+                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+                end=_get_utc_iso_without_timezone(self.two_mins_ago),
+                y_axes=["count()"],
+            )
 
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
@@ -175,6 +220,47 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         cache_rows = [row for row in rows if row.get("span.op") == "cache.get"]
         assert len(cache_rows) == 1  # One cache span
+
+    def test_spans_table_query_start_end_filter(self):
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+            end=_get_utc_iso_without_timezone(self.two_mins_ago),
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "data" in result
+
+        rows = result["data"]
+        assert len(rows) == 3  # Should exclude the span created at 1 minute ago
+
+        # Verify span data
+        db_rows = [row for row in rows if row.get("span.op") == "db"]
+        assert len(db_rows) == 2  # Two database spans
+
+        http_rows = [row for row in rows if row.get("span.op") == "http.client"]
+        assert len(http_rows) == 1  # One HTTP span
+
+    def test_spans_table_query_start_end_errors_with_stats_period(self):
+        with pytest.raises(
+            ValueError, match="stats_period and start/end cannot be provided together"
+        ):
+            execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=self.default_span_fields,
+                query="",
+                stats_period="1h",
+                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+                end=_get_utc_iso_without_timezone(self.two_mins_ago),
+                sort="-timestamp",
+                per_page=10,
+            )
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""
@@ -1047,7 +1133,6 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             group.delete()
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self):
         """Test successful repository lookup"""
