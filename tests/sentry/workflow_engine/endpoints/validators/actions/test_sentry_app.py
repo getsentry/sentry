@@ -94,19 +94,28 @@ class TestSentryAppActionValidator(TestCase):
         install = self.create_sentry_app_installation(
             slug="test-application", organization=self.organization
         )
-        self.valid_data["config"]["target_identifier"] = install.uuid
-        self.valid_data["data"]["settings"] = [
-            {
-                "name": "asdf",
-                "label": None,
-                "value": [{"id": "1dedabd2-059d-457b-ac17-df39031d4593", "type": "team"}],
+        self.valid_data = {
+            "type": Action.Type.SENTRY_APP,
+            "config": {
+                "sentry_app_identifier": "sentry_app_installation_uuid",
+                "targetType": "sentry_app",
+                "target_identifier": install.uuid,
             },
-            {
-                "name": "fdsa",
-                "label": "label",
-                "value": "string",
+            "data": {
+                "settings": [
+                    {
+                        "name": "asdf",
+                        "label": None,
+                        "value": [{"id": "1dedabd2-059d-457b-ac17-df39031d4593", "type": "team"}],
+                    },
+                    {
+                        "name": "fdsa",
+                        "label": "label",
+                        "value": "string",
+                    },
+                ]
             },
-        ]
+        }
         mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
             success=True, message="success"
         )
