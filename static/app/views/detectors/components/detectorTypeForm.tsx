@@ -48,7 +48,7 @@ type SelectableDetectorType = Extract<
   'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
 >;
 
-export const ALLOWED_DETECTOR_TYPES = [
+const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
