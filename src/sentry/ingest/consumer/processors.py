@@ -182,7 +182,7 @@ def process_event(
             for attachment in attachments
         ]
         if attachment_objects:
-            store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
+            store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = processing_store.store(data)

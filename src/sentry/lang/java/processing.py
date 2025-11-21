@@ -191,7 +191,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    view_hierarchies = ViewHierarchies(data)
+    view_hierarchies = ViewHierarchies(symbolicator.project, data)
     window_class_names = view_hierarchies.get_window_class_names()
 
     exceptions = Exceptions(data)

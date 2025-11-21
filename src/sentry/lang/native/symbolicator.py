@@ -181,7 +181,7 @@ class Symbolicator:
         )
         if force_stored_attachment:
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            minidump.stored_id = session.put(minidump.data)
+            minidump.stored_id = session.put(minidump.load_data(self.project))
 
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
@@ -212,7 +212,7 @@ class Symbolicator:
             "options": '{"dif_candidates": true}',
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
-        files = {"upload_file_minidump": minidump.data}
+        files = {"upload_file_minidump": minidump.load_data(self.project)}
 
         res = self._process("process_minidump", "minidump", data=data, files=files)
         return process_response(res)
@@ -226,7 +226,7 @@ class Symbolicator:
         )
         if force_stored_attachment:
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            report.stored_id = session.put(report.data)
+            report.stored_id = session.put(report.load_data(self.project))
 
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
@@ -255,7 +255,7 @@ class Symbolicator:
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
-        files = {"apple_crash_report": report.data}
+        files = {"apple_crash_report": report.load_data(self.project)}
 
         res = self._process("process_applecrashreport", "applecrashreport", data=data, files=files)
         return process_response(res)
