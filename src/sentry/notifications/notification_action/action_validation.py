@@ -17,6 +17,7 @@ from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
 from sentry.rules.actions.sentry_apps.utils import validate_sentry_app_action
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
+from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
@@ -220,6 +221,13 @@ class SentryAppActionValidatorHandler:
         }
         try:
             validate_sentry_app_action(action)
+
+            # Sentry app config blob expects value to be a string
+            settings = self.validated_data["data"]["settings"]
+            for setting in settings:
+                if setting.get("value") is not None and not isinstance(setting["value"], str):
+                    setting["value"] = json.dumps(setting["value"])
+
             return self.validated_data
         except SentryAppBaseError as e:
             raise ValidationError(e.message) from e
