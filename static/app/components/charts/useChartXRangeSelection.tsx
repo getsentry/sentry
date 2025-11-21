@@ -160,6 +160,8 @@ export function useChartXRangeSelection({
   );
 
   const clearSelection = useCallback(() => {
+    if (!state?.selection) return;
+
     const chartInstance = chartRef.current?.getEchartsInstance();
 
     chartInstance?.dispatchAction({type: 'brush', areas: []});
@@ -174,7 +176,7 @@ export function useChartXRangeSelection({
     setState(null);
 
     onClearSelection?.();
-  }, [chartRef, onClearSelection]);
+  }, [chartRef, onClearSelection, state?.selection]);
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt: any, chartInstance: any) => {
@@ -255,12 +257,15 @@ export function useChartXRangeSelection({
   );
 
   useEffect(() => {
+    if (disabled || !state?.selection) return;
+
     window.addEventListener('click', handleOutsideClick, {capture: true});
 
+    // eslint-disable-next-line consistent-return
     return () => {
       window.removeEventListener('click', handleOutsideClick, {capture: true});
     };
-  }, [handleOutsideClick]);
+  }, [handleOutsideClick, disabled, state?.selection]);
 
   const enableBrushMode = useCallback(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
@@ -345,6 +350,7 @@ export function useChartXRangeSelection({
 
     return createPortal(
       <div
+        data-explore-chart-selection-region
         style={{
           position: 'absolute',
           transform,
