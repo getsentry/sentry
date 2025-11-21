@@ -5,8 +5,7 @@ from typing import Any
 from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.java.view_hierarchies import ViewHierarchies
-from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, handle_response_status
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -103,27 +102,6 @@ def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
             frame[key] = value
 
     return frame
-
-
-def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
-    """Checks the response from Symbolicator and reports errors.
-    Returns `True` on success."""
-
-    if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-    elif response_json["status"] == "completed":
-        return True
-    elif response_json["status"] == "failed":
-        error = SymbolicationFailed(
-            message=response_json.get("message") or None,
-            type=EventError.NATIVE_SYMBOLICATOR_FAILED,
-        )
-    else:
-        logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-
-    write_error(error, event_data)
-    return None
 
 
 def _get_release_package(project: Project, release_name: str | None) -> str | None:
@@ -225,7 +203,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         frame_order=FrameOrder.caller_first,
     )
 
-    if not _handle_response_status(data, response):
+    if not handle_response_status(data, response):
         return
 
     processing_errors = response.get("errors", [])

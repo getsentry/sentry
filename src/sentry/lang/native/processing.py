@@ -11,7 +11,7 @@ from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, handle_response_status
 from sentry.lang.native.utils import (
     get_event_attachment,
     get_os_from_event,
@@ -198,22 +198,6 @@ def _merge_image(raw_image, complete_image, os, data):
         _handle_image_status(status, raw_image, os, data)
 
 
-def _handle_response_status(event_data, response_json):
-    if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-    elif response_json["status"] == "completed":
-        return True
-    elif response_json["status"] == "failed":
-        error = SymbolicationFailed(
-            message=response_json.get("message") or None, type=EventError.NATIVE_SYMBOLICATOR_FAILED
-        )
-    else:
-        logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-
-    write_error(error, event_data)
-
-
 def _merge_system_info(data, system_info):
     set_path(data, "contexts", "os", "type", value="os")  # Required by "get_os_from_event"
 
@@ -334,7 +318,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_minidump(data.get("platform"), minidump, rewrite_first_module)
 
-    if _handle_response_status(data, response):
+    if handle_response_status(data, response):
         _merge_full_response(data, response)
 
         # Emit Apple symbol stats
@@ -357,7 +341,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_applecrashreport(data.get("platform"), report)
 
-    if _handle_response_status(data, response):
+    if handle_response_status(data, response):
         _merge_full_response(data, response)
 
         # Emit Apple symbol stats
@@ -480,7 +464,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         signal=signal,
     )
 
-    if not _handle_response_status(data, response):
+    if not handle_response_status(data, response):
         return data
 
     # Emit Apple symbol stats

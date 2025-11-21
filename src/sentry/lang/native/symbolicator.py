@@ -17,6 +17,7 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.attachments.base import CachedAttachment
+from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
     get_internal_source,
@@ -24,6 +25,7 @@ from sentry.lang.native.sources import (
     sources_for_symbolication,
 )
 from sentry.lang.native.utils import Backoff
+from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.objectstore import get_attachments_session
@@ -396,6 +398,30 @@ class Symbolicator:
         return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 
 
+def handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
+    """Checks the response from Symbolicator and reports errors.
+    Returns `True` on success."""
+
+    if not response_json:
+        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+    elif response_json["status"] == "completed":
+        return True
+    elif response_json["status"] == "failed":
+        error = SymbolicationFailed(
+            message=response_json.get("message") or None,
+            type=EventError.NATIVE_SYMBOLICATOR_FAILED,
+            event_id=response_json.get("event_id"),
+        )
+    else:
+        logger.error("Unexpected symbolicator status: %s", response_json["status"])
+        error = SymbolicationFailed(
+            type=EventError.NATIVE_INTERNAL_FAILURE, event_id=response_json.get("event_id")
+        )
+
+    write_error(error, event_data)
+    return None
+
+
 class TaskIdNotFound(Exception):
     pass
 
@@ -496,9 +522,13 @@ class SymbolicatorSession:
                 else:
                     with sentry_sdk.isolation_scope():
                         sentry_sdk.set_extra("symbolicator_response", response.text)
-                        sentry_sdk.capture_message("Symbolicator request failed")
+                        event_id = sentry_sdk.capture_message("Symbolicator request failed")
 
-                    json = {"status": "failed", "message": "internal server error"}
+                    json = {
+                        "status": "failed",
+                        "message": "internal server error",
+                        "event_id": event_id,
+                    }
 
                 return json
             except (OSError, RequestException) as e:
