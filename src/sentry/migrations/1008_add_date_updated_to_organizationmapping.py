@@ -32,7 +32,8 @@ class Migration(CheckedMigration):
             name="date_updated",
             field=models.DateTimeField(
                 db_default=django.db.models.functions.Now(),
-                default=django.utils.timezone.now,
+                auto_now=True,
+                db_index=True,
             ),
         ),
     ]

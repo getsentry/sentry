@@ -54,7 +54,7 @@ class OrganizationMapping(Model):
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
 
-    date_updated = models.DateTimeField(db_default=Now(), default=timezone.now)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True, db_index=True)
 
     class Meta:
         app_label = "sentry"
