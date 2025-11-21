@@ -122,3 +122,24 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             end="1729179000.0",
             status_code=403,
         )
+
+    def test_feature_flag_disabled(self):
+        """Test that endpoint returns 404 when feature flag is disabled"""
+        self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=404,
+        )
+
+    @with_feature("organizations:anomaly-detection-threshold-data")
+    def test_invalid_detector_id(self):
+        """Test that non-numeric detector IDs return 404"""
+        self.get_error_response(
+            self.organization.slug,
+            "not-a-number",
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=404,
+        )
