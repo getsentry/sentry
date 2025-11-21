@@ -28,7 +28,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   cursor: string | undefined;
   onCursor: CursorHandler;
   connectedAutomationIds?: Set<string>;
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   limit?: number | null;
   openInNewTab?: boolean;
   query?: string;
