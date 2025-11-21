@@ -395,6 +395,11 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "action-123",
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
 
         sentry_app_action_2 = self.create_action(
@@ -403,6 +408,11 @@ class TestActionDeduplication(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
                 "target_identifier": "action-123",
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
             },
         )
 

@@ -45,6 +45,11 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
                 "target_type": ActionTarget.SENTRY_APP.value,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
 
         self.handler = SentryAppMetricAlertHandler()
@@ -112,7 +117,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             integration_id=None,
             target_identifier=None,
             target_display=None,
-            sentry_app_config=None,
+            sentry_app_config=self.action.data.get("settings"),
             sentry_app_id=str(self.sentry_app.id),
         )
 
@@ -188,7 +193,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             integration_id=None,
             target_identifier=None,
             target_display=None,
-            sentry_app_config=None,
+            sentry_app_config=self.action.data.get("settings"),
             sentry_app_id=str(self.sentry_app.id),
         )
 

@@ -119,6 +119,11 @@ class TestSentryAppInstallationDeletionTask(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
         other_action = self.create_action(
             type=Action.Type.SENTRY_APP,
@@ -126,6 +131,11 @@ class TestSentryAppInstallationDeletionTask(TestCase):
                 "target_identifier": "1234567890",
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP,
+            },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
             },
         )
         deletions.exec_sync(self.install)
