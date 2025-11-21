@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from P4 import P4, P4Exception
@@ -361,6 +362,46 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # User not found - return None (not an error condition)
             return None
 
+    def get_author_info_from_cache(
+        self, username: str, user_cache: dict[str, P4UserInfo | None]
+    ) -> tuple[str, str]:
+        """
+        Get author email and name from username with caching.
+
+        Args:
+            username: Perforce username
+            user_cache: Cache dictionary for user lookups
+
+        Returns:
+            Tuple of (author_email, author_name)
+        """
+        author_email = f"{username}@perforce"
+        author_name = username
+
+        # Fetch user info if not in cache
+        if username not in user_cache:
+            try:
+                user_cache[username] = self.get_user(username)
+            except Exception as e:
+                logger.warning(
+                    "perforce.get_author_info.user_lookup_failed",
+                    extra={
+                        "username": username,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                user_cache[username] = None
+
+        user_info = user_cache.get(username)
+        if user_info:
+            if user_info.get("email"):
+                author_email = user_info["email"]
+            if user_info.get("full_name"):
+                author_name = user_info["full_name"]
+
+        return author_email, author_name
+
     def get_changes(
         self,
         depot_path: str,
@@ -452,15 +493,20 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
+
+        Performance notes:
+        - Makes ~3 P4 API calls per file: filelog, describe, user (cached)
+        - User lookups are cached within the request to minimize redundant calls
+        - Perforce doesn't have explicit rate limiting like GitHub
+        - Individual file failures are caught and logged without failing entire batch
         """
-        metrics.incr("integrations.perforce.get_blame_for_files")
-        blames = []
-        p4 = self._connect()
+        blames: list[FileBlameInfo] = []
 
-        # Cache user info to avoid multiple lookups for the same user
-        user_cache: dict[str, dict[str, Any] | None] = {}
+        # Cache user info within this request to avoid multiple lookups for the same user
+        # Future: Could use Django cache for cross-request caching to further reduce P4 API calls
+        user_cache: dict[str, P4UserInfo | None] = {}
 
-        try:
+        with self._connect() as p4:
             for file in files:
                 try:
                     # Build depot path for the file (includes stream if specified)
@@ -481,51 +527,44 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
                     # If we found a changelist, get detailed commit info
                     if changelist:
-                        try:
-                            change_info = p4.run("describe", "-s", changelist)
-                            if change_info and len(change_info) > 0:
-                                change = change_info[0]
-                                username = change.get("user", "unknown")
+                        change_info = p4.run("describe", "-s", changelist)
+                        if change_info and len(change_info) > 0:
+                            change = change_info[0]
+                            username = change.get("user", "unknown")
 
-                                # Get author information (with caching and p4 connection reuse)
-                                author_email, author_name = self.get_author_info(
-                                    username, user_cache, p4
-                                )
+                            # Get author information using shared helper
+                            author_email, author_name = self.get_author_info_from_cache(
+                                username, user_cache
+                            )
 
-                                # Handle potentially null/invalid time field
-                                time_value = change.get("time") or 0
-                                try:
-                                    timestamp = int(time_value)
-                                except (TypeError, ValueError):
-                                    timestamp = 0
+                            # Handle potentially null/invalid time field
+                            time_value = change.get("time") or 0
+                            try:
+                                timestamp = int(time_value)
+                            except (TypeError, ValueError):
+                                timestamp = 0
 
-                                commit = CommitInfo(
-                                    commitId=str(changelist),  # Ensure string type
-                                    committedDate=datetime.fromtimestamp(
-                                        timestamp, tz=timezone.utc
-                                    ),
-                                    commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=author_name,
-                                    commitAuthorEmail=author_email,
-                                )
+                            commit = CommitInfo(
+                                commitId=str(changelist),
+                                committedDate=datetime.fromtimestamp(timestamp, tz=timezone.utc),
+                                commitMessage=change.get("desc", "").strip(),
+                                commitAuthorName=author_name,
+                                commitAuthorEmail=author_email,
+                            )
 
-                                blame_info = FileBlameInfo(
-                                    lineno=file.lineno,
-                                    path=file.path,
-                                    ref=file.ref,
-                                    repo=file.repo,
-                                    code_mapping=file.code_mapping,
-                                    commit=commit,
-                                )
-                                blames.append(blame_info)
-                        except self.P4Exception:
-                            pass
+                            blame_info = FileBlameInfo(
+                                lineno=file.lineno,
+                                path=file.path,
+                                ref=file.ref,
+                                repo=file.repo,
+                                code_mapping=file.code_mapping,
+                                commit=commit,
+                            )
+                            blames.append(blame_info)
                 except self.P4Exception:
                     continue
 
-            return blames
-        finally:
-            self._disconnect(p4)
+        return blames
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
