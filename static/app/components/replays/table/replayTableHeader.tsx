@@ -36,9 +36,11 @@ export default function ReplayTableHeader({
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
+  const headerStyle = stickyHeader ? ({position: 'sticky', top: 0} as const) : {};
+
   return (
     <Fragment>
-      <TableHeader style={{position: stickyHeader ? 'sticky' : 'relative', top: 0}}>
+      <TableHeader style={{...headerStyle}}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}
@@ -55,7 +57,7 @@ export default function ReplayTableHeader({
       </TableHeader>
 
       {isAnySelected ? (
-        <TableHeader style={{position: stickyHeader ? 'sticky' : 'relative', top: 0}}>
+        <TableHeader style={{...headerStyle}}>
           <TableCellFirst>
             <ReplaySelectColumn.Header
               columnIndex={0}
