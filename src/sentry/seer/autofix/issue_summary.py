@@ -301,11 +301,15 @@ def run_automation(
 
     # Only log for projects with triage-signals-v0
     if features.has("projects:triage-signals-v0", group.project):
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
         logger.info(
-            "run_automation called: group_id=%s, source=%s, times_seen_with_pending=%s",
+            "run_automation called: group_id=%s, source=%s, times_seen=%s",
             group.id,
             source.value,
-            group.times_seen_with_pending,
+            times_seen,
         )
 
     user_id = user.id if user else None
