@@ -1634,11 +1634,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         generate_summary_and_run_automation.delay(group.id)
     else:
         # Triage signals V0 behaviour
-
         # If event count < 10, only generate summary (no automation)
-        logger.info(
-            "Triage signals V0: %s: event count %s", group.id, group.times_seen_with_pending
-        )
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
@@ -1662,11 +1658,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
-            logger.info(
-                "Triage signals V0: %s: event count >= 10 %s",
-                group.id,
-                group.times_seen_with_pending,
-            )
             # Long-term check to avoid re-running
             if (
                 group.seer_autofix_last_triggered is not None
