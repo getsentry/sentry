@@ -45,7 +45,7 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 
 type Props = {
   currentFilter: SpanOperationBreakdownFilter;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: OrganizationSummary;
 };
 
@@ -62,7 +62,6 @@ function Filter(props: Props) {
     <GuideAnchor target="span_op_breakdowns_filter" position="top">
       <CompactSelect
         clearable
-        disallowEmptySelection={false}
         menuTitle={t('Filter by operation')}
         options={menuOptions}
         value={currentFilter}
@@ -154,9 +153,9 @@ export function decodeFilterFromLocation(location: Location) {
   );
 }
 
-export function filterToLocationQuery(option: SpanOperationBreakdownFilter) {
+export function filterToLocationQuery(option: SpanOperationBreakdownFilter | undefined) {
   return {
-    breakdown: option as string,
+    breakdown: option,
   };
 }
 

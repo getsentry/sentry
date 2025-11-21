@@ -1,10 +1,11 @@
 import {useId, useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {t} from 'sentry/locale';
 
-import type {ControlProps} from './control';
-import {Control} from './control';
+import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
@@ -15,27 +16,26 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getItemsWithKeys} from './utils';
+import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
+interface BaseSelectProps<Value extends SelectKey>
+  extends Omit<ControlProps, 'onClear' | 'clearable'> {
   options: Array<SelectOptionOrSection<Value>>;
 }
 
-export interface SingleSelectProps<Value extends SelectKey>
-  extends BaseSelectProps<Value>,
-    Omit<
-      SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-    > {}
+export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributiveOmit<
+    SingleListProps<Value>,
+    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+  >;
 
-export interface MultipleSelectProps<Value extends SelectKey>
-  extends BaseSelectProps<Value>,
-    Omit<
-      MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-    > {}
+export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributiveOmit<
+    MultipleListProps<Value>,
+    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+  >;
 
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
@@ -63,7 +63,7 @@ export function CompactSelect<Value extends SelectKey>({
   onChange,
   onSectionToggle,
   multiple,
-  disallowEmptySelection,
+  clearable,
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
@@ -81,9 +81,11 @@ export function CompactSelect<Value extends SelectKey>({
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
+  // also multiple:false must be split into clearable true/false to satisfy TS
   const listProps = useMemo(() => {
     if (multiple) {
       return {
+        clearable,
         multiple,
         value,
         onChange,
@@ -91,14 +93,27 @@ export function CompactSelect<Value extends SelectKey>({
         grid,
       };
     }
+
+    if (clearable) {
+      return {
+        clearable,
+        multiple,
+        value,
+        onChange,
+        closeOnSelect,
+        grid,
+      };
+    }
+
     return {
+      clearable,
       multiple,
       value,
       onChange,
       closeOnSelect,
       grid,
     };
-  }, [multiple, value, onChange, closeOnSelect, grid]);
+  }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
@@ -111,12 +126,24 @@ export function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
+      clearable={clearable}
+      onClear={({overlayState}) => {
+        if (clearable) {
+          if (multiple) {
+            onChange([]);
+          } else {
+            onChange(undefined);
+          }
+          if (shouldCloseOnSelect?.({...listProps, selectedOptions: []})) {
+            overlayState?.close();
+          }
+        }
+      }}
     >
       <List
         {...listProps}
         items={itemsWithKey}
         onSectionToggle={onSectionToggle}
-        disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
         size={size}
         sizeLimit={sizeLimit}

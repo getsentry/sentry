@@ -23,7 +23,6 @@ export function AffectSelector({transaction}: {transaction?: string}) {
 
   return (
     <StyledCompactSelect
-      disallowEmptySelection
       triggerProps={{prefix: t('Affects'), size: 'xs'}}
       value={value}
       options={options}

@@ -120,7 +120,6 @@ export function TemplateSection() {
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
-          disallowEmptySelection={false}
           trigger={(triggerProps, isOpen) => {
             return (
               <StyledTriggerButton
@@ -134,9 +133,6 @@ export function TemplateSection() {
             );
           }}
           onChange={option => {
-            if (!option) {
-              return;
-            }
             const key = option.value;
 
             const meta = templateMetaByKey[key as MetricAlertType];

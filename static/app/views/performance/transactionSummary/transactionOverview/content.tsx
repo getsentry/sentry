@@ -83,7 +83,7 @@ type Props = {
   eventView: EventView;
   isLoading: boolean;
   location: Location;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];
