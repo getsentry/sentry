@@ -65,8 +65,6 @@ def _upgrade(
     _check_big_ints()
     _check_history()
 
-    no_migrations_to_run = True
-
     for db_conn in settings.DATABASES.keys():
         # Run migrations on all non-read replica connections.
         # This is used for sentry.io as our production database runs on multiple hosts.
@@ -80,8 +78,6 @@ def _upgrade(
             if not plan:
                 click.echo(f"No migrations to run for {db_conn}")
                 continue
-
-            no_migrations_to_run = False
 
             click.echo(f"Running migrations for {db_conn}")
             dj_call_command(
@@ -112,7 +108,7 @@ def _upgrade(
 
         call_command("sentry.runner.commands.repair.repair")
 
-    if not no_migrations_to_run and run_post_upgrade:
+    if run_post_upgrade:
         post_upgrade.send(sender=SiloMode.get_current_mode(), interactive=interactive)
 
 
