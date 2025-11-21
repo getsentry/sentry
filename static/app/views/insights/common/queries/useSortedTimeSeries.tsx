@@ -130,7 +130,9 @@ export const useSortedTimeSeries = <
   );
 
   const data = useMemo(() => {
-    return result.data ? Object.groupBy(result.data.timeSeries, ts => ts.yAxis) : {};
+    return (
+      result.data ? Object.groupBy(result.data.timeSeries, ts => ts.yAxis) : {}
+    ) as SeriesMap;
   }, [result.data]);
 
   return {
