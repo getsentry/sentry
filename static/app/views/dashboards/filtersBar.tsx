@@ -24,7 +24,10 @@ import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/uti
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {
+  getCombinedDashboardFilters,
+  getDashboardFiltersFromURL,
+} from 'sentry/views/dashboards/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
@@ -89,22 +92,8 @@ export default function FiltersBar({
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       [];
 
-    if (hasDrillDownFlowsFeature) {
-      const finalFilters = [...globalFilters];
-      const temporaryFilters = [
-        ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
-      ];
-      finalFilters.forEach(filter => {
-        // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
-        const temporaryFilter = temporaryFilters.find(
-          tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
-        );
-        if (temporaryFilter) {
-          filter = {...filter, value: temporaryFilter.value};
-          temporaryFilters.splice(temporaryFilters.indexOf(temporaryFilter), 1);
-        }
-      });
-      return [...finalFilters, ...temporaryFilters];
+    if (hasDrillDownFlowsFeature && dashboardFiltersFromURL) {
+      return getCombinedDashboardFilters(dashboardFiltersFromURL);
     }
 
     return globalFilters;

@@ -46,6 +46,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
+  GlobalFilter,
   Widget,
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
@@ -607,17 +608,38 @@ export function dashboardFiltersToString(
     }
   }
 
-  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+  const combinedFilters = getCombinedDashboardFilters(dashboardFilters);
   // If widgetType is provided, concatenate global filters that apply
-  if (widgetType && globalFilters) {
+  if (widgetType && combinedFilters) {
     dashboardFilterConditions +=
-      globalFilters
+      combinedFilters
         .filter(globalFilter => globalFilter.dataset === widgetType)
         .map(globalFilter => globalFilter.value)
         .join(' ') ?? '';
   }
 
   return dashboardFilterConditions;
+}
+
+// Combines global and temporary filters into a single array, deduplicating by dataset and key prioritizing the temporary filter.
+export function getCombinedDashboardFilters(
+  dashboardFilters: DashboardFilters | null | undefined
+): GlobalFilter[] {
+  const finalFilters = [...(dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [])];
+  const temporaryFilters = [
+    ...(dashboardFilters?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
+  ];
+  finalFilters.forEach((filter, idx) => {
+    // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
+    const temporaryFilter = temporaryFilters.find(
+      tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
+    );
+    if (temporaryFilter) {
+      finalFilters[idx] = {...filter, value: temporaryFilter.value};
+      temporaryFilters.splice(temporaryFilters.indexOf(temporaryFilter), 1);
+    }
+  });
+  return [...finalFilters, ...temporaryFilters];
 }
 
 export function connectDashboardCharts(groupName: string) {
