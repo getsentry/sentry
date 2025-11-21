@@ -89,10 +89,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     enabled: Boolean(playlistStart && playlistEnd),
   });
 
-  const replays = useMemo(
-    () => data?.data?.map(mapResponseToReplayRecord) ?? undefined,
-    [data]
-  );
+  const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 

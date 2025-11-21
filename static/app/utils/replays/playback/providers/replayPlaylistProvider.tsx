@@ -6,13 +6,13 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 interface Props {
   children: ReactNode;
   currentReplay: ReplayListRecord | undefined;
-  replays: ReplayListRecord[] | undefined;
+  replays: ReplayListRecord[];
 }
 
 const Context = createContext<{
   currentReplayIndex: number;
-  replays: ReplayListRecord[] | undefined;
-}>({currentReplayIndex: -1, replays: undefined});
+  replays: ReplayListRecord[];
+}>({currentReplayIndex: -1, replays: []});
 
 export function ReplayPlaylistProvider({children, currentReplay, replays}: Props) {
   const currentReplayIndex = useMemo(

@@ -36,9 +36,9 @@ export default function Playlist() {
       columns={columns}
       error={null}
       highlightedRowIndex={currentReplayIndex}
-      isPending={replays ? false : true}
+      isPending={false}
       query={location.query}
-      replays={replays ?? []}
+      replays={replays}
       showDropdownFilters={false}
     />
   );
