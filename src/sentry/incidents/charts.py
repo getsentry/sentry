@@ -138,6 +138,7 @@ def fetch_metric_issue_open_periods(
     user: User | RpcUser | None = None,
     time_window: int = 0,
 ) -> list[Any]:
+    detector_id = open_period_identifier
     identifier_is_detector = True
     try:
         # temporarily fetch the alert rule ID from the detector ID
@@ -160,8 +161,8 @@ def fetch_metric_issue_open_periods(
                 ).first()
                 if alert_rule_detector is not None:
                     detector_id = alert_rule_detector.detector_id
-            else:
-                detector_id = open_period_identifier
+                else:
+                    raise Exception("passed ID was not an alert rule ID or a detector ID")
 
             resp = client.get(
                 auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
