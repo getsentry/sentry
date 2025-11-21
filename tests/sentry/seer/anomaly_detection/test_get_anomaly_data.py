@@ -29,14 +29,23 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_successful_response(self, mock_request: MagicMock) -> None:
         mock_request.return_value = self._mock_response(
-            200, b'{"success": true, "data": [{"timestamp": 1.0, "yhat_lower": 10.5}]}'
+            200,
+            b'{"success": true, "data": [{"external_alert_id": 24, "timestamp": 1.0, "value": 0, "yhat_lower": 10.5, "yhat_upper": 20.5}]}',
         )
 
         result = get_anomaly_threshold_data_from_seer(
             subscription=self.subscription, start=1.0, end=2.0
         )
 
-        assert result == [{"timestamp": 1.0, "yhat_lower": 10.5}]
+        assert result == [
+            {
+                "external_alert_id": 24,
+                "timestamp": 1.0,
+                "value": 0,
+                "yhat_lower": 10.5,
+                "yhat_upper": 20.5,
+            }
+        ]
 
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_timeout_error(self, mock_request: MagicMock) -> None:

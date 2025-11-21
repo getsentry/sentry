@@ -97,7 +97,15 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
     def test_successful_fetch(self, mock_get_data):
-        mock_data = [{"timestamp": 1729178100.0, "yhat_lower": 10.5, "yhat_upper": 20.5}]
+        mock_data = [
+            {
+                "external_alert_id": 24,
+                "timestamp": 1729178100.0,
+                "value": 0,
+                "yhat_lower": 10.5,
+                "yhat_upper": 20.5,
+            }
+        ]
         mock_get_data.return_value = mock_data
 
         response = self.get_success_response(
