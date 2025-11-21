@@ -31,7 +31,9 @@ attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENT
 
 
 @sentry_sdk.trace
-def store_attachments_for_event(event: Any, attachments: list[CachedAttachment], timeout=None):
+def store_attachments_for_event(
+    project: Project, event: Any, attachments: list[CachedAttachment], timeout=None
+):
     """
     Stores the given list of `attachments` belonging to `event` for processing.
 
@@ -47,6 +49,7 @@ def store_attachments_for_event(event: Any, attachments: list[CachedAttachment],
         attachments,
         timeout=timeout,
         set_metadata=not put_metadata_into_event,
+        project=project,
     )
     event.pop("_attachments", None)
     if put_metadata_into_event:
