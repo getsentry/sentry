@@ -20,9 +20,16 @@ type Props = {
   replays: ReplayListRecord[];
   onSortClick?: (key: string) => void;
   sort?: Sort;
+  stickyHeader?: boolean;
 };
 
-export default function ReplayTableHeader({columns, replays, onSortClick, sort}: Props) {
+export default function ReplayTableHeader({
+  columns,
+  replays,
+  onSortClick,
+  sort,
+  stickyHeader = false,
+}: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
@@ -31,7 +38,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
 
   return (
     <Fragment>
-      <TableHeader>
+      <TableHeader style={{position: stickyHeader ? 'sticky' : 'relative', top: 0}}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}
