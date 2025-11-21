@@ -119,7 +119,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
             updated = False
             for oi in OrganizationIntegration.objects.filter(
-                id=org_integration.id, status=ObjectStatus.ACTIVE
+                id=org_integration.id, status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED]
             ):
                 oi.update(status=ObjectStatus.PENDING_DELETION)
                 updated = True
