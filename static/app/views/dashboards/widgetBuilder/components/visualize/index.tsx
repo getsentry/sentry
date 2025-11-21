@@ -440,7 +440,11 @@ function Visualize({error, setError}: VisualizeProps) {
                 const isOnlyFieldOrAggregate =
                   fields.length === 2 &&
                   field.kind !== FieldValueKind.EQUATION &&
-                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION);
+                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION) &&
+                  // The spans dataset can have a single equation, so isOnlyFieldOrAggregate
+                  // is not applicable. The errors dataset requires one series to be
+                  // selected for equations to work.
+                  state.dataset !== WidgetType.SPANS;
 
                 // Depending on the dataset and the display type, we use different options for
                 // displaying in the column select.
