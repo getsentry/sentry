@@ -59,6 +59,7 @@ def generate_issue_summary_only(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import _generate_fixability_score, get_issue_summary
 
     group = Group.objects.get(id=group_id)
+    logger.info("Task: generate_issue_summary_only, group_id=%s", group_id)
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
@@ -91,6 +92,8 @@ def run_automation_only_task(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import run_automation
 
     group = Group.objects.get(id=group_id)
+    logger.info("Task: run_automation_only_task, group_id=%s", group_id)
+
     event = group.get_latest_event()
 
     if not event:

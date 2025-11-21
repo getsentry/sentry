@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -30,6 +31,8 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
 
 
 # TODO: delete this once we deprecate the AlertRule model
@@ -95,6 +98,7 @@ def get_anomaly_data_from_seer_legacy(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,
             data,
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
@@ -213,6 +217,7 @@ def get_anomaly_data_from_seer(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,
             json.dumps(detect_anomalies_request).encode("utf-8"),
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
