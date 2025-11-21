@@ -36,9 +36,7 @@ export default function Playlist() {
       columns={columns}
       error={null}
       highlightedRowIndex={currentReplayIndex}
-      // we prefer isLoading since it is only true if there is a fetch request in flight
-      // React Query's isPending is true as long as there is no data
-      // https://github.com/TanStack/query/discussions/7329
+      // we prefer isLoading since isPending is true even if not enabled
       isPending={isLoading}
       query={location.query}
       replays={replays}

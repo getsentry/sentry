@@ -14,7 +14,7 @@ const Context = createContext<{
   currentReplayIndex: number;
   isLoading: boolean;
   replays: ReplayListRecord[];
-}>({currentReplayIndex: -1, replays: [], isLoading: false});
+}>({currentReplayIndex: -1, replays: [], isLoading: true});
 
 export function ReplayPlaylistProvider({
   children,
