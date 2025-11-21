@@ -70,6 +70,8 @@ class SiloRouter:
         "authprovider_duplicate": SiloMode.CONTROL,
         "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
+        "sentry_incidentseen": SiloMode.REGION,
+        "sentry_incidentsubscription": SiloMode.REGION,
         "sentry_monitorlocation": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
         "sentry_pagerdutyservice": SiloMode.REGION,

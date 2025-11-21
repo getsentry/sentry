@@ -52,7 +52,7 @@ def test_process_pending_one_batch(mocked_attachment_cache, mock_client) -> None
         "name": "foo.txt",
         "content_type": "text/plain",
     }
-    assert attachment.data == b"Hello World!"
+    assert attachment.load_data(None) == b"Hello World!"
 
 
 def test_chunked(mocked_attachment_cache, mock_client) -> None:
@@ -72,4 +72,4 @@ def test_chunked(mocked_attachment_cache, mock_client) -> None:
         "name": "foo.txt",
         "content_type": "text/plain",
     }
-    assert attachment.data == b"Hello World! This attachment is chunked up."
+    assert attachment.load_data(None) == b"Hello World! This attachment is chunked up."

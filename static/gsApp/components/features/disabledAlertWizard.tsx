@@ -22,7 +22,6 @@ function DisabledAlertWizard({organization}: Props) {
             openUpsellModal({
               organization,
               source: 'alert-wizard',
-              defaultSelection: 'integration-alerts',
             })
           }
         >

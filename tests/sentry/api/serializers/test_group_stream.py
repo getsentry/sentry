@@ -59,7 +59,7 @@ class StreamGroupSerializerTestCase(
             request=self.make_request(),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == "performance"
+        assert serialized["issueCategory"] == "db_query"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
@@ -78,7 +78,7 @@ class StreamGroupSerializerTestCase(
             request=self.make_request(),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == str(GroupCategory.PERFORMANCE.name).lower()
+        assert serialized["issueCategory"] == str(GroupCategory.MOBILE.name).lower()
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1

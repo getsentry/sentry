@@ -8,8 +8,11 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask[MonitorEnvironment]):
 
         return [
             ModelRelation(
+                models.MonitorIncident,
+                {"monitor_environment_id": instance.id},
+            ),
+            ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
-                ModelDeletionTask,
             ),
         ]

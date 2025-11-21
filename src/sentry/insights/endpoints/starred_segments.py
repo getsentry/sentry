@@ -31,7 +31,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization, request):

@@ -100,7 +100,8 @@ class Spans(rpc_dataset_common.RPCBase):
         )
 
         """Run the query"""
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
+
         """Process the results"""
         result = rpc_dataset_common.ProcessedTimeseries()
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)

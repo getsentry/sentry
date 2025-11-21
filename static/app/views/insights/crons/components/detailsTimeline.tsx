@@ -66,7 +66,9 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     organization,
     monitor.project.slug,
     monitor.slug,
-    {...location.query}
+    {
+      environment: location.query.environment,
+    }
   );
 
   const {data: monitorStats} = useMonitorStats({
@@ -110,21 +112,8 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
       return;
     }
 
-    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
-      return oldMonitorDetails
-        ? {
-            ...oldMonitorDetails,
-            environments: oldMonitorDetails.environments.map(monitorEnv =>
-              monitorEnv.name === env
-                ? {
-                    ...monitorEnv,
-                    isMuted,
-                  }
-                : monitorEnv
-            ),
-          }
-        : undefined;
-    });
+    // Invalidate the query to refetch the monitor with updated environment data
+    queryClient.invalidateQueries({queryKey: monitorDetailsQueryKey});
 
     onEnvironmentUpdated?.();
   };

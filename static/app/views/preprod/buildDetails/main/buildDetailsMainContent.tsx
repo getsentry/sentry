@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,9 +15,11 @@ import {t} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
@@ -52,6 +56,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openInsightsSidebar = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('insights', 'open');
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
@@ -107,13 +117,21 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isLoadingRequests) {
     return (
-      <Stack gap="lg" width="100%">
-        <Flex width="100%" justify="between" align="center" gap="md">
-          <Placeholder width="92px" height="40px" />
-          <Placeholder style={{flex: 1}} height="40px" />
+      <Stack gap="xl" minHeight="700px" width="100%">
+        <Flex gap="lg" wrap="wrap">
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
+          <Placeholder style={{flex: 1}} height="100px" />
         </Flex>
-        <Placeholder width="100%" height="540px" />
-        <Placeholder height="140px" />
+        <Stack gap="sm">
+          <Flex width="100%" justify="between" align="center" gap="md">
+            <Placeholder width="92px" height="40px" />
+            <Placeholder style={{flex: 1}} height="40px" />
+          </Flex>
+          <Placeholder width="100%" height="540px" />
+          <Placeholder height="140px" />
+        </Stack>
+        <Placeholder height="200px" />
       </Stack>
     );
   }
@@ -204,13 +222,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeData.insights && totalSize > 0
       ? processInsights(appSizeData.insights, totalSize)
       : [];
-
   const categoriesEnabled =
     appSizeData.treemap.category_breakdown &&
     Object.keys(appSizeData.treemap.category_breakdown).length > 0;
 
-  const missingDsymBinaries =
-    buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
+  const missingDsymBinaries = appSizeData.missing_dsym_binaries;
 
   const missingProguardMapping =
     buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;
@@ -219,13 +235,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     if (missingDsymBinaries && missingDsymBinaries.length > 0) {
       if (missingDsymBinaries?.length === 1) {
         return t(
-          'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+          'Missing debug symbols for %s. This binary will not have a detailed breakdown.',
           missingDsymBinaries[0]
         );
       }
       return t(
-        'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
-        missingDsymBinaries[0]
+        'Missing debug symbols for some binaries (%s and %s others). Those binaries will not have a detailed breakdown. Click to view details.',
+        missingDsymBinaries[0],
+        missingDsymBinaries.length - 1
       );
     }
 
@@ -234,6 +251,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     }
 
     return undefined;
+  };
+
+  const handleAlertClick = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      openMissingDsymModal(missingDsymBinaries);
+    }
   };
 
   // Filter data based on search query and categories
@@ -260,6 +283,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
             alertMessage={getAlertMessage()}
+            onAlertClick={
+              missingDsymBinaries && missingDsymBinaries.length > 1
+                ? handleAlertClick
+                : undefined
+            }
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -275,6 +303,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
         alertMessage={getAlertMessage()}
+        onAlertClick={
+          missingDsymBinaries && missingDsymBinaries.length > 1
+            ? handleAlertClick
+            : undefined
+        }
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
@@ -283,42 +316,49 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="sm" minHeight="700px" width="100%">
-      <Flex align="center" gap="md">
-        {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
-          </SegmentedControl>
-        )}
-        {selectedContent === 'treemap' && (
-          <InputGroup style={{flexGrow: 1}}>
-            <InputGroup.LeadingItems>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              placeholder="Search files"
-              value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value || undefined)}
-            />
-            {searchQuery && (
-              <InputGroup.TrailingItems>
-                <Button
-                  onClick={() => setSearchQuery(undefined)}
-                  aria-label="Clear search"
-                  borderless
-                  size="zero"
-                >
-                  <IconClose size="sm" />
-                </Button>
-              </InputGroup.TrailingItems>
-            )}
-          </InputGroup>
-        )}
-      </Flex>
-      <ChartContainer>{visualizationContent}</ChartContainer>
+    <Stack gap="xl" minHeight="700px" width="100%">
+      <BuildDetailsMetricCards
+        sizeInfo={sizeInfo}
+        processedInsights={processedInsights}
+        totalSize={totalSize}
+        platform={buildDetailsData?.app_info?.platform ?? null}
+        onOpenInsightsSidebar={openInsightsSidebar}
+      />
 
-      <Stack gap="xl">
+      <Stack gap="sm">
+        <Flex align="center" gap="md">
+          {categoriesEnabled && (
+            <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+              <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+              <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            </SegmentedControl>
+          )}
+          {selectedContent === 'treemap' && (
+            <InputGroup style={{flexGrow: 1}}>
+              <InputGroup.LeadingItems>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                placeholder="Search files"
+                value={searchQuery || ''}
+                onChange={e => setSearchQuery(e.target.value || undefined)}
+              />
+              {searchQuery && (
+                <InputGroup.TrailingItems>
+                  <Button
+                    onClick={() => setSearchQuery(undefined)}
+                    aria-label="Clear search"
+                    borderless
+                    size="zero"
+                  >
+                    <IconClose size="sm" />
+                  </Button>
+                </InputGroup.TrailingItems>
+              )}
+            </InputGroup>
+          )}
+        </Flex>
+        <ChartContainer>{visualizationContent}</ChartContainer>
         {selectedContent === 'treemap' && appSizeData && (
           <AppSizeLegend
             root={appSizeData.treemap.root}
@@ -326,12 +366,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        <AppSizeInsights
-          processedInsights={processedInsights}
-          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-        />
       </Stack>
-    </Flex>
+
+      <AppSizeInsights
+        processedInsights={processedInsights}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+      />
+    </Stack>
   );
 }
 

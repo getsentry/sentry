@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from sentry import eventstore, features
 from sentry.api import client
@@ -34,18 +34,37 @@ from sentry.utils.dates import parse_stats_period
 logger = logging.getLogger(__name__)
 
 
+def _validate_date_params(
+    *, stats_period: str | None = None, start: str | None = None, end: str | None = None
+) -> None:
+    """
+    Validate that either stats_period or both start and end are provided, but not both.
+    """
+    if not any([bool(stats_period), bool(start), bool(end)]):
+        raise ValueError("either stats_period or start and end must be provided")
+
+    if stats_period and (start or end):
+        raise ValueError("stats_period and start/end cannot be provided together")
+
+    if not stats_period and not all([bool(start), bool(end)]):
+        raise ValueError("start and end must be provided together")
+
+
 def execute_table_query(
     *,
     org_id: int,
     dataset: str,
     fields: list[str],
     per_page: int,
-    stats_period: str,
     query: str | None = None,
     sort: str | None = None,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
+    case_insensitive: bool | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get table data by calling the events endpoint.
@@ -54,7 +73,12 @@ def execute_table_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
+
+        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
+        Providing start or end with stats_period will result in a ValueError.
     """
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -78,23 +102,35 @@ def execute_table_query(
         "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
         "per_page": per_page,
         "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
         "referrer": Referrer.SEER_RPC,
     }
 
+    # Add boolean params only if provided.
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
+
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events/",
-        params=params,
-    )
-    return {"data": resp.data["data"]}
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        if e.status_code == 400:
+            logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def execute_timeseries_query(
@@ -104,12 +140,15 @@ def execute_timeseries_query(
     y_axes: list[str],
     group_by: list[str] | None = None,
     query: str,
-    stats_period: str,
-    interval: str | None = None,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    interval: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-    partial: Literal["0", "1"] | None = None,
+    partial: bool | None = None,
+    case_insensitive: bool | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
@@ -120,7 +159,12 @@ def execute_timeseries_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
+
+        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
+        Providing start or end with stats_period will result in a ValueError.
     """
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -138,18 +182,26 @@ def execute_timeseries_query(
         "field": y_axes + group_by,
         "query": query,
         "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
         "interval": interval,
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
         "referrer": Referrer.SEER_RPC,
-        "partial": partial,
         "excludeOther": "0",  # Always include "Other" series
     }
 
     # Add top_events if group_by is provided
     if group_by and get_dataset(dataset) in TOP_EVENTS_DATASETS:
         params["topEvents"] = 5
+
+    # Add boolean params only if provided.
+    if partial is not None:
+        params["partial"] = "1" if partial else "0"
+
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
@@ -466,7 +518,11 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     if not execution_tree:
         logger.warning(
             "rpc_get_profile_flamegraph: Empty execution tree",
-            extra={"profile_id": actual_profile_id, "project_id": project_id},
+            extra={
+                "profile_id": actual_profile_id,
+                "project_id": project_id,
+                "raw_profile_data": profile_data,
+            },
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
@@ -576,7 +632,7 @@ def _get_issue_event_timeseries(
         stats_period=stats_period,
         interval=interval,
         project_ids=[project_id],
-        partial="1",
+        partial=True,
     )
 
     if data is None:

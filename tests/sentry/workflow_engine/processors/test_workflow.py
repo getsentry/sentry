@@ -16,7 +16,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -31,7 +31,6 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 )
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
-    DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
@@ -190,9 +189,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=non_matching_env_workflow,
         )
 
-        dcg = self.create_data_condition_group()
+        matching_dcg = self.create_data_condition_group()
         matching_env_workflow = self.create_workflow(
-            when_condition_group=dcg,
+            when_condition_group=matching_dcg,
             environment=env,
         )
         self.create_detector_workflow(
@@ -200,8 +199,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=matching_env_workflow,
         )
 
+        mismatched_dcg = self.create_data_condition_group()
         mismatched_env_workflow = self.create_workflow(
-            when_condition_group=dcg, environment=other_env
+            when_condition_group=mismatched_dcg, environment=other_env
         )
         self.create_detector_workflow(
             detector=self.error_detector,
