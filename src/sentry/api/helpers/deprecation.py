@@ -37,6 +37,16 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> b
 
     For example if the schedule blocks requests at noon for 1 minute, then a request coming in at
     11:59:59 would be allowed while one at 12:00:01 would not
+
+    You can provide a `key` to control the option names that are used.
+    By default `api.deprecation.brownout-cron` and `api.deprecation.brownout-duration`
+    are used.
+
+    The `-cron` key should contain a crontab compatible expression.
+    When the cron expression matches the current time, the endpoint will
+    return a `GONE` response.
+
+    The `-duration` option defines how long brownouts will last in seconds.
     """
     # Will need to check redis if the hour fits into the brownout period
     if now >= deprecation_date:
@@ -55,7 +65,7 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> b
             brownout_duration = options.get(duration_key)
         except UnknownOption:
             logger.exception("Unrecognized deprecation duration %s", key)
-            brownout_duration = options.get("api.deprecation.brownout-duration-seconds")
+            brownout_duration = options.get("api.deprecation.brownout-duration")
 
         # Validate the formats, allow requests to pass through if validation failed
         try:
@@ -98,6 +108,7 @@ def deprecated(
     deprecation_date: datetime,
     suggested_api: str | None = None,
     key: str = "",
+    url_names: list[str] | None = None,
 ) -> Callable[[EndpointT[SelfT, P]], EndpointT[SelfT, P]]:
     """
     Deprecation decorator that handles all the overhead related to deprecated endpoints
@@ -126,6 +137,11 @@ def deprecated(
         def endpoint_method(
             self: SelfT, request: Request, *args: P.args, **kwargs: P.kwargs
         ) -> HttpResponseBase:
+            matches_url_name = True
+            if url_names:
+                url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
+                matches_url_name = url_name in url_names
+
             # Don't do anything for deprecated endpoints on self hosted
             # but allow testing deprecation in development
             if is_self_hosted() and not settings.ENVIRONMENT == "development":
@@ -133,12 +149,17 @@ def deprecated(
 
             now = timezone.now()
 
-            if now > deprecation_date and _should_be_blocked(deprecation_date, now, key):
+            if (
+                now > deprecation_date
+                and matches_url_name
+                and _should_be_blocked(deprecation_date, now, key)
+            ):
                 response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
             else:
                 response = func(self, request, *args, **kwargs)
 
-            _add_deprecation_headers(response, deprecation_date, suggested_api)
+            if matches_url_name:
+                _add_deprecation_headers(response, deprecation_date, suggested_api)
 
             return response
 
