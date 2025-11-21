@@ -151,18 +151,13 @@ def deprecated(
 
             now = timezone.now()
 
+            metric_action = "header"
             if (
                 now > deprecation_date
                 and matches_url_name
                 and _should_be_blocked(deprecation_date, now, key)
             ):
-                metrics.incr(
-                    "api.deprecated.request",
-                    tags={
-                        "url_name": url_name,
-                        "action": "gone",
-                    },
-                )
+                metric_action = "gone"
                 response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
             else:
                 response = func(self, request, *args, **kwargs)
@@ -172,7 +167,7 @@ def deprecated(
                     "api.deprecated.request",
                     tags={
                         "url_name": url_name,
-                        "action": "header",
+                        "action": metric_action,
                     },
                 )
                 _add_deprecation_headers(response, deprecation_date, suggested_api)
