@@ -30,14 +30,13 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
   const openSidebar = useCallback(() => {
     trackPreprodBuildAnalytics('preprod.builds.details.open_insights_sidebar', {
       organization,
-      insight_count: processedInsights.length,
       platform: platform ?? null,
       source: 'insight_table',
     });
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [organization, platform, processedInsights.length, searchParams, setSearchParams]);
+  }, [organization, platform, searchParams, setSearchParams]);
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);

@@ -153,7 +153,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                         'preprod.builds.details.open_insights_sidebar',
                         {
                           organization,
-                          insight_count: processedInsights.length,
                           platform: platformProp ?? null,
                           source: 'metric_card',
                         }

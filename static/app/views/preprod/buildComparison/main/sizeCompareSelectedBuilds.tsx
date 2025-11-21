@@ -162,8 +162,6 @@ export function SizeCompareSelectedBuilds({
                 project_slug: projectId,
                 project_type: projectType,
                 platform: headPlatform,
-                base_build_id: baseBuildDetails.id,
-                head_build_id: headBuildDetails.id,
               });
               onTriggerComparison();
             }

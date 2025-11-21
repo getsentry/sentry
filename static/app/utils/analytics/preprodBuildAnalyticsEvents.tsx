@@ -15,10 +15,7 @@ export type PreprodBuildEventParameters = {
     slot?: 'head' | 'base';
   };
   'preprod.builds.compare.select_base_build': BasePreprodBuildEvent;
-  'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent & {
-    base_build_id: string;
-    head_build_id: string;
-  };
+  'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent;
   'preprod.builds.details.compare_build_clicked': BasePreprodBuildEvent;
   'preprod.builds.details.expand_insight': BasePreprodBuildEvent & {
     insight_key: string;
@@ -28,7 +25,6 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.builds.details.open_insights_sidebar': BasePreprodBuildEvent & {
     source: 'metric_card' | 'insight_table';
-    insight_count?: number;
   };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
 };
