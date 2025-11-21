@@ -22,6 +22,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -381,7 +382,8 @@ def rpc_get_profile_flamegraph(
         if trace_id:
             query_string += f" trace:{trace_id}"
         if span_description:
-            query_string += f" span.description:*{span_description}*"
+            escaped_description = UNESCAPED_QUOTE_RE.sub('\\"', span_description)
+            query_string += f' span.description:"*{escaped_description}*"'
 
         # Query with aggregation to get profile metadata
         result = Spans.run_table_query(
