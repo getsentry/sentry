@@ -164,6 +164,7 @@ export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
 type EchartBrushAreas = Array<{
   coordRange: number[] | number[][];
+  panelId: string;
   range: number[] | number[][];
 }>;
 

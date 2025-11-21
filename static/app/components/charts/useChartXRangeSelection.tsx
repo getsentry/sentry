@@ -127,10 +127,10 @@ export function useChartXRangeSelection({
 }: ChartXRangeSelectionProps): BoxSelectionOptions {
   const [state, setState] = useState<State>();
   const tooltipFrameRef = useRef<number | null>(null);
-  const enabbleBrushModeFrameRef = useRef<number | null>(null);
+  const enableBrushModeFrameRef = useRef<number | null>(null);
 
   const onBrushStart = useCallback<EChartBrushStartHandler>(
-    (_evt: any, chartInstance: any) => {
+    (_evt, chartInstance) => {
       // Echarts either lets us connect all interactivity of the charts in a group or none of them.
       // We need connectivity for cursor syncing, but having that enabled while drawing, leads to a
       // box drawn for all of the charts in the group. We are going for chart specific box selections,
@@ -179,11 +179,15 @@ export function useChartXRangeSelection({
   }, [chartRef, onClearSelection, state?.selection]);
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
-    (evt: any, chartInstance: any) => {
+    (evt, chartInstance) => {
       if (!chartInstance) return;
 
-      // Get the axis values of the chart
+      // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
+      // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
       const xAxis = chartInstance.getModel().getComponent('xAxis', 0);
+
+      // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
+      // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
       const yAxis = chartInstance.getModel().getComponent('yAxis', 0);
 
       // Get the minimum and maximum values of the x axis and y axis
@@ -196,43 +200,51 @@ export function useChartXRangeSelection({
 
       const area = evt.areas[0];
 
-      const [selected_xMin, selected_xMax] = area.coordRange;
+      if (
+        area &&
+        Array.isArray(area.coordRange) &&
+        area.coordRange.length === 2 &&
+        typeof area.coordRange[0] === 'number' &&
+        typeof area.coordRange[1] === 'number'
+      ) {
+        const [selected_xMin, selected_xMax] = area.coordRange;
 
-      // Since we can keep dragging beyond the visible range,
-      // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
-      const clampedCoordRange: [number, number] = [
-        Math.max(xMin, selected_xMin),
-        Math.min(xMax, selected_xMax),
-      ];
+        // Since we can keep dragging beyond the visible range,
+        // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
+        const clampedCoordRange: [number, number] = [
+          Math.max(xMin, selected_xMin),
+          Math.min(xMax, selected_xMax),
+        ];
 
-      const clampedXMaxPixel = chartInstance.convertToPixel(
-        {xAxisIndex: 0},
-        clampedCoordRange[1]
-      );
-      const clampedXMinPixel = chartInstance.convertToPixel(
-        {xAxisIndex: 0},
-        clampedCoordRange[0]
-      );
+        const clampedXMaxPixel = chartInstance.convertToPixel(
+          {xAxisIndex: 0},
+          clampedCoordRange[1]
+        );
+        const clampedXMinPixel = chartInstance.convertToPixel(
+          {xAxisIndex: 0},
+          clampedCoordRange[0]
+        );
 
-      const newSelection: Selection = {
-        range: clampedCoordRange,
-        panelId: area.panelId,
-      };
+        const newSelection: Selection = {
+          range: clampedCoordRange,
+          panelId: area.panelId,
+        };
 
-      const actionMenuPosition = calculateActionMenuPosition({
-        chartInstance,
-        clampedXMaxPixel,
-        clampedXMinPixel,
-        xMaxPixel,
-        yMinPixel,
-      });
+        const actionMenuPosition = calculateActionMenuPosition({
+          chartInstance,
+          clampedXMaxPixel,
+          clampedXMinPixel,
+          xMaxPixel,
+          yMinPixel,
+        });
 
-      setState({
-        selection: newSelection,
-        actionMenuPosition,
-      });
+        setState({
+          selection: newSelection,
+          actionMenuPosition,
+        });
 
-      onSelectionEnd?.(newSelection, clearSelection);
+        onSelectionEnd?.(newSelection, clearSelection);
+      }
     },
     [onSelectionEnd, clearSelection]
   );
@@ -305,18 +317,17 @@ export function useChartXRangeSelection({
     }
 
     // Activate brush mode on load and when we re-draw the box/clear the selection
-    enabbleBrushModeFrameRef.current = requestAnimationFrame(() => {
+    enableBrushModeFrameRef.current = requestAnimationFrame(() => {
       enableBrushMode();
     });
 
     // eslint-disable-next-line consistent-return
     return () => {
-      if (enabbleBrushModeFrameRef.current)
-        cancelAnimationFrame(enabbleBrushModeFrameRef.current);
+      if (enableBrushModeFrameRef.current)
+        cancelAnimationFrame(enableBrushModeFrameRef.current);
       if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, disabled, enableBrushMode, chartRef.current, chartsGroupName, deps]);
+  }, [state, disabled, enableBrushMode, chartRef, chartsGroupName, deps]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
     return disabled ? undefined : CHART_X_RANGE_BRUSH_OPTION;
