@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from P4 import P4, P4Exception
@@ -12,6 +13,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
+    CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
@@ -359,6 +361,46 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # User not found - return None (not an error condition)
             return None
 
+    def get_author_info_from_cache(
+        self, username: str, user_cache: dict[str, P4UserInfo | None]
+    ) -> tuple[str, str]:
+        """
+        Get author email and name from username with caching.
+
+        Args:
+            username: Perforce username
+            user_cache: Cache dictionary for user lookups
+
+        Returns:
+            Tuple of (author_email, author_name)
+        """
+        author_email = f"{username}@perforce"
+        author_name = username
+
+        # Fetch user info if not in cache
+        if username not in user_cache:
+            try:
+                user_cache[username] = self.get_user(username)
+            except Exception as e:
+                logger.warning(
+                    "perforce.get_author_info.user_lookup_failed",
+                    extra={
+                        "username": username,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                user_cache[username] = None
+
+        user_info = user_cache.get(username)
+        if user_info:
+            if user_info.get("email"):
+                author_email = user_info["email"]
+            if user_info.get("full_name"):
+                author_name = user_info["full_name"]
+
+        return author_email, author_name
+
     def get_changes(
         self,
         depot_path: str,
@@ -445,9 +487,88 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Note: This does not provide line-specific blame. It returns the most recent
         changelist for the entire file, which is sufficient for suspect commit detection.
 
+        API docs:
+        - p4 filelog: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_filelog.html
+        - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
+
         Returns a list of FileBlameInfo objects containing commit details for each file.
+
+        Performance notes:
+        - Makes ~3 P4 API calls per file: filelog, describe, user (cached)
+        - User lookups are cached within the request to minimize redundant calls
+        - Perforce doesn't have explicit rate limiting like GitHub
+        - Individual file failures are caught and logged without failing entire batch
         """
-        return []
+        blames: list[FileBlameInfo] = []
+
+        # Cache user info within this request to avoid multiple lookups for the same user
+        # Future: Could use Django cache for cross-request caching to further reduce P4 API calls
+        user_cache: dict[str, P4UserInfo | None] = {}
+
+        with self._connect() as p4:
+            for file in files:
+                try:
+                    # Build depot path for the file (includes stream if specified)
+                    # file.ref contains the revision number - use it to get blame for specific version
+                    path_with_ref = file.path
+                    if file.ref and "#" not in file.path:
+                        # Append revision using # syntax if not already present
+                        path_with_ref = f"{file.path}#{file.ref}"
+
+                    depot_path = self.build_depot_path(file.repo, path_with_ref)
+
+                    # Use faster p4 filelog approach to get changelist for specific file revision
+                    # This is much faster than p4 annotate
+                    filelog = p4.run("filelog", "-m1", depot_path)
+
+                    changelist = None
+                    if filelog and len(filelog) > 0:
+                        # The 'change' field contains the changelist numbers (as a list)
+                        changelists = filelog[0].get("change", [])
+                        if changelists and len(changelists) > 0:
+                            # Get the first (most recent) changelist number
+                            changelist = changelists[0]
+
+                    # If we found a changelist, get detailed commit info
+                    if changelist:
+                        change_info = p4.run("describe", "-s", changelist)
+                        if change_info and len(change_info) > 0:
+                            change = change_info[0]
+                            username = change.get("user", "unknown")
+
+                            # Get author information using shared helper
+                            author_email, author_name = self.get_author_info_from_cache(
+                                username, user_cache
+                            )
+
+                            # Handle potentially null/invalid time field
+                            time_value = change.get("time") or 0
+                            try:
+                                timestamp = int(time_value)
+                            except (TypeError, ValueError):
+                                timestamp = 0
+
+                            commit = CommitInfo(
+                                commitId=str(changelist),
+                                committedDate=datetime.fromtimestamp(timestamp, tz=timezone.utc),
+                                commitMessage=change.get("desc", "").strip(),
+                                commitAuthorName=author_name,
+                                commitAuthorEmail=author_email,
+                            )
+
+                            blame_info = FileBlameInfo(
+                                lineno=file.lineno,
+                                path=file.path,
+                                ref=file.ref,
+                                repo=file.repo,
+                                code_mapping=file.code_mapping,
+                                commit=commit,
+                            )
+                            blames.append(blame_info)
+                except self.P4Exception:
+                    continue
+
+        return blames
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
