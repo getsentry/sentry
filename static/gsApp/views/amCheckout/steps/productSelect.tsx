@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -45,7 +45,6 @@ interface ProductCheckoutInfo {
       }
     >
   >;
-  getProductDescription: (includedBudget: string) => React.ReactNode;
   buttonBorderColor?: Color;
   color?: Color;
   gradientEndColor?: Color;
@@ -62,7 +61,7 @@ export function getProductCheckoutDescription({
   withPunctuation: boolean;
   includedBudget?: string;
 }) {
-  if (product === AddOnCategory.SEER) {
+  if (product === AddOnCategory.LEGACY_SEER) {
     if (isNewCheckout) {
       return tct('Detect and fix issues faster with our AI agent[punctuation]', {
         punctuation: withPunctuation ? '.' : '',
@@ -80,6 +79,18 @@ export function getProductCheckoutDescription({
       }
     );
   }
+
+  if (product === AddOnCategory.SEER) {
+    return (
+      <Flex direction="column" gap="sm">
+        <Text>
+          {t('Setup required: connect repositories after adding to your plan.')}
+        </Text>
+        <Text>{t('Billed at month-end and varies with active contributors.')}</Text>
+      </Flex>
+    );
+  }
+
   return '';
 }
 
@@ -96,52 +107,32 @@ function ProductSelect({
   );
 
   const theme = useTheme();
-  const SEER_CHECKOUT_INFO = {
-    color: theme.pink400 as Color,
-    gradientEndColor: theme.pink100 as Color,
-    buttonBorderColor: theme.pink200 as Color,
-    getProductDescription: (includedBudget: string) =>
-      getProductCheckoutDescription({
-        product: AddOnCategory.SEER,
-        isNewCheckout: !!isNewCheckout,
-        withPunctuation: false,
-        includedBudget,
-      }),
-    categoryInfo: {
-      [DataCategory.SEER_AUTOFIX]: {
-        description: t(
-          'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
-        ),
-        maxEventPriceDigits: 0,
-      },
-      [DataCategory.SEER_SCANNER]: {
-        description: t(
-          'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
-        ),
-        maxEventPriceDigits: 3,
-      },
-    },
-  };
   const PRODUCT_CHECKOUT_INFO = {
-    [AddOnCategory.SEER]: SEER_CHECKOUT_INFO,
-    [AddOnCategory.LEGACY_SEER]: SEER_CHECKOUT_INFO,
-    [AddOnCategory.PREVENT]: {
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.PREVENT,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
+    [AddOnCategory.LEGACY_SEER]: {
+      color: theme.pink400 as Color,
+      gradientEndColor: theme.pink100 as Color,
+      buttonBorderColor: theme.pink200 as Color,
       categoryInfo: {
-        [DataCategory.PREVENT_USER]: {
-          description: t('Prevent problems, before they happen'),
+        [DataCategory.SEER_AUTOFIX]: {
+          description: t(
+            'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
+          ),
           maxEventPriceDigits: 0,
         },
+        [DataCategory.SEER_SCANNER]: {
+          description: t(
+            'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
+          ),
+          maxEventPriceDigits: 3,
+        },
       },
-      color: undefined,
+    },
+    [AddOnCategory.SEER]: {
+      categoryInfo: {},
+      // TODO(isabella): These can be removed once the legacy implementation for this component is removed
       gradientEndColor: undefined,
       buttonBorderColor: undefined,
+      color: undefined,
     },
   } satisfies Record<AddOnCategory, ProductCheckoutInfo>;
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
@@ -321,7 +312,12 @@ function ProductSelect({
                     </ProductName>
                   </ProductLabel>
                   <ProductDescription>
-                    {checkoutInfo.getProductDescription(formattedMonthlyBudget ?? '')}
+                    {getProductCheckoutDescription({
+                      product: apiName,
+                      isNewCheckout: !!isNewCheckout,
+                      withPunctuation: false,
+                      includedBudget: formattedMonthlyBudget ?? '',
+                    })}
                   </ProductDescription>
                 </Column>
                 <PriceContainer>

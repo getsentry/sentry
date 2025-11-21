@@ -191,7 +191,7 @@ function ScheduledChanges({
         </Flex>
       )}
       {products.map(item => {
-        const addOn = utils.invoiceItemTypeToAddOn(item.type);
+        const addOn = utils.reservedInvoiceItemTypeToAddOn(item.type);
         if (!addOn) {
           return null;
         }
@@ -515,7 +515,7 @@ function CheckoutSuccess({
   const reservedVolume = invoiceItems.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  // TODO(prevent): This needs to be updated once we determine how to display Prevent enablement and PAYG changes on this page
+  // TODO(seer): This needs to be updated once we determine how to display Seer enablement and PAYG changes on this page
   const products = invoiceItems.filter(item => item.type === 'reserved_seer_budget');
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});

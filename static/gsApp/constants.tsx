@@ -207,11 +207,11 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ),
     shortenedUnitName: 'GB',
   },
-  [DataCategoryExact.PREVENT_USER]: {
-    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
+  [DataCategoryExact.SEER_USER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
     feature: 'seer-user-billing',
     canProductTrial: true,
-    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
+    maxAdminGift: 10_000, // TODO(seer): Update this to the actual max admin gift
     tallyType: 'seat',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

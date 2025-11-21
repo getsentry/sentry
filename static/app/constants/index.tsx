@@ -607,6 +607,20 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
     },
   },
+  [DataCategoryExact.SEER_USER]: {
+    name: DataCategoryExact.SEER_USER,
+    plural: DataCategory.SEER_USER,
+    singular: 'seerUser',
+    displayName: 'seer user',
+    titleName: t('Seer'),
+    productName: t('Seer'),
+    uid: 34,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(seer): add external stats when ready
+    },
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // SmartSearchBar settings

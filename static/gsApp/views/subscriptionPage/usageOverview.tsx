@@ -236,12 +236,15 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         // show add-ons regardless of whether they're enabled
         // as long as they're launched for the org
         // and none of their sub-categories are unlimited
+        // Also do not show Seer if the legacy Seer add-on is enabled
         ([_, addOnInfo]) =>
           (!addOnInfo.billingFlag ||
             organization.features.includes(addOnInfo.billingFlag)) &&
           !addOnInfo.dataCategories.some(
             category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-          )
+          ) &&
+          (addOnInfo.apiName !== AddOnCategory.SEER ||
+            !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
       ),
     [subscription.addOns, organization.features, subscription.categories]
   );

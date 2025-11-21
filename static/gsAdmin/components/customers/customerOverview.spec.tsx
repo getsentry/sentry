@@ -6,7 +6,7 @@ import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget'
 import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   render,
@@ -307,7 +307,7 @@ describe('CustomerOverview', () => {
 
   it('renders reserved budget data', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionWithSeerFixture({organization});
+    const subscription = SubscriptionWithLegacySeerFixture({organization});
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({
         totalReservedSpend: 20_00,
