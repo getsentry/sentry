@@ -1,5 +1,6 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -23,7 +24,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
   let eventsRequest: any;
-  let eventsStatsRequest: any;
+  let eventsTimeSeriesRequest: any;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -80,20 +81,11 @@ describe('MultiQueryModeContent', () => {
         ],
       },
     });
-    eventsStatsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeSeriesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        'count(span.duration)': {
-          data: [
-            [1672531200, [{count: 5}]],
-            [1672542000, [{count: 10}]],
-            [1672552800, [{count: 15}]],
-          ],
-          order: 0,
-          start: 1672531200,
-          end: 1672552800,
-        },
+        timeSeries: [TimeSeriesFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -952,21 +944,27 @@ describe('MultiQueryModeContent', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
     await waitFor(() =>
-      expect(eventsStatsRequest).toHaveBeenNthCalledWith(
+      expect(eventsTimeSeriesRequest).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
+            caseInsensitive: 0,
             dataset: 'spans',
-            field: [],
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: [],
             interval: '3h',
-            orderby: undefined,
-            project: ['2'],
+            partial: 1,
+            project: [2],
             query: '',
             referrer: 'api.explore.spans-stats',
+            sampling: 'NORMAL',
+            sort: '-timestamp',
             statsPeriod: '7d',
             topEvents: undefined,
-            yAxis: 'count(span.duration)',
+            yAxis: ['count(span.duration)'],
           }),
         })
       )
@@ -1000,23 +998,27 @@ describe('MultiQueryModeContent', () => {
 
     // group by requests
     await waitFor(() =>
-      expect(eventsStatsRequest).toHaveBeenNthCalledWith(
+      expect(eventsTimeSeriesRequest).toHaveBeenNthCalledWith(
         2,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
+            caseInsensitive: 0,
             dataset: 'spans',
+            disableAggregateExtrapolation: '0',
+            environment: [],
             excludeOther: 0,
-            field: ['span.op', 'count(span.duration)'],
+            groupBy: ['span.op'],
             interval: '3h',
-            orderby: '-count_span_duration',
-            project: ['2'],
+            partial: 1,
+            project: [2],
             query: '',
             referrer: 'api.explore.spans-stats',
+            sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            topEvents: '5',
-            yAxis: 'count(span.duration)',
+            topEvents: 5,
+            yAxis: ['count(span.duration)'],
           }),
         })
       )
