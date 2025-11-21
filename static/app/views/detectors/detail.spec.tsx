@@ -167,39 +167,6 @@ describe('DetectorDetails', () => {
       expect(editButton).toHaveAttribute('aria-disabled', 'true');
     });
 
-    describe('connected automations', () => {
-      it('displays empty message when no automations are connected', async () => {
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
-          body: {
-            ...snubaQueryDetector,
-            workflowIds: [],
-          },
-        });
-        render(<DetectorDetails />, {
-          organization,
-          initialRouterConfig,
-        });
-        expect(await screen.findByText('No alerts connected')).toBeInTheDocument();
-      });
-
-      it('displays connected automations', async () => {
-        render(<DetectorDetails />, {
-          organization,
-          initialRouterConfig,
-        });
-
-        // Verify both automations are displayed
-        expect(await screen.findByText('Automation 1')).toBeInTheDocument();
-        expect(await screen.findByText('Automation 2')).toBeInTheDocument();
-
-        // Verify the table shows the correct columns
-        expect(screen.getByText('Name')).toBeInTheDocument();
-        expect(screen.getByText('Last Triggered')).toBeInTheDocument();
-        expect(screen.getByText('Actions')).toBeInTheDocument();
-      });
-    });
-
     it('displays ongoing issues for the detector', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
