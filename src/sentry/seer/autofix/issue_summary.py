@@ -65,7 +65,7 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
-        return AutofixStoppingPoint.SOLUTION
+        return AutofixStoppingPoint.ROOT_CAUSE
     # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
     elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
@@ -290,7 +290,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -402,7 +402,7 @@ def _generate_summary(
 
     if should_run_automation:
         try:
-            _run_automation(group, user, event, source)
+            run_automation(group, user, event, source)
         except Exception:
             logger.exception(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
