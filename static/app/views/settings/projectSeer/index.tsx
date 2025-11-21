@@ -94,8 +94,9 @@ const autofixAutomationToggleField = {
   type: 'boolean',
   saveOnBlur: true,
   saveMessage: t('Automatic Seer settings updated'),
+  // For triage signals V0: toggle ON maps to 'medium' threshold (fixability >= 0.40)
   getData: (data: Record<PropertyKey, unknown>) => ({
-    autofixAutomationTuning: data.autofixAutomationTuning ? 'always' : 'off',
+    autofixAutomationTuning: data.autofixAutomationTuning ? 'medium' : 'off',
   }),
 } satisfies FieldObject;
 
@@ -204,6 +205,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
+    getData: () => ({}),
     visible: ({model}) => {
       const tuningValue = model?.getValue('autofixAutomationTuning');
       // Handle both boolean (toggle) and string (dropdown) values

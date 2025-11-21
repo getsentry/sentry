@@ -33,6 +33,11 @@ jobs:
           mode: migrations
 
       - name: Apply migrations
+        env:
+          # This short circuits the create_default_projects post_upgrade hook
+          # which spawns taskworkers which will spin for 5 minutes on kafka
+          # not being up. We don't need the default project here as this is not local dev.
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make apply-migrations
 
       # Checkout the current ref
@@ -41,6 +46,8 @@ jobs:
           clean: false
 
       - name: Apply migrations (again)
+        env:
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make apply-migrations
 
       - name: capture database schema before
@@ -53,6 +60,8 @@ jobs:
         run: python3 -um tools.migrations.squash
 
       - name: apply squashed migrations
+        env:
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make drop-db apply-migrations
 
       - name: capture database schema after

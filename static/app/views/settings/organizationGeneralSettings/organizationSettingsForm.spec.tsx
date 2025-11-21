@@ -447,7 +447,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
-    it('is disabled when non US region', async () => {
+    it('is enabled when EU region', () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'de',
         displayName: 'Europe (Frankfurt)',
@@ -472,15 +472,8 @@ describe('OrganizationSettingsForm', () => {
         name: /Enable AI Code Review/i,
       });
       expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
-
-      // Hover over the disabled tag to show the tooltip
-      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
-      expect(disabledTag).toBeInTheDocument();
-      await userEvent.hover(disabledTag);
-      expect(
-        await screen.findByText('This feature is only available in the US region')
-      ).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
     it('is enabled when user is an admin (has org:write access)', () => {

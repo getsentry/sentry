@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsResponse
-from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE, ResponseMeta
+from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta, TraceItemType
 
 from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
@@ -35,7 +35,7 @@ class TestEAPDeletion(TestCase):
         assert request.meta.cogs_category == "deletions"
 
         assert len(request.filters) == 1
-        assert request.filters[0].item_type == TRACE_ITEM_TYPE_OCCURRENCE
+        assert request.filters[0].item_type == TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_multiple_group_ids(self, mock_rpc):
