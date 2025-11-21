@@ -19,10 +19,11 @@ class ProjectWebVitalsDetectionEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> Response:
         results = dispatch_detection_for_project_ids([project.id])
+        if project.id not in results:
+            return Response({"status": "invalid_project"}, status=status.HTTP_400_BAD_REQUEST)
         if results[project.id].get("success", False):
             return Response({"status": "dispatched"}, status=status.HTTP_202_ACCEPTED)
-        else:
-            return Response(
-                {"status": results[project.id].get("reason", "unknown")},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            {"status": results[project.id].get("reason", "rejected")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
