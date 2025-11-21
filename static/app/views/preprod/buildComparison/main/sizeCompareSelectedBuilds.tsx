@@ -29,7 +29,6 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
 
   const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
   const platform = buildDetails.app_info?.platform ?? null;
-  const projectType = buildDetails.app_info?.platform ?? null;
 
   return (
     <LinkButton
@@ -39,7 +38,6 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
           organization,
           build_id: buildId,
           project_slug: projectId,
-          project_type: projectType,
           platform,
           slot,
         })
