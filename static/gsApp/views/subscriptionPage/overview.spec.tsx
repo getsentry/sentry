@@ -11,7 +11,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   render,
@@ -232,7 +232,7 @@ describe('Subscription > Overview', () => {
   });
 
   it('renders with Seer', async () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
     });
     SubscriptionStore.set(organization.slug, seerSubscription);

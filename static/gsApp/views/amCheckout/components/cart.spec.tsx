@@ -138,7 +138,7 @@ describe('Cart', () => {
       },
       onDemandMaxSpend: 50_00,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -165,7 +165,7 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Continuous profile hours');
     expect(planItem).toHaveTextContent('Available');
 
-    const seerItem = screen.getByTestId('summary-item-product-seer');
+    const seerItem = screen.getByTestId('summary-item-product-legacySeer');
     expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
@@ -496,7 +496,7 @@ describe('Cart', () => {
         sharedMaxBudget: 1_00,
       },
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },

@@ -6,7 +6,7 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   renderGlobalModal,
@@ -268,8 +268,10 @@ describe('ChangePlanAction', () => {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
 
     expect(screen.getByText('Available Products')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Seer'));
-    await userEvent.click(screen.getByText('Prevent'));
+    const seerSelections = screen.getAllByText('Seer');
+    expect(seerSelections).toHaveLength(2);
+    await userEvent.click(seerSelections[0]!);
+    await userEvent.click(seerSelections[1]!);
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -277,8 +279,8 @@ describe('ChangePlanAction', () => {
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
+    expect(requestData).toHaveProperty('addOnLegacySeer', true);
     expect(requestData).toHaveProperty('addOnSeer', true);
-    expect(requestData).toHaveProperty('addOnPrevent', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
@@ -447,7 +449,7 @@ describe('ChangePlanAction', () => {
 
     it('initializes Seer budget checkbox based on current subscription', async () => {
       // Create subscription with Seer budget
-      const subscriptionWithSeer = SubscriptionWithSeerFixture({
+      const subscriptionWithSeer = SubscriptionWithLegacySeerFixture({
         organization: mockOrg,
         planTier: PlanTier.AM3,
         plan: 'am3_business',
@@ -543,7 +545,7 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('addOnSeer', true);
+      expect(requestData).toHaveProperty('addOnLegacySeer', true);
     });
 
     it('does not include add-on parameter in form submission when checkbox is unchecked', async () => {
@@ -595,7 +597,7 @@ describe('ChangePlanAction', () => {
       // Verify the PUT API was called with seer parameter set to false
       expect(putMock).toHaveBeenCalled();
       const requestData = putMock.mock.calls[0][1].data;
-      expect(requestData).toHaveProperty('addOnSeer', false);
+      expect(requestData).toHaveProperty('addOnLegacySeer', false);
     });
   });
 });

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -777,7 +777,7 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
   }
 
   it('should respect displayMode="usage" for SEER reserved budget categories', async () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -844,7 +844,7 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
   });
 
   it('should respect displayMode="cost" for SEER reserved budget categories', async () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -911,7 +911,7 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
   });
 
   it('should force displayMode="cost" for sales-led customers with reserved budget categories', async () => {
-    const subscription = SubscriptionWithSeerFixture({
+    const subscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
       canSelfServe: false, // Sales-led customer

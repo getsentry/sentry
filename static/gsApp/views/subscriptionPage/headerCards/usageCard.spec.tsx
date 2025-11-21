@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -144,7 +144,7 @@ describe('UsageCard', () => {
   });
 
   it('should not show reserved budget under included in subscription', () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });
@@ -158,7 +158,7 @@ describe('UsageCard', () => {
   });
 
   it('should not calculate prepaid spend with reserved budget', () => {
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization,
       plan: 'am3_business',
     });

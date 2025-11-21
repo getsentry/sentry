@@ -6,7 +6,7 @@ import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -227,7 +227,7 @@ describe('UsageOverview', () => {
 
   it('renders table based on add-on state', () => {
     organization.features.push('seer-user-billing');
-    const subWithSeer = SubscriptionWithSeerFixture({organization});
+    const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(
       <UsageOverview
@@ -236,18 +236,14 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
-    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Collapse Seer details'})).toBeInTheDocument();
+    // Org has Seer user flag but did not buy Seer add on, only legacy add-on
+    expect(screen.getAllByRole('cell', {name: 'Seer'})).toHaveLength(1);
+    expect(screen.getAllByRole('row', {name: 'Collapse Seer details'})).toHaveLength(1);
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
 
-    // Org has Prevent flag but did not buy Prevent add on
-    expect(screen.getByRole('cell', {name: 'Prevent'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('row', {name: 'Collapse Prevent details'})
-    ).not.toBeInTheDocument();
     // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
-    expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: /Seer*Users/})).not.toBeInTheDocument();
     expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
   });
 
@@ -322,7 +318,7 @@ describe('UsageOverview', () => {
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
     });
-    const subWithSeer = SubscriptionWithSeerFixture({organization});
+    const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     const mockLocation = LocationFixture();
     SubscriptionStore.set(organization.slug, subWithSeer);
 
