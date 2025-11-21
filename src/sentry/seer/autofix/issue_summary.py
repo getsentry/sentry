@@ -306,7 +306,7 @@ def run_automation(
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "run_automation called: group_id=%s, source=%s, times_seen=%s",
+            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
             group.id,
             source.value,
             times_seen,
