@@ -8,12 +8,13 @@ const FeedbackButtonHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function FeedbackButton() {
+/**
+ * @deprecated Use `<FeedbackButton/>` instead.
+ */
+export default function FeedbackButton() {
   return (
     <FeedbackButtonHook>
       <FeatureFeedback featureName="Replay Self-Hosted" buttonProps={{size: 'sm'}} />
     </FeedbackButtonHook>
   );
 }
-
-export default FeedbackButton;

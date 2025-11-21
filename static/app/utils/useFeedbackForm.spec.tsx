@@ -1,7 +1,7 @@
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {FeedbackIntegration} from 'sentry/components/feedback/widget/useFeedback';
-import * as useFeedback from 'sentry/components/feedback/widget/useFeedback';
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import * as useFeedbackSDKIntegration from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 const mockForm = {
@@ -27,7 +27,7 @@ const defaultOptions = {
 describe('useFeedbackForm', () => {
   beforeEach(() => {
     jest
-      .spyOn(useFeedback, 'useFeedback')
+      .spyOn(useFeedbackSDKIntegration, 'useFeedbackSDKIntegration')
       .mockReturnValue({feedback: mockFeedback, options: defaultOptions});
     jest.clearAllMocks();
   });

@@ -10,11 +10,11 @@ export type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedba
 
 export type UseFeedbackOptions = Parameters<FeedbackIntegration['createForm']>[0];
 
-export function useFeedback({
-  formTitle,
-  messagePlaceholder,
-  tags,
-}: NonNullable<UseFeedbackOptions>): {
+interface Props {
+  optionOverrides?: UseFeedbackOptions;
+}
+
+export function useFeedbackSDKIntegration({optionOverrides = {}}: Props = {}): {
   feedback: FeedbackIntegration | undefined;
   options: NonNullable<UseFeedbackOptions>;
 } {
@@ -23,16 +23,15 @@ export function useFeedback({
 
   const feedback = state.Feedback as FeedbackIntegration | undefined;
 
-  const options = useMemo(() => {
+  const options = useMemo((): NonNullable<UseFeedbackOptions> => {
     return {
       colorScheme: config.theme === 'dark' ? ('dark' as const) : ('light' as const),
-      buttonLabel: t('Give Feedback'),
       submitButtonLabel: t('Send Feedback'),
-      messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
-      formTitle: formTitle ?? t('Give Feedback'),
-      tags,
+      messagePlaceholder: t('What did you expect?'),
+      formTitle: t('Give Feedback'),
+      ...optionOverrides,
     };
-  }, [config.theme, formTitle, messagePlaceholder, tags]);
+  }, [config.theme, optionOverrides]);
 
   return {feedback, options};
 }

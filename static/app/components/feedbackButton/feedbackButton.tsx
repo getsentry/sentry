@@ -1,0 +1,79 @@
+import {useEffect, useRef} from 'react';
+
+import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {
+  useFeedbackSDKIntegration,
+  type UseFeedbackOptions,
+} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {IconMegaphone} from 'sentry/icons/iconMegaphone';
+import {t} from 'sentry/locale';
+
+interface Props extends Omit<ButtonProps, 'icon'> {
+  feedbackOptions?: UseFeedbackOptions;
+}
+
+/**
+ * A button component that opens the Sentry feedback widget when clicked.
+ *
+ * Use this component to embed a feedback collection button anywhere in the UI where users
+ * might want to submit feedback, report issues, or share suggestions with your team.
+ *
+ * The component will return null when the Feedback SDK integration is not enabled,
+ * like in self-hosted environments.
+ *
+ * It's strongly recommended to add the tags: `feedback.source` and `feedback.owner`
+ * and then setup an alert rule to notify you when feedback is submitted.
+ *
+ * @example
+ * // Mix of Button and Feedback props
+ * <FeedbackButton
+ *   priority="primary"
+ *   size="lg"
+ *   feedbackOptions={{
+ *     messagePlaceholder: 'Tell us what you think...',
+ *     tags: {
+ *       ['feedback.source']: 'issue-details'
+ *       ['feedback.owner']: 'issues'
+ *     }
+ *   }}
+ * />
+ *
+ * @param feedbackOptions - Optional configuration to customize the feedback widget behavior,
+ *                          such as form labels, tags, or user metadata
+ *
+ * @param children - The content to display inside the button. If not provided, the default label 'Give Feedback' will be used.
+ *
+ * @param * - All standard Button props except `icon` (icon is fixed to megaphone).
+ *                      Includes size, priority, disabled, onClick handlers, etc.
+ *
+ * @returns A Button that opens the feedback widget on click, or null if feedback is not enabled
+ */
+export default function FeedbackButton({
+  feedbackOptions,
+  children,
+  ...buttonProps
+}: Props) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const {feedback, options} = useFeedbackSDKIntegration({
+    optionOverrides: feedbackOptions,
+  });
+
+  useEffect(() => {
+    if (feedback && buttonRef.current) {
+      return feedback.attachTo(buttonRef.current, options);
+    }
+
+    return undefined;
+  }, [buttonRef, feedback, options]);
+
+  // Do not show button if Feedback integration is not enabled
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button ref={buttonRef} size="sm" {...buttonProps} icon={<IconMegaphone />}>
+      {children || t('Give Feedback')}
+    </Button>
+  );
+}
