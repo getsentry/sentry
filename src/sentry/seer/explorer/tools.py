@@ -309,7 +309,10 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
 
 
 def rpc_get_profile_flamegraph(
-    profile_id: str, organization_id: int, trace_id: str | None = None
+    profile_id: str,
+    organization_id: int,
+    trace_id: str | None = None,
+    span_description: str | None = None,
 ) -> dict[str, Any]:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
@@ -325,6 +328,7 @@ def rpc_get_profile_flamegraph(
         profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
         organization_id: Organization ID to search within
         trace_id: Optional trace ID to filter profile spans more precisely
+        span_description: Optional span description to filter profile spans more precisely
 
     Returns:
         Dictionary with either:
@@ -376,6 +380,8 @@ def rpc_get_profile_flamegraph(
         query_string = f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)"
         if trace_id:
             query_string += f" trace:{trace_id}"
+        if span_description:
+            query_string += f" span.description:*{span_description}*"
 
         # Query with aggregation to get profile metadata
         result = Spans.run_table_query(
@@ -405,6 +411,7 @@ def rpc_get_profile_flamegraph(
                 "profile_id": profile_id,
                 "organization_id": organization_id,
                 "trace_id": trace_id,
+                "span_description": span_description,
                 "query_string": query_string,
                 "data": data,
                 "window_start": window_start.isoformat(),
