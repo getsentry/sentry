@@ -798,6 +798,8 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.70),
         )
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
@@ -822,6 +824,8 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.50),
         )
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
@@ -1000,6 +1004,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = "solution"
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -1030,6 +1036,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.50),  # Medium = ROOT_CAUSE
         )
         mock_fetch.return_value = "open_pr"
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -1060,6 +1068,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = None
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
