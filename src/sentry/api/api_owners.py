@@ -33,5 +33,5 @@ class ApiOwner(Enum):
     SECURITY = "security"
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
-    VISIBILITY = "visibility"
+    DATA_BROWSING = "data-browsing"
     WEB_FRONTEND_SDKS = "team-javascript-sdks"

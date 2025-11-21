@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.lib.eap.snuba_transpiler import TRACE_ITEM_TYPE_MAP, TRACE_ITEM_TYPES
 from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 from sentry.utils.kafka_config import get_topic_definition
 
 Value = bool | bytes | str | int | float | Sequence["Value"] | MutableMapping[str, "Value"]
@@ -86,7 +87,7 @@ def write_trace_items_test_suite(trace_items: list[EAPTraceItem]) -> None:
         `docker logs -f snuba-snuba-1`
     """
     response = requests.post(
-        settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+        settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
         files={
             f"item_{i}": trace_item.SerializeToString() for i, trace_item in enumerate(trace_items)
         },

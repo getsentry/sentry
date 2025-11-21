@@ -11,7 +11,7 @@ const TITLE = t('Monitors');
 const DESCRIPTION = t(
   'Monitors are used to transform errors, performance problems, and other events into issues.'
 );
-const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
+const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/';
 
 export default function AllMonitors() {
   const detectorListQuery = useDetectorListQuery();
@@ -19,7 +19,7 @@ export default function AllMonitors() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions />}
+        actions={<DetectorListActions detectorType={null} />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}

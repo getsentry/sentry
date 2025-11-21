@@ -338,7 +338,7 @@ class IssueParams:
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
         description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
-        default="is:unresolved issue.priority:[high,medium]",
+        default="is:unresolved",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,

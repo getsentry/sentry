@@ -1,5 +1,6 @@
 import type {RefObject} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -26,10 +27,12 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
 };
 
 export default function ReplayTable({
+  query,
   columns,
   error,
   isPending,
@@ -110,6 +113,7 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
+                query={query}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}
