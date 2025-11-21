@@ -143,6 +143,11 @@ class TestActionService(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
 
         self.create_data_condition_group_action(
@@ -179,6 +184,11 @@ class TestActionService(TestCase):
                 "target_identifier": str(self.sentry_app.id),
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
+            },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
             },
         )
 
@@ -225,6 +235,11 @@ class TestActionService(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
             status=ObjectStatus.DISABLED,
         )
 
@@ -262,6 +277,11 @@ class TestActionService(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
 
         action_service.update_action_status_for_sentry_app_via_uuid(
@@ -286,6 +306,11 @@ class TestActionService(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
         action_service.update_action_status_for_sentry_app_via_uuid__region(
             region_name="us",
@@ -303,6 +328,11 @@ class TestActionService(TestCase):
                 "target_identifier": str(self.sentry_app.id),
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
+            },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
             },
         )
         action_service.update_action_status_for_sentry_app_via_sentry_app_id(
