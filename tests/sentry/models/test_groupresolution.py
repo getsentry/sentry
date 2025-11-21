@@ -218,45 +218,32 @@ class GroupResolutionTest(TestCase):
 
             resolution.delete()
 
-    def test_for_semver_with_build_code(self) -> None:
+    def test_for_semver_in_next_release_with_build_code(self) -> None:
         """
-        Test that build code is ignored in regression detection when feature
-        flag "organizations:regressions-semver-precedence" is enabled.
+        Test that build code is ignored in regression detection for an issue resolved in next release
+        when feature flag "organizations:regressions-semver-precedence" is enabled.
         """
-        # resolving in next release: regression if old release < new release
         grp_resolution = GroupResolution.objects.create(
             release=self.old_semver_release_with_build,
             current_release_version=self.old_semver_release_with_build.version,
             group=self.group,
             type=GroupResolution.Type.in_next_release,
         )
-        # old release < new release -> regression
-        assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
-        with Feature({"organizations:regressions-semver-precedence": True}):
-            # versions treated as equal -> no regression
-            assert GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
-        grp_resolution.delete()
 
-        # resolving in release: regression if old release =< new release
-        grp_resolution = GroupResolution.objects.create(
-            release=self.old_semver_release_with_build,
-            group=self.group,
-            type=GroupResolution.Type.in_release,
-        )
         # old release < new release -> regression
         assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+
+        # versions treated as equal -> no regression
         with Feature({"organizations:regressions-semver-precedence": True}):
-            # versions treated as equal -> regression
-            assert not GroupResolution.has_resolution(
-                self.group, self.new_semver_release_with_build
-            )
+            assert GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+
         grp_resolution.delete()
 
         # version comparison without build code should still work as normal
         grp_resolution = GroupResolution.objects.create(
-            release=self.new_semver_release,
+            release=self.old_semver_release,
             group=self.group,
-            type=GroupResolution.Type.in_release,
+            type=GroupResolution.Type.in_next_release,
         )
         with Feature({"organizations:regressions-semver-precedence": True}):
             assert GroupResolution.has_resolution(self.group, self.old_semver_release)

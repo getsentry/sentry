@@ -188,15 +188,7 @@ class GroupResolution(Model):
                     release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
-                    use_semver_precedence = features.has(
-                        "organizations:regressions-semver-precedence", group.organization
-                    )
-                    return (
-                        compare_version_relay(
-                            res_release_raw, release_raw, semver_precedence=use_semver_precedence
-                        )
-                        == 1
-                    )
+                    return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...
 
