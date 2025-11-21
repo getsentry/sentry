@@ -1,5 +1,7 @@
 from contextlib import AbstractContextManager
 
+import responses
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -22,6 +24,11 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTarget,
+    ActionType,
+    SentryAppIdentifier,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -119,24 +126,24 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert action.data == {}
         assert action.config == {"target_type": "user", "target_identifier": str(self.user.id)}
 
+    @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
         Test that adding a sentry app action to a workflow works as expected
         """
-        self.sentry_app_settings_schema = self.create_alert_rule_action_schema()
-        self.sentry_app = self.create_sentry_app(
-            name="Moo Deng's Fire Sentry App",
-            organization=self.organization,
-            schema={
-                "elements": [
-                    self.sentry_app_settings_schema,
-                ]
-            },
-            is_alertable=True,
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
         )
-        self.sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization
-        )
+        self.sentry_app_installation = self.create_sentry_app_with_installation()
+        self.sentry_app_settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
@@ -149,15 +156,13 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 ],
                 "actions": [
                     {
-                        "type": Action.Type.SENTRY_APP,
                         "config": {
-                            "sentryAppIdentifier": "sentry_app_id",
-                            "targetIdentifier": str(self.sentry_app.id),
-                            "targetType": "sentry_app",
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                            "targetIdentifier": self.sentry_app_installation.uuid,
+                            "targetType": ActionType.SENTRY_APP,
                         },
-                        "data": {},
-                        "integrationId": None,
-                        "status": "active",
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
                     },
                 ],
             }
@@ -172,8 +177,12 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert action.type == Action.Type.SENTRY_APP
-        assert action.data == {}
-        assert action.config == {"target_type": "user", "target_identifier": str(self.user.id)}
+        assert action.config == {
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+            "target_identifier": self.sentry_app_installation.uuid,
+            "target_type": ActionTarget.SENTRY_APP.value,
+        }
+        assert action.data["settings"] == self.sentry_app_settings
 
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
