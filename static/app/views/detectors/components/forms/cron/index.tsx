@@ -47,6 +47,7 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
+      noEnvironment
     >
       <CronDetectorForm />
     </NewDetectorLayout>
@@ -59,6 +60,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
+      noEnvironment
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>
