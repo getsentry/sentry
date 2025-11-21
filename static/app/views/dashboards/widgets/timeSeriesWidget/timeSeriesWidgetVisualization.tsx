@@ -158,6 +158,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
     deps: [props.plottables],
+    disabled: true,
     chartsGroupName: groupName,
     ...props.chartXRangeSelection,
   });
