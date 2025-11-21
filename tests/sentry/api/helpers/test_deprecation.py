@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from cronsim import CronSim
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
+from django.urls import ResolverMatch
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
@@ -36,6 +37,10 @@ class DummyEndpoint(Endpoint):
 
     @deprecated(test_date, suggested_api=replacement_api, key="override")
     def post(self, request):
+        return Response({"ok": True})
+
+    @deprecated(test_date, url_names=["sentry-dummy-delete-deprecated"])
+    def delete(self, request):
         return Response({"ok": True})
 
 
@@ -98,7 +103,7 @@ class TestDeprecationDecorator(APITestCase):
                 self.assert_allowed_request("GET")
 
     def test_self_hosted(self) -> None:
-        with self.settings(SENTRY_SELF_HOSTED=True):
+        with self.settings(SENTRY_SELF_HOSTED=True, ENVIRONMENT="production"):
             self.assert_not_deprecated("GET")
 
     def test_no_decorator(self) -> None:
@@ -110,14 +115,11 @@ class TestDeprecationDecorator(APITestCase):
             self.settings(SENTRY_SELF_HOSTED=False),
             override_options(
                 {
-                    "api.deprecation.brownout-duration-seconds": custom_duration,
+                    "api.deprecation.brownout-duration": custom_duration,
                     "api.deprecation.brownout-cron": custom_cron,
                 }
             ),
         ):
-            options.delete("api.deprecation.brownout-cron")
-            options.delete("api.deprecation.brownout-duration-seconds")
-
             custom_time_iter = CronSim(custom_cron, test_date)
             custom_duration_timedelta = timedelta(seconds=custom_duration)
             old_brownout_start = next(timeiter)
@@ -167,22 +169,21 @@ class TestDeprecationDecorator(APITestCase):
                 self.settings(SENTRY_SELF_HOSTED=False),
                 override_options(
                     {
-                        "api.deprecation.brownout-duration-seconds": "bad duration",
+                        "api.deprecation.brownout-duration": "bad duration",
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration-seconds")
                 self.assert_allowed_request("GET")
 
             with (
                 self.settings(SENTRY_SELF_HOSTED=False),
                 override_options(
                     {
-                        "api.deprecation.brownout-duration-seconds": 60,
+                        "api.deprecation.brownout-duration": 60,
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration-seconds")
+                options.delete("api.deprecation.brownout-duration")
                 self.assert_denied_request("GET")
 
             with (
@@ -206,3 +207,79 @@ class TestDeprecationDecorator(APITestCase):
             ):
                 options.delete("api.deprecation.brownout-cron")
                 self.assert_denied_request("GET")
+
+    def test_with_url_names(self) -> None:
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            # Resolver url_name doesn't match
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint, args=tuple(), kwargs={}, url_name="sentry-dummy-delete"
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" not in resp
+            assert "X-Sentry-Replacement-Endpoint" not in resp
+
+            # Resolver url_name does match
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint,
+                args=tuple(),
+                kwargs={},
+                url_name="sentry-dummy-delete-deprecated",
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" in resp
+
+    def test_with_url_names_brownout(self) -> None:
+        # Before the brownout
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(minutes=1)):
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint,
+                args=tuple(),
+                kwargs={},
+                url_name="sentry-dummy-delete-deprecated",
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" in resp
+
+            # url name that doesn't match is not deprecated
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint, args=tuple(), kwargs={}, url_name="sentry-dummy-delete"
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" not in resp
+
+        # After the brownout
+        brownout_start = next(timeiter)
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(brownout_start):
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint,
+                args=tuple(),
+                kwargs={},
+                url_name="sentry-dummy-delete-deprecated",
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_410_GONE
+            assert "X-Sentry-Deprecation-Date" in resp
+
+            # Other url names are not deprecated
+            request = self.make_request(method="DELETE")
+            request.resolver_match = ResolverMatch(
+                func=dummy_endpoint, args=tuple(), kwargs={}, url_name="sentry-dummy-delete"
+            )
+
+            resp = dummy_endpoint(request)
+            assert resp.status_code == HTTP_200_OK
+            assert "X-Sentry-Deprecation-Date" not in resp
