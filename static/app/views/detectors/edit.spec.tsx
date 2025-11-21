@@ -29,9 +29,11 @@ import {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
@@ -926,6 +928,100 @@ describe('DetectorEdit', () => {
 
       // Aggregate selector should be disabled
       expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
+    });
+
+    it('preserves SERVER_WEIGHTED extrapolation mode when editing and saving', async () => {
+      const spanDetectorWithExtrapolation = MetricDetectorFixture({
+        id: '1',
+        name: 'Span Detector with Extrapolation',
+        projectId: project.id,
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                id: '',
+                query: '',
+                timeWindow: 3600,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+                extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+              },
+            },
+          }),
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${spanDetectorWithExtrapolation.id}/`,
+        body: spanDetectorWithExtrapolation,
+      });
+
+      const eventsStatsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        body: {data: []},
+      });
+
+      const updateRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${spanDetectorWithExtrapolation.id}/`,
+        method: 'PUT',
+        body: spanDetectorWithExtrapolation,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${spanDetectorWithExtrapolation.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'Span Detector with Extrapolation'})
+      ).toBeInTheDocument();
+
+      // Verify events-stats is called with 'serverOnly' extrapolation mode for the chart
+      await waitFor(() => {
+        expect(eventsStatsRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              extrapolationMode: 'serverOnly',
+              sampling: SAMPLING_MODE.NORMAL,
+            }),
+          })
+        );
+      });
+
+      // Make a change to trigger save
+      const nameInput = screen.getByTestId('editable-text-label');
+      await userEvent.click(nameInput);
+      const nameInputField = await screen.findByRole('textbox', {name: /monitor name/i});
+      await userEvent.type(nameInputField, ' Updated');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      // Verify the update request preserves the extrapolation mode
+      await waitFor(() => {
+        expect(updateRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/${spanDetectorWithExtrapolation.id}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({
+              dataSources: expect.arrayContaining([
+                expect.objectContaining({
+                  extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+                }),
+              ]),
+            }),
+          })
+        );
+      });
     });
   });
 });

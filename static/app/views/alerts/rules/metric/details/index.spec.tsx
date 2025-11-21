@@ -10,7 +10,12 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics');
 
@@ -288,6 +293,108 @@ describe('MetricAlertDetails', () => {
     expect(await screen.findByRole('button', {name: 'Duplicate'})).toHaveAttribute(
       'aria-disabled',
       'true'
+    );
+  });
+
+  it('uses SERVER_WEIGHTED extrapolation mode when alert has it configured', async () => {
+    const {organization, routerProps} = initializeOrg();
+    const ruleWithExtrapolation = MetricRuleFixture({
+      projects: [project.slug],
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      aggregate: 'count()',
+      query: '',
+      eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${ruleWithExtrapolation.id}/`,
+      body: ruleWithExtrapolation,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [],
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        {...routerProps}
+        params={{ruleId: ruleWithExtrapolation.id}}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByText(ruleWithExtrapolation.name)).toBeInTheDocument();
+
+    // Verify events-stats is called with 'serverOnly' extrapolation mode
+    expect(eventsStatsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          extrapolationMode: 'serverOnly',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+  });
+
+  it('uses NONE extrapolation mode when alert has it configured', async () => {
+    const {organization, routerProps} = initializeOrg();
+    const ruleWithNoExtrapolation = MetricRuleFixture({
+      projects: [project.slug],
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      aggregate: 'count()',
+      query: '',
+      eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      extrapolationMode: ExtrapolationMode.NONE,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${ruleWithNoExtrapolation.id}/`,
+      body: ruleWithNoExtrapolation,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [],
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        {...routerProps}
+        params={{ruleId: ruleWithNoExtrapolation.id}}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByText(ruleWithNoExtrapolation.name)).toBeInTheDocument();
+
+    // Verify events-stats is called with 'none' extrapolation mode
+    expect(eventsStatsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          extrapolationMode: 'none',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        }),
+      })
     );
   });
 });

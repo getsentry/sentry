@@ -19,8 +19,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
@@ -373,6 +379,69 @@ describe('DetectorDetails', () => {
 
       // Connected automation
       expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+    });
+
+    it('uses serverOnly extrapolation mode when detector has it configured', async () => {
+      const spanDetectorWithExtrapolation = MetricDetectorFixture({
+        id: '1',
+        projectId: project.id,
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate: 'count()',
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                id: '',
+                query: '',
+                timeWindow: 3600,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+                extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+              },
+            },
+          }),
+        ],
+        owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+        workflowIds: ['1', '2'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${spanDetectorWithExtrapolation.id}/`,
+        body: spanDetectorWithExtrapolation,
+      });
+
+      const eventsStatsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        body: {
+          data: [
+            [1543449600, [20, 12]],
+            [1543449601, [10, 5]],
+          ],
+        },
+      });
+
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: spanDetectorWithExtrapolation.name})
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(eventsStatsRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              extrapolationMode: 'serverOnly',
+              sampling: SAMPLING_MODE.NORMAL,
+            }),
+          })
+        );
+      });
     });
   });
 });
