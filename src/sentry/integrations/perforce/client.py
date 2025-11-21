@@ -336,7 +336,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             username: Perforce username
-            p4: Optional P4 connection to reuse (avoids creating new connection)
 
         Returns:
             User info dictionary with Email and FullName fields, or None if not found
@@ -505,9 +504,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 try:
                     # Build depot path for the file (includes stream if specified)
                     # file.ref contains the revision/changelist if available
-                    depot_path = self._build_depot_path(file.repo, file.path, file.ref)
+                    depot_path = self.build_depot_path(file.repo, file.path, file.ref)
 
-                    # Use faster p4 filelog approach to get most recent changelist
+                    # Use faster p4 filelog approach to get changelist for specific file revision
                     # This is much faster than p4 annotate
                     filelog = p4.run("filelog", "-m1", depot_path)
 
