@@ -452,6 +452,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/notifications/actions/'
   | '/organizations/$organizationIdOrSlug/notifications/actions/$actionId/'
   | '/organizations/$organizationIdOrSlug/notifications/available-actions/'
+  | '/organizations/$organizationIdOrSlug/objectstore/'
   | '/organizations/$organizationIdOrSlug/onboarding-continuation-email/'
   | '/organizations/$organizationIdOrSlug/onboarding-tasks/'
   | '/organizations/$organizationIdOrSlug/ondemand-rules-stats/'
