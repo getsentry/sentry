@@ -225,7 +225,7 @@ class SentryAppActionValidatorHandler:
             # Sentry app config blob expects value to be a string
             settings = self.validated_data["data"]["settings"]
             for setting in settings:
-                if setting.get("value") is not None:
+                if setting.get("value") is not None and not isinstance(setting["value"], str):
                     setting["value"] = json.dumps(setting["value"])
 
             return self.validated_data
