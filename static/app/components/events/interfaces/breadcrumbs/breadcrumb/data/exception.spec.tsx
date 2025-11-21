@@ -12,12 +12,17 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 describe('Breadcrumb Data Exception', () => {
   const project = ProjectFixture({id: '0'});
 
-  const {organization, router} = initializeOrg({
-    router: {
-      location: {query: {project: project.id}},
-    },
+  const {organization} = initializeOrg({
     projects: [project],
   });
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/123/`,
+      query: {project: project.id},
+    },
+    route: '/organizations/:orgId/issues/:groupId/',
+  };
 
   beforeEach(() => {
     const projectDetails = ProjectFixture({
@@ -65,8 +70,7 @@ describe('Breadcrumb Data Exception', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 
@@ -106,8 +110,7 @@ describe('Breadcrumb Data Exception', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 

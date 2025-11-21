@@ -7,8 +7,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
+
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
+const mockUseNavigate = jest.mocked(useNavigate);
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 
@@ -26,10 +33,7 @@ describe('Data Scrubbing', () => {
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       // Header
@@ -69,10 +73,7 @@ describe('Data Scrubbing', () => {
           relayPiiConfig={undefined}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
@@ -87,10 +88,7 @@ describe('Data Scrubbing', () => {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           disabled
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       // Read Docs is the only enabled action
@@ -120,10 +118,7 @@ describe('Data Scrubbing', () => {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           project={project}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       // Header
@@ -149,7 +144,6 @@ describe('Data Scrubbing', () => {
         />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -171,10 +165,7 @@ describe('Data Scrubbing', () => {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>,
-        {
-          deprecatedRouterMocks: true,
-        }
+        </Fragment>
       );
 
       await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]!);
@@ -198,10 +189,7 @@ describe('Data Scrubbing', () => {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>,
-        {
-          deprecatedRouterMocks: true,
-        }
+        </Fragment>
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
@@ -212,7 +200,10 @@ describe('Data Scrubbing', () => {
     });
 
     it('Open Edit Rule Modal', async () => {
-      const {organization, router, project} = initializeOrg();
+      const mockNavigate = jest.fn();
+      mockUseNavigate.mockReturnValue(mockNavigate);
+
+      const {organization, project} = initializeOrg();
 
       render(
         <Fragment>
@@ -225,20 +216,14 @@ describe('Data Scrubbing', () => {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>,
-        {
-          router,
-          deprecatedRouterMocks: true,
-        }
+        </Fragment>
       );
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]!);
 
-      // Verify the router to open the modal was called
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: `/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/0/`,
-        })
+      // Verify navigate was called to open the modal
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/0/`
       );
     });
   });
@@ -279,10 +264,7 @@ describe('Data Scrubbing', () => {
               onSubmitSuccess={jest.fn()}
             />
           </Fragment>
-        </OrganizationContext.Provider>,
-        {
-          deprecatedRouterMocks: true,
-        }
+        </OrganizationContext.Provider>
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
