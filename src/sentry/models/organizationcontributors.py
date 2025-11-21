@@ -34,12 +34,12 @@ class OrganizationContributors(Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["organization_id", "integration_id", "external_identifier"],
-                name="sentry_organizationcontributors_unique_org_contributor",
+                name="sentry_orgcont_unique_org_cont",
             ),
         ]
         indexes = [
             models.Index(
                 fields=["date_updated"],
-                name="sentry_organizationcontributors_date_updated_idx",
+                name="sentry_orgcont_date_upd_idx",
             ),
         ]
