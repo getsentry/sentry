@@ -70,7 +70,6 @@ function DisabledDashboardPage({
       requiredPlan={requiredPlan}
       features={features}
       background={DashboardBackground}
-      defaultUpsellSelection="custom-dashboards"
       customWrapper={TextWrapper}
       positioningStrategy={({mainRect, anchorRect, wrapperRect}) => {
         // Center within the anchor on the x axis, until the wrapper is larger

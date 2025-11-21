@@ -96,33 +96,35 @@ function ProductSelect({
   );
 
   const theme = useTheme();
-  const PRODUCT_CHECKOUT_INFO = {
-    [AddOnCategory.SEER]: {
-      color: theme.pink400 as Color,
-      gradientEndColor: theme.pink100 as Color,
-      buttonBorderColor: theme.pink200 as Color,
-      getProductDescription: (includedBudget: string) =>
-        getProductCheckoutDescription({
-          product: AddOnCategory.SEER,
-          isNewCheckout: !!isNewCheckout,
-          withPunctuation: false,
-          includedBudget,
-        }),
-      categoryInfo: {
-        [DataCategory.SEER_AUTOFIX]: {
-          description: t(
-            'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
-          ),
-          maxEventPriceDigits: 0,
-        },
-        [DataCategory.SEER_SCANNER]: {
-          description: t(
-            'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
-          ),
-          maxEventPriceDigits: 3,
-        },
+  const SEER_CHECKOUT_INFO = {
+    color: theme.pink400 as Color,
+    gradientEndColor: theme.pink100 as Color,
+    buttonBorderColor: theme.pink200 as Color,
+    getProductDescription: (includedBudget: string) =>
+      getProductCheckoutDescription({
+        product: AddOnCategory.SEER,
+        isNewCheckout: !!isNewCheckout,
+        withPunctuation: false,
+        includedBudget,
+      }),
+    categoryInfo: {
+      [DataCategory.SEER_AUTOFIX]: {
+        description: t(
+          'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
+        ),
+        maxEventPriceDigits: 0,
+      },
+      [DataCategory.SEER_SCANNER]: {
+        description: t(
+          'Triages issues as they happen, automatically flagging highly-fixable ones for followup'
+        ),
+        maxEventPriceDigits: 3,
       },
     },
+  };
+  const PRODUCT_CHECKOUT_INFO = {
+    [AddOnCategory.SEER]: SEER_CHECKOUT_INFO,
+    [AddOnCategory.LEGACY_SEER]: SEER_CHECKOUT_INFO,
     [AddOnCategory.PREVENT]: {
       getProductDescription: (includedBudget: string) =>
         getProductCheckoutDescription({
