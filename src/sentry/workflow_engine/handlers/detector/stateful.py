@@ -356,12 +356,12 @@ class StatefulDetectorHandler(
 
     def _build_data_source_definition(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[str, Any] | None:
+    ) -> list[dict[str, Any]] | None:
         try:
-            data_source = DataSource.objects.filter(
-                detectors=self.detector, source_id=data_packet.source_id
-            ).first()
-            if not data_source:
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
+            )
+            if not data_sources:
                 logger.warning(
                     "Matching data source not found for detector while generating occurrence evidence data",
                     extra={
@@ -369,8 +369,8 @@ class StatefulDetectorHandler(
                         "data_packet_source_id": data_packet.source_id,
                     },
                 )
-                return None
-            return serialize(data_source)
+                return []
+            return serialize(data_sources)
         except Exception:
             logger.exception(
                 "Failed to serialize data source definition when building workflow engine evidence data"
@@ -394,7 +394,7 @@ class StatefulDetectorHandler(
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
-            "data_source_definition": self._build_data_source_definition(data_packet),
+            "data_sources": self._build_data_source_definition(data_packet),
         }
 
         return base
