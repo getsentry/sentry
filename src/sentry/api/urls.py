@@ -433,6 +433,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
     UserNotificationSettingsProvidersEndpoint,
 )
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
+from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.overwatch.endpoints.overwatch_rpc import (
     PreventPrReviewResolvedConfigsEndpoint,
     PreventPrReviewSentryOrgEndpoint,
@@ -2608,6 +2609,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/conduit-demo/$",
         OrganizationConduitDemoEndpoint.as_view(),
         name="sentry-api-0-organization-conduit-demo",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/objectstore/$",
+        OrganizationObjectstoreEndpoint.as_view(),
+        name="sentry-api-0-organization-objectstore",
     ),
 ]
 
