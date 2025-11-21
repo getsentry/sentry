@@ -4,6 +4,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  AVERAGE_DURATION_TEXT,
+  QUERIES_PER_MINUTE_TEXT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -60,7 +64,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '',
       queries: [
         {
-          name: '',
+          name: QUERIES_PER_MINUTE_TEXT,
           conditions: FILTER_STRING,
           fields: ['epm()'],
           aggregates: ['epm()'],
@@ -84,7 +88,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '',
       queries: [
         {
-          name: '',
+          name: AVERAGE_DURATION_TEXT,
           conditions: FILTER_STRING,
           fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
