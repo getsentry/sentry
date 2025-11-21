@@ -67,7 +67,10 @@ class Migration(CheckedMigration):
                     )
                 ],
                 "indexes": [
-                    models.Index(fields=("date_updated",)),
+                    models.Index(
+                        fields=("date_updated",),
+                        name="sentry_organizationcontributors_date_updated_idx",
+                    ),
                 ],
             },
         ),

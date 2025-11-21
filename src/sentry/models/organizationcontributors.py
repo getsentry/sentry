@@ -22,7 +22,7 @@ class OrganizationContributors(Model):
 
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
 
-    external_identifier = models.CharField(max_length=255)
+    external_identifier = models.CharField(max_length=255, db_index=True)
     alias = models.CharField(max_length=255, null=True, blank=True)
     num_actions = BoundedIntegerField(default=0)
     date_added = models.DateTimeField(auto_now_add=True)
@@ -38,5 +38,8 @@ class OrganizationContributors(Model):
             ),
         ]
         indexes = [
-            models.Index(fields=["date_updated"]),
+            models.Index(
+                fields=["date_updated"],
+                name="sentry_organizationcontributors_date_updated_idx",
+            ),
         ]
