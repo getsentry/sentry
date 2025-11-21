@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, TypedDict
 
 from P4 import P4, P4Exception
 
@@ -22,6 +22,69 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
+
+# Default buffer size when fetching changelist ranges to ensure complete coverage
+DEFAULT_REVISION_RANGE = 10
+
+
+class P4ChangeInfo(TypedDict):
+    """Type definition for Perforce changelist information."""
+
+    change: str
+    user: str
+    client: str
+    time: str
+    desc: str
+
+
+class P4DepotInfo(TypedDict):
+    """Type definition for Perforce depot information."""
+
+    name: str
+    type: str
+    description: str
+
+
+class P4UserInfo(TypedDict, total=False):
+    """Type definition for Perforce user information."""
+
+    email: str
+    full_name: str
+    username: str
+
+
+class P4CommitInfo(TypedDict):
+    """Type definition for Sentry commit format."""
+
+    id: str
+    repository: str
+    author_email: str
+    author_name: str
+    message: str
+    timestamp: str
+    patch_set: list[Any]
+
+
+class P4DepotPath:
+    """Encapsulates Perforce depot path logic."""
+
+    def __init__(self, path: str):
+        """
+        Initialize depot path.
+
+        Args:
+            path: Depot path (e.g., //depot or //depot/project)
+        """
+        self.path = path
+
+    def depot_name(self) -> str:
+        """
+        Extract depot name from path.
+
+        Returns:
+            Depot name (e.g., "depot" from "//depot/project")
+        """
+        return self.path.strip("/").split("/")[0]
 
 
 class PerforceClient(RepositoryClient, CommitContextClient):
@@ -63,7 +126,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self.ssl_fingerprint = metadata.get("ssl_fingerprint")
 
     @contextmanager
-    def _connect(self):
+    def _connect(self) -> Generator[P4]:
         """
         Context manager for P4 connections with automatic cleanup.
 
@@ -242,7 +305,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         return full_path
 
-    def get_depots(self) -> list[dict[str, Any]]:
+    def get_depots(self) -> Sequence[P4DepotInfo]:
         """
         List all depots accessible to the user.
 
@@ -250,20 +313,20 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_depots.html
 
         Returns:
-            List of depot info dictionaries
+            Sequence of depot info dictionaries
         """
         with self._connect() as p4:
             depots = p4.run("depots")
             return [
-                {
-                    "name": depot.get("name"),
-                    "type": depot.get("type"),
-                    "description": depot.get("desc", ""),
-                }
+                P4DepotInfo(
+                    name=str(depot.get("name", "")),
+                    type=str(depot.get("type", "")),
+                    description=str(depot.get("desc", "")),
+                )
                 for depot in depots
             ]
 
-    def get_user(self, username: str) -> dict[str, Any] | None:
+    def get_user(self, username: str) -> P4UserInfo | None:
         """
         Get user information from Perforce.
 
@@ -287,11 +350,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 # Check if user actually exists by verifying Update field is set
                 if not user_info.get("Update"):
                     return None
-                return {
-                    "email": user_info.get("Email", ""),
-                    "full_name": user_info.get("FullName", ""),
-                    "username": user_info.get("User", username),
-                }
+                return P4UserInfo(
+                    email=str(user_info.get("Email", "")),
+                    full_name=str(user_info.get("FullName", "")),
+                    username=str(user_info.get("User", username)),
+                )
             # User not found - return None (not an error condition)
             return None
 
@@ -299,9 +362,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self,
         depot_path: str,
         max_changes: int = 20,
-        start_cl: str | None = None,
-        end_cl: str | None = None,
-    ) -> list[dict[str, Any]]:
+        start_cl: int | None = None,
+        end_cl: int | None = None,
+    ) -> Sequence[P4ChangeInfo]:
         """
         Get changelists for a depot path.
 
@@ -311,20 +374,31 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
             max_changes: Maximum number of changes to return when start_cl/end_cl not specified
-            start_cl: Starting changelist number (exclusive) - returns changes > start_cl
-            end_cl: Ending changelist number (inclusive) - returns changes <= end_cl
+            start_cl: Starting changelist number (exclusive) - returns changes > start_cl. Must be int.
+            end_cl: Ending changelist number (inclusive) - returns changes <= end_cl. Must be int.
 
         Returns:
-            List of changelist dictionaries in range (start_cl, end_cl]
+            Sequence of changelist dictionaries in range (start_cl, end_cl]
+
+        Raises:
+            TypeError: If start_cl or end_cl are not integers
         """
-        p4 = self._connect()
-        try:
+        with self._connect() as p4:
+            # Validate types - changelists must be integers
+            if start_cl is not None and not isinstance(start_cl, int):
+                raise TypeError(
+                    f"start_cl must be an integer or None, got {type(start_cl).__name__}"
+                )
+            if end_cl is not None and not isinstance(end_cl, int):
+                raise TypeError(f"end_cl must be an integer or None, got {type(end_cl).__name__}")
+
+            start_cl_num = start_cl
+            end_cl_num = end_cl
+
             # Calculate how many changes to fetch based on range
-            if start_cl and end_cl:
-                start_cl_num = int(start_cl) if start_cl.isdigit() else 0
-                end_cl_num = int(end_cl) if end_cl.isdigit() else 0
+            if start_cl_num is not None and end_cl_num is not None:
                 # Fetch enough to cover the range, adding buffer for safety
-                range_size = abs(end_cl_num - start_cl_num) + 10
+                range_size = abs(end_cl_num - start_cl_num) + DEFAULT_REVISION_RANGE
                 fetch_limit = max(range_size, max_changes)
             else:
                 fetch_limit = max_changes
@@ -333,8 +407,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
             # P4 -e flag: return changes >= specified changelist (above and including)
             # Use start_cl + 1 to get exclusive start (changes > start_cl)
-            if start_cl:
-                start_cl_num = int(start_cl) if start_cl.isdigit() else 0
+            if start_cl_num is not None:
                 args.extend(["-e", str(start_cl_num + 1)])
 
             args.append(depot_path)
@@ -342,27 +415,19 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             changes = p4.run("changes", *args)
 
             # Client-side filter for end_cl (inclusive upper bound)
-            if end_cl and end_cl.isdigit():
-                end_cl_num = int(end_cl)
+            if end_cl_num is not None:
                 changes = [c for c in changes if c.get("change") and int(c["change"]) <= end_cl_num]
 
             return [
-                {
-                    "change": change.get("change"),
-                    "user": change.get("user"),
-                    "client": change.get("client"),
-                    "time": change.get("time"),
-                    "desc": change.get("desc"),
-                }
+                P4ChangeInfo(
+                    change=str(change.get("change", "")),
+                    user=str(change.get("user", "")),
+                    client=str(change.get("client", "")),
+                    time=str(change.get("time", "")),
+                    desc=str(change.get("desc", "")),
+                )
                 for change in changes
             ]
-        finally:
-            self._disconnect(p4)
-<<<<<<< HEAD
-
-    # CommitContextClient methods (stubbed for now)
-=======
->>>>>>> 2194bee20ee (feat(perforce): Implement repository/depot and code mapping logic)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

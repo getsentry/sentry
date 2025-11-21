@@ -143,11 +143,11 @@ class PerforceInstallationForm(forms.Form):
         assume_scheme="https",
     )
 
-    def clean_p4port(self):
+    def clean_p4port(self) -> str:
         """Strip off trailing / and whitespace from p4port"""
         return self.cleaned_data["p4port"].strip().rstrip("/")
 
-    def clean_web_url(self):
+    def clean_web_url(self) -> str:
         """Strip off trailing / from web_url"""
         web_url = self.cleaned_data.get("web_url", "")
         if web_url:
@@ -627,7 +627,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
     )
     requires_feature_flag = True
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         """Get pipeline views for installation flow."""
         return [PerforceInstallationView()]
 

@@ -381,10 +381,20 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             organization=self.organization,
             provider="perforce",
             name="Perforce",
+<<<<<<< HEAD
             external_id="perforce-test-web-flow",
             metadata={
                 "web_url": "https://p4web.example.com",
                 "web_viewer_type": "p4web",
+=======
+            external_id="perforce-test-swarm-flow",
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "web_url": "https://swarm.example.com",
+>>>>>>> 73c0776894f (Rework based on PR comments)
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]

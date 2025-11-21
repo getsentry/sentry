@@ -4,6 +4,13 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry.integrations.perforce.client import (
+    P4ChangeInfo,
+    P4CommitInfo,
+    P4DepotPath,
+    P4UserInfo,
+    PerforceClient,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -22,6 +29,30 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
     name = "Perforce"
     repo_provider = "perforce"
 
+    def _get_client_from_repo(self, repo: Repository) -> PerforceClient:
+        """
+        Get Perforce client from repository.
+
+        Args:
+            repo: Repository instance
+
+        Returns:
+            PerforceClient instance
+
+        Raises:
+            NotImplementedError: If integration not found
+        """
+        integration_id = repo.integration_id
+        if integration_id is None:
+            raise NotImplementedError("Perforce integration requires an integration_id")
+
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            raise NotImplementedError("Integration not found")
+
+        installation = integration.get_installation(organization_id=repo.organization_id)
+        return installation.get_client()
+
     def get_repository_data(
         self, organization: Organization, config: dict[str, Any]
     ) -> Mapping[str, Any]:
@@ -38,35 +69,22 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
-        depot_path = config["identifier"]  # e.g., //depot or //depot/project
+        depot_path = P4DepotPath(config["identifier"])  # e.g., //depot or //depot/project
 
         # Validate depot exists and is accessible
         try:
-            # Create a minimal repo-like object for client
-            class MockRepo:
-                def __init__(self, depot_path):
-                    self.config = {"depot_path": depot_path}
+            depots = client.get_depots()
 
-            mock_repo = MockRepo(depot_path)
-
-            # Try to check depot access
-            result = client.check_file(mock_repo, "...", None)
-
-            if result is None:
-                # Try getting depot info
-                depots = client.get_depots()
-                depot_name = depot_path.strip("/").split("/")[0]
-
-                if not any(d["name"] == depot_name for d in depots):
-                    raise IntegrationError(
-                        f"Depot not found or no access: {depot_path}. Available depots: {[d['name'] for d in depots]}"
-                    )
+            if not any(d["name"] == depot_path.depot_name() for d in depots):
+                raise IntegrationError(
+                    f"Depot not found or no access: {depot_path.path}. Available depots: {[d['name'] for d in depots]}"
+                )
 
         except Exception:
             # Don't fail - depot might be valid but empty
             pass
 
-        config["external_id"] = depot_path
+        config["external_id"] = depot_path.path
         config["integration_id"] = installation.model.id
 
         return config
@@ -150,8 +168,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             return []
 
     def _format_commits(
-        self, changelists: list[dict[str, Any]], depot_path: str, client: Any
-    ) -> Sequence[Mapping[str, Any]]:
+        self, changelists: Sequence[P4ChangeInfo], depot_path: str, client: PerforceClient
+    ) -> list[P4CommitInfo]:
         """
         Format Perforce changelists into Sentry commit format.
 
@@ -163,7 +181,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of commits in Sentry format
         """
-        commits = []
+        commits: list[P4CommitInfo] = []
+        user_cache: dict[str, P4UserInfo | None] = {}
 
         for cl in changelists:
             # Format timestamp (P4 time is Unix timestamp)
@@ -199,31 +218,51 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             List of changelist dictionaries in Sentry commit format
         """
-        integration_id = repo.integration_id
-        if integration_id is None:
-            raise NotImplementedError("Perforce integration requires an integration_id")
-
-        integration = integration_service.get_integration(integration_id=integration_id)
-        if integration is None:
-            raise NotImplementedError("Integration not found")
-
-        installation = integration.get_installation(organization_id=repo.organization_id)
-        client = installation.get_client()
-
+        client = self._get_client_from_repo(repo)
         depot_path = repo.config.get("depot_path", repo.name)
 
         try:
+            # Convert changelist numbers from strings to integers
+            # In Perforce, SHAs are changelist numbers
+            start_cl = int(start_sha) if start_sha else None
+            end_cl = int(end_sha)
+
             # Get changelists in range (start_sha, end_sha]
             changes = client.get_changes(
                 f"{depot_path}/...",
                 max_changes=20,
-                start_cl=start_sha,
-                end_cl=end_sha,
+                start_cl=start_cl,
+                end_cl=end_cl,
             )
 
             return self._format_commits(changes, depot_path, client)
 
-        except Exception:
+        except (ValueError, TypeError) as e:
+            # Log conversion errors for debugging
+            logger.exception(
+                "perforce.compare_commits.invalid_changelist",
+                extra={
+                    "start_sha": start_sha,
+                    "end_sha": end_sha,
+                    "depot_path": depot_path,
+                    "repo_id": repo.id,
+                    "error": str(e),
+                },
+            )
+            return []
+        except Exception as e:
+            logger.exception(
+                "perforce.compare_commits.failed",
+                extra={
+                    "start_sha": start_sha,
+                    "end_sha": end_sha,
+                    "depot_path": depot_path,
+                    "repo_id": repo.id,
+                    "integration_id": repo.integration_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
             return []
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
