@@ -77,7 +77,8 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     if dropped_fields["selected_columns"]:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("dropped_fields", dropped_fields["selected_columns"])
-            sentry_sdk.capture_exception("Selected column not supported!")
+            scope.set_tag("snuba_query", snuba_query.id)
+            sentry_sdk.capture_message("Unsported column")
         return
 
     translated_aggregate = eap_query_parts["selected_columns"][0]
