@@ -59,7 +59,8 @@ export function SlideOverPanelSkeletonPlayground() {
           <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
             <Button onClick={closePanel}>Close Panel</Button>
             <Container>
-              <VerySlowComponent />
+              <Alert type="warning">I took a very long time to render!</Alert>
+              <ManySlowComponents />
             </Container>
           </Flex>
         </SlideOverPanel>
@@ -83,6 +84,22 @@ export function SkeletonPanel({onClick}: SkeletonPanelProps) {
   );
 }
 
+const RANGE: number[] = [];
+
+for (let i = 0; i <= 100; i++) {
+  RANGE.push(i);
+}
+
+function ManySlowComponents() {
+  return (
+    <Fragment>
+      {RANGE.map(index => (
+        <VerySlowComponent key={index} />
+      ))}
+    </Fragment>
+  );
+}
+
 export function VerySlowComponent() {
   const start = performance.now();
 
@@ -90,7 +107,7 @@ export function VerySlowComponent() {
     // Do nothing
   }
 
-  return <Alert type="warning">I took a very long time to render!</Alert>;
+  return null;
 }
 
-const SLOW_COMPONENT_RENDER_DURATION = 2000;
+const SLOW_COMPONENT_RENDER_DURATION = 20;
