@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.api.serializers import serialize
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -21,7 +22,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     EventData,
     GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -353,6 +354,29 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    def _build_evidence_data_sources(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> list[dict[str, Any]]:
+        try:
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
+            )
+            if not data_sources:
+                logger.warning(
+                    "Matching data source not found for detector while generating occurrence evidence data",
+                    extra={
+                        "detector_id": self.detector.id,
+                        "data_packet_source_id": data_packet.source_id,
+                    },
+                )
+                return []
+            return serialize(data_sources)
+        except Exception:
+            logger.exception(
+                "Failed to serialize data source definition when building workflow engine evidence data"
+            )
+            return []
+
     def _build_workflow_engine_evidence_data(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -363,14 +387,17 @@ class StatefulDetectorHandler(
         Build the workflow engine specific evidence data.
         This is data that is common to all detectors.
         """
-        return {
+        base: dict[str, Any] = {
             "detector_id": self.detector.id,
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
                 result.condition.get_snapshot() for result in evaluation_result.condition_results
             ],
+            "data_sources": self._build_evidence_data_sources(data_packet),
         }
+
+        return base
 
     def evaluate_impl(
         self, data_packet: DataPacket[DataPacketType]

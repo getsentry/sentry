@@ -24,6 +24,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
     ):
+        self.query_subscription.refresh_from_db()
 
         conditions = [
             {
@@ -50,6 +51,29 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             "alert_id": self.alert_rule.id,
             "data_packet_source_id": str(self.query_subscription.id),
             "conditions": conditions,
+            "data_sources": [
+                {
+                    "id": str(self.data_source.id),
+                    "organizationId": str(self.organization.id),
+                    "type": self.data_source.type,
+                    "sourceId": str(self.query_subscription.id),
+                    "queryObj": {
+                        "id": str(self.query_subscription.id),
+                        "status": self.query_subscription.status,
+                        "subscription": self.query_subscription.subscription_id,
+                        "snubaQuery": {
+                            "id": str(self.snuba_query.id),
+                            "dataset": self.snuba_query.dataset,
+                            "query": self.snuba_query.query,
+                            "aggregate": self.snuba_query.aggregate,
+                            "timeWindow": self.snuba_query.time_window,
+                            "environment": self.environment.name,
+                            "eventTypes": ["error"],
+                            "extrapolationMode": "unknown",
+                        },
+                    },
+                }
+            ],
         }
 
         return evidence_data
