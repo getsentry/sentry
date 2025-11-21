@@ -72,7 +72,7 @@ ALERT_BLOCKED_FIELDS = {
 
 # Mapping from model ExtrapolationMode to proto ExtrapolationMode
 MODEL_TO_PROTO_EXTRAPOLATION_MODE = {
-    ExtrapolationMode.UNKNOWN: ProtoExtrapolationMode.EXTRAPOLATION_MODE_UNSPECIFIED,
+    ExtrapolationMode.UNKNOWN: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
     ExtrapolationMode.NONE: ProtoExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
     ExtrapolationMode.SERVER_WEIGHTED: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
