@@ -275,29 +275,39 @@ describe('CompositeSelect', () => {
   });
 
   it('works with grid lists', async () => {
-    render(
-      <CompositeSelect grid trigger={props => <button {...props}>Open menu</button>}>
-        <CompositeSelect.Region
-          label="Region 1"
-          value="choice_one"
-          onChange={() => {}}
-          options={[
-            {value: 'choice_one', label: 'Choice One'},
-            {value: 'choice_two', label: 'Choice Two'},
-          ]}
-        />
-        <CompositeSelect.Region
-          multiple
-          label="Region 2"
-          onChange={jest.fn()}
-          value={undefined}
-          options={[
-            {value: 'choice_three', label: 'Choice Three'},
-            {value: 'choice_four', label: 'Choice Four'},
-          ]}
-        />
-      </CompositeSelect>
-    );
+    function Component() {
+      const [region1, setRegion1] = useState('choice_one');
+      const [region2, setRegion2] = useState<string[]>([]);
+      return (
+        <CompositeSelect grid trigger={props => <button {...props}>Open menu</button>}>
+          <CompositeSelect.Region
+            label="Region 1"
+            onChange={selection => {
+              setRegion1(selection.value);
+            }}
+            value={region1}
+            options={[
+              {value: 'choice_one', label: 'Choice One'},
+              {value: 'choice_two', label: 'Choice Two'},
+            ]}
+          />
+          <CompositeSelect.Region
+            multiple
+            label="Region 2"
+            onChange={selection => {
+              setRegion2(selection.map(s => s.value));
+            }}
+            value={region2}
+            options={[
+              {value: 'choice_three', label: 'Choice Three'},
+              {value: 'choice_four', label: 'Choice Four'},
+            ]}
+          />
+        </CompositeSelect>
+      );
+    }
+
+    render(<Component />);
 
     // click on the trigger button
     await userEvent.click(screen.getByRole('button'));

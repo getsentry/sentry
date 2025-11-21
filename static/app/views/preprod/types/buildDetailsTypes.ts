@@ -27,7 +27,7 @@ export interface BuildDetailsAppInfo {
 }
 
 interface AppleAppInfo {
-  missing_dsym_binaries?: string[];
+  has_missing_dsym_binaries?: boolean;
 }
 
 interface AndroidAppInfo {

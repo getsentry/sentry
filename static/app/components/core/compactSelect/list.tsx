@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useId,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
+import {createContext, Fragment, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -31,14 +24,16 @@ import {
   getHiddenOptions,
   getSelectedOptions,
   HiddenSectionToggle,
+  shouldCloseOnSelect,
 } from './utils';
 
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
-  extends ListProps<any>,
+  extends Omit<ListProps<any>, 'disallowEmptySelection'>,
     Omit<
       AriaListBoxOptions<any>,
+      | 'disallowEmptySelection'
       | 'disabledKeys'
       | 'selectedKeys'
       | 'defaultSelectedKeys'
@@ -48,6 +43,7 @@ interface BaseListProps<Value extends SelectKey>
     >,
     Omit<
       AriaGridListOptions<any>,
+      | 'disallowEmptySelection'
       | 'disabledKeys'
       | 'selectedKeys'
       | 'defaultSelectedKeys'
@@ -99,9 +95,37 @@ interface BaseListProps<Value extends SelectKey>
   sizeLimitMessage?: string;
 }
 
-export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
+/**
+ * A single-selection (only one option can be selected at a time) list that allows
+ * clearing the selection.
+ * `value` can be `undefined` to represent no selection.
+ */
+interface SingleClearableListProps<Value extends SelectKey> extends BaseListProps<Value> {
+  /**
+   * If true, there will be a "Clear" button in the menu header.
+   */
+  clearable: true;
+  onChange: (selectedOption: SelectOption<Value> | undefined) => void;
+  value: Value | undefined;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?:
+    | boolean
+    | ((selectedOption: SelectOption<Value> | undefined) => boolean);
+  multiple?: false;
+}
+
+export type SingleListProps<Value extends SelectKey> =
+  | SingleClearableListProps<Value>
+  | SingleUnclearableListProps<Value>;
+
+interface SingleUnclearableListProps<Value extends SelectKey>
+  extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
+  clearable?: false;
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected option and returns whether to close the menu.
@@ -114,6 +138,8 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
   multiple: true;
   onChange: (selectedOptions: Array<SelectOption<Value>>) => void;
   value: Value[] | undefined;
+  clearable?: boolean; // set to a regular boolean here because the empty type can be represented as an empty array
+
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected options and returns whether to close the menu.
@@ -134,7 +160,7 @@ export function List<Value extends SelectKey>({
   onChange,
   grid,
   multiple,
-  disallowEmptySelection,
+  clearable,
   isOptionDisabled,
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
@@ -144,8 +170,7 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, registerListState, search, overlayIsOpen} =
-    useContext(SelectContext);
+  const {overlayState, search, overlayIsOpen} = useContext(SelectContext);
 
   const hiddenOptions = useMemo(
     () => getHiddenOptions(items, search, sizeLimit),
@@ -166,19 +191,13 @@ export function List<Value extends SelectKey>({
         selectionMode: 'multiple' as const,
         disabledKeys,
         // react-aria turns all keys into strings
-        selectedKeys: value?.map(getEscapedKey),
-        disallowEmptySelection,
+        selectedKeys: value?.map(getEscapedKey) ?? [],
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
           const selectedOptions = getSelectedOptions<Value>(items, selection);
           onChange?.(selectedOptions);
 
-          // Close menu if closeOnSelect is true
-          if (
-            typeof closeOnSelect === 'function'
-              ? closeOnSelect(selectedOptions)
-              : closeOnSelect
-          ) {
+          if (shouldCloseOnSelect({multiple, closeOnSelect, selectedOptions})) {
             overlayState?.close();
           }
         },
@@ -189,20 +208,23 @@ export function List<Value extends SelectKey>({
       selectionMode: 'single' as const,
       disabledKeys,
       // react-aria turns all keys into strings
-      selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
-      disallowEmptySelection: disallowEmptySelection ?? true,
+      // we're setting selectedKeys to an empty array when value is undefined, because
+      // undefined makes react-aria treat it as uncontrolled
+      selectedKeys: defined(value) ? [getEscapedKey(value)] : [],
+      disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
-        onChange?.(selectedOption ?? null);
+        onChange?.(selectedOption);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
         if (
-          !defined(closeOnSelect) ||
-          (typeof closeOnSelect === 'function'
-            ? closeOnSelect(selectedOption ?? null)
-            : closeOnSelect)
+          shouldCloseOnSelect({
+            multiple,
+            closeOnSelect,
+            selectedOptions: [selectedOption],
+          })
         ) {
           overlayState?.close();
         }
@@ -215,7 +237,7 @@ export function List<Value extends SelectKey>({
     isOptionDisabled,
     hiddenOptions,
     multiple,
-    disallowEmptySelection,
+    clearable,
     closeOnSelect,
     overlayState,
   ]);
@@ -225,12 +247,6 @@ export function List<Value extends SelectKey>({
     ...listStateProps,
     items,
   });
-
-  // Register the initialized list state once on mount
-  useLayoutEffect(() => {
-    registerListState(compositeIndex, listState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listState.collection]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed

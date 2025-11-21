@@ -92,14 +92,19 @@ def execute_table_query(
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events/",
-        params=params,
-    )
-    return {"data": resp.data["data"]}
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        if e.status_code == 400:
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def execute_timeseries_query(
