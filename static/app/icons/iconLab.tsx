@@ -1,7 +1,4 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-
-import {useIconDefaults} from 'sentry/icons/useIconDefaults';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -12,35 +9,16 @@ interface IconLabProps extends SVGIconProps {
 
 export function IconLab({isSolid, ...props}: IconLabProps) {
   const theme = useTheme();
-  const {color: providedColor = 'currentColor'} = useIconDefaults(props);
-
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const color = theme[providedColor] ?? providedColor;
-
   return (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props}>
       {theme.isChonk ? (
         isSolid ? (
-          <Fragment>
-            <path d="M12.59,10.96l-2.59-4.21V2.75h-4v4l-2.59,4.21c-.62,1,.1,2.29,1.28,2.29h6.63c1.17,0,1.89-1.29,1.28-2.29Z" />
-            <line x1="5" y1="2.75" x2="11" y2="2.75" />
-            <path
-              fill={color}
-              d="M7.79,7.35l-2.3,3.77c-.1.17.02.38.21.38h4.61c.2,0,.32-.21.21-.38l-2.3-3.77c-.1-.16-.33-.16-.43,0Z"
-            />
-          </Fragment>
+          <path d="M12.25 0.5C12.66 0.5 13 0.84 13 1.25C13 1.66 12.66 2 12.25 2H11.5V6.53L14.67 11.55C15.56 12.95 14.67 14.76 13.1 14.98C12.99 14.99 12.89 15 12.77 15H3.23L3.06 14.99C3.01 14.99 2.95 14.98 2.9 14.98C2.74 14.96 2.59 14.92 2.45 14.87C2.26 14.8 2.08 14.7 1.92 14.59C1.45 14.25 1.12 13.73 1.01 13.16C0.99 13.06 0.98 12.96 0.97 12.87C0.97 12.82 0.97 12.77 0.97 12.72C0.97 12.57 0.99 12.42 1.02 12.27C1.05 12.12 1.1 11.98 1.17 11.83C1.21 11.74 1.26 11.64 1.32 11.55L2.94 9L4.5 6.53V2H3.75C3.34 2 3 1.66 3 1.25C3 0.84 3.34 0.5 3.75 0.5H12.25ZM6 6.75C6 6.89 5.96 7.03 5.88 7.15L4.71 9H11.29L10.12 7.15C10.04 7.03 10 6.89 10 6.75V2H6V6.75Z" />
         ) : (
-          <Fragment>
-            <path
-              fill={isSolid ? color : 'none'}
-              d="m13.06,11.73l-3.06-4.98V2.75h-4v4l-3.06,4.98c-.41.67.07,1.52.85,1.52h8.42c.78,0,1.26-.86.85-1.52Z"
-            />
-            <line x1="5" y1="2.75" x2="11" y2="2.75" />
-            <line x1="4" y1="10.25" x2="12" y2="10.25" />
-          </Fragment>
+          <path d="M12.25 0.5C12.66 0.5 13 0.84 13 1.25C13 1.66 12.66 2 12.25 2H11.5V6.53L14.67 11.55C15.62 13.04 14.55 15 12.77 15H3.23C1.45 15 0.38 13.04 1.32 11.55L4.5 6.53V2H3.75C3.34 2 3 1.66 3 1.25C3 0.84 3.34 0.5 3.75 0.5H12.25ZM3.76 10.5L2.59 12.35C2.28 12.85 2.63 13.5 3.23 13.5H12.77C13.37 13.5 13.72 12.85 13.41 12.35L12.24 10.5H3.76ZM6 6.75C6 6.89 5.96 7.03 5.88 7.15L4.71 9H11.29L10.12 7.15C10.04 7.03 10 6.89 10 6.75V2H6V6.75Z" />
         )
       ) : isSolid ? (
-        <path d="M4 12.6667L7.33333 7.33333H8.66667L12 12.6667L11.3333 13.3333H4.66667L4 12.6667Z" />
+        <path d="M4 12.67L7.33 7.33H8.67L12 12.67L11.33 13.33H4.67L4 12.67Z" />
       ) : (
         <path d="M8,13.29a2.5,2.5,0,1,1,2.5-2.5A2.5,2.5,0,0,1,8,13.29Zm0-3.5a1,1,0,1,0,1,1A1,1,0,0,0,8,9.79Z" />
       )}

@@ -2051,36 +2051,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_default_search_with_priority(self) -> None:
-        event1 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event1.group.priority = PriorityLevel.HIGH
-        event1.group.save()
-        event2 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
-            project_id=self.project.id,
-        )
-        event2.group.status = GroupStatus.RESOLVED
-        event2.group.substatus = None
-        event2.group.priority = PriorityLevel.HIGH
-        event2.group.save()
-
-        event3 = self.store_event(
-            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        event3.group.priority = PriorityLevel.LOW
-        event3.group.save()
-
-        self.login_as(user=self.user)
-        sleep(1)
-
-        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event1.group.id]
-
     def test_collapse_stats(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},

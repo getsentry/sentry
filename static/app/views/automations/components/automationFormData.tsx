@@ -1,6 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
@@ -35,8 +35,18 @@ const stripSubfilterId = (subfilter: any) => {
   return subfilterWithoutId;
 };
 
-const stripActionId = (action: any) => {
+const stripActionFields = (action: Action) => {
   const {id: _id, ...actionWithoutId} = action;
+
+  // Strip targetDisplay from email action config
+  if (action.type === ActionType.EMAIL && action.config) {
+    const {targetDisplay: _targetDisplay, ...configWithoutTargetDisplay} = action.config;
+    return {
+      ...actionWithoutId,
+      config: configWithoutTargetDisplay,
+    };
+  }
+
   return actionWithoutId;
 };
 
@@ -45,7 +55,7 @@ const stripDataConditionGroupId = (group: any) => {
   return {
     ...groupWithoutId,
     conditions: group.conditions?.map(stripDataConditionId) || [],
-    actions: group.actions?.map(stripActionId) || [],
+    actions: group.actions?.map(stripActionFields) || [],
   };
 };
 

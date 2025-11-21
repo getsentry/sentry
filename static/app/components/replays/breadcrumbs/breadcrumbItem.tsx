@@ -68,14 +68,21 @@ export default function BreadcrumbItem({
   });
 
   const prevExtractState = useRef(isPending);
+  const prevShowSnippet = useRef(showSnippet);
 
   useEffect(() => {
     if (!updateDimensions) {
       return;
     }
 
-    if (isPending !== prevExtractState.current || showSnippet) {
+    if (
+      isPending !== prevExtractState.current ||
+      (showSnippet && prevShowSnippet.current !== showSnippet)
+    ) {
       prevExtractState.current = isPending;
+      // We want/need to only re-render once when showSnippet is initially toggled,
+      // otherwise can potentially trigger an infinite re-render.
+      prevShowSnippet.current = showSnippet;
       updateDimensions();
     }
   }, [isPending, updateDimensions, showSnippet]);

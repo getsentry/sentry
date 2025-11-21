@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {AttributeComparisonCTA} from 'sentry/views/explore/components/attributeBreakdowns/attributeComparisonCTA';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -263,43 +264,51 @@ function Chart({
     </Fragment>
   );
 
+  const widget = (
+    <Widget
+      Title={Title}
+      Actions={Actions}
+      Visualization={
+        visualize.visible && (
+          <ChartVisualization
+            chartInfo={chartInfo}
+            chartRef={chartRef}
+            brush={boxSelectOptions.brush}
+            onBrushEnd={boxSelectOptions.onBrushEnd}
+            onBrushStart={boxSelectOptions.onBrushStart}
+            toolBox={boxSelectOptions.toolBox}
+          />
+        )
+      }
+      Footer={
+        visualize.visible && (
+          <ConfidenceFooter
+            extrapolate={extrapolate}
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={
+              topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+            }
+            dataScanned={chartInfo.dataScanned}
+            rawSpanCounts={rawSpanCounts}
+            userQuery={query.trim()}
+          />
+        )
+      }
+      height={chartHeight}
+      revealActions="always"
+    />
+  );
+
   return (
     <ChartWrapper ref={chartWrapperRef}>
-      <Widget
-        Title={Title}
-        Actions={Actions}
-        Visualization={
-          visualize.visible && (
-            <ChartVisualization
-              chartInfo={chartInfo}
-              chartRef={chartRef}
-              brush={boxSelectOptions.brush}
-              onBrushEnd={boxSelectOptions.onBrushEnd}
-              onBrushStart={boxSelectOptions.onBrushStart}
-              toolBox={boxSelectOptions.toolBox}
-            />
-          )
-        }
-        Footer={
-          visualize.visible && (
-            <ConfidenceFooter
-              extrapolate={extrapolate}
-              sampleCount={chartInfo.sampleCount}
-              isLoading={chartInfo.timeseriesResult?.isPending || false}
-              isSampled={chartInfo.isSampled}
-              confidence={chartInfo.confidence}
-              topEvents={
-                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-              }
-              dataScanned={chartInfo.dataScanned}
-              rawSpanCounts={rawSpanCounts}
-              userQuery={query.trim()}
-            />
-          )
-        }
-        height={chartHeight}
-        revealActions="always"
-      />
+      {index === 0 ? ( // Only show the CTA on the first chart
+        <AttributeComparisonCTA>{widget}</AttributeComparisonCTA>
+      ) : (
+        widget
+      )}
       <FloatingTrigger
         chartInfo={chartInfo}
         setTab={setTab}

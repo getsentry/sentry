@@ -191,6 +191,8 @@ interface VideoCompressionInsightResult extends FilesInsightResult {}
 
 interface MultipleNativeLibraryArchsInsightResult extends FilesInsightResult {}
 
+interface WebPOptimizationInsightResult extends FilesInsightResult {}
+
 export interface InsightResults {
   alternate_icons_optimization?: ImageOptimizationInsightResult;
   audio_compression?: AudioCompressionInsightResult;
@@ -209,6 +211,7 @@ export interface InsightResults {
   strip_binary?: StripBinaryInsightResult;
   unnecessary_files?: UnnecessaryFilesInsightResult;
   video_compression?: VideoCompressionInsightResult;
+  webp_optimization?: WebPOptimizationInsightResult;
 }
 
 /**

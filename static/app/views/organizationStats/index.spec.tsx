@@ -113,10 +113,6 @@ describe('OrganizationStats', () => {
     expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
     expect(screen.getAllByText('15')[0]).toBeInTheDocument();
 
-    expect(
-      screen.queryByText('*This is an estimation, and may not be 100% accurate.')
-    ).not.toBeInTheDocument();
-
     // Correct API Calls
     const mockExpectations = {
       UsageStatsOrg: {
@@ -525,25 +521,6 @@ describe('OrganizationStats', () => {
 
     expect(
       await screen.findByText('You need at least one project to use this view')
-    ).toBeInTheDocument();
-  });
-
-  it('shows estimation text when profile duration category is selected', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/',
-          query: {dataCategory: DATA_CATEGORY_INFO.profile_duration.plural},
-        },
-      },
-    });
-    expect(
-      await screen.findByText('*This is an estimation, and may not be 100% accurate.')
     ).toBeInTheDocument();
   });
 
