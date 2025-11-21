@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("workflow_engine", "0102_cleanup_failed_safe_deletes"),
+        ("workflow_engine", "0103_add_unique_constraint"),
     ]
 
     operations = [

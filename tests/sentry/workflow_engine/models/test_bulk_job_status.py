@@ -2,8 +2,8 @@ import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.workflow_engine.models import BulkJobState, BulkJobStatus, Detector
-from sentry.workflow_engine.processors.backfill import (
-    ERROR_DETECTOR_BACKFILL_JOB,
+from sentry.workflow_engine.processors.error_backfill import (
+    ERROR_BACKFILL_JOB,
     ErrorDetectorWorkChunk,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -17,9 +17,9 @@ class BulkJobStatusTest(BaseWorkflowTest):
     def test_create_error_backfill_status(self) -> None:
         """Test that we can create a BulkJobStatus record"""
         work_chunk = ErrorDetectorWorkChunk(detector_id=self.detector.id)
-        batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+        batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
         backfill_status = BulkJobStatus(
-            job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            job_type=ERROR_BACKFILL_JOB.job_type,
             batch_key=batch_key,
             work_chunk_info=work_chunk.dict(),
             status=BulkJobState.NOT_STARTED,
@@ -38,9 +38,9 @@ class BulkJobStatusTest(BaseWorkflowTest):
         from django.db import IntegrityError
 
         work_chunk = ErrorDetectorWorkChunk(detector_id=self.detector.id)
-        batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+        batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
         backfill_status = BulkJobStatus(
-            job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            job_type=ERROR_BACKFILL_JOB.job_type,
             batch_key=batch_key,
             work_chunk_info=work_chunk.dict(),
             status=BulkJobState.NOT_STARTED,
@@ -50,7 +50,7 @@ class BulkJobStatusTest(BaseWorkflowTest):
         # Creating a duplicate should fail
         with pytest.raises(IntegrityError):
             duplicate = BulkJobStatus(
-                job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+                job_type=ERROR_BACKFILL_JOB.job_type,
                 batch_key=batch_key,
                 work_chunk_info=work_chunk.dict(),
                 status=BulkJobState.NOT_STARTED,
@@ -60,9 +60,9 @@ class BulkJobStatusTest(BaseWorkflowTest):
     def test_status_transitions(self) -> None:
         """Test that we can transition between statuses"""
         work_chunk = ErrorDetectorWorkChunk(detector_id=self.detector.id)
-        batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+        batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
         backfill_status = BulkJobStatus(
-            job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            job_type=ERROR_BACKFILL_JOB.job_type,
             batch_key=batch_key,
             work_chunk_info=work_chunk.dict(),
             status=BulkJobState.NOT_STARTED,
@@ -93,9 +93,9 @@ class BulkJobStatusTest(BaseWorkflowTest):
             (detector3, BulkJobState.COMPLETED),
         ]:
             work_chunk = ErrorDetectorWorkChunk(detector_id=detector.id)
-            batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+            batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
             backfill_status = BulkJobStatus(
-                job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+                job_type=ERROR_BACKFILL_JOB.job_type,
                 batch_key=batch_key,
                 work_chunk_info=work_chunk.dict(),
                 status=status,
@@ -110,9 +110,9 @@ class BulkJobStatusTest(BaseWorkflowTest):
     def test_detector_delete_does_not_cascade(self) -> None:
         """Test that deleting a detector does not cascade to BulkJobStatus (decoupled)"""
         work_chunk = ErrorDetectorWorkChunk(detector_id=self.detector.id)
-        batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+        batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
         backfill_status = BulkJobStatus(
-            job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            job_type=ERROR_BACKFILL_JOB.job_type,
             batch_key=batch_key,
             work_chunk_info=work_chunk.dict(),
             status=BulkJobState.NOT_STARTED,

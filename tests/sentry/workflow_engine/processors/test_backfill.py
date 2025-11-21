@@ -4,12 +4,14 @@ from unittest.mock import MagicMock, patch
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import GroupStatus
 from sentry.workflow_engine.models import BulkJobState, BulkJobStatus, DetectorGroup
-from sentry.workflow_engine.processors.backfill import (
-    ERROR_DETECTOR_BACKFILL_JOB,
-    ErrorDetectorWorkChunk,
+from sentry.workflow_engine.processors.bulk_job import (
     coordinate_bulk_jobs,
     create_bulk_job_records,
     process_bulk_job,
+)
+from sentry.workflow_engine.processors.error_backfill import (
+    ERROR_BACKFILL_JOB,
+    ErrorDetectorWorkChunk,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -17,9 +19,9 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 def create_backfill_status(detector_id: int, status: BulkJobState) -> BulkJobStatus:
     """Helper to create a BulkJobStatus record for error detector backfilling."""
     work_chunk = ErrorDetectorWorkChunk(detector_id=detector_id)
-    batch_key = ERROR_DETECTOR_BACKFILL_JOB.get_batch_key(work_chunk)
+    batch_key = ERROR_BACKFILL_JOB.get_batch_key(work_chunk)
     backfill_status = BulkJobStatus(
-        job_type=ERROR_DETECTOR_BACKFILL_JOB.job_type,
+        job_type=ERROR_BACKFILL_JOB.job_type,
         batch_key=batch_key,
         work_chunk_info=work_chunk.dict(),
         status=status,
@@ -146,11 +148,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Should have scheduled both items
@@ -167,11 +170,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Check that status was reset to not_started
@@ -189,11 +193,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Check that the record was deleted
@@ -212,14 +217,15 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=max_batch_size,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=100,
         )
 
-        # Should only schedule max_batch_size items
+        # Should only schedule max_batch_size items (capped by max_batch_size)
         assert mock_schedule.call_count == max_batch_size
 
     def test_coordinate_ignores_recent_in_progress(self) -> None:
@@ -229,11 +235,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Check that status is still in_progress
@@ -247,11 +254,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock()
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Check that the record still exists
@@ -277,11 +285,12 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
         mock_schedule = MagicMock(side_effect=side_effect)
 
         coordinate_bulk_jobs(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
             max_batch_size=100,
             in_progress_timeout=timedelta(hours=1),
             completed_cleanup_age=timedelta(days=30),
             schedule_task_fn=mock_schedule,
+            target_running_tasks=50,
         )
 
         # Should have attempted to schedule all 3 items
@@ -305,16 +314,102 @@ class CoordinateBackfillsTest(BaseWorkflowTest):
             patch("sentry.utils.metrics.gauge") as mock_gauge,
         ):
             coordinate_bulk_jobs(
-                ERROR_DETECTOR_BACKFILL_JOB.job_type,
+                ERROR_BACKFILL_JOB.job_type,
                 max_batch_size=100,
                 in_progress_timeout=timedelta(hours=1),
                 completed_cleanup_age=timedelta(days=30),
                 schedule_task_fn=mock_schedule,
+                target_running_tasks=50,
             )
 
             # Check that metrics were recorded
             assert mock_incr.called
             assert mock_gauge.called
+
+    def test_coordinate_respects_target_running_tasks(self) -> None:
+        """Test that coordinator only schedules tasks up to target_running_tasks"""
+        target_running_tasks = 5
+
+        # Create 10 pending items
+        for _ in range(10):
+            project = self.create_project()
+            detector = self.create_detector(type=ErrorGroupType.slug, project=project)
+            create_backfill_status(detector.id, BulkJobState.NOT_STARTED)
+
+        # Create 3 items already in progress
+        for _ in range(3):
+            project = self.create_project()
+            detector = self.create_detector(type=ErrorGroupType.slug, project=project)
+            create_backfill_status(detector.id, BulkJobState.IN_PROGRESS)
+
+        mock_schedule = MagicMock()
+
+        coordinate_bulk_jobs(
+            ERROR_BACKFILL_JOB.job_type,
+            max_batch_size=100,
+            in_progress_timeout=timedelta(hours=1),
+            completed_cleanup_age=timedelta(days=30),
+            schedule_task_fn=mock_schedule,
+            target_running_tasks=target_running_tasks,
+        )
+
+        # Should only schedule 2 more tasks (5 target - 3 in progress = 2)
+        assert mock_schedule.call_count == 2
+
+    def test_coordinate_no_schedule_when_target_reached(self) -> None:
+        """Test that coordinator schedules no tasks when target is already reached"""
+        target_running_tasks = 5
+
+        # Create 10 pending items
+        for _ in range(10):
+            project = self.create_project()
+            detector = self.create_detector(type=ErrorGroupType.slug, project=project)
+            create_backfill_status(detector.id, BulkJobState.NOT_STARTED)
+
+        # Create 5 items already in progress (at target)
+        for _ in range(5):
+            project = self.create_project()
+            detector = self.create_detector(type=ErrorGroupType.slug, project=project)
+            create_backfill_status(detector.id, BulkJobState.IN_PROGRESS)
+
+        mock_schedule = MagicMock()
+
+        coordinate_bulk_jobs(
+            ERROR_BACKFILL_JOB.job_type,
+            max_batch_size=100,
+            in_progress_timeout=timedelta(hours=1),
+            completed_cleanup_age=timedelta(days=30),
+            schedule_task_fn=mock_schedule,
+            target_running_tasks=target_running_tasks,
+        )
+
+        # Should not schedule any tasks
+        assert mock_schedule.call_count == 0
+
+    def test_coordinate_respects_max_batch_size_cap(self) -> None:
+        """Test that coordinator respects max_batch_size even when target is higher"""
+        target_running_tasks = 100
+        max_batch_size = 10
+
+        # Create 50 pending items
+        for _ in range(50):
+            project = self.create_project()
+            detector = self.create_detector(type=ErrorGroupType.slug, project=project)
+            create_backfill_status(detector.id, BulkJobState.NOT_STARTED)
+
+        mock_schedule = MagicMock()
+
+        coordinate_bulk_jobs(
+            ERROR_BACKFILL_JOB.job_type,
+            max_batch_size=max_batch_size,
+            in_progress_timeout=timedelta(hours=1),
+            completed_cleanup_age=timedelta(days=30),
+            schedule_task_fn=mock_schedule,
+            target_running_tasks=target_running_tasks,
+        )
+
+        # Should only schedule max_batch_size tasks despite higher target
+        assert mock_schedule.call_count == max_batch_size
 
 
 class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
@@ -328,7 +423,7 @@ class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
         detector3 = self.create_detector(type=ErrorGroupType.slug, project=self.create_project())
 
         result = create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
         )
 
         assert result is None
@@ -341,10 +436,10 @@ class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
         detector = self.create_detector(type=ErrorGroupType.slug)
 
         create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
         )
         create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type,
+            ERROR_BACKFILL_JOB.job_type,
         )
 
         assert BulkJobStatus.objects.filter(batch_key=f"error_detector:{detector.id}").count() == 1
@@ -356,7 +451,7 @@ class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
         detector3 = self.create_detector(type=ErrorGroupType.slug, project=self.create_project())
 
         result = create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detector2.id}"
+            ERROR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detector2.id}"
         )
 
         assert result is None
@@ -370,9 +465,7 @@ class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
             self.create_detector(type=ErrorGroupType.slug, project=self.create_project())
 
         past_deadline = datetime.now(UTC) - timedelta(seconds=1)
-        result = create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type, deadline=past_deadline
-        )
+        result = create_bulk_job_records(ERROR_BACKFILL_JOB.job_type, deadline=past_deadline)
 
         assert result is not None
         assert BulkJobStatus.objects.count() == 0
@@ -385,13 +478,13 @@ class PopulateBackfillStatusRecordsTest(BaseWorkflowTest):
         ]
 
         create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detectors[0].id}"
+            ERROR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detectors[0].id}"
         )
         assert BulkJobStatus.objects.count() == 3
 
         detector4 = self.create_detector(type=ErrorGroupType.slug, project=self.create_project())
         create_bulk_job_records(
-            ERROR_DETECTOR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detector4.id}"
+            ERROR_BACKFILL_JOB.job_type, start_from=f"error_detector:{detector4.id}"
         )
 
         assert BulkJobStatus.objects.count() == 4
