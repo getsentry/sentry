@@ -2,7 +2,7 @@ from io import BytesIO
 
 from django.urls import reverse
 
-from sentry.objectstore import preprod
+from sentry.objectstore import get_preprod_session
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_objectstore
 
@@ -30,8 +30,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_successful_image_retrieval_png(self):
         png_data = b"\x89PNG\r\n\x1a\n" + b"fake png content" * 100
 
-        client = preprod.for_project(self.org.id, self.project.id)
-        client.put(BytesIO(png_data), id=f"{self.org.id}/{self.project.id}/test-image-123")
+        client = get_preprod_session(self.org.id, self.project.id)
+        client.put(BytesIO(png_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
 
         url = self._get_url()
         response = self.client.get(
@@ -46,8 +46,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_successful_image_retrieval_jpeg(self):
         jpeg_data = b"\xff\xd8\xff" + b"fake jpeg content" * 100
 
-        client = preprod.for_project(self.org.id, self.project.id)
-        client.put(BytesIO(jpeg_data), id=f"{self.org.id}/{self.project.id}/test-image-123")
+        client = get_preprod_session(self.org.id, self.project.id)
+        client.put(BytesIO(jpeg_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
 
         url = self._get_url()
         response = self.client.get(
@@ -62,8 +62,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_successful_image_retrieval_webp(self):
         webp_data = b"RIFF" + b"1234" + b"WEBP" + b"fake webp content" * 100
 
-        client = preprod.for_project(self.org.id, self.project.id)
-        client.put(BytesIO(webp_data), id=f"{self.org.id}/{self.project.id}/test-image-123")
+        client = get_preprod_session(self.org.id, self.project.id)
+        client.put(BytesIO(webp_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
 
         url = self._get_url()
         response = self.client.get(
@@ -77,8 +77,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_successful_image_retrieval_heic(self):
         heic_data = b"RIFF" + b"ftypheic" + b"fake heic content" * 100
 
-        client = preprod.for_project(self.org.id, self.project.id)
-        client.put(BytesIO(heic_data), id=f"{self.org.id}/{self.project.id}/test-image-123")
+        client = get_preprod_session(self.org.id, self.project.id)
+        client.put(BytesIO(heic_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
 
         url = self._get_url()
         response = self.client.get(
@@ -103,8 +103,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_unknown_image_format(self):
         unknown_data = b"unknown binary data" * 50
 
-        client = preprod.for_project(self.org.id, self.project.id)
-        client.put(BytesIO(unknown_data), id=f"{self.org.id}/{self.project.id}/test-image-123")
+        client = get_preprod_session(self.org.id, self.project.id)
+        client.put(BytesIO(unknown_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
 
         url = self._get_url()
         response = self.client.get(
