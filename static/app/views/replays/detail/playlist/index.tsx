@@ -26,7 +26,7 @@ const MOBILE_COLUMNS = [
 ];
 
 export default function Playlist() {
-  const {replays, currentReplayIndex} = useReplayPlaylist();
+  const {replays, currentReplayIndex, isLoading} = useReplayPlaylist();
   const location = useLocation();
 
   const {allMobileProj} = useAllMobileProj({});
@@ -36,7 +36,10 @@ export default function Playlist() {
       columns={columns}
       error={null}
       highlightedRowIndex={currentReplayIndex}
-      isPending={false}
+      // we prefer isLoading since it is only true if there is a fetch request in flight
+      // React Query's isPending is true as long as there is no data
+      // https://github.com/TanStack/query/discussions/7329
+      isPending={isLoading}
       query={location.query}
       replays={replays}
       showDropdownFilters={false}
