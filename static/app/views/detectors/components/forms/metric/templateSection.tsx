@@ -133,9 +133,6 @@ export function TemplateSection() {
             );
           }}
           onChange={option => {
-            if (!option) {
-              return;
-            }
             const key = option.value;
 
             const meta = templateMetaByKey[key as MetricAlertType];
