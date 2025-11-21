@@ -11,6 +11,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {metricsPickableDays} from 'sentry/views/explore/metrics/utils';
@@ -92,13 +93,24 @@ function MetricsHeader() {
   const location = useLocation();
   const pageId = getIdFromLocation(location, ID_KEY);
   const title = getTitleFromLocation(location, TITLE_KEY);
+  const organization = useOrganization();
+  const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  const hasSavedQueryTitle =
+    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Metrics')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
         ) : null}
-
         <Layout.Title>
           {title ? title : t('Metrics')}
           <FeatureBadge type="beta" />

@@ -18,6 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
@@ -109,9 +110,21 @@ export default function LogsContent() {
 function LogsHeader() {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
+  const organization = useOrganization();
+  const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  const hasSavedQueryTitle =
+    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Logs')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}
