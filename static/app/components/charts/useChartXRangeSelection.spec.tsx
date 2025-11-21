@@ -102,7 +102,7 @@ describe('useChartXRangeSelection', () => {
   });
 
   describe('onBrushEnd handler', () => {
-    it('should set selection with clamped coordinates', async () => {
+    it('should set selection with clamped coordinates', () => {
       const onSelectionEnd = jest.fn();
 
       const mockEchartsInstance = {
@@ -171,7 +171,7 @@ describe('useChartXRangeSelection', () => {
       );
     });
 
-    it('should clamp coordinates that exceed axis bounds', async () => {
+    it('should clamp coordinates that exceed axis bounds', () => {
       const onSelectionEnd = jest.fn();
 
       const mockEchartsInstance = {
@@ -450,7 +450,7 @@ describe('useChartXRangeSelection', () => {
       document.body.removeChild(outsideElement);
     });
 
-    it('should not clear selection when clicking inside selection region', async () => {
+    it('should not clear selection when clicking inside selection region', () => {
       const mockEchartsInstance = {
         ...mockChartInstance,
         getModel: jest.fn().mockReturnValue({
