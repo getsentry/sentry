@@ -67,6 +67,11 @@ class TestSentryAppDeletionTask(TestCase):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
+            },
         )
         webhook_action = self.create_action(
             type=Action.Type.WEBHOOK,
@@ -80,6 +85,11 @@ class TestSentryAppDeletionTask(TestCase):
                 "target_identifier": "1212121212",
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
+            },
+            data={
+                "settings": [
+                    {"name": "best_emoji", "value": ":fire:"},
+                ]
             },
         )
         deletions.exec_sync(self.sentry_app)
