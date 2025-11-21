@@ -9,7 +9,9 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
 import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
@@ -23,12 +25,19 @@ interface AppSizeInsightsProps {
 export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
+  const organization = useOrganization();
 
   const openSidebar = useCallback(() => {
+    trackPreprodBuildAnalytics('preprod.builds.details_insights_opened', {
+      organization,
+      insight_count: processedInsights.length,
+      platform: platform ?? null,
+      source: 'insight_table',
+    });
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
+  }, [organization, platform, processedInsights.length, searchParams, setSearchParams]);
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);

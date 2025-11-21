@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useState} from 'react';
 
 import {Container} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -7,6 +7,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -17,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
@@ -97,9 +99,23 @@ export default function PreprodBuilds() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
-  const hasSearchQuery = !!urlSearchQuery?.trim();
+  const trimmedSearchQuery = urlSearchQuery?.trim() ?? '';
+  const hasSearchQuery = trimmedSearchQuery.length > 0;
   const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
+
+  const handleBuildRowClick = useCallback(
+    (build: BuildDetailsApiResponse, _rowIndex: number) => {
+      trackPreprodBuildAnalytics('preprod.builds.release_row_clicked', {
+        organization,
+        project_type: projectPlatform ?? null,
+        platform: build.app_info?.platform ?? projectPlatform ?? null,
+        build_id: build.id,
+        project_slug: projectSlug,
+      });
+    },
+    [organization, projectPlatform, projectSlug]
+  );
 
   return (
     <Layout.Body>
@@ -133,7 +149,8 @@ export default function PreprodBuilds() {
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             projectSlug={projectSlug}
-            hasSearchQuery
+            hasSearchQuery={hasSearchQuery}
+            onRowClick={handleBuildRowClick}
           />
         )}
       </Layout.Main>

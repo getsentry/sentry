@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -128,6 +129,26 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
 
+  const platform = buildDetailsData.app_info?.platform ?? null;
+  const buildId = buildDetailsData.id;
+
+  const handleCompareClick = () => {
+    trackPreprodBuildAnalytics('preprod.builds.details_compare_clicked', {
+      organization,
+      platform,
+      build_id: buildId,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    trackPreprodBuildAnalytics('preprod.builds.details_delete_clicked', {
+      organization,
+      platform,
+      build_id: buildId,
+    });
+    handleDeleteArtifact();
+  };
+
   return (
     <React.Fragment>
       <Layout.HeaderContent>
@@ -152,6 +173,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           />
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            onClick={handleCompareClick}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
               {t('Compare Build')}
@@ -162,7 +184,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
             )}
             confirmInput={artifactId}
-            onConfirm={handleDeleteArtifact}
+            onConfirm={handleConfirmDelete}
           >
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [

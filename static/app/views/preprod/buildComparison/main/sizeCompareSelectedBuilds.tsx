@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -15,10 +16,11 @@ interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
+  slot: 'head' | 'base';
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
+function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
@@ -26,9 +28,23 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
   const buildId = buildDetails.id;
 
   const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const platform = buildDetails.app_info?.platform ?? null;
+  const projectType = buildDetails.app_info?.platform ?? null;
 
   return (
-    <LinkButton to={buildUrl}>
+    <LinkButton
+      to={buildUrl}
+      onClick={() =>
+        trackPreprodBuildAnalytics('preprod.builds.compare_build_clicked', {
+          organization,
+          build_id: buildId,
+          project_slug: projectId,
+          project_type: projectType,
+          platform,
+          slot,
+        })
+      }
+    >
       <Flex align="center" gap="sm">
         {icon}
         <Text size="sm" variant="accent" bold>
@@ -107,12 +123,19 @@ export function SizeCompareSelectedBuilds({
   onClearBaseBuild,
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const headId = headBuildDetails.id;
+  const headPlatform = headBuildDetails.app_info?.platform ?? null;
+  const projectType = headBuildDetails.app_info?.platform ?? null;
+
   return (
     <ComparisonContainer>
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
+        slot="head"
       />
 
       <Text>{t('vs')}</Text>
@@ -123,6 +146,7 @@ export function SizeCompareSelectedBuilds({
           icon={<IconFocus size="xs" color="purple400" />}
           label={t('Base')}
           onRemove={onClearBaseBuild}
+          slot="base"
         />
       ) : (
         <SelectBuild>
@@ -134,6 +158,14 @@ export function SizeCompareSelectedBuilds({
         <Button
           onClick={() => {
             if (baseBuildDetails) {
+              trackPreprodBuildAnalytics('preprod.builds.compare_trigger_clicked', {
+                organization,
+                head_id: headId,
+                base_id: baseBuildDetails.id,
+                project_slug: projectId,
+                project_type: projectType,
+                platform: headPlatform,
+              });
               onTriggerComparison();
             }
           }}

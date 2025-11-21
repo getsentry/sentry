@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -179,7 +180,20 @@ export function SizeCompareSelectionContent({
                 key={build.id}
                 build={build}
                 isSelected={selectedBaseBuild === build}
-                onSelect={() => setSelectedBaseBuild(build)}
+                onSelect={() => {
+                  setSelectedBaseBuild(build);
+                  trackPreprodBuildAnalytics('preprod.builds.compare_build_selected', {
+                    organization,
+                    head_id: headBuildDetails.id,
+                    base_id: build.id,
+                    project_slug: projectId,
+                    project_type: headBuildDetails.app_info?.platform ?? null,
+                    platform:
+                      build.app_info?.platform ??
+                      headBuildDetails.app_info?.platform ??
+                      null,
+                  });
+                }}
               />
             );
           })}
@@ -198,6 +212,12 @@ interface BuildItemProps {
 }
 
 function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const headId = useParams<{headId?: string}>().headId;
+  const platform = build.app_info?.platform ?? null;
+  const projectType = build.app_info?.platform ?? null;
+
   const prNumber = build.vcs_info?.pr_number;
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
@@ -208,7 +228,18 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
   return (
     <BuildItemContainer
-      onClick={onSelect}
+      onClick={() => {
+        trackPreprodBuildAnalytics('preprod.builds.compare_build_clicked', {
+          organization,
+          build_id: build.id,
+          project_slug: projectId,
+          project_type: projectType,
+          platform,
+          slot: 'base',
+          head_id: headId ? Number(headId) : undefined,
+        });
+        onSelect();
+      }}
       isSelected={isSelected}
       align="center"
       gap="md"

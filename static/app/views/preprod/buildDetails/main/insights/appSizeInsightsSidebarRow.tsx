@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge/tag';
@@ -12,8 +12,10 @@ import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
+import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import useOrganization from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
@@ -62,6 +64,7 @@ export function AppSizeInsightsSidebarRow({
   platform?: Platform;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -72,6 +75,11 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
+    trackPreprodBuildAnalytics('preprod.builds.details_insight_action_clicked', {
+      organization,
+      insight_key: insight.key,
+      platform: platform ?? null,
+    });
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
     } else if (insight.key === 'image_optimization') {
@@ -87,11 +95,21 @@ export function AppSizeInsightsSidebarRow({
     setCurrentPage(newPage);
   };
 
+  const wasExpandedRef = useRef(isExpanded);
+
   useEffect(() => {
     if (!isExpanded) {
       setCurrentPage(0);
     }
-  }, [isExpanded]);
+    if (!wasExpandedRef.current && isExpanded) {
+      trackPreprodBuildAnalytics('preprod.builds.details_insight_expanded', {
+        organization,
+        insight_key: insight.key,
+        platform: platform ?? null,
+      });
+    }
+    wasExpandedRef.current = isExpanded;
+  }, [insight.key, isExpanded, organization, platform]);
 
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
