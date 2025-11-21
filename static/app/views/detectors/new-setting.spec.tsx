@@ -679,8 +679,6 @@ describe('DetectorEdit', () => {
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(await screen.findByRole('option', {name: 'apdex'}));
 
-      // The first parameter (span.duration) should be locked and not editable
-      expect(await screen.findByText('span.duration')).toBeInTheDocument();
       // Change to apdex(100)
       await userEvent.clear(screen.getByPlaceholderText('300'));
       await userEvent.type(screen.getByPlaceholderText('300'), '100');

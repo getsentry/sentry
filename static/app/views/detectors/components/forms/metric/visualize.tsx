@@ -410,7 +410,7 @@ export function Visualize() {
                   onChange={option => {
                     handleParameterChange(index, String(option.value));
                   }}
-                  disabled={isTransactionsDataset || lockSpanOptions}
+                  disabled={isTransactionsDataset}
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
