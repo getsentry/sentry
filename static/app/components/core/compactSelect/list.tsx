@@ -107,6 +107,9 @@ interface BaseListProps<Value extends SelectKey>
  * `value` can be `undefined` to represent no selection.
  */
 interface SingleClearableListProps<Value extends SelectKey> extends BaseListProps<Value> {
+  /**
+   * If true, there will be a "Clear" button in the menu header.
+   */
   clearable: true;
   onChange: (selectedOption: SelectOption<Value> | undefined) => void;
   value: Value | undefined;
@@ -141,10 +144,7 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
   multiple: true;
   onChange: (selectedOptions: Array<SelectOption<Value>>) => void;
   value: Value[] | undefined;
-  /**
-   * set to a regular boolean here because the empty type can be represented as an empty array
-   */
-  clearable?: boolean;
+  clearable?: boolean; // set to a regular boolean here because the empty type can be represented as an empty array
 
   /**
    * Whether to close the menu. Accepts either a boolean value or a callback function
@@ -222,6 +222,8 @@ function List<Value extends SelectKey>({
       selectionMode: 'single' as const,
       disabledKeys,
       // react-aria turns all keys into strings
+      // we're setting selectedKeys to an empty array when value is undefined, because
+      // undefined makes react-aria treat it as uncontrolled
       selectedKeys: defined(value) ? [getEscapedKey(value)] : [],
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
