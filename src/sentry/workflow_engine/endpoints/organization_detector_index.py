@@ -51,6 +51,7 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeVal
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
     can_edit_detectors,
+    is_system_created_detector,
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
@@ -509,7 +510,20 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not can_edit_detectors(queryset, request):
             raise PermissionDenied
 
-        for detector in queryset:
+        # Filter out system-created detectors from deletion
+        deletable_detectors = [
+            detector for detector in queryset if not is_system_created_detector(detector)
+        ]
+
+        if not deletable_detectors:
+            return Response(
+                {
+                    "detail": "No detectors can be deleted. System-created detectors cannot be deleted."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for detector in deletable_detectors:
             with transaction.atomic(router.db_for_write(Detector)):
                 RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(

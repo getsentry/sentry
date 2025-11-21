@@ -1795,3 +1795,82 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
         # Verify detector was not affected
         self.assert_unaffected_detectors([self.detector, other_detector])
+
+    def test_delete_system_created_detector_by_id_prevented(self) -> None:
+        # Test that system-created detectors cannot be deleted via bulk delete by ID
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(error_detector.id)},
+            status_code=400,
+        )
+
+        assert "System-created detectors cannot be deleted" in str(response.data["detail"])
+
+        # Verify the error detector was not affected
+        self.assert_unaffected_detectors([error_detector])
+
+    def test_delete_mixed_detectors_filters_system_created(self) -> None:
+        # Test that system-created detectors are excluded when deleting by ID
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params=[
+                    ("id", str(self.detector.id)),
+                    ("id", str(error_detector.id)),
+                ],
+                status_code=204,
+            )
+
+        # User-created detector should be scheduled for deletion
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector.id,
+        ).exists()
+
+        # System-created detector should NOT be scheduled for deletion
+        self.assert_unaffected_detectors([error_detector])
+
+    def test_delete_by_query_filters_system_created(self) -> None:
+        # Test that system-created detectors are excluded when deleting by query
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Test Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"query": "test", "project": self.project.id},
+                status_code=204,
+            )
+
+        # User-created detector should be scheduled for deletion
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector.id,
+        ).exists()
+
+        # System-created detector should NOT be deleted
+        error_detector.refresh_from_db()
+        assert error_detector.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=error_detector.id,
+        ).exists()
