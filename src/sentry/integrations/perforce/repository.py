@@ -171,7 +171,21 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
         # Fetch user info if not in cache (skip "unknown" placeholder)
         if username != "unknown" and username not in user_cache:
-            user_cache[username] = client.get_user(username)
+            try:
+                user_cache[username] = client.get_user(username)
+            except Exception as e:
+                # Log user lookup failures but don't fail the entire commit processing
+                logger.warning(
+                    "perforce.format_commits.user_lookup_failed",
+                    extra={
+                        "changelist": change.get("change"),
+                        "username": username,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                # Cache None to avoid repeated failed lookups for the same user
+                user_cache[username] = None
 
         user_info = user_cache.get(username)
         if user_info:
