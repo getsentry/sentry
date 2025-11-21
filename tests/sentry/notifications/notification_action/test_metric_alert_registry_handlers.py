@@ -101,7 +101,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.OK.value,
                 },
             ],
-            data_source_definition=None,
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
 
@@ -127,7 +127,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
-            data_source_definition=None,
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
         self.group, self.event, self.group_event = self.create_group_event(
