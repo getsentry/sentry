@@ -16,7 +16,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getItemsWithKeys} from './utils';
+import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
@@ -127,6 +127,12 @@ export function CompactSelect<Value extends SelectKey>({
       grid={grid}
       size={size}
       clearable={clearable}
+      shouldCloseOnSelect={({selectedOptions}) =>
+        shouldCloseOnSelect({
+          ...listProps,
+          selectedOptions,
+        })
+      }
       onClear={() => {
         if (clearable) {
           if (multiple) {

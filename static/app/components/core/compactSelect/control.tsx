@@ -185,6 +185,9 @@ export interface ControlProps
    * menu items.
    */
   searchable?: boolean;
+  shouldCloseOnSelect?: (props: {
+    selectedOptions: Array<SelectOption<SelectKey>>;
+  }) => boolean;
   size?: FormSize;
   /**
    * Optional replacement for the default trigger button. Note that the replacement must
@@ -197,6 +200,7 @@ export interface ControlProps
     },
     isOpen: boolean
   ) => React.ReactNode;
+
   /**
    * Props to be passed to the default trigger button.
    */
@@ -217,6 +221,7 @@ export function Control({
   onInteractOutside,
   shouldCloseOnInteractOutside,
   shouldCloseOnBlur,
+  shouldCloseOnSelect,
   preventOverflowOptions,
   flipOptions,
   disabled,
@@ -289,6 +294,9 @@ export function Control({
    */
   const clearSelection = () => {
     setSelectedOptions([]);
+    if (shouldCloseOnSelect?.({selectedOptions: []})) {
+      overlayState?.close();
+    }
     onClear?.();
   };
 

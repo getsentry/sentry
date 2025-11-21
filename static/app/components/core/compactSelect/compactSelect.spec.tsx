@@ -207,6 +207,32 @@ describe('CompactSelect', () => {
     expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
+  it('closes menu when clear is clicked', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value="opt_one"
+        onChange={jest.fn()}
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+        ]}
+      />
+    );
+
+    // open the menu
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+
+    // click the clear button
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    // menu is closed
+    await waitFor(() => {
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+  });
+
   describe('ListBox', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();

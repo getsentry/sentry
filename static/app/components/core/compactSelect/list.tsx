@@ -31,6 +31,7 @@ import {
   getHiddenOptions,
   getSelectedOptions,
   HiddenSectionToggle,
+  shouldCloseOnSelect,
 } from './utils';
 
 export const SelectFilterContext = createContext(new Set<SelectKey>());
@@ -206,12 +207,7 @@ function List<Value extends SelectKey>({
           saveSelectedOptions(compositeIndex, selectedOptions);
           onChange?.(selectedOptions);
 
-          // Close menu if closeOnSelect is true
-          if (
-            typeof closeOnSelect === 'function'
-              ? closeOnSelect(selectedOptions)
-              : closeOnSelect
-          ) {
+          if (shouldCloseOnSelect({multiple, closeOnSelect, selectedOptions})) {
             overlayState?.close();
           }
         },
@@ -236,10 +232,11 @@ function List<Value extends SelectKey>({
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
         if (
-          !defined(closeOnSelect) ||
-          (typeof closeOnSelect === 'function'
-            ? closeOnSelect(selectedOption)
-            : closeOnSelect)
+          shouldCloseOnSelect({
+            multiple,
+            closeOnSelect,
+            selectedOptions: [selectedOption],
+          })
         ) {
           overlayState?.close();
         }
