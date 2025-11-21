@@ -17,6 +17,7 @@ import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDe
 
 interface DetectorsTableActionsProps {
   allResultsVisible: boolean;
+  canDelete: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
   pageSelected: boolean;
@@ -36,6 +37,7 @@ export function DetectorsTableActions({
   showEnable,
   showDisable,
   canEdit,
+  canDelete,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
@@ -200,13 +202,13 @@ export function DetectorsTableActions({
           )}
           <Tooltip
             title={t('You do not have permission to delete the selected monitors.')}
-            disabled={canEdit}
+            disabled={canDelete}
           >
             <Button
               size="xs"
               priority="danger"
               onClick={handleDelete}
-              disabled={isDeleting || !canEdit}
+              disabled={isDeleting || !canDelete}
             >
               {t('Delete')}
             </Button>

@@ -36,7 +36,10 @@ import {
   useMonitorViewContext,
   type MonitorListAdditionalColumn,
 } from 'sentry/views/detectors/monitorViewContext';
-import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {
+  useCanDeleteDetectors,
+  useCanEditDetectors,
+} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
 type DetectorListTableProps = {
@@ -139,6 +142,7 @@ function DetectorListTable({
 
   const selectedDetectors = detectors.filter(d => selected.has(d.id));
   const canEditDetectors = useCanEditDetectors({detectors: selectedDetectors});
+  const canDeleteDetectors = useCanDeleteDetectors({detectors: selectedDetectors});
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -212,6 +216,7 @@ function DetectorListTable({
             showDisable={canDisable}
             showEnable={canEnable}
             canEdit={canEditDetectors}
+            canDelete={canDeleteDetectors}
             // TODO: Check if metric detector limit is reached
             detectorLimitReached={false}
           />
