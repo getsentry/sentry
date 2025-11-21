@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -10,11 +12,12 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconEllipsis, IconNext, IconPrevious} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +36,7 @@ function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props)
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const openFeedbackForm = useFeedbackForm();
 
   async function handleArchive() {
     try {
@@ -183,6 +187,22 @@ function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props)
 
   return (
     <ButtonBar>
+      {openFeedbackForm ? (
+        <Button
+          size="sm"
+          icon={<IconMegaphone />}
+          onClick={() =>
+            openFeedbackForm({
+              messagePlaceholder: t('How can we improve the Releases experience?'),
+              tags: {
+                ['feedback.source']: 'release-detail',
+              },
+            })
+          }
+        >
+          {t('Give Feedback')}
+        </Button>
+      ) : null}
       <ButtonBar merged gap="0">
         <LinkButton
           size="sm"
