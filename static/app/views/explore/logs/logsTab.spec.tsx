@@ -301,7 +301,7 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: 0,
+          caseInsensitive: 1,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
