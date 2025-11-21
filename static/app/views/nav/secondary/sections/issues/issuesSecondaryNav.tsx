@@ -17,6 +17,7 @@ export function IssuesSecondaryNav() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
 
   return (
     <Fragment>
@@ -57,6 +58,16 @@ export function IssuesSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <IssueViews sectionRef={sectionRef} />
+        {hasTopIssuesUI && (
+          <SecondaryNav.Section id="issues-dynamic-groups">
+            <SecondaryNav.Item
+              to={`${baseUrl}/dynamic-groups/`}
+              analyticsItemName="issues_dynamic_groups"
+            >
+              {t('Top Issues')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
+        )}
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
     </Fragment>
