@@ -1,12 +1,10 @@
-import {useEffect, useRef} from 'react';
+import {useRef} from 'react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {
-  useFeedbackSDKIntegration,
-  type UseFeedbackOptions,
-} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {type UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 interface Props extends Omit<ButtonProps, 'icon'> {
   feedbackOptions?: UseFeedbackOptions;
@@ -17,6 +15,9 @@ interface Props extends Omit<ButtonProps, 'icon'> {
  *
  * Use this component to embed a feedback collection button anywhere in the UI where users
  * might want to submit feedback, report issues, or share suggestions with your team.
+ *
+ * The feedback form will stay open even if the button itself it removed from the
+ * DOM. So you can add buttons inside of Dropdowns or Tooltips for example.
  *
  * The component will return null when the Feedback SDK integration is not enabled,
  * like in self-hosted environments.
@@ -54,25 +55,24 @@ export default function FeedbackButton({
   ...buttonProps
 }: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const {feedback, options} = useFeedbackSDKIntegration({
-    optionOverrides: feedbackOptions,
-  });
-
-  useEffect(() => {
-    if (feedback && buttonRef.current) {
-      return feedback.attachTo(buttonRef.current, options);
-    }
-
-    return undefined;
-  }, [buttonRef, feedback, options]);
+  const openForm = useFeedbackForm();
 
   // Do not show button if Feedback integration is not enabled
-  if (!feedback) {
+  if (!openForm) {
     return null;
   }
 
   return (
-    <Button ref={buttonRef} size="sm" {...buttonProps} icon={<IconMegaphone />}>
+    <Button
+      ref={buttonRef}
+      size="sm"
+      {...buttonProps}
+      icon={<IconMegaphone />}
+      onClick={e => {
+        openForm?.(feedbackOptions);
+        buttonProps.onClick?.(e);
+      }}
+    >
       {children || t('Give Feedback')}
     </Button>
   );

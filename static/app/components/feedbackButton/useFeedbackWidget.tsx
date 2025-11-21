@@ -11,7 +11,7 @@ interface Props {
  * @deprecated This layer isn't needed. Call `useFeedbackSDKIntegration` or use `<FeedbackButton/>` or `<FloatingFeedbackButton/>`
  */
 export default function useFeedbackWidget({buttonRef}: Props) {
-  const {feedback, options} = useFeedbackSDKIntegration();
+  const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 
   useEffect(() => {
     if (!feedback) {
@@ -20,17 +20,17 @@ export default function useFeedbackWidget({buttonRef}: Props) {
 
     if (buttonRef) {
       if (buttonRef.current) {
-        return feedback.attachTo(buttonRef.current, options);
+        return feedback.attachTo(buttonRef.current, defaultOptions);
       }
     } else {
-      const widget = feedback.createWidget(options);
+      const widget = feedback.createWidget(defaultOptions);
       return () => {
         widget.removeFromDom();
       };
     }
 
     return undefined;
-  }, [buttonRef, feedback, options]);
+  }, [buttonRef, feedback, defaultOptions]);
 
   return feedback;
 }

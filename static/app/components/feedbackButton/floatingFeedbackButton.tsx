@@ -13,18 +13,18 @@ import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFee
  */
 export default function FloatingFeedbackButton() {
   const theme = useTheme();
-  const {feedback, options} = useFeedbackSDKIntegration();
+  const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 
   useEffect(() => {
     if (!feedback) {
       return undefined;
     }
 
-    const widget = feedback.createWidget(options);
+    const widget = feedback.createWidget(defaultOptions);
     return () => {
       widget.removeFromDom();
     };
-  }, [feedback, options]);
+  }, [feedback, defaultOptions]);
 
   if (!feedback) {
     return null;

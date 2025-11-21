@@ -55,7 +55,7 @@ function useOpenForm() {
   // This is used to determine if we should reuse the existing form instance
   const formOptionsOverrideRef = useRef<UseFeedbackOptions | null>(null);
 
-  const {feedback, options} = useFeedbackSDKIntegration();
+  const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 
   const close = useCallback(() => {
     if (formRef.current) {
@@ -91,7 +91,7 @@ function useOpenForm() {
         cleanup();
 
         formRef.current = await feedback.createForm({
-          ...options,
+          ...defaultOptions,
           ...optionOverrides,
           onFormClose: close,
           onFormSubmitted: cleanup,
@@ -102,7 +102,7 @@ function useOpenForm() {
         formRef.current.open();
       }
     },
-    [cleanup, feedback, options, close]
+    [cleanup, feedback, defaultOptions, close]
   );
 
   useEffect(() => {
