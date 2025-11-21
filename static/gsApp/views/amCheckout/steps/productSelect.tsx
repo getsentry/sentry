@@ -133,7 +133,7 @@ function ProductSelect({
       gradientEndColor: undefined,
       buttonBorderColor: undefined,
       color: undefined,
-    }, // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER can be updated to use the new design/copy
+    },
   } satisfies Record<AddOnCategory, ProductCheckoutInfo>;
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
