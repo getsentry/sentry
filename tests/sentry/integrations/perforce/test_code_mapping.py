@@ -382,11 +382,12 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm-flow",
-            metadata={},
-            oi_params={
-                "config": {
-                    "web_url": "https://swarm.example.com",
-                }
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+                "auth_type": "password",
+                "web_url": "https://swarm.example.com",
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
