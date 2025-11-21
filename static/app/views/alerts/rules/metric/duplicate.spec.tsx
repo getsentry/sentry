@@ -9,7 +9,7 @@ import GlobalModal from 'sentry/components/globalModal';
 
 import MetricRuleDuplicate from './duplicate';
 import type {Action} from './types';
-import {AlertRuleTriggerType} from './types';
+import {AlertRuleTriggerType, Dataset, EventTypes, ExtrapolationMode} from './types';
 
 describe('MetricRuleDuplicate', () => {
   beforeEach(() => {
@@ -54,6 +54,14 @@ describe('MetricRuleDuplicate', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
     });
   });
 
@@ -152,5 +160,69 @@ describe('MetricRuleDuplicate', () => {
 
     // Duplicated alert has been called
     expect(req).toHaveBeenCalled();
+  });
+
+  it('duplicates rule with SERVER_WEIGHTED extrapolation mode but creates new rule without it', async () => {
+    const ruleWithExtrapolation = MetricRuleFixture({
+      id: '7',
+      name: 'Alert Rule with Extrapolation',
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      aggregate: 'count()',
+      query: '',
+      eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+      extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+    });
+
+    const {organization, project, routerProps} = initializeOrg({
+      organization: {
+        access: ['alerts:write'],
+      },
+      router: {
+        params: {},
+        location: {
+          query: {
+            createFromDuplicate: 'true',
+            duplicateRuleId: `${ruleWithExtrapolation.id}`,
+          },
+        },
+      },
+    });
+
+    const req = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${ruleWithExtrapolation.id}/`,
+      body: ruleWithExtrapolation,
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: null,
+    });
+
+    render(
+      <Fragment>
+        <GlobalModal />
+        <MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />
+      </Fragment>
+    );
+
+    // Wait for the form to load with duplicated values
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('alert-name')).toHaveValue(
+      `${ruleWithExtrapolation.name} copy`
+    );
+
+    // Verify the original rule was fetched
+    expect(req).toHaveBeenCalled();
+
+    // Verify events-stats chart requests do NOT include extrapolation mode
+    // (duplicated rules are treated as new rules)
+    expect(eventsStatsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.not.objectContaining({
+          extrapolationMode: expect.anything(),
+        }),
+      })
+    );
   });
 });

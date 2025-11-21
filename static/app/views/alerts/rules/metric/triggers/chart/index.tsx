@@ -46,13 +46,16 @@ import {
 import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   Dataset,
+  EAP_EXTRAPOLATION_MODE_MAP,
+  ExtrapolationMode,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
+  type MetricRule,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
@@ -97,6 +100,7 @@ type Props = {
   anomalies?: Anomaly[];
   comparisonDelta?: number;
   confidence?: Confidence;
+  extrapolationMode?: ExtrapolationMode;
   formattedAggregate?: string;
   header?: React.ReactNode;
   includeHistorical?: boolean;
@@ -427,6 +431,7 @@ class TriggersChart extends PureComponent<Props, State> {
       isQueryValid,
       isOnDemandMetricAlert,
       traceItemType,
+      extrapolationMode,
     } = this.props;
 
     const period = this.getStatsPeriod()!;
@@ -463,6 +468,13 @@ class TriggersChart extends PureComponent<Props, State> {
         partial: false,
         limit: 15,
         children: noop,
+        extrapolationMode: extrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+          : undefined,
+        sampling:
+          extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
       };
 
       return (
@@ -589,6 +601,17 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      sampling:
+        dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+        this.props.traceItemType === TraceItemDataset.SPANS
+          ? extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
+          : undefined,
+
+      extrapolationMode: extrapolationMode
+        ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+        : undefined,
     };
 
     return (
@@ -615,17 +638,7 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest
-          {...baseProps}
-          period={period}
-          dataLoadedCallback={onDataLoaded}
-          sampling={
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-            this.props.traceItemType === TraceItemDataset.SPANS
-              ? SAMPLING_MODE.NORMAL
-              : undefined
-          }
-        >
+        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
           {({
             loading,
             errored,

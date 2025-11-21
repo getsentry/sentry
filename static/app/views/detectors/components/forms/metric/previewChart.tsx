@@ -19,6 +19,9 @@ export function MetricDetectorPreviewChart() {
   const rawQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
 
   // Threshold-related form fields
   const highThreshold = useMetricDetectorFormField(
@@ -88,6 +91,7 @@ export function MetricDetectorPreviewChart() {
       comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
       sensitivity={sensitivity}
       thresholdType={thresholdType}
+      extrapolationMode={extrapolationMode}
     />
   );
 }

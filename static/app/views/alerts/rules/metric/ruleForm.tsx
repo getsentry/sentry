@@ -89,6 +89,7 @@ import {
 import RuleConditionsForm from './ruleConditionsForm';
 import type {
   EventTypes,
+  ExtrapolationMode,
   MetricActionTemplate,
   MetricRule,
   Trigger,
@@ -158,6 +159,7 @@ type State = {
   chartErrorMessage?: string;
   comparisonDelta?: number;
   confidence?: Confidence;
+  extrapolationMode?: ExtrapolationMode;
   isExtrapolatedChartData?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
@@ -259,6 +261,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
+      extrapolationMode: rule.extrapolationMode,
       sensitivity: rule.sensitivity ?? undefined,
       seasonality: rule.seasonality ?? undefined,
       thresholdType: rule.thresholdType,
@@ -749,6 +752,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       sensitivity,
       seasonality,
       comparisonType,
+      extrapolationMode,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -813,6 +817,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
             detectionType,
+            extrapolationMode: this.isDuplicateRule ? undefined : extrapolationMode,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -1206,6 +1211,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
       confidence,
       seriesSamplingInfo,
+      extrapolationMode,
     } = this.state;
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
@@ -1256,6 +1262,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       confidence,
       seriesSamplingInfo,
       traceItemType: traceItemType ?? undefined,
+      extrapolationMode,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

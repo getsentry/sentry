@@ -4,7 +4,11 @@ import type {Series} from 'sentry/types/echarts';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
@@ -19,6 +23,7 @@ interface UseMetricDetectorSeriesProps {
   query: string;
   comparisonDelta?: number;
   end?: string | null;
+  extrapolationMode?: ExtrapolationMode;
   options?: Partial<UseApiQueryOptions<any>>;
   start?: string | null;
   statsPeriod?: string | null;
@@ -48,6 +53,7 @@ export function useMetricDetectorSeries({
   end,
   comparisonDelta,
   options,
+  extrapolationMode,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(
@@ -67,6 +73,7 @@ export function useMetricDetectorSeries({
     start,
     end,
     comparisonDelta,
+    extrapolationMode,
   });
 
   const {data, isLoading, error} = useApiQuery<

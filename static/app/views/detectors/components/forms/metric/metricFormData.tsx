@@ -19,6 +19,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
@@ -84,6 +85,7 @@ interface SnubaQueryFormData {
   environment: string;
   interval: number;
   query: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 export interface MetricDetectorFormData
@@ -120,6 +122,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   interval: 'interval',
   query: 'query',
   name: 'name',
+  extrapolationMode: 'extrapolationMode',
 
   // Priority level fields
   initialPriorityLevel: 'initialPriorityLevel',
@@ -182,6 +185,7 @@ interface NewDataSource {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
 }
 
 function createAnomalyDetectionCondition(
@@ -309,6 +313,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
+    extrapolationMode: data.extrapolationMode,
     query,
     aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
@@ -490,6 +495,7 @@ export function metricSavedDetectorToFormData(
     owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
+    extrapolationMode: snubaQuery.extrapolationMode,
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
       DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
