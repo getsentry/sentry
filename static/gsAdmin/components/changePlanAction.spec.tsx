@@ -4,8 +4,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   renderGlobalModal,
   screen,
@@ -239,7 +241,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form with addOns', async () => {
-    mockOrg.features = ['seer-billing', 'seer-user-billing'];
+    mockOrg.features = ['seer-billing', 'seer-user-billing']; // this won't happen IRL, but doing this for testing multiple addons
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',
@@ -378,7 +380,7 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('reservedTransactions', 25000);
   });
 
-  describe('Seer Budget', () => {
+  describe('Legacy Seer', () => {
     beforeEach(() => {
       mockOrg.features = ['seer-billing'];
       jest.clearAllMocks();
@@ -445,21 +447,10 @@ describe('ChangePlanAction', () => {
 
     it('initializes Seer budget checkbox based on current subscription', async () => {
       // Create subscription with Seer budget
-      const subscriptionWithSeer = SubscriptionFixture({
+      const subscriptionWithSeer = SubscriptionWithSeerFixture({
         organization: mockOrg,
         planTier: PlanTier.AM3,
         plan: 'am3_business',
-        billingInterval: 'monthly',
-        contractInterval: 'monthly',
-        reservedBudgets: [SeerReservedBudgetFixture({})],
-        categories: {
-          errors: MetricHistoryFixture({
-            category: DataCategory.ERRORS,
-            reserved: 1000000,
-            prepaid: 1000000,
-            order: 1,
-          }),
-        },
       });
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
@@ -555,7 +546,7 @@ describe('ChangePlanAction', () => {
       expect(requestData).toHaveProperty('addOnSeer', true);
     });
 
-    it('does not include seer parameter in form submission when checkbox is unchecked', async () => {
+    it('does not include add-on parameter in form submission when checkbox is unchecked', async () => {
       // Mock the PUT endpoint response
       const putMock = MockApiClient.addMockResponse({
         url: `/customers/${mockOrg.slug}/subscription/`,
