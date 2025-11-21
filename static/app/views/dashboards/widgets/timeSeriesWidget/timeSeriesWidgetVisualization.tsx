@@ -138,7 +138,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
+  const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} =
@@ -154,7 +154,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     saveOnZoom: true,
   });
 
-  const {groupName} = useWidgetSyncContext();
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
     deps: [props.plottables],
