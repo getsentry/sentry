@@ -714,7 +714,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/pr-comments/$repoName/$prNumber/'
   | '/projects/$organizationIdOrSlug/pull-requests/size-analysis/$artifactId/'
   | '/projects/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/'
-  | '/prompts-activity/'
   | '/publickeys/relocations/'
   | '/relays/'
   | '/relays/$relayId/'

@@ -3621,11 +3621,6 @@ urlpatterns = [
         name="sentry-api-0-api-token-details",
     ),
     re_path(
-        r"^prompts-activity/$",
-        PromptsActivityEndpoint.as_view(),
-        name="sentry-api-0-prompts-activity",
-    ),
-    re_path(
         r"^seer/models/$",
         SeerModelsEndpoint.as_view(),
         name="sentry-api-0-seer-models",
