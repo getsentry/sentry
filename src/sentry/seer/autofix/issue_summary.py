@@ -364,9 +364,7 @@ def run_automation(
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
         logger.info("Triage signals V0: %s: generating stopping point", group.id)
-        fixability_stopping_point = _get_stopping_point_from_fixability(
-            issue_summary.scores.fixability_score
-        )
+        fixability_stopping_point = _get_stopping_point_from_fixability(group.seer_fixability_score)
         logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
