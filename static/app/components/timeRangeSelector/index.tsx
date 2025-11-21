@@ -65,7 +65,7 @@ export interface TimeRangeSelectorProps
     | 'options'
     | 'hideOptions'
     | 'value'
-    | 'defaultValue'
+    | 'clearable'
     | 'onChange'
     | 'onInteractOutside'
     | 'closeOnSelect'
@@ -263,8 +263,8 @@ export function TimeRangeSelector({
     );
   }, [showRelative, onChange, internalValue, hasChanges]);
 
-  const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    option => {
+  const handleChange = useCallback(
+    (option: SelectOption<string>) => {
       // The absolute option was selected -> open absolute selector
       if (option.value === ABSOLUTE_OPTION_VALUE) {
         setInternalValue(current => {

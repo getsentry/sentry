@@ -311,7 +311,7 @@ export default function AssigneeSelectorDropdown({
       }));
   };
 
-  const handleSelect = (selectedOption: SelectOption<string> | null) => {
+  const handleSelect = (selectedOption: SelectOption<string> | undefined) => {
     // selectedOption is falsey when the option selected is already selected, or when the clear button is clicked
     if (!selectedOption) {
       if (onClear && group.assignedTo) {
@@ -565,7 +565,6 @@ export default function AssigneeSelectorDropdown({
         className={className}
         menuWidth={275}
         position="bottom-end"
-        disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
           group.assignedTo

@@ -13,7 +13,6 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
-import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -51,16 +50,9 @@ function nextFrameCallback(cb: () => void) {
 interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
-   * Function to be called once when a list is initialized, to register its state in
-   * SelectContext. In composite selectors, where there can be multiple lists, the
-   * `index` parameter is the list's index number (the order in which it appears). In
-   * non-composite selectors, where there's only one list, that list's index is 0.
-   */
-  registerListState: (index: number, listState: ListState<any>) => void;
-  /**
    * Function to be called when a list's selection state changes. We need a complete
    * list of all selected options to label the trigger button. The `index` parameter
-   * indentifies the list, in the same way as in `registerListState`.
+   * identifies the list.
    */
   saveSelectedOptions: (
     index: number,
@@ -78,7 +70,6 @@ interface SelectContextValue {
 }
 
 export const SelectContext = createContext<SelectContextValue>({
-  registerListState: () => {},
   saveSelectedOptions: () => {},
   overlayIsOpen: false,
   search: '',
@@ -175,7 +166,7 @@ export interface ControlProps
    * Called when the clear button is clicked (applicable only when `clearable` is
    * true).
    */
-  onClear?: () => void;
+  onClear?: (props: {overlayState: OverlayTriggerState}) => void;
   /**
    * Called when the menu is opened or closed.
    */
@@ -206,6 +197,7 @@ export interface ControlProps
     },
     isOpen: boolean
   ) => React.ReactNode;
+
   /**
    * Props to be passed to the default trigger button.
    */
@@ -256,10 +248,6 @@ export function Control({
   ...wrapperProps
 }: ControlProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  // Set up list states (in composite selects, each region has its own state, that way
-  // selection values are contained within each region).
-  const [listStates, setListStates] = useState<Array<ListState<any>>>([]);
-
   /**
    * Search/filter value, used to filter out the list of displayed elements
    */
@@ -298,11 +286,11 @@ export function Control({
   });
 
   /**
-   * Clears selection values across all list states
+   * Clears selection values
    */
   const clearSelection = () => {
-    listStates.forEach(listState => listState.selectionManager.clearSelection());
-    onClear?.();
+    setSelectedOptions([]);
+    onClear?.({overlayState});
   };
 
   // Manage overlay position
@@ -485,19 +473,7 @@ export function Control({
   );
 
   const contextValue = useMemo(() => {
-    const registerListState: SelectContextValue['registerListState'] = (
-      index,
-      listState
-    ) => {
-      setListStates(current => [
-        ...current.slice(0, index),
-        listState,
-        ...current.slice(index + 1),
-      ]);
-    };
-
     return {
-      registerListState,
       saveSelectedOptions,
       overlayState,
       overlayIsOpen,

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -26,12 +28,12 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  * renders as a `ul` with its own list state) whose selection values don't interfere
  * with one another.
  */
-interface SingleCompositeSelectRegion<Value extends SelectKey>
-  extends BaseCompositeSelectRegion<Value>,
-    Omit<
+type SingleCompositeSelectRegion<Value extends SelectKey> =
+  BaseCompositeSelectRegion<Value> &
+    DistributiveOmit<
       SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
-    > {}
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+    >;
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -39,12 +41,12 @@ interface SingleCompositeSelectRegion<Value extends SelectKey>
  * list (each renders as a `ul` with its own list state) whose selection values don't
  * interfere with one another.
  */
-interface MultipleCompositeSelectRegion<Value extends SelectKey>
-  extends BaseCompositeSelectRegion<Value>,
-    Omit<
+type MultipleCompositeSelectRegion<Value extends SelectKey> =
+  BaseCompositeSelectRegion<Value> &
+    DistributiveOmit<
       MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
-    > {}
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+    >;
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
@@ -134,44 +136,18 @@ type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
 
 function Region<Value extends SelectKey>({
   options,
-  value,
-  onChange,
-  multiple,
-  disallowEmptySelection,
   isOptionDisabled,
-  closeOnSelect,
   size,
   compositeIndex,
   label,
   ...props
 }: RegionProps<Value>) {
-  // Combine list props into an object with two clearly separated types, one where
-  // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
-  const listProps = useMemo(() => {
-    if (multiple) {
-      return {
-        multiple,
-        value,
-        closeOnSelect,
-        onChange,
-      };
-    }
-    return {
-      multiple,
-      value,
-      closeOnSelect,
-      onChange,
-    };
-  }, [multiple, value, onChange, closeOnSelect]);
-
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   return (
     <List
       {...props}
-      {...listProps}
       items={itemsWithKey}
-      disallowEmptySelection={disallowEmptySelection}
       isOptionDisabled={isOptionDisabled}
       shouldFocusWrap={false}
       compositeIndex={compositeIndex}

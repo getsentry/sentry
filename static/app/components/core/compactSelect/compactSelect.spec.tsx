@@ -1,10 +1,104 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompactSelect} from './';
+import {CompactSelect, type SelectOption} from './';
 
 describe('CompactSelect', () => {
+  describe('types', () => {
+    it('should enforce correct types for onChange for SingleSelect', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<SelectOption<'opt_one' | 'opt_two'>>();
+          }}
+          closeOnSelect={option => {
+            expectTypeOf(option).toEqualTypeOf<SelectOption<'opt_one' | 'opt_two'>>();
+            return true;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+    });
+
+    it('should add undefined to onChange when clearable for SingleSelect', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          clearable
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              SelectOption<'opt_one' | 'opt_two'> | undefined
+            >();
+          }}
+          closeOnSelect={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              SelectOption<'opt_one' | 'opt_two'> | undefined
+            >();
+            return true;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+    });
+
+    it('should always use arrays for MultiSelect', () => {
+      const values: Array<'opt_one' | 'opt_two'> = ['opt_one'];
+      void (
+        <CompactSelect
+          value={values}
+          multiple
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              Array<SelectOption<'opt_one' | 'opt_two'>>
+            >();
+          }}
+          closeOnSelect={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              Array<SelectOption<'opt_one' | 'opt_two'>>
+            >();
+            return true;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+
+      void (
+        <CompactSelect
+          value={values}
+          multiple
+          clearable
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              Array<SelectOption<'opt_one' | 'opt_two'>>
+            >();
+          }}
+          closeOnSelect={option => {
+            expectTypeOf(option).toEqualTypeOf<
+              Array<SelectOption<'opt_one' | 'opt_two'>>
+            >();
+            return true;
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+      );
+    });
+  });
+
   it('renders', async () => {
     render(
       <CompactSelect
@@ -113,19 +207,54 @@ describe('CompactSelect', () => {
     expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
+  it('closes menu when clear is clicked', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value="opt_one"
+        onChange={jest.fn()}
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+        ]}
+      />
+    );
+
+    // open the menu
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+
+    // click the clear button
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    // menu is closed
+    await waitFor(() => {
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+  });
+
   describe('ListBox', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          value={undefined}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          onChange={mock}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string>();
+        return (
+          <CompactSelect
+            value={state}
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.value);
+            }}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -139,17 +268,26 @@ describe('CompactSelect', () => {
 
     it('can select multiple options', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          multiple
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          onChange={mock}
-          value={undefined}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+        return (
+          <CompactSelect
+            multiple
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            value={state}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -167,17 +305,26 @@ describe('CompactSelect', () => {
 
     it('can select options with values containing quotes', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          multiple
-          options={[
-            {value: '"opt_one"', label: 'Option One'},
-            {value: '"opt_two"', label: 'Option Two'},
-          ]}
-          onChange={mock}
-          value={undefined}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+        return (
+          <CompactSelect
+            multiple
+            options={[
+              {value: '"opt_one"', label: 'Option One'},
+              {value: '"opt_two"', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            value={state}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -330,34 +477,44 @@ describe('CompactSelect', () => {
 
     it('can toggle sections', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          multiple
-          onSectionToggle={mock}
-          value={undefined}
-          onChange={jest.fn()}
-          options={[
-            {
-              key: 'section-1',
-              label: 'Section 1',
-              showToggleAllButton: true,
-              options: [
-                {value: 'opt_one', label: 'Option One'},
-                {value: 'opt_two', label: 'Option Two'},
-              ],
-            },
-            {
-              key: 'section-2',
-              label: 'Section 2',
-              showToggleAllButton: true,
-              options: [
-                {value: 'opt_three', label: 'Option Three'},
-                {value: 'opt_four', label: 'Option Four'},
-              ],
-            },
-          ]}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+
+        return (
+          <CompactSelect
+            multiple
+            onSectionToggle={mock}
+            value={state}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            options={[
+              {
+                key: 'section-1',
+                label: 'Section 1',
+                showToggleAllButton: true,
+                options: [
+                  {value: 'opt_one', label: 'Option One'},
+                  {value: 'opt_two', label: 'Option Two'},
+                ],
+              },
+              {
+                key: 'section-2',
+                label: 'Section 2',
+                showToggleAllButton: true,
+                options: [
+                  {value: 'opt_three', label: 'Option Three'},
+                  {value: 'opt_four', label: 'Option Four'},
+                ],
+              },
+            ]}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -468,17 +625,27 @@ describe('CompactSelect', () => {
   describe('GridList', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          grid
-          value={undefined}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          onChange={mock}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string>();
+
+        return (
+          <CompactSelect
+            grid
+            value={state}
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.value);
+            }}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -492,18 +659,27 @@ describe('CompactSelect', () => {
 
     it('can select multiple options', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          grid
-          multiple
-          value={undefined}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          onChange={mock}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+        return (
+          <CompactSelect
+            grid
+            multiple
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            value={state}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -521,18 +697,27 @@ describe('CompactSelect', () => {
 
     it('can select options with values containing quotes', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          grid
-          multiple
-          options={[
-            {value: '"opt_one"', label: 'Option One'},
-            {value: '"opt_two"', label: 'Option Two'},
-          ]}
-          onChange={mock}
-          value={undefined}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+        return (
+          <CompactSelect
+            grid
+            multiple
+            options={[
+              {value: '"opt_one"', label: 'Option One'},
+              {value: '"opt_two"', label: 'Option Two'},
+            ]}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            value={state}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button'));
@@ -639,35 +824,45 @@ describe('CompactSelect', () => {
 
     it('can toggle sections', async () => {
       const mock = jest.fn();
-      render(
-        <CompactSelect
-          grid
-          multiple
-          onSectionToggle={mock}
-          value={undefined}
-          onChange={jest.fn()}
-          options={[
-            {
-              key: 'section-1',
-              label: 'Section 1',
-              showToggleAllButton: true,
-              options: [
-                {value: 'opt_one', label: 'Option One'},
-                {value: 'opt_two', label: 'Option Two'},
-              ],
-            },
-            {
-              key: 'section-2',
-              label: 'Section 2',
-              showToggleAllButton: true,
-              options: [
-                {value: 'opt_three', label: 'Option Three'},
-                {value: 'opt_four', label: 'Option Four'},
-              ],
-            },
-          ]}
-        />
-      );
+
+      function Component() {
+        const [state, setState] = useState<string[]>([]);
+
+        return (
+          <CompactSelect
+            grid
+            multiple
+            onSectionToggle={mock}
+            value={state}
+            onChange={selection => {
+              mock(selection);
+              setState(selection.map(opt => opt.value));
+            }}
+            options={[
+              {
+                key: 'section-1',
+                label: 'Section 1',
+                showToggleAllButton: true,
+                options: [
+                  {value: 'opt_one', label: 'Option One'},
+                  {value: 'opt_two', label: 'Option Two'},
+                ],
+              },
+              {
+                key: 'section-2',
+                label: 'Section 2',
+                showToggleAllButton: true,
+                options: [
+                  {value: 'opt_three', label: 'Option Three'},
+                  {value: 'opt_four', label: 'Option Four'},
+                ],
+              },
+            ]}
+          />
+        );
+      }
+
+      render(<Component />);
 
       // click on the trigger button
       await userEvent.click(screen.getByRole('button', {expanded: false}));
