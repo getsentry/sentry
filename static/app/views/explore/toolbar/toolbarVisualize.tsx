@@ -21,7 +21,6 @@ import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  MAX_VISUALIZES,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -29,6 +28,7 @@ import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields'
 import {
   isVisualizeEquation,
   isVisualizeFunction,
+  MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
