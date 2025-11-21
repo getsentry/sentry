@@ -21,4 +21,4 @@ export const AM_ADD_ON_CATEGORIES = {
     order: 2,
     productName: 'prevent',
   },
-} satisfies Record<AddOnCategory, AddOnCategoryInfo>;
+} satisfies Record<Exclude<AddOnCategory, AddOnCategory.LEGACY_SEER>, AddOnCategoryInfo>; // TODO(seer): Add LEGACY_SEER once the backend is updated to use the new value and the rest of the frontend can be updated
