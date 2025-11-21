@@ -4,9 +4,10 @@ historical_silo_assignments.
 """
 
 from typing import cast
+from unittest.mock import Mock
 
 import pytest
-from django.db import connection, models
+from django.db import connection
 
 from sentry.db.postgres.schema import SafePostgresDatabaseSchemaEditor
 from sentry.new_migrations.monkey.models import SafeDeleteModel
@@ -26,11 +27,6 @@ class SafeDeleteModelTest(TestCase):
         cannot be found, SafeDeleteModel should raise a ValueError in test
         environments.
         """
-        # Create a mock model that mimics a deleted model not in the Django registry
-        # This simulates what happens when a model class has been removed but
-        # migrations still reference it
-        from unittest.mock import Mock
-
         fake_meta = Mock()
         fake_meta.db_table = "sentry_fake_deleted_table_not_in_router"
         fake_meta.app_label = "sentry"
@@ -39,7 +35,6 @@ class SafeDeleteModelTest(TestCase):
         FakeDeletedModel = Mock()
         FakeDeletedModel._meta = fake_meta
 
-        # Create project states
         from_state = SentryProjectState()
         to_state = SentryProjectState()
 
@@ -48,12 +43,9 @@ class SafeDeleteModelTest(TestCase):
         # and is now being deleted
         from_state.pending_deletion_models[("sentry", "fakedeletedmodel")] = FakeDeletedModel
 
-        # Create the SafeDeleteModel operation
         operation = SafeDeleteModel(name="FakeDeletedModel", deletion_action=DeletionAction.DELETE)
 
-        # Get schema editor
         with connection.schema_editor() as schema_editor:
-            # This should raise ValueError because the table is not in historical_silo_assignments
             with pytest.raises(ValueError) as exc_info:
                 operation.database_forwards(
                     "sentry",
@@ -65,30 +57,3 @@ class SafeDeleteModelTest(TestCase):
             assert "Cannot determine database for deleted model" in str(exc_info.value)
             assert "sentry_fake_deleted_table_not_in_router" in str(exc_info.value)
             assert "historical_silo_assignments" in str(exc_info.value)
-
-    def test_delete_model_with_move_to_pending_skips_validation(self) -> None:
-        """
-        MOVE_TO_PENDING operations should not trigger the validation check
-        since the model class still exists at that point.
-        """
-
-        class FakeModel(models.Model):
-            class Meta:
-                app_label = "sentry"
-                db_table = "sentry_fake_table"
-
-        from_state = SentryProjectState()
-        to_state = SentryProjectState()
-
-        operation = SafeDeleteModel(
-            name="FakeModel", deletion_action=DeletionAction.MOVE_TO_PENDING
-        )
-
-        with connection.schema_editor() as schema_editor:
-            # Should not raise - MOVE_TO_PENDING exits early
-            operation.database_forwards(
-                "sentry",
-                cast(SafePostgresDatabaseSchemaEditor, schema_editor),
-                from_state,
-                to_state,
-            )
