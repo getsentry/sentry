@@ -12,6 +12,13 @@ from django.http import QueryDict
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.custom_rule import CustomRuleSamplesFulfilled
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
@@ -103,41 +110,58 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     """
     Notifies the rule creator that samples have been gathered.
     """
-    subject_template = "We've collected {num_samples} samples for the query: {query} you made"
-
     user_id = rule.created_by_id
     if not user_id:
         return
 
     creator = user_service.get_user(user_id=user_id)
-    if not creator:
+    if not creator or not creator.email:
         return
 
     projects = rule.projects.all()
     project_ids = [p.id for p in projects]
 
-    params = {
-        "query": rule.query,
-        "num_samples": num_samples,
-        "start_date": rule.start_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "end_date": rule.end_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "name": creator.name,
-        "email": creator.email,
-        "user_name": creator.username,
-        "display_name": creator.get_display_name(),
-        "discover_link": create_discover_link(rule, project_ids),
-    }
-
-    subject = subject_template.format(**params)
-
-    msg = MessageBuilder(
-        subject=subject,
-        template="sentry/emails/dyn-sampling-custom-rule-fulfilled.txt",
-        html_template="sentry/emails/dyn-sampling-custom-rule-fulfilled.html",
-        context=params,
+    data = CustomRuleSamplesFulfilled(
+        query=rule.query,
+        num_samples=num_samples,
+        start_date=rule.start_date,
+        end_date=rule.end_date,
+        discover_link=create_discover_link(rule, project_ids),
     )
 
-    msg.send_async([creator.email])
+    if NotificationService.has_access(rule.organization, data.source):
+        NotificationService(data=data).notify_async(
+            targets=[
+                GenericNotificationTarget(
+                    provider_key=NotificationProviderKey.EMAIL,
+                    resource_type=NotificationTargetResourceType.EMAIL,
+                    resource_id=creator.email,
+                )
+            ]
+        )
+    else:
+        # Fallback to old email system
+        subject_template = "We've collected {num_samples} samples for the query: {query} you made"
+        params = {
+            "query": rule.query,
+            "num_samples": num_samples,
+            "start_date": rule.start_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "end_date": rule.end_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "name": creator.name,
+            "email": creator.email,
+            "user_name": creator.username,
+            "display_name": creator.get_display_name(),
+            "discover_link": create_discover_link(rule, project_ids),
+        }
+        subject = subject_template.format(**params)
+
+        msg = MessageBuilder(
+            subject=subject,
+            template="sentry/emails/dyn-sampling-custom-rule-fulfilled.txt",
+            html_template="sentry/emails/dyn-sampling-custom-rule-fulfilled.html",
+            context=params,
+        )
+        msg.send_async([creator.email])
 
 
 def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -> str:
