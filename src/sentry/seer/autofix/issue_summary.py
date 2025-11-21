@@ -303,30 +303,20 @@ def run_automation(
     if source == SeerAutomationSource.ALERT and features.has(
         "projects:triage-signals-v0", group.project
     ):
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
-
-        if times_seen < 10:
+        if group.times_seen_with_pending < 10:
             logger.info(
-                "Triage signals V0: %s: skipping alert automation, event count < 10: %s",
-                group.id,
-                times_seen,
+                "Triage signals V0: skipping alert automation, event count < 10",
+                extra={"group_id": group.id, "event_count": group.times_seen_with_pending},
             )
             return
 
     # Only log for projects with triage-signals-v0
     if features.has("projects:triage-signals-v0", group.project):
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
         logger.info(
             "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
             group.id,
             source.value,
-            times_seen,
+            group.times_seen_with_pending,
         )
 
     user_id = user.id if user else None
