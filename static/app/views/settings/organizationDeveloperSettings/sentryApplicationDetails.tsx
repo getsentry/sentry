@@ -39,7 +39,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {
   setApiQueryData,
@@ -49,7 +48,10 @@ import {
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -150,7 +152,6 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{appSlug?: string}>;
 const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/`];
 };
@@ -159,9 +160,10 @@ const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/api-tokens/`];
 };
 
-export default function SentryApplicationDetails(props: Props) {
-  const {appSlug} = props.params;
-  const {router, location} = props;
+export default function SentryApplicationDetails() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
   const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
@@ -230,7 +232,7 @@ export default function SentryApplicationDetails(props: Props) {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    router.push(normalizeUrl(url));
+    navigate(normalizeUrl(url));
   };
 
   const handleSubmitError = (err: any) => {
