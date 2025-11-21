@@ -471,14 +471,13 @@ describe('DetectorsList', () => {
         ],
       });
       render(<AllMonitors />, {organization});
-      renderGlobalModal();
       await screen.findByText('System Created Detector');
 
       const rows = screen.getAllByTestId('detector-list-row');
       const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
       await userEvent.click(firstRowCheckbox);
 
-      // Click Delete button
+      // Verify that delete button is disabled
       expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
     });
 
