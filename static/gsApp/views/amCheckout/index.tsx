@@ -40,21 +40,17 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  CheckoutType,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanName,
-  PlanTier,
-  type BillingConfig,
-  type CheckoutAddOns,
-  type EventBucket,
-  type Invoice,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type PromotionData,
-  type Subscription,
+import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
@@ -807,9 +803,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (isSubmitted && isNewCheckout) {
-      const purchasedPlanItem = invoice?.items.find(
-        item => item.type === InvoiceItemType.SUBSCRIPTION
-      );
+      const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
         : this.getPlan(formData.plan);

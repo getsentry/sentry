@@ -7,7 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ModalBody} from 'sentry/components/globalModal/components';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';
 
 // Stripe mocks handled by global setup.ts
@@ -18,7 +17,7 @@ describe('InvoiceDetails > Payment Form', () => {
     {
       items: [
         {
-          type: InvoiceItemType.SUBSCRIPTION,
+          type: 'subscription',
           description: 'Subscription to Business',
           amount: 8900,
           periodEnd: '2021-10-21',

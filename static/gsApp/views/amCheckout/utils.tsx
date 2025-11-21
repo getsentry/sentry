@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
@@ -11,7 +11,7 @@ import {
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useMutation} from 'sentry/utils/queryClient';
@@ -27,18 +27,16 @@ import {
   SUPPORTED_TIERS,
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
+import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
+import type {
+  BillingDetails,
+  CheckoutAddOns,
+  EventBucket,
   InvoiceItemType,
-  PlanTier,
-  type BillingDetails,
-  type CheckoutAddOns,
-  type EventBucket,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type ReservedBudgetCategoryType,
-  type Subscription,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  Subscription,
 } from 'getsentry/types';
 import {
   getAmPlanTier,
@@ -53,10 +51,10 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
-import {
-  type CheckoutAPIData,
-  type CheckoutFormData,
-  type PlanContent,
+import type {
+  CheckoutAPIData,
+  CheckoutFormData,
+  PlanContent,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -325,10 +323,7 @@ export function getDiscountedPrice({
   creditCategory,
 }: DiscountedPriceProps): number {
   let price = basePrice;
-  if (
-    discountType === 'percentPoints' &&
-    creditCategory === InvoiceItemType.SUBSCRIPTION
-  ) {
+  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
     const discount = (basePrice * amount) / 10000;
     price = basePrice - discount;
   } else if (discountType === 'amountCents') {
@@ -877,9 +872,9 @@ export function invoiceItemTypeToDataCategory(
 
 export function invoiceItemTypeToAddOn(type: InvoiceItemType): AddOnCategory | null {
   switch (type) {
-    case InvoiceItemType.RESERVED_SEER_BUDGET:
+    case 'reserved_seer_budget':
       return AddOnCategory.SEER;
-    case InvoiceItemType.RESERVED_PREVENT_USERS:
+    case 'reserved_prevent_users':
       return AddOnCategory.PREVENT;
     default:
       return null;
