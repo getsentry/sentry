@@ -3,7 +3,7 @@ import {createContext, useContext, useMemo, useState} from 'react';
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 
-export type ChartSelectionState = {
+type ChartSelectionState = {
   chartInfo: ChartInfo;
   selection: Selection;
 } | null;

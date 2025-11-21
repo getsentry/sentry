@@ -30,7 +30,7 @@ type State = {
   selection: Selection;
 } | null;
 
-export type BoxSelectionOptions = {
+type BoxSelectionOptions = {
   /**
    * The brush option override for the chart, to enable brush mode.
    */
