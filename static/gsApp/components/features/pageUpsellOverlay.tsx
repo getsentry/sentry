@@ -24,7 +24,6 @@ type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
   source: string;
   subscription: Subscription;
   customSecondaryCTA?: React.ReactNode;
-  defaultUpsellSelection?: string;
 };
 
 /**
@@ -42,7 +41,6 @@ function PageUpsellOverlay({
   source,
   requiredPlan,
   customSecondaryCTA,
-  defaultUpsellSelection,
   ...props
 }: Props) {
   const requiredPlanContents =
@@ -90,7 +88,6 @@ function PageUpsellOverlay({
                     openUpsellModal({
                       organization,
                       source,
-                      defaultSelection: defaultUpsellSelection,
                     })
                   }
                   size="sm"
