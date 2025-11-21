@@ -93,7 +93,10 @@ export default function FiltersBar({
       [];
 
     if (hasDrillDownFlowsFeature && dashboardFiltersFromURL) {
-      return getCombinedDashboardFilters(dashboardFiltersFromURL);
+      return getCombinedDashboardFilters(
+        globalFilters,
+        dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+      );
     }
 
     return globalFilters;

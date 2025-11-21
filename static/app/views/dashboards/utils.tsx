@@ -608,7 +608,10 @@ export function dashboardFiltersToString(
     }
   }
 
-  const combinedFilters = getCombinedDashboardFilters(dashboardFilters);
+  const combinedFilters = getCombinedDashboardFilters(
+    dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER],
+    dashboardFilters?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+  );
   // If widgetType is provided, concatenate global filters that apply
   if (widgetType && combinedFilters) {
     dashboardFilterConditions +=
@@ -623,23 +626,22 @@ export function dashboardFiltersToString(
 
 // Combines global and temporary filters into a single array, deduplicating by dataset and key prioritizing the temporary filter.
 export function getCombinedDashboardFilters(
-  dashboardFilters: DashboardFilters | null | undefined
+  globalFilters?: GlobalFilter[],
+  temporaryFilters?: GlobalFilter[]
 ): GlobalFilter[] {
-  const finalFilters = [...(dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [])];
-  const temporaryFilters = [
-    ...(dashboardFilters?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
-  ];
+  const finalFilters = [...(globalFilters ?? [])];
+  const temporaryFiltersCopy = [...(temporaryFilters ?? [])];
   finalFilters.forEach((filter, idx) => {
     // if a temporary filter exists for the same dataset and key, override it and delete it from the temporary filters to avoid duplicates
-    const temporaryFilter = temporaryFilters.find(
+    const temporaryFilter = temporaryFiltersCopy.find(
       tf => tf.dataset === filter.dataset && tf.tag.key === filter.tag.key
     );
     if (temporaryFilter) {
       finalFilters[idx] = {...filter, value: temporaryFilter.value};
-      temporaryFilters.splice(temporaryFilters.indexOf(temporaryFilter), 1);
+      temporaryFiltersCopy.splice(temporaryFiltersCopy.indexOf(temporaryFilter), 1);
     }
   });
-  return [...finalFilters, ...temporaryFilters];
+  return [...finalFilters, ...temporaryFiltersCopy];
 }
 
 export function connectDashboardCharts(groupName: string) {
