@@ -89,21 +89,18 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
 }
 
 /**
- * Aggregate options not allowed for the logs dataset
+ * Aggregate options excluded for the logs dataset
  */
-const LOGS_NOT_ALLOWED_AGGREGATES = [
+const LOGS_EXCLUDED_AGGREGATES = [
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
   AggregationKey.APDEX,
 ];
 
-/**
- * Additional aggregate options for the spans dataset
- */
-const EXTRA_AGGREGATES = [AggregationKey.APDEX];
+const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
 
 /**
- * Locks the options because they usually need to count something specific
+ * Locks the primary dropdown to the single option
  */
 const LOCKED_SPAN_AGGREGATES = {
   [AggregationKey.APDEX]: {
@@ -124,10 +121,10 @@ const isLockedSpanAggregate = (
 };
 
 function getEAPAllowedAggregates(dataset: DetectorDataset): Array<[string, string]> {
-  return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...EXTRA_AGGREGATES]
+  return [...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, ...ADDITIONAL_EAP_AGGREGATES]
     .filter(aggregate => {
       if (dataset === DetectorDataset.LOGS) {
-        return !LOGS_NOT_ALLOWED_AGGREGATES.includes(aggregate);
+        return !LOGS_EXCLUDED_AGGREGATES.includes(aggregate);
       }
       return true;
     })
