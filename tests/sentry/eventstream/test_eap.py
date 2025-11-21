@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsResponse
-from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE, ResponseMeta
+from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta, TraceItemType
 
 from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
@@ -16,7 +16,7 @@ class TestEAPDeletion(TestCase):
         self.project_id = 123
         self.group_ids = [1, 2, 3]
 
-    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_deletion_with_error_dataset(self, mock_rpc):
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
@@ -35,9 +35,9 @@ class TestEAPDeletion(TestCase):
         assert request.meta.cogs_category == "deletions"
 
         assert len(request.filters) == 1
-        assert request.filters[0].item_type == TRACE_ITEM_TYPE_OCCURRENCE
+        assert request.filters[0].item_type == TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
 
-    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_multiple_group_ids(self, mock_rpc):
         mock_rpc.return_value = DeleteTraceItemsResponse(
             meta=ResponseMeta(),
@@ -54,7 +54,7 @@ class TestEAPDeletion(TestCase):
         group_filter = request.filters[0].filter.and_filter.filters[1]
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
-    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_eap_deletion_disabled_skips_deletion(self, mock_rpc):
         with self.options({"eventstream.eap.deletion-enabled": False}):
             delete_events_from_eap(
@@ -71,7 +71,7 @@ class TestEAPDeletion(TestCase):
                 group_ids=[],
             )
 
-    @patch("sentry.eventstream.eap.snuba_rpc.rpc")
+    @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_exception_does_not_propagate(self, mock_rpc):
         mock_rpc.side_effect = Exception("RPC connection failed")
 
