@@ -4,9 +4,6 @@ from unittest.mock import patch
 import orjson
 import pytest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
-    ExtrapolationMode as RPCExtrapolationMode,
-)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from urllib3.response import HTTPResponse
@@ -28,7 +25,7 @@ from sentry.seer.anomaly_detection.types import (
     StoreDataResponse,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -163,7 +160,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert snuba_query.aggregate == "count(span.duration)"
         assert snuba_query.query == "(span.duration:>100) AND is_transaction:1"
-        assert snuba_query.extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value
 
         event_types = list(
             SnubaQueryEventType.objects.filter(snuba_query=snuba_query).values_list(
@@ -205,10 +201,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert expression.aggregation.aggregate == Function.FUNCTION_COUNT
         assert expression.aggregation.key.name == "sentry.project_id"
         assert expression.aggregation.label == "count(span.duration)"
-        assert (
-            expression.aggregation.extrapolation_mode
-            == RPCExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-        )
         assert expression.label == "count(span.duration)"
 
         assert len(rpc_time_series_request.group_by) == 0
@@ -264,7 +256,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert snuba_query.aggregate == "p95(span.duration)"
         assert snuba_query.query == "(transaction.method:GET) AND is_transaction:1"
-        assert snuba_query.extrapolation_mode == ExtrapolationMode.NONE.value
 
         event_types = list(
             SnubaQueryEventType.objects.filter(snuba_query=snuba_query).values_list(
@@ -330,7 +321,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert snuba_query.aggregate == "count_unique(user)"
         assert snuba_query.query == "(transaction:/api/*) AND is_transaction:1"
-        assert snuba_query.extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value
 
         assert mock_create_rpc.called
         call_args = mock_create_rpc.call_args
@@ -387,7 +377,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert snuba_query.aggregate == "count(span.duration)"
         assert snuba_query.query == "is_transaction:1"
-        assert snuba_query.extrapolation_mode == ExtrapolationMode.NONE.value
 
         assert mock_create_rpc.called
         call_args = mock_create_rpc.call_args
