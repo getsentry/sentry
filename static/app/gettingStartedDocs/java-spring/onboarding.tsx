@@ -67,7 +67,11 @@ JAVA_OPTS="$\{JAVA_OPTS} -javaagent:/somewhere/sentry-opentelemetry-agent-${getP
 
 const getJavaConfigSnippet = (params: Params) => `
 import io.sentry.spring${
-  params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
+  params.platformOptions.springVersion === SpringVersion.V6
+    ? '.jakarta'
+    : params.platformOptions.springVersion === SpringVersion.V7
+      ? '7'
+      : ''
 }.EnableSentry;
 
 @EnableSentry(
@@ -82,7 +86,11 @@ class SentryConfiguration {
 
 const getKotlinConfigSnippet = (params: Params) => `
 import io.sentry.spring${
-  params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
+  params.platformOptions.springVersion === SpringVersion.V6
+    ? '.jakarta'
+    : params.platformOptions.springVersion === SpringVersion.V7
+      ? '7'
+      : ''
 }.EnableSentry
 import org.springframework.core.Ordered
 
@@ -259,7 +267,9 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                   <code>
                     {params.platformOptions.springVersion === SpringVersion.V5
                       ? 'sentry-spring'
-                      : 'sentry-spring-jakarta'}
+                      : params.platformOptions.springVersion === SpringVersion.V6
+                        ? 'sentry-spring-jakarta'
+                        : 'sentry-spring-7'}
                   </code>
                 ),
                 codeEnableSentry: <code />,
