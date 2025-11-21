@@ -39,18 +39,10 @@ function HelpfulMembers() {
 function ContactBillingMembers() {
   return (
     <Panel data-test-id="permission-denied">
-      <EmptyMessage
-        title={t('Insufficient Access')}
-        icon={<IconWarning size="xl" />}
-        description={
-          <Fragment>
-            <p>
-              {t("You don't have access to manage billing and subscription details.")}
-            </p>
-            <HelpfulMembers />
-          </Fragment>
-        }
-      />
+      <EmptyMessage title={t('Insufficient Access')} icon={<IconWarning />}>
+        <p>{t("You don't have access to manage billing and subscription details.")}</p>
+        <HelpfulMembers />
+      </EmptyMessage>
     </Panel>
   );
 }

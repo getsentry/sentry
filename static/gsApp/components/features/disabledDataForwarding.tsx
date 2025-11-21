@@ -24,25 +24,9 @@ function DisabledDataForwarding({organization, features}: Props) {
       {({plan}) => (
         <Panel dashedBorder data-test-id="disabled-data-forwarding">
           <EmptyMessage
-            size="large"
-            icon={<IconArrow direction="right" size="xl" />}
+            size="lg"
+            icon={<IconArrow direction="right" />}
             title={t('Your business intelligence workflow is missing crucial data')}
-            description={
-              plan === null
-                ? t(
-                    'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
-                  )
-                : tct(
-                    '[strong:Data Forwarding] allows you to send processed events to your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk. This feature [planRequirement] or above.',
-
-                    {
-                      strong: <strong />,
-                      planRequirement: (
-                        <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
-                      ),
-                    }
-                  )
-            }
             action={
               <ButtonGroup>
                 <Button
@@ -64,7 +48,22 @@ function DisabledDataForwarding({organization, features}: Props) {
                 </LearnMoreButton>
               </ButtonGroup>
             }
-          />
+          >
+            {plan === null
+              ? t(
+                  'Data forwarding is not available on your plan. Contact us to migrate to a plan that supports sending your events for processing with your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk.'
+                )
+              : tct(
+                  '[strong:Data Forwarding] allows you to send processed events to your favorite business intelligence tools such as Segment, Amazon SQS, and Splunk. This feature [planRequirement] or above.',
+
+                  {
+                    strong: <strong />,
+                    planRequirement: (
+                      <strong>{t('requires a %s Plan', displayPlanName(plan))}</strong>
+                    ),
+                  }
+                )}
+          </EmptyMessage>
         </Panel>
       )}
     </PlanFeature>

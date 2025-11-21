@@ -91,12 +91,9 @@ export function ProjectFiltersChart({project}: Props) {
           />
         )}
         {hasLoaded && blankStats && (
-          <EmptyMessage
-            title={t('Nothing filtered in the last 30 days.')}
-            description={t(
-              'Issues filtered as a result of your settings below will be shown here.'
-            )}
-          />
+          <EmptyMessage title={t('Nothing filtered in the last 30 days.')}>
+            {t('Issues filtered as a result of your settings below will be shown here.')}
+          </EmptyMessage>
         )}
       </PanelBody>
     </Panel>

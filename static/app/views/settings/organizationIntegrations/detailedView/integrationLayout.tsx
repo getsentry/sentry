@@ -149,13 +149,11 @@ function Body({
 function EmptyConfigurations({action}: {action: React.ReactElement}) {
   return (
     <Panel>
-      <EmptyMessage
-        title={t("You haven't set anything up yet")}
-        description={t(
-          'But that doesn’t have to be the case for long! Add an installation to get started.'
+      <EmptyMessage title={t("You haven't set anything up yet")} action={action}>
+        {t(
+          "But that doesn't have to be the case for long! Add an installation to get started."
         )}
-        action={action}
-      />
+      </EmptyMessage>
     </Panel>
   );
 }

@@ -198,7 +198,7 @@ function EmptyReleaseMessage({
   if (searchQuery?.length) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
+        <EmptyMessage icon={<IconSearch />} size="lg">{`${t(
           'There are no releases that match'
         )}: '${searchQuery}'.`}</EmptyMessage>
       </Panel>
@@ -208,7 +208,7 @@ function EmptyReleaseMessage({
   if (activeSort === ReleasesSortOption.USERS_24_HOURS) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no releases with active user data (users in the last 24 hours).')}
         </EmptyMessage>
       </Panel>
@@ -218,7 +218,7 @@ function EmptyReleaseMessage({
   if (activeSort === ReleasesSortOption.SESSIONS_24_HOURS) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t(
             'There are no releases with active session data (sessions in the last 24 hours).'
           )}
@@ -233,7 +233,7 @@ function EmptyReleaseMessage({
   ) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no releases with semantic versioning.')}
         </EmptyMessage>
       </Panel>
@@ -243,7 +243,7 @@ function EmptyReleaseMessage({
   if (activeSort !== ReleasesSortOption.DATE) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
         </EmptyMessage>
       </Panel>
@@ -253,7 +253,7 @@ function EmptyReleaseMessage({
   if (activeStatus === ReleasesStatusOption.ARCHIVED) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no archived releases.')}
         </EmptyMessage>
       </Panel>
@@ -262,7 +262,7 @@ function EmptyReleaseMessage({
 
   return (
     <Panel>
-      <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+      <EmptyMessage icon={<IconSearch />} size="lg">
         {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
       </EmptyMessage>
     </Panel>
