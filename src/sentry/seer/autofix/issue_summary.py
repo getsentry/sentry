@@ -299,6 +299,15 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
+    # Only log for projects with triage-signals-v0
+    if features.has("projects:triage-signals-v0", group.project):
+        logger.info(
+            "run_automation called: group_id=%s, source=%s, times_seen_with_pending=%s",
+            group.id,
+            source.value,
+            group.times_seen_with_pending,
+        )
+
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
 
