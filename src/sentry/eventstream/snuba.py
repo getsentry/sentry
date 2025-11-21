@@ -8,6 +8,8 @@ from uuid import uuid4
 
 import urllib3
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from urllib3.fields import RequestField
+from urllib3.filepost import encode_multipart_formdata
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -497,10 +499,16 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
     def _send_item(self, trace_item: TraceItem) -> None:
         try:
+            serialized = trace_item.SerializeToString()
+            field = RequestField(name="item_0", data=serialized, filename="item_0")
+            field.make_multipart(content_type="application/octet-stream")
+            body, content_type = encode_multipart_formdata([field])
+
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 EAP_ITEMS_INSERT_ENDPOINT,
-                fields={"item_0": trace_item.SerializeToString()},
+                body=body,
+                headers={"Content-Type": content_type},
             )
 
             if resp.status == 200:
