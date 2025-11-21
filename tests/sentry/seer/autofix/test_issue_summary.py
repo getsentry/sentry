@@ -1112,7 +1112,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         # Should not trigger automation
-        mock_trigger.assert_not_called()
+        mock_trigger.delay.assert_not_called()
 
     @patch(
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
