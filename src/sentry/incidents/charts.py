@@ -139,6 +139,7 @@ def fetch_metric_issue_open_periods(
     time_window: int = 0,
 ) -> list[Any]:
     detector_id = open_period_identifier
+    identifier_is_detector = True
     try:
         # temporarily fetch the alert rule ID from the detector ID
         alert_rule_detector = AlertRuleDetector.objects.filter(
@@ -147,10 +148,15 @@ def fetch_metric_issue_open_periods(
         if alert_rule_detector is not None:
             # open_period_identifier is a metric detector ID -> get the alert rule ID
             open_period_identifier = alert_rule_detector.alert_rule_id
+        else:
+            identifier_is_detector = False
 
-        if features.has(
-            "organizations:new-metric-issue-charts",
-            organization,
+        if (
+            features.has(
+                "organizations:new-metric-issue-charts",
+                organization,
+            )
+            and identifier_is_detector
         ):
             resp = client.get(
                 auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
