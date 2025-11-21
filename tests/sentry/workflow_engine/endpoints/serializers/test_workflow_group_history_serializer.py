@@ -11,7 +11,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
     WorkflowGroupHistory,
     fetch_workflow_groups_paginated,
 )
-from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
+from sentry.workflow_engine.models import DetectorGroup, Workflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -32,6 +32,10 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
+        DetectorGroup.objects.create(
+            detector=self.detector_1,
+            group=self.group,
+        )
         for i in range(3):
             self.history.append(
                 WorkflowFireHistory(
@@ -46,6 +50,10 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
+        DetectorGroup.objects.create(
+            detector=self.detector_2,
+            group=self.group_2,
+        )
         self.history.append(
             WorkflowFireHistory(
                 detector=self.detector_2,
@@ -58,6 +66,10 @@ class WorkflowGroupsPaginatedTest(TestCase):
         self.detector_3 = self.create_detector(
             project_id=self.project.id,
             type=MetricIssue.slug,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector_3,
+            group=self.group_3,
         )
         for i in range(2):
             self.history.append(
