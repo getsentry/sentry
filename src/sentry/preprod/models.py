@@ -117,7 +117,7 @@ class PreprodArtifact(DefaultFieldsModel):
     build_number = BoundedBigIntegerField(null=True)
 
     # Version of tooling used to upload/build the artifact, extracted from metadata files
-    cli_version = models.CharField(max_length=255, null=True, db_index=True)
+    cli_version = models.CharField(max_length=255, null=True)
     fastlane_version = models.CharField(max_length=255, null=True)
     gradle_plugin_version = models.CharField(max_length=255, null=True)
 

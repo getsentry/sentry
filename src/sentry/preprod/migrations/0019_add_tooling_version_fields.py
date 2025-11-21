@@ -28,7 +28,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="preprodartifact",
             name="cli_version",
-            field=models.CharField(db_index=True, max_length=255, null=True),
+            field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
             model_name="preprodartifact",
