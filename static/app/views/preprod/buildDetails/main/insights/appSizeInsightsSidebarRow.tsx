@@ -75,7 +75,7 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
-    trackPreprodBuildAnalytics('preprod.builds.details_insight_action_clicked', {
+    trackPreprodBuildAnalytics('preprod.builds.details.open_insight_details_modal', {
       organization,
       insight_key: insight.key,
       platform: platform ?? null,
@@ -102,7 +102,7 @@ export function AppSizeInsightsSidebarRow({
       setCurrentPage(0);
     }
     if (!wasExpandedRef.current && isExpanded) {
-      trackPreprodBuildAnalytics('preprod.builds.details_insight_expanded', {
+      trackPreprodBuildAnalytics('preprod.builds.details.expand_insight', {
         organization,
         insight_key: insight.key,
         platform: platform ?? null,

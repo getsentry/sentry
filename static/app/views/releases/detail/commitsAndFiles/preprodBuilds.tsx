@@ -106,7 +106,7 @@ export default function PreprodBuilds() {
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse, _rowIndex: number) => {
-      trackPreprodBuildAnalytics('preprod.builds.release_row_clicked', {
+      trackPreprodBuildAnalytics('preprod.builds.release.build_row_clicked', {
         organization,
         project_type: projectPlatform ?? null,
         platform: build.app_info?.platform ?? projectPlatform ?? null,

@@ -133,7 +133,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const buildId = buildDetailsData.id;
 
   const handleCompareClick = () => {
-    trackPreprodBuildAnalytics('preprod.builds.details_compare_clicked', {
+    trackPreprodBuildAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
       platform,
       build_id: buildId,
@@ -141,11 +141,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   const handleConfirmDelete = () => {
-    trackPreprodBuildAnalytics('preprod.builds.details_delete_clicked', {
-      organization,
-      platform,
-      build_id: buildId,
-    });
     handleDeleteArtifact();
   };
 

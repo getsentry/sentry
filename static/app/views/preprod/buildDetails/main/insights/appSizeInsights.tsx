@@ -28,7 +28,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
   const organization = useOrganization();
 
   const openSidebar = useCallback(() => {
-    trackPreprodBuildAnalytics('preprod.builds.details_insights_opened', {
+    trackPreprodBuildAnalytics('preprod.builds.details.open_insights_sidebar', {
       organization,
       insight_count: processedInsights.length,
       platform: platform ?? null,

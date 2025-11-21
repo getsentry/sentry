@@ -35,7 +35,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
     <LinkButton
       to={buildUrl}
       onClick={() =>
-        trackPreprodBuildAnalytics('preprod.builds.compare_build_clicked', {
+        trackPreprodBuildAnalytics('preprod.builds.compare.go_to_build_details', {
           organization,
           build_id: buildId,
           project_slug: projectId,
@@ -125,7 +125,6 @@ export function SizeCompareSelectedBuilds({
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const headId = headBuildDetails.id;
   const headPlatform = headBuildDetails.app_info?.platform ?? null;
   const projectType = headBuildDetails.app_info?.platform ?? null;
 
@@ -158,13 +157,13 @@ export function SizeCompareSelectedBuilds({
         <Button
           onClick={() => {
             if (baseBuildDetails) {
-              trackPreprodBuildAnalytics('preprod.builds.compare_trigger_clicked', {
+              trackPreprodBuildAnalytics('preprod.builds.compare.trigger_comparison', {
                 organization,
-                head_id: headId,
-                base_id: baseBuildDetails.id,
                 project_slug: projectId,
                 project_type: projectType,
                 platform: headPlatform,
+                base_build_id: baseBuildDetails.id,
+                head_build_id: headBuildDetails.id,
               });
               onTriggerComparison();
             }

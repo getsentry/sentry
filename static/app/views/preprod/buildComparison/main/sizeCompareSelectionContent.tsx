@@ -182,10 +182,9 @@ export function SizeCompareSelectionContent({
                 isSelected={selectedBaseBuild === build}
                 onSelect={() => {
                   setSelectedBaseBuild(build);
-                  trackPreprodBuildAnalytics('preprod.builds.compare_build_selected', {
+                  trackPreprodBuildAnalytics('preprod.builds.compare.select_base_build', {
                     organization,
-                    head_id: headBuildDetails.id,
-                    base_id: build.id,
+                    build_id: build.id,
                     project_slug: projectId,
                     project_type: headBuildDetails.app_info?.platform ?? null,
                     platform:
@@ -212,12 +211,6 @@ interface BuildItemProps {
 }
 
 function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
-  const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
-  const headId = useParams<{headId?: string}>().headId;
-  const platform = build.app_info?.platform ?? null;
-  const projectType = build.app_info?.platform ?? null;
-
   const prNumber = build.vcs_info?.pr_number;
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
@@ -228,18 +221,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 
   return (
     <BuildItemContainer
-      onClick={() => {
-        trackPreprodBuildAnalytics('preprod.builds.compare_build_clicked', {
-          organization,
-          build_id: build.id,
-          project_slug: projectId,
-          project_type: projectType,
-          platform,
-          slot: 'base',
-          head_id: headId ? Number(headId) : undefined,
-        });
-        onSelect();
-      }}
+      onClick={onSelect}
       isSelected={isSelected}
       align="center"
       gap="md"

@@ -150,7 +150,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     ariaLabel: t('View insight details'),
                     onClick: () => {
                       trackPreprodBuildAnalytics(
-                        'preprod.builds.details_insights_opened',
+                        'preprod.builds.details.open_insights_sidebar',
                         {
                           organization,
                           insight_count: processedInsights.length,
