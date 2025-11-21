@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useState, type ComponentProps} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
