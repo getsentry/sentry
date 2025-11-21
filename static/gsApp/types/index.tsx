@@ -864,19 +864,39 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_start: string;
 };
 
-// TODO(data categories): BIL-970
-export enum CreditType {
-  ERROR = 'error',
-  TRANSACTION = 'transaction',
-  SPAN = 'span',
-  PROFILE_DURATION = 'profile_duration',
-  PROFILE_DURATION_UI = 'profile_duration_ui',
-  ATTACHMENT = 'attachment',
-  REPLAY = 'replay',
-  DISCOUNT = 'discount',
-  PERCENT = 'percent',
-  LOG_BYTE = 'log_byte',
-}
+/**
+ * Dynamically generate credit types from DATA_CATEGORY_INFO.
+ * Uses SINGULAR form (unlike InvoiceItemType which uses plural).
+ * This automatically includes new billing categories without manual enum updates.
+ *
+ * Follows the pattern: snake_case of singular
+ * Example: DATA_CATEGORY_INFO.ERROR (singular: "error") -> "error"
+ * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
+ */
+type DynamicCreditType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
+
+/**
+ * Static credit types not tied to data categories.
+ * These must be manually maintained but change infrequently.
+ */
+type StaticCreditType =
+  | 'discount' // Dollar-based recurring discount
+  | 'percent' // Percentage-based recurring discount
+  | 'seer_user'; // Special: maps to PREVENT_USER category (temporary until category renamed)
+
+/**
+ * Complete credit type union.
+ * Automatically stays in sync with backend when new billing categories are added.
+ *
+ * Migration from enum: Use string literals instead of enum members.
+ * Before: CreditType.ERROR
+ * After:  'error'
+ */
+export type CreditType = DynamicCreditType | StaticCreditType;
 
 type BaseRecurringCredit = {
   amount: number;
@@ -887,26 +907,27 @@ type BaseRecurringCredit = {
 
 interface RecurringDiscount extends BaseRecurringCredit {
   totalAmountRemaining: number;
-  type: CreditType.DISCOUNT;
+  type: 'discount';
 }
 
 interface RecurringPercentDiscount extends BaseRecurringCredit {
   percentPoints: number;
   totalAmountRemaining: number;
-  type: CreditType.PERCENT;
+  type: 'percent';
 }
 
 interface RecurringEventCredit extends BaseRecurringCredit {
   totalAmountRemaining: null;
   type:
-    | CreditType.ERROR
-    | CreditType.TRANSACTION
-    | CreditType.SPAN
-    | CreditType.PROFILE_DURATION
-    | CreditType.PROFILE_DURATION_UI
-    | CreditType.ATTACHMENT
-    | CreditType.REPLAY
-    | CreditType.LOG_BYTE;
+    | 'error'
+    | 'transaction'
+    | 'span'
+    | 'profile_duration'
+    | 'profile_duration_ui'
+    | 'attachment'
+    | 'replay'
+    | 'log_byte'
+    | 'seer_user';
 }
 
 export type RecurringCredit =

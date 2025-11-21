@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {CreditType, type Plan} from 'getsentry/types';
+import type {Plan} from 'getsentry/types';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
 
 describe('Recurring Credits', () => {
@@ -34,7 +34,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 1500,
-          type: CreditType.DISCOUNT,
+          type: 'discount',
           totalAmountRemaining: 7500,
         }),
       ],
@@ -61,7 +61,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 100_000,
-          type: CreditType.TRANSACTION,
+          type: 'transaction',
           totalAmountRemaining: null,
         }),
       ],
@@ -88,7 +88,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 10,
-          type: CreditType.PROFILE_DURATION,
+          type: 'profile_duration',
           totalAmountRemaining: null,
         }),
       ],
@@ -125,7 +125,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 10,
-          type: CreditType.PROFILE_DURATION_UI,
+          type: 'profile_duration_ui',
           totalAmountRemaining: null,
         }),
       ],
@@ -162,7 +162,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 1.5,
-          type: CreditType.ATTACHMENT,
+          type: 'attachment',
           totalAmountRemaining: null,
         }),
       ],
@@ -189,7 +189,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 3_000_000,
-          type: CreditType.REPLAY,
+          type: 'replay',
           totalAmountRemaining: null,
         }),
       ],
@@ -216,7 +216,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 2.5,
-          type: CreditType.LOG_BYTE,
+          type: 'log_byte',
           totalAmountRemaining: null,
         }),
       ],
@@ -243,7 +243,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: '2021-12-01',
           amount: 50000,
-          type: CreditType.ERROR,
+          type: 'error',
           totalAmountRemaining: null,
         }),
         RecurringCreditFixture({
@@ -251,7 +251,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: '2022-01-01',
           amount: 100000,
-          type: CreditType.ERROR,
+          type: 'error',
           totalAmountRemaining: null,
         }),
       ],
@@ -287,7 +287,7 @@ describe('Recurring Credits', () => {
           periodStart: moment().format(),
           periodEnd: moment().utc().add(3, 'months').format(),
           amount: 1500,
-          type: CreditType.DISCOUNT,
+          type: 'discount',
           totalAmountRemaining: 7500,
         }),
       ],
