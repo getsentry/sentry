@@ -85,11 +85,16 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             # Re-raise validation errors so user sees them
             raise
         except Exception as e:
-            # Log connection/P4 errors for debugging - depot might be valid but temporarily unreachable
+            # Log and re-raise connection/P4 errors
+            # We cannot create a repository if we can't validate the depot exists
             logger.exception(
                 "perforce.get_repository_data.depot_validation_failed",
                 extra={"depot_path": depot_path.path, "error": str(e)},
             )
+            raise IntegrationError(
+                f"Failed to validate depot: {depot_path.path}. "
+                f"Please check your Perforce server connection and credentials."
+            ) from e
 
         config["external_id"] = depot_path.path
         config["integration_id"] = installation.model.id
