@@ -101,12 +101,6 @@ function PlanList({
     });
   }, [availableProducts, subscription.addOns, formModel]);
 
-  availableProducts.forEach(productInfo => {
-    const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
-    const enabled = subscription.addOns?.[productInfo.apiName]?.enabled;
-    formModel.setValue(addOnKey, enabled);
-  });
-
   return (
     <Form
       onSubmit={onSubmit}

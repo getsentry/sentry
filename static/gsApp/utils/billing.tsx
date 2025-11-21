@@ -779,8 +779,8 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
 }
 
 export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
-  if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(addOnCategory)) {
-    return ReservedBudgetCategoryType.SEER; // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER should be removed from here
+  if (addOnCategory === AddOnCategory.LEGACY_SEER) {
+    return ReservedBudgetCategoryType.SEER;
   }
   return null;
 }

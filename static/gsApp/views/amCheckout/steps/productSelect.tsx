@@ -62,7 +62,6 @@ export function getProductCheckoutDescription({
   includedBudget?: string;
 }) {
   if (product === AddOnCategory.LEGACY_SEER) {
-    // TODO(seer): Once backend is passing LEGACY_SEER, AddOnCategory.SEER should be removed from here
     if (isNewCheckout) {
       return tct('Detect and fix issues faster with our AI agent[punctuation]', {
         punctuation: withPunctuation ? '.' : '',
