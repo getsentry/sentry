@@ -71,7 +71,7 @@ def validate_preprod_artifact_update_schema(
             },
             "dequeued_at": {"type": "string"},
             "app_icon_id": {"type": "string", "maxLength": 255},
-            "sentry_cli_version": {"type": "string", "maxLength": 255},
+            "cli_version": {"type": "string", "maxLength": 255},
             "fastlane_version": {"type": "string", "maxLength": 255},
             "gradle_plugin_version": {"type": "string", "maxLength": 255},
         },
@@ -99,7 +99,7 @@ def validate_preprod_artifact_update_schema(
         "android_app_info.has_proguard_mapping": "The has_proguard_mapping field must be a boolean.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
-        "sentry_cli_version": "The sentry_cli_version field must be a string with a maximum length of 255 characters.",
+        "cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
         "fastlane_version": "The fastlane_version field must be a string with a maximum length of 255 characters.",
         "gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
     }
@@ -288,9 +288,9 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.app_icon_id = data["app_icon_id"]
             updated_fields.append("app_icon_id")
 
-        if "sentry_cli_version" in data:
-            head_artifact.sentry_cli_version = data["sentry_cli_version"]
-            updated_fields.append("sentry_cli_version")
+        if "cli_version" in data:
+            head_artifact.cli_version = data["cli_version"]
+            updated_fields.append("cli_version")
 
         if "fastlane_version" in data:
             head_artifact.fastlane_version = data["fastlane_version"]

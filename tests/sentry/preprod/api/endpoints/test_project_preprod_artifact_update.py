@@ -407,7 +407,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_tooling_versions(self) -> None:
         data = {
-            "sentry_cli_version": "2.39.1",
+            "cli_version": "2.39.1",
             "fastlane_version": "2.220.0",
             "gradle_plugin_version": "8.5.2",
         }
@@ -417,14 +417,14 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         resp_data = response.json()
         assert resp_data["success"] is True
         assert set(resp_data["updatedFields"]) == {
-            "sentry_cli_version",
+            "cli_version",
             "fastlane_version",
             "gradle_plugin_version",
             "state",
         }
 
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.sentry_cli_version == "2.39.1"
+        assert self.preprod_artifact.cli_version == "2.39.1"
         assert self.preprod_artifact.fastlane_version == "2.220.0"
         assert self.preprod_artifact.gradle_plugin_version == "8.5.2"
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
@@ -432,17 +432,17 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_partial_tooling_versions(self) -> None:
         data = {
-            "sentry_cli_version": "2.39.1",
+            "cli_version": "2.39.1",
         }
         response = self._make_request(data)
 
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["success"] is True
-        assert set(resp_data["updatedFields"]) == {"sentry_cli_version", "state"}
+        assert set(resp_data["updatedFields"]) == {"cli_version", "state"}
 
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.sentry_cli_version == "2.39.1"
+        assert self.preprod_artifact.cli_version == "2.39.1"
         assert self.preprod_artifact.fastlane_version is None
         assert self.preprod_artifact.gradle_plugin_version is None
 
