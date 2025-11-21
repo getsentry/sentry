@@ -946,6 +946,38 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
+    def test_hits_capped_when_overestimated(self) -> None:
+        """
+        Test that when sampling overestimates the hit count and all results fit on one page,
+        the X-Hits header is capped to the actual number of results returned.
+        """
+        self.login_as(user=self.user)
+
+        # Create 6 groups
+        groups = []
+        for i in range(6):
+            event = self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+            groups.append(event.group)
+
+        # Make a request that returns all 6 groups on one page
+        response = self.get_success_response(limit=25, query="is:unresolved")
+
+        # Should return all 6 groups
+        assert len(response.data) == 6
+
+        # X-Hits should be 6, not some overestimated value
+        assert response["X-Hits"] == "6"
+
+        # Verify no next page exists (we have all results)
+        links = self._parse_links(response["Link"])
+        assert links["next"]["results"] == "false"
+
     def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
         groups = []
