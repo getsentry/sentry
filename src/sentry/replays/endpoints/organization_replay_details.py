@@ -33,6 +33,9 @@ def query_replay_instance_eap(
     request_user_id: int | None,
     referrer: str = "replays.query.details_query",
 ):
+    # EAP stores replay_id in hex without dashes
+    replay_ids_no_dashes = [replay_id.replace("-", "") for replay_id in replay_ids]
+
     select = [
         Column("replay_id"),
         Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
@@ -71,7 +74,7 @@ def query_replay_instance_eap(
         match=Entity("replays"),
         select=select,
         where=[
-            Condition(Column("replay_id"), Op.IN, replay_ids),
+            Condition(Column("replay_id"), Op.IN, replay_ids_no_dashes),
         ],
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
