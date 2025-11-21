@@ -9,7 +9,7 @@ const FeedbackButtonHook = HookOrDefault({
 });
 
 /**
- * @deprecated Use `<FeedbackButton/>` instead.
+ * @deprecated Use components/feedbackButton/feedbackButton.tsx instead.
  */
 export default function FeedbackButton() {
   return (
