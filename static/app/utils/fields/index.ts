@@ -2270,24 +2270,28 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     desc: t('The version of your code deployed to an environment'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_BUILD]: {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    allowWildcard: false,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),

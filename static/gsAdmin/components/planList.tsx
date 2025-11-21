@@ -1,3 +1,4 @@
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
@@ -78,14 +79,27 @@ function PlanList({
     100000: '100K',
   };
 
-  const availableProducts = Object.values(activePlan?.addOnCategories || {})
-    .filter(
-      productInfo =>
-        productInfo.billingFlag && organization.features.includes(productInfo.billingFlag)
-    )
-    .map(productInfo => {
-      return productInfo;
+  const availableProducts = useMemo(
+    () =>
+      Object.values(activePlan?.addOnCategories || {})
+        .filter(
+          productInfo =>
+            productInfo.billingFlag &&
+            organization.features.includes(productInfo.billingFlag)
+        )
+        .map(productInfo => {
+          return productInfo;
+        }),
+    [activePlan?.addOnCategories, organization.features]
+  );
+
+  useEffect(() => {
+    availableProducts.forEach(productInfo => {
+      const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
+      const enabled = subscription.addOns?.[productInfo.apiName]?.enabled;
+      formModel.setValue(addOnKey, enabled);
     });
+  }, [availableProducts, subscription.addOns, formModel]);
 
   availableProducts.forEach(productInfo => {
     const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;

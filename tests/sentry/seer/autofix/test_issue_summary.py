@@ -18,8 +18,8 @@ from sentry.seer.autofix.issue_summary import (
     _fetch_user_preference,
     _get_event,
     _get_stopping_point_from_fixability,
-    _run_automation,
     get_issue_summary,
+    run_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
@@ -607,11 +607,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
         assert status_code == 200
-        mock_record_seer_run.assert_not_called()
+        mock_record_seer_run.assert_called_once()
         mock_trigger_autofix_task.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -623,7 +623,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that issue summary is still returned when _run_automation throws an exception."""
+        """Test that issue summary is still returned when run_automation throws an exception."""
         mock_get_acknowledgement.return_value = True
 
         # Set up event and seer response
@@ -641,23 +641,18 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         mock_call_seer.return_value = mock_summary
 
-        # Set fixability score so _run_automation will be called
-        self.group.update(seer_fixability_score=0.75)
-
-        # Make _run_automation raise an exception
+        # Make run_automation raise an exception
         mock_run_automation.side_effect = Exception("Automation failed")
 
-        # Call get_issue_summary with a source that triggers automation
-        summary_data, status_code = get_issue_summary(
-            self.group, self.user, source=SeerAutomationSource.POST_PROCESS
-        )
+        # Call get_issue_summary and verify it still returns successfully
+        summary_data, status_code = get_issue_summary(self.group, self.user)
 
         assert status_code == 200
         expected_response = mock_summary.dict()
         expected_response["event_id"] = event.event_id
         assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
 
-        # Verify _run_automation was called and failed
+        # Verify run_automation was called and failed
         mock_run_automation.assert_called_once()
         mock_call_seer.assert_called_once()
 
@@ -686,7 +681,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                     possible_cause="cause",
                 ),
             ) as mock_call_seer,
-            patch("sentry.seer.autofix.issue_summary._run_automation"),
+            patch("sentry.seer.autofix.issue_summary.run_automation"),
             patch(
                 "sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement",
                 return_value=True,
@@ -698,7 +693,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.assert_called_once_with(self.group, serialized_event, None)
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -710,7 +705,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that should_run_automation=False prevents _run_automation from being called."""
+        """Test that should_run_automation=False prevents run_automation from being called."""
         mock_get_acknowledgement.return_value = True
         event = Mock(
             event_id="test_event_id",
@@ -748,111 +743,12 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
         mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
-        # Verify that _run_automation was NOT called
+        # Verify that run_automation was NOT called
         mock_run_automation.assert_not_called()
 
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
-
-    @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
-    @patch("sentry.seer.autofix.issue_summary._call_seer")
-    @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_generate_summary_fixability_generation(
-        self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_generate_fixability,
-        mock_get_acknowledgement,
-    ):
-        """Test fixability generation: creates when missing, skips when exists."""
-        mock_get_acknowledgement.return_value = True
-        event = Mock(event_id="test_event_id", datetime=datetime.datetime.now())
-        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
-        mock_get_event.return_value = [serialized_event, event]
-        mock_summary = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="Test headline",
-            whats_wrong="Test whats wrong",
-            trace="Test trace",
-            possible_cause="Test possible cause",
-        )
-        mock_call_seer.return_value = mock_summary
-        mock_get_trace_tree.return_value = None
-        mock_generate_fixability.return_value = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="h",
-            whats_wrong="w",
-            trace="t",
-            possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.75),
-        )
-
-        # Test 1: Generates fixability when missing
-        assert self.group.seer_fixability_score is None
-        get_issue_summary(
-            self.group,
-            self.user,
-            source=SeerAutomationSource.POST_PROCESS,
-            should_run_automation=False,
-        )
-        mock_generate_fixability.assert_called_once_with(self.group)
-        self.group.refresh_from_db()
-        assert self.group.seer_fixability_score == 0.75
-
-        # Test 2: Skips fixability when already exists
-        mock_generate_fixability.reset_mock()
-        cache.delete(f"ai-group-summary-v2:{self.group.id}")
-        get_issue_summary(
-            self.group,
-            self.user,
-            source=SeerAutomationSource.POST_PROCESS,
-            should_run_automation=False,
-        )
-        mock_generate_fixability.assert_not_called()
-
-    @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
-    @patch("sentry.seer.autofix.issue_summary._call_seer")
-    @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_generate_summary_continues_when_fixability_fails(
-        self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_generate_fixability,
-        mock_get_acknowledgement,
-    ):
-        """Test that summary is still cached when fixability generation fails."""
-        mock_get_acknowledgement.return_value = True
-        event = Mock(event_id="test_event_id", datetime=datetime.datetime.now())
-        serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
-        mock_get_event.return_value = [serialized_event, event]
-        mock_summary = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="Test headline",
-            whats_wrong="Test whats wrong",
-            trace="Test trace",
-            possible_cause="Test possible cause",
-        )
-        mock_call_seer.return_value = mock_summary
-        mock_get_trace_tree.return_value = None
-        mock_generate_fixability.side_effect = Exception("Fixability service down")
-
-        summary_data, status_code = get_issue_summary(
-            self.group,
-            self.user,
-            source=SeerAutomationSource.POST_PROCESS,
-            should_run_automation=False,
-        )
-
-        assert status_code == 200
-        assert summary_data["headline"] == "Test headline"
-        mock_generate_fixability.assert_called_once()
 
 
 class TestGetStoppingPointFromFixability:
@@ -861,8 +757,8 @@ class TestGetStoppingPointFromFixability:
         [
             (0.0, None),
             (0.39, None),
-            (0.40, AutofixStoppingPoint.SOLUTION),
-            (0.65, AutofixStoppingPoint.SOLUTION),
+            (0.40, AutofixStoppingPoint.ROOT_CAUSE),
+            (0.65, AutofixStoppingPoint.ROOT_CAUSE),
             (0.66, AutofixStoppingPoint.CODE_CHANGES),
             (0.77, AutofixStoppingPoint.CODE_CHANGES),
             (0.78, AutofixStoppingPoint.OPEN_PR),
@@ -889,12 +785,22 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    def test_high_fixability_code_changes(self, mock_budget, mock_state, mock_rate, mock_trigger):
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_high_fixability_code_changes(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.80)
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.70),
+        )
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
@@ -903,12 +809,22 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    def test_medium_fixability_solution(self, mock_budget, mock_state, mock_rate, mock_trigger):
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_medium_fixability_solution(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.50)
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.50),
+        )
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
@@ -917,24 +833,25 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    def test_without_feature_flag(self, mock_budget, mock_state, mock_rate, mock_trigger):
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.80)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.80),
+        )
 
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
         ):
-            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+            run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
-
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    def test_missing_fixability_score_returns_early(self, mock_trigger):
-        """Test that _run_automation returns early when fixability score is None."""
-        assert self.group.seer_fixability_score is None
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-        mock_trigger.assert_not_called()
 
 
 class TestFetchUserPreference:
@@ -1068,15 +985,23 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
-        self, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
         """High fixability (OPEN_PR) limited by user preference (SOLUTION)"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.80)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
+        )
         mock_fetch.return_value = "solution"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should be limited to SOLUTION by user preference
@@ -1090,19 +1015,27 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
-        self, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
-        """Medium fixability (SOLUTION) used despite user allowing OPEN_PR"""
+        """Medium fixability (ROOT_CAUSE) used despite user allowing OPEN_PR"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.50)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.50),  # Medium = ROOT_CAUSE
+        )
         mock_fetch.return_value = "open_pr"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
-        # Should use SOLUTION from fixability, not OPEN_PR from user
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
+        # Should use ROOT_CAUSE from fixability, not OPEN_PR from user
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
@@ -1112,15 +1045,23 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_no_user_preference_uses_fixability_only(
-        self, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
     ):
         """When user has no preference, use fixability score alone"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.update(seer_fixability_score=0.80)
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
+        )
         mock_fetch.return_value = None
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should use OPEN_PR from fixability

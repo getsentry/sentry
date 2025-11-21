@@ -14,7 +14,6 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import WebVitalsGroup
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
@@ -66,7 +65,7 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
-        return AutofixStoppingPoint.SOLUTION
+        return AutofixStoppingPoint.ROOT_CAUSE
     # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
     elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
@@ -291,7 +290,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -314,13 +313,18 @@ def _run_automation(
         }
     )
 
-    fixability_score = group.seer_fixability_score
-    if fixability_score is None:
-        logger.error("Fixability score is not available for group %s", group.id)
-        return
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
+
+    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
     if (
-        not _is_issue_fixable(group, fixability_score)
+        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
         and not group.issue_type.always_trigger_seer_automation
     ):
         return
@@ -342,7 +346,9 @@ def _run_automation(
 
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
-        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+        fixability_stopping_point = _get_stopping_point_from_fixability(
+            issue_summary.scores.fixability_score
+        )
         logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
@@ -394,35 +400,12 @@ def _generate_summary(
         trace_tree,
     )
 
-    if source != SeerAutomationSource.ISSUE_DETAILS and group.seer_fixability_score is None:
+    if should_run_automation:
         try:
-            with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-                fixability_response = _generate_fixability_score(group)
-
-            if not fixability_response.scores:
-                raise ValueError("Issue summary scores is None or empty.")
-            if fixability_response.scores.fixability_score is None:
-                raise ValueError("Issue summary fixability score is None.")
-
-            group.update(seer_fixability_score=fixability_response.scores.fixability_score)
+            run_automation(group, user, event, source)
         except Exception:
             logger.exception(
-                "Error generating fixability score in summary", extra={"group_id": group.id}
-            )
-
-    if should_run_automation:
-        if group.seer_fixability_score is not None:
-            try:
-                _run_automation(group, user, event, source)
-            except Exception:
-                logger.exception(
-                    "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-                )
-        else:
-            logger.error(
-                "Skipping automation: fixability score unavailable for group %s",
-                group.id,
-                extra={"group_id": group.id},
+                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
             )
 
     summary_dict = issue_summary.dict()
@@ -435,9 +418,6 @@ def _generate_summary(
 
 def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
     if source == SeerAutomationSource.ISSUE_DETAILS:
-        return
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type == WebVitalsGroup:
         return
 
     quotas.backend.record_seer_run(

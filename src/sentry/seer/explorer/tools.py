@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from sentry import eventstore, features
 from sentry.api import client
@@ -46,6 +46,7 @@ def execute_table_query(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
+    case_insensitive: bool | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get table data by calling the events endpoint.
@@ -84,17 +85,26 @@ def execute_table_query(
         "referrer": Referrer.SEER_RPC,
     }
 
+    # Add boolean params only if provided.
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
+
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events/",
-        params=params,
-    )
-    return {"data": resp.data["data"]}
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/",
+            params=params,
+        )
+        return {"data": resp.data["data"]}
+    except client.ApiError as e:
+        if e.status_code == 400:
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+        raise
 
 
 def execute_timeseries_query(
@@ -109,7 +119,8 @@ def execute_timeseries_query(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-    partial: Literal["0", "1"] | None = None,
+    partial: bool | None = None,
+    case_insensitive: bool | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
@@ -143,13 +154,19 @@ def execute_timeseries_query(
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
         "referrer": Referrer.SEER_RPC,
-        "partial": partial,
         "excludeOther": "0",  # Always include "Other" series
     }
 
     # Add top_events if group_by is provided
     if group_by and get_dataset(dataset) in TOP_EVENTS_DATASETS:
         params["topEvents"] = 5
+
+    # Add boolean params only if provided.
+    if partial is not None:
+        params["partial"] = "1" if partial else "0"
+
+    if case_insensitive is not None:
+        params["caseInsensitive"] = "1" if case_insensitive else "0"
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
@@ -580,7 +597,7 @@ def _get_issue_event_timeseries(
         stats_period=stats_period,
         interval=interval,
         project_ids=[project_id],
-        partial="1",
+        partial=True,
     )
 
     if data is None:
