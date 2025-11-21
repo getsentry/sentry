@@ -299,6 +299,19 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
+    # Only log for projects with triage-signals-v0
+    if features.has("projects:triage-signals-v0", group.project):
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
+        logger.info(
+            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
+            group.id,
+            source.value,
+            times_seen,
+        )
+
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
 
@@ -346,6 +359,7 @@ def run_automation(
 
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
+        logger.info("Triage signals V0: %s: generating stopping point", group.id)
         fixability_stopping_point = _get_stopping_point_from_fixability(
             issue_summary.scores.fixability_score
         )
@@ -358,7 +372,11 @@ def run_automation(
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
         )
-        logger.info("Final stopping point after upper bound: %s", stopping_point)
+        logger.info(
+            "Triage signals V0: %s: Final stopping point after upper bound: %s",
+            group.id,
+            stopping_point,
+        )
 
     _trigger_autofix_task.delay(
         group_id=group.id,
