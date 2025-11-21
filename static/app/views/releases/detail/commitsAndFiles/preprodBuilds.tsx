@@ -99,8 +99,7 @@ export default function PreprodBuilds() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
-  const trimmedSearchQuery = urlSearchQuery?.trim() ?? '';
-  const hasSearchQuery = trimmedSearchQuery.length > 0;
+  const hasSearchQuery = !!urlSearchQuery?.trim();
   const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
@@ -149,8 +148,8 @@ export default function PreprodBuilds() {
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             projectSlug={projectSlug}
-            hasSearchQuery={hasSearchQuery}
             onRowClick={handleBuildRowClick}
+            hasSearchQuery
           />
         )}
       </Layout.Main>

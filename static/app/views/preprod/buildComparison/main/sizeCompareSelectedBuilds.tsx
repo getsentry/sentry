@@ -125,7 +125,7 @@ export function SizeCompareSelectedBuilds({
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const headPlatform = headBuildDetails.app_info?.platform ?? null;
+  const platform = headBuildDetails.app_info?.platform ?? null;
   const projectType = headBuildDetails.app_info?.platform ?? null;
 
   return (
@@ -161,7 +161,7 @@ export function SizeCompareSelectedBuilds({
                 organization,
                 project_slug: projectId,
                 project_type: projectType,
-                platform: headPlatform,
+                platform,
               });
               onTriggerComparison();
             }

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge/tag';
@@ -95,21 +95,24 @@ export function AppSizeInsightsSidebarRow({
     setCurrentPage(newPage);
   };
 
-  const wasExpandedRef = useRef(isExpanded);
-
   useEffect(() => {
     if (!isExpanded) {
       setCurrentPage(0);
     }
-    if (!wasExpandedRef.current && isExpanded) {
+  }, [isExpanded]);
+
+  const handleToggleExpanded = () => {
+    if (isExpanded) {
+      setCurrentPage(0);
+    } else {
       trackPreprodBuildAnalytics('preprod.builds.details.expand_insight', {
         organization,
         insight_key: insight.key,
         platform: platform ?? null,
       });
     }
-    wasExpandedRef.current = isExpanded;
-  }, [insight.key, isExpanded, organization, platform]);
+    onToggleExpanded();
+  };
 
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
@@ -144,7 +147,7 @@ export function AppSizeInsightsSidebarRow({
         <Container paddingTop="md">
           <Button
             size="sm"
-            onClick={onToggleExpanded}
+            onClick={handleToggleExpanded}
             style={{marginBottom: isExpanded ? '16px' : '0'}}
             icon={
               <IconChevron

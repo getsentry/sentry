@@ -129,14 +129,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
 
-  const platform = buildDetailsData.app_info?.platform ?? null;
-  const buildId = buildDetailsData.id;
-
   const handleCompareClick = () => {
     trackPreprodBuildAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
-      platform,
-      build_id: buildId,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
     });
   };
 
