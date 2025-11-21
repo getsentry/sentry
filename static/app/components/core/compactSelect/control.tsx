@@ -409,7 +409,7 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options.flat();
+        if ('options' in item) return item.options?.flat();
         return item;
       })
       .filter(item => values.includes(item.value));
