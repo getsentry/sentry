@@ -440,7 +440,14 @@ export function Control({
     },
   });
 
-  const showClearButton = useMemo(() => items.flat().length > 0, [items]);
+  const hasSelection = useMemo(() => {
+    const selectedOptions = Array.isArray(value)
+      ? value
+      : value === undefined
+        ? []
+        : [value];
+    return selectedOptions.flat().length > 0;
+  }, [value]);
 
   const contextValue = useMemo(() => {
     return {
@@ -486,7 +493,7 @@ export function Control({
               <FocusScope contain>
                 {(menuTitle ||
                   menuHeaderTrailingItems ||
-                  (clearable && showClearButton)) && (
+                  (clearable && hasSelection)) && (
                   <MenuHeader size={size}>
                     <MenuTitle>{menuTitle}</MenuTitle>
                     <MenuHeaderTrailingItems>
@@ -494,7 +501,7 @@ export function Control({
                       {typeof menuHeaderTrailingItems === 'function'
                         ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                         : menuHeaderTrailingItems}
-                      {clearable && showClearButton && (
+                      {clearable && hasSelection && (
                         <ClearButton
                           onClick={() => onClear?.({overlayState})}
                           size="zero"
