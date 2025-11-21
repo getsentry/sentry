@@ -1114,7 +1114,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'new-internal/',
@@ -1125,7 +1124,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/',
@@ -1136,7 +1134,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/dashboard/',
