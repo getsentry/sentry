@@ -124,7 +124,10 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert action.type == Action.Type.EMAIL
         assert action.data == {}
-        assert action.config == {"target_type": "user", "target_identifier": str(self.user.id)}
+        assert action.config == {
+            "target_type": ActionTarget.USER.value,
+            "target_identifier": str(self.user.id),
+        }
 
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
