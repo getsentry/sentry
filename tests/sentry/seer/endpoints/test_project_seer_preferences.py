@@ -5,8 +5,7 @@ import requests
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse, SeerProjectPreference
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import PreferenceResponse, SeerProjectPreference, SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
 
@@ -401,9 +400,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         self, mock_get_autofix_repos: MagicMock, mock_post: MagicMock
     ) -> None:
         """Test that GET method correctly returns automation_handoff in the response"""
-        from sentry.seer.endpoints.project_seer_preferences import (
-            SeerAutomationHandoffConfiguration,
-        )
+        from sentry.seer.models import SeerAutomationHandoffConfiguration
 
         # Create preference with automation_handoff
         project_preference_with_handoff = SeerProjectPreference(
@@ -493,9 +490,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         self, mock_get_autofix_repos: MagicMock, mock_post: MagicMock
     ) -> None:
         """Test that GET method correctly returns auto_create_pr in automation_handoff"""
-        from sentry.seer.endpoints.project_seer_preferences import (
-            SeerAutomationHandoffConfiguration,
-        )
+        from sentry.seer.models import SeerAutomationHandoffConfiguration
 
         # Create preference with auto_create_pr in automation_handoff
         project_preference_with_handoff = SeerProjectPreference(

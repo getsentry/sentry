@@ -1,4 +1,5 @@
-from typing import TypedDict
+from enum import StrEnum
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel
 
@@ -63,6 +64,30 @@ class PageWebVitalsInsight(SpanInsight):
 class SummarizePageWebVitalsResponse(BaseModel):
     trace_ids: list[str]
     suggested_investigations: list[PageWebVitalsInsight]
+
+
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: AutofixHandoffPoint
+    target: Literal["cursor_background_agent"]
+    integration_id: int
+    auto_create_pr: bool = False
+
+
+class SeerProjectPreference(BaseModel):
+    organization_id: int
+    project_id: int
+    repositories: list[SeerRepoDefinition]
+    automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+
+
+class PreferenceResponse(BaseModel):
+    preference: SeerProjectPreference | None
+    code_mapping_repos: list[SeerRepoDefinition]
 
 
 class SeerApiError(Exception):

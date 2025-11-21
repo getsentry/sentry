@@ -17,8 +17,12 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.endpoints.project_seer_preferences import PreferenceResponse
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    PreferenceResponse,
+    SeerApiError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
