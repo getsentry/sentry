@@ -3,6 +3,8 @@ __all__ = [
     "ActionAlertRuleTriggerAction",
     "AlertRuleDetector",
     "AlertRuleWorkflow",
+    "BulkJobState",
+    "BulkJobStatus",
     "Condition",
     "DataCondition",
     "DataConditionAlertRuleTrigger",
@@ -15,7 +17,6 @@ __all__ = [
     "DetectorGroup",
     "DetectorState",
     "DetectorWorkflow",
-    "ErrorBackfillStatus",
     "IncidentGroupOpenPeriod",
     "Workflow",
     "WorkflowDataConditionGroup",
@@ -27,6 +28,7 @@ from .action import Action
 from .action_alertruletriggeraction import ActionAlertRuleTriggerAction
 from .alertrule_detector import AlertRuleDetector
 from .alertrule_workflow import AlertRuleWorkflow
+from .bulk_job_status import BulkJobState, BulkJobStatus
 from .data_condition import Condition, DataCondition
 from .data_condition_group import DataConditionGroup
 from .data_condition_group_action import DataConditionGroupAction
@@ -37,7 +39,6 @@ from .detector import Detector
 from .detector_group import DetectorGroup
 from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
-from .error_backfill_status import ErrorBackfillStatus
 from .incident_groupopenperiod import IncidentGroupOpenPeriod
 from .workflow import Workflow
 from .workflow_action_group_status import WorkflowActionGroupStatus
