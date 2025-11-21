@@ -111,6 +111,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
 const TableHeader = styled(SimpleTable.Header)`
   grid-row: 1;
   z-index: ${p => p.theme.zIndex.initial};
+  height: min-content;
 `;
 
 const TableCellFirst = styled(SimpleTable.HeaderCell)`

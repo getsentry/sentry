@@ -106,7 +106,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 replay={replay}
               >
                 <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
-                  <ReplayPlaylistProvider replays={replays}>
+                  <ReplayPlaylistProvider currentReplay={replayRecord} replays={replays}>
                     {children}
                   </ReplayPlaylistProvider>
                 </ReplaySummaryContextProvider>
