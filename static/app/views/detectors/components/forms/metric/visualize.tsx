@@ -108,11 +108,11 @@ const EXTRA_AGGREGATES = [AggregationKey.APDEX];
 const LOCKED_SPAN_AGGREGATES = {
   [AggregationKey.APDEX]: {
     value: DEFAULT_VISUALIZATION_FIELD,
-    label: t('span.duration'),
+    label: 'span.duration',
   },
   [AggregationKey.COUNT]: {
     value: DEFAULT_VISUALIZATION_FIELD,
-    label: t('spans'),
+    label: 'spans',
   },
 };
 
