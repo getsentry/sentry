@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from P4 import P4, P4Exception
@@ -359,6 +360,46 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # User not found - return None (not an error condition)
             return None
 
+    def get_author_info_from_cache(
+        self, username: str, user_cache: dict[str, P4UserInfo | None]
+    ) -> tuple[str, str]:
+        """
+        Get author email and name from username with caching.
+
+        Args:
+            username: Perforce username
+            user_cache: Cache dictionary for user lookups
+
+        Returns:
+            Tuple of (author_email, author_name)
+        """
+        author_email = f"{username}@perforce"
+        author_name = username
+
+        # Fetch user info if not in cache
+        if username not in user_cache:
+            try:
+                user_cache[username] = self.get_user(username)
+            except Exception as e:
+                logger.warning(
+                    "perforce.get_author_info.user_lookup_failed",
+                    extra={
+                        "username": username,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                user_cache[username] = None
+
+        user_info = user_cache.get(username)
+        if user_info:
+            if user_info.get("email"):
+                author_email = user_info["email"]
+            if user_info.get("full_name"):
+                author_name = user_info["full_name"]
+
+        return author_email, author_name
+
     def get_changes(
         self,
         depot_path: str,
@@ -450,10 +491,14 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         - p4 describe: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_describe.html
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
+
+        Performance notes:
+        - Makes ~3 P4 API calls per file: filelog, describe, user (cached)
+        - User lookups are cached within the request to minimize redundant calls
+        - Perforce doesn't have explicit rate limiting like GitHub
+        - Individual file failures are caught and logged without failing entire batch
         """
-        metrics.incr("integrations.perforce.get_blame_for_files")
-        blames = []
-        p4 = self._connect()
+        blames: list[FileBlameInfo] = []
 
         try:
             for file in files:
@@ -527,9 +572,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     )
                     continue
 
-            return blames
-        finally:
-            self._disconnect(p4)
+        return blames
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
