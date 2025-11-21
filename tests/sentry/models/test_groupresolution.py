@@ -242,6 +242,7 @@ class GroupResolutionTest(TestCase):
         # version comparison without build code should still work as normal
         grp_resolution = GroupResolution.objects.create(
             release=self.old_semver_release,
+            current_release_version=self.old_semver_release.version,
             group=self.group,
             type=GroupResolution.Type.in_next_release,
         )
