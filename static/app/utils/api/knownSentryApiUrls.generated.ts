@@ -712,6 +712,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-reports/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/users/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/web-vitals-detector/'
   | '/projects/$organizationIdOrSlug/pr-comments/$repoName/$prNumber/'
   | '/projects/$organizationIdOrSlug/pull-requests/size-analysis/$artifactId/'
   | '/projects/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/'
