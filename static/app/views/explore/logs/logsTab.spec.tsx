@@ -171,7 +171,7 @@ describe('LogsTabContent', () => {
   it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent {...datePageFilterProps} />
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -213,7 +213,7 @@ describe('LogsTabContent', () => {
   it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent {...datePageFilterProps} />
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -257,7 +257,7 @@ describe('LogsTabContent', () => {
   it('should pass caseInsensitive to the query', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent {...datePageFilterProps} />
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
