@@ -66,17 +66,18 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
       ) : (
         <Panel>
           <EmptyMessage
-            icon={<IconCommit size="xl" />}
+            icon={<IconCommit />}
             title={t('Sentry is better with commit data')}
-            description={t(
-              'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
-            )}
             action={
               <LinkButton external href="https://docs.sentry.io/learn/releases/">
                 {t('Learn more')}
               </LinkButton>
             }
-          />
+          >
+            {t(
+              'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
+            )}
+          </EmptyMessage>
         </Panel>
       )}
     </div>

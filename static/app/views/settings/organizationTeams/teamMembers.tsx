@@ -346,7 +346,7 @@ export default function TeamMembers() {
       });
     }
     return (
-      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+      <EmptyMessage icon={<IconUser />} size="lg">
         {t('This team has no members')}
       </EmptyMessage>
     );

@@ -52,14 +52,15 @@ class UsageTable extends Component<Props> {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
-          icon={<IconWarning color="gray300" legacySize="48px" />}
+          icon={<IconWarning />}
           title={t(
             "You don't have access to any projects, or your organization has no projects."
           )}
-          description={tct('Learn more about [link:Project Access]', {
+        >
+          {tct('Learn more about [link:Project Access]', {
             link: <ExternalLink href={DOCS_URL} />,
           })}
-        />
+        </EmptyMessage>
       );
     }
     return <IconWarning color="gray300" legacySize="48px" />;
