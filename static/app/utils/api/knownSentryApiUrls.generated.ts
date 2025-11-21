@@ -346,6 +346,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/groups/$issueId/tags/$key/values/'
   | '/organizations/$organizationIdOrSlug/groups/$issueId/user-feedback/'
   | '/organizations/$organizationIdOrSlug/groups/$issueId/user-reports/'
+  | '/organizations/$organizationIdOrSlug/incident-groupopenperiod/'
   | '/organizations/$organizationIdOrSlug/incidents/'
   | '/organizations/$organizationIdOrSlug/incidents/$incidentIdentifier/'
   | '/organizations/$organizationIdOrSlug/insights/starred-segments/'
