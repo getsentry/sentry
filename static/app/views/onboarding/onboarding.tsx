@@ -215,12 +215,12 @@ export function OnboardingWithoutContext(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
-              if ((i as number) < stepIndex && shallProjectBeDeleted) {
-                handleGoBack(i as number);
+              if (i < stepIndex && shallProjectBeDeleted) {
+                handleGoBack(i);
                 return;
               }
 
-              goToStep(onboardingSteps[i as number]!);
+              goToStep(onboardingSteps[i]!);
             }}
           />
         )}

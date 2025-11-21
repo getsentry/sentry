@@ -12,7 +12,6 @@ import {
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
 
 describe('InvoiceDetails', () => {
@@ -22,7 +21,7 @@ describe('InvoiceDetails', () => {
       dateCreated: '2021-09-20T22:33:38.042Z',
       items: [
         {
-          type: InvoiceItemType.SUBSCRIPTION,
+          type: 'subscription',
           description: 'Subscription to Business',
           amount: 8900,
           periodEnd: '2021-10-21',
@@ -40,7 +39,7 @@ describe('InvoiceDetails', () => {
       creditApplied: 500,
       items: [
         {
-          type: InvoiceItemType.SUBSCRIPTION,
+          type: 'subscription',
           description: 'Subscription to Business',
           amount: 8900,
           periodEnd: '2021-10-21',
@@ -48,7 +47,7 @@ describe('InvoiceDetails', () => {
           data: {},
         },
         {
-          type: InvoiceItemType.CREDIT_APPLIED,
+          type: 'credit_applied',
           description: 'Credit applied',
           amount: 500,
           periodEnd: '2021-10-21',
@@ -163,7 +162,7 @@ describe('InvoiceDetails', () => {
         isPaid: false,
         items: [
           {
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
             description: 'Subscription to Business',
             amount: 8900,
             periodEnd: '2021-10-21',
@@ -235,7 +234,7 @@ describe('InvoiceDetails', () => {
         isPaid: false,
         items: [
           {
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
             description: 'Subscription to Business',
             amount: 8900,
             periodEnd: '2021-10-21',

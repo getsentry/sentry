@@ -8,7 +8,8 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {InvoiceItemType, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
+import type {ProductTrial} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
@@ -1097,7 +1098,7 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.SUBSCRIPTION_CREDIT,
+            type: 'subscription_credit',
             ...commonCreditProps,
           },
         ],
@@ -1108,7 +1109,7 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.BALANCE_CHANGE,
+            type: 'balance_change',
             ...commonCreditProps,
           },
         ],
@@ -1119,7 +1120,7 @@ describe('getCreditApplied', () => {
         creditApplied: 100,
         invoiceItems: [
           {
-            type: InvoiceItemType.BALANCE_CHANGE,
+            type: 'balance_change',
             ...commonCreditProps,
             amount: -50,
           },

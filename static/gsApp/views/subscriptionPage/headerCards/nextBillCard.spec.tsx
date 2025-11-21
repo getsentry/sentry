@@ -5,7 +5,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import {InvoiceItemType} from 'getsentry/types';
 import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
 
 describe('NextBillCard', () => {
@@ -49,7 +48,7 @@ describe('NextBillCard', () => {
       invoiceItems: [
         {
           amount: 89_00,
-          type: InvoiceItemType.SUBSCRIPTION,
+          type: 'subscription',
           description: 'Subscription to Business',
           data: {
             plan: 'am3_business',
@@ -59,7 +58,7 @@ describe('NextBillCard', () => {
         },
         {
           amount: 7_50,
-          type: InvoiceItemType.RESERVED_REPLAYS,
+          type: 'reserved_replays',
           data: {},
           period_start: '',
           period_end: '',
@@ -67,7 +66,7 @@ describe('NextBillCard', () => {
         },
         {
           amount: 5_00,
-          type: InvoiceItemType.RESERVED_ATTACHMENTS,
+          type: 'reserved_attachments',
           data: {},
           period_start: '',
           period_end: '',
@@ -75,7 +74,7 @@ describe('NextBillCard', () => {
         },
         {
           amount: 1_00,
-          type: InvoiceItemType.ONDEMAND_ERRORS,
+          type: 'ondemand_errors',
           data: {},
           period_start: '',
           period_end: '',
@@ -83,7 +82,7 @@ describe('NextBillCard', () => {
         },
         {
           amount: 11_00,
-          type: InvoiceItemType.ONDEMAND_REPLAYS,
+          type: 'ondemand_replays',
           data: {},
           period_start: '',
           period_end: '',
@@ -91,7 +90,7 @@ describe('NextBillCard', () => {
         },
         {
           amount: 20_00,
-          type: InvoiceItemType.SALES_TAX,
+          type: 'sales_tax',
           data: {},
           period_start: '',
           period_end: '',

@@ -1,6 +1,6 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 
-import {AddOnCategory, InvoiceItemType, PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -140,7 +140,7 @@ describe('utils', () => {
           basePrice: 1000,
           amount: 10 * 100,
           discountType: 'percentPoints',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(900);
       expect(
@@ -148,7 +148,7 @@ describe('utils', () => {
           basePrice: 8900,
           amount: 40 * 100,
           discountType: 'percentPoints',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(5340);
       expect(
@@ -156,7 +156,7 @@ describe('utils', () => {
           basePrice: 10000,
           amount: 1000,
           discountType: 'amountCents',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(9000);
     });

@@ -6,7 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import {InvoiceItemType} from 'getsentry/types';
 import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
 
 describe('CheckoutSuccess', () => {
@@ -73,7 +72,7 @@ describe('CheckoutSuccess', () => {
     const invoiceWithOnDemand = InvoiceFixture({
       items: [
         {
-          type: InvoiceItemType.SUBSCRIPTION,
+          type: 'subscription',
           description: 'Subscription to Team Plan',
           amount: 31200,
           data: {quantity: null},
@@ -81,7 +80,7 @@ describe('CheckoutSuccess', () => {
           periodEnd: '2026-01-01T00:00:00Z',
         },
         {
-          type: InvoiceItemType.ONDEMAND_ERRORS,
+          type: 'ondemand_errors',
           description: '4,901,066 pay-as-you-go errors',
           amount: 94022,
           data: {quantity: 4901066},
@@ -89,7 +88,7 @@ describe('CheckoutSuccess', () => {
           periodEnd: '2026-01-01T00:00:00Z',
         },
         {
-          type: InvoiceItemType.ONDEMAND_MONITOR_SEATS,
+          type: 'ondemand_monitor_seats',
           description: '2 pay-as-you-go cron monitors',
           amount: 156,
           data: {quantity: 2},
