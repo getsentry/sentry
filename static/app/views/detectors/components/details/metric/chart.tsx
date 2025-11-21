@@ -164,6 +164,7 @@ export function useMetricDetectorChart({
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
+    extrapolationMode: snubaQuery.extrapolationMode,
     aggregate: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
     interval: snubaQuery.timeWindow,
     query: snubaQuery.query,

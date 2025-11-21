@@ -1554,16 +1554,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# default brownout crontab for api deprecations
+# Default brownout crontab for api deprecations
+# Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-cron",
     default="0 12 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+# Brownout duration fallback in seconds.
+# Used when a deprecation doesn't have a custom key defined.
 register(
-    "api.deprecation.brownout-duration-seconds",
+    "api.deprecation.brownout-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
