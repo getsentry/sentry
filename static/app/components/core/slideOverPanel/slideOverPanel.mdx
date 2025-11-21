@@ -8,7 +8,10 @@ resources:
 
 import * as Storybook from 'sentry/stories';
 
-import {SlideOverPanelPlayground} from 'sentry/stories/playground/slideOverPanel';
+import {
+  SlideOverPanelPlayground,
+  SlideOverPanelSkeletonPlayground,
+} from 'sentry/stories/playground/slideOverPanel';
 
 import SlideOverDocumentation from '!!type-loader!@sentry/scraps/slideOverPanel';
 
@@ -36,3 +39,28 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 
 > [!NOTE]
 > To enable exit animations, you'll need to wrap `<SlideOverPanel />` in an `<AnimatePresence />` component, and render the panel conditionally (e.g., `{isPanelOpen &&}`) instead of using the `collapsed` prop.
+
+## Skeletons
+
+Panels support skeleton UI. This is very useful if the contents of the panel are slow to render. Without a skeleton, the panel won't render until all the contents are ready. With a skeleton, the panel will open right away, and slow the skeleton UI while the render is happening.
+
+In the example below, try opening the panel with the skeleton turned off. You'll notice that there's a two-second delay before the panel opens, while it waits for a slow component to render. If you turn the skeleton on, the panel opens immediately and shows a loading state. The slow component appears when it's ready.
+
+<Storybook.Demo>
+  <SlideOverPanelSkeletonPlayground />
+</Storybook.Demo>
+
+To enable a loading skeleton, provide the `skeleton` prop.
+
+```jsx
+<Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
+
+<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right" skeleton={<Placeholder />}>
+  <Container border="primary" height="100%" padding="md">
+    <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+  </Container>
+</SlideOverPanel>
+```
+
+> [!NOTE]
+> To enable skeletons, you _must_ use the `collapsed` prop, rather than conditionally render the panel.
