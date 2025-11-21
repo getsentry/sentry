@@ -299,6 +299,18 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
+    # Check event count for ALERT source with triage-signals-v0
+    if source == SeerAutomationSource.ALERT and features.has(
+        "projects:triage-signals-v0", group.project
+    ):
+        if group.times_seen_with_pending < 10:
+            logger.info(
+                "Triage signals V0: %s: skipping alert automation, event count < 10: %s",
+                group.id,
+                group.times_seen_with_pending,
+            )
+            return
+
     # Only log for projects with triage-signals-v0
     if features.has("projects:triage-signals-v0", group.project):
         try:
