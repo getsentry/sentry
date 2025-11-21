@@ -55,7 +55,7 @@ export default function ReplayTableHeader({
       </TableHeader>
 
       {isAnySelected ? (
-        <TableHeader>
+        <TableHeader style={{position: stickyHeader ? 'sticky' : 'relative', top: 0}}>
           <TableCellFirst>
             <ReplaySelectColumn.Header
               columnIndex={0}
