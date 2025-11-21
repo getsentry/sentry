@@ -327,10 +327,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                 "confidence": values.get("confidence"),
             }
 
-    sentry_sdk.set_tag("false_positive_misfires", false_positive_misfire)
-    sentry_sdk.set_tag("false_negative_misfires", false_negative_misfire)
-    for trigger_action_type, count in trigger_action_types.items():
-        sentry_sdk.set_tag(f"trigger_action_type.{trigger_action_type}", count)
+    with sentry_sdk.isolation_scope() as scope:
+        scope.set_tag("false_positive_misfires", false_positive_misfire)
+        scope.set_tag("false_negative_misfires", false_negative_misfire)
+        for trigger_action_type, count in trigger_action_types.items():
+            scope.set_tag(f"trigger_action_type.{trigger_action_type}", count)
+        sentry_sdk.capture_message("False Misfires", level="info")
 
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
