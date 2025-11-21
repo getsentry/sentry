@@ -60,7 +60,7 @@ export function FloatingTrigger({chartInfo, selection, clearSelection, setTab}: 
   }, [selection, chartInfo, setChartSelection, setTab]);
 
   return (
-    <List data-explore-chart-selection-region>
+    <List>
       <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
       <ListItem onClick={handleFindAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
