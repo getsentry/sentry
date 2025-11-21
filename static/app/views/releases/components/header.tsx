@@ -1,8 +1,14 @@
+import {Button} from '@sentry/scraps/button';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 function Header() {
+  const openFeedbackForm = useFeedbackForm();
+
   return (
     <Layout.Header noActionWrap unified>
       <Layout.HeaderContent unified>
@@ -16,6 +22,24 @@ function Header() {
           />
         </Layout.Title>
       </Layout.HeaderContent>
+      {openFeedbackForm ? (
+        <Layout.HeaderActions>
+          <Button
+            size="sm"
+            icon={<IconMegaphone />}
+            onClick={() =>
+              openFeedbackForm({
+                messagePlaceholder: t('How can we improve the Releases experience?'),
+                tags: {
+                  ['feedback.source']: 'releases-list-header',
+                },
+              })
+            }
+          >
+            {t('Give Feedback')}
+          </Button>
+        </Layout.HeaderActions>
+      ) : null}
     </Layout.Header>
   );
 }
