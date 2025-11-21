@@ -82,7 +82,6 @@ function DisabledDiscover2Page({
       requiredPlan={requiredPlan}
       features={features}
       background={DiscoverBackground}
-      defaultUpsellSelection="discover-query"
       animateDelay={0.8}
       customWrapper={TextWrapper}
       positioningStrategy={({mainRect, anchorRect, wrapperRect}) => {

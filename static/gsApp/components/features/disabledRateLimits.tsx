@@ -45,7 +45,6 @@ function DisabledAlert({organization, features}: Props) {
                 openUpsellModal({
                   organization,
                   source: 'feature.rate_limits',
-                  defaultSelection: 'event-volume',
                 })
               }
             >

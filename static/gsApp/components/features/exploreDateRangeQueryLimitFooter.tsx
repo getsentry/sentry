@@ -8,10 +8,6 @@ const QUERY_LIMIT_REFERRER = 'explore-spans-query-limit-footer';
 
 export default function ExploreDateRangeQueryLimitFooter() {
   return (
-    <DateRangeQueryLimitFooter
-      description={DESCRIPTION}
-      source={QUERY_LIMIT_REFERRER}
-      upsellDefaultSelection="explore-spans"
-    />
+    <DateRangeQueryLimitFooter description={DESCRIPTION} source={QUERY_LIMIT_REFERRER} />
   );
 }

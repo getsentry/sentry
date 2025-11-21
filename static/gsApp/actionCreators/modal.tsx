@@ -26,7 +26,6 @@ import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 type UpsellModalOptions = {
   organization: Organization;
   source: string;
-  defaultSelection?: string;
 };
 
 export async function openUpsellModal(options: UpsellModalOptions) {

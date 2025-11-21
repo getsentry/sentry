@@ -48,7 +48,6 @@ function DisabledAlert({organization, features}: Props) {
                 openUpsellModal({
                   organization,
                   source: 'feature.custom_inbound_filters',
-                  defaultSelection: 'event-volume',
                 })
               }
             >

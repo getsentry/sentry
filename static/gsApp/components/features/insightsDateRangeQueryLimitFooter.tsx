@@ -26,11 +26,7 @@ export function InsightsDateRangeQueryLimitFooter({organization, subscription}: 
   }
 
   return (
-    <DateRangeQueryLimitFooter
-      description={DESCRIPTION}
-      source={QUERY_LIMIT_REFERRER}
-      upsellDefaultSelection="insights-module"
-    />
+    <DateRangeQueryLimitFooter description={DESCRIPTION} source={QUERY_LIMIT_REFERRER} />
   );
 }
 
