@@ -65,15 +65,22 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
           return null;
         }
 
+        const threadId = isEAPSpanNode(node)
+          ? (node.value.additional_attributes?.['thread.id'] ?? undefined)
+          : undefined;
+        const tid = typeof threadId === 'string' ? threadId : undefined;
+
         const query = isTransactionNode(node)
           ? {
               eventId: node.value.event_id,
+              tid,
             }
           : isSpanNode(node)
             ? {
                 eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
+                tid,
               }
-            : {};
+            : {tid};
 
         const link =
           'profiler_id' in profile
