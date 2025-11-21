@@ -102,9 +102,7 @@ export function AppSizeInsightsSidebarRow({
   }, [isExpanded]);
 
   const handleToggleExpanded = () => {
-    if (isExpanded) {
-      setCurrentPage(0);
-    } else {
+    if (!isExpanded) {
       trackPreprodBuildAnalytics('preprod.builds.details.expand_insight', {
         organization,
         insight_key: insight.key,
