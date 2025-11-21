@@ -205,10 +205,20 @@ def _launch_agents_for_repos(
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
-    preference_response = get_project_seer_preferences(autofix_state.request.project_id)
-    if preference_response and preference_response.preference:
-        if preference_response.preference.automation_handoff:
-            auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
+    try:
+        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
+        if preference_response and preference_response.preference:
+            if preference_response.preference.automation_handoff:
+                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
+    except SeerApiError:
+        logger.exception(
+            "coding_agent.get_project_seer_preferences_error",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "project_id": autofix_state.request.project_id,
+            },
+        )
 
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
