@@ -50,7 +50,7 @@ function getAggregateOptions(
         if (param.kind === 'value') {
           return {
             kind: 'value' as const,
-            dataType: param.dataType as any,
+            dataType: param.dataType as 'number',
             required: param.required,
             defaultValue: param.defaultValue,
             placeholder: param.placeholder,
@@ -59,8 +59,8 @@ function getAggregateOptions(
         return {
           kind: 'column' as const,
           columnTypes: Array.isArray(param.columnTypes)
-            ? (param.columnTypes as any)
-            : ([param.columnTypes] as any),
+            ? param.columnTypes
+            : [param.columnTypes],
           required: param.required,
           defaultValue: param.defaultValue,
         };
