@@ -405,18 +405,21 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
             args = ["-m", str(fetch_limit), "-l"]
 
-            # P4 -e flag: return changes >= specified changelist (above and including)
-            # Use start_cl + 1 to get exclusive start (changes > start_cl)
-            if start_cl_num is not None:
-                args.extend(["-e", str(start_cl_num + 1)])
+            # P4 -e flag: return changes at or before specified changelist (upper bound)
+            # Use it for end_cl (inclusive upper bound)
+            if end_cl_num is not None:
+                args.extend(["-e", str(end_cl_num)])
 
             args.append(depot_path)
 
             changes = p4.run("changes", *args)
 
-            # Client-side filter for end_cl (inclusive upper bound)
-            if end_cl_num is not None:
-                changes = [c for c in changes if c.get("change") and int(c["change"]) <= end_cl_num]
+            # Client-side filter for start_cl (exclusive lower bound)
+            # Filter out changes <= start_cl to get changes > start_cl
+            if start_cl_num is not None:
+                changes = [
+                    c for c in changes if c.get("change") and int(c["change"]) > start_cl_num
+                ]
 
             return [
                 P4ChangeInfo(
