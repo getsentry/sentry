@@ -73,9 +73,3 @@ export function useCanEditDetectors({detectors}: {detectors: Detector[]}) {
 
   return true;
 }
-
-export function useCanDeleteDetectors({detectors}: {detectors: Detector[]}) {
-  const canEdit = useCanEditDetectors({detectors});
-
-  return detectors.every(d => detectorTypeIsUserCreateable(d.type)) && canEdit;
-}

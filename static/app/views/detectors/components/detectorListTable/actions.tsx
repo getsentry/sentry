@@ -17,9 +17,9 @@ import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDe
 
 interface DetectorsTableActionsProps {
   allResultsVisible: boolean;
-  canDelete: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
+  hasSystemCreatedDetectors: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
@@ -37,11 +37,13 @@ export function DetectorsTableActions({
   showEnable,
   showDisable,
   canEdit,
-  canDelete,
+  hasSystemCreatedDetectors,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
+
+  const canDelete = canEdit && !hasSystemCreatedDetectors;
 
   const {selection} = usePageFilters();
   const {query} = useLocationQuery({
@@ -201,7 +203,11 @@ export function DetectorsTableActions({
             </Tooltip>
           )}
           <Tooltip
-            title={t('You do not have permission to delete the selected monitors.')}
+            title={
+              hasSystemCreatedDetectors
+                ? t('Monitors managed by Sentry cannot be deleted.')
+                : t('You do not have permission to delete the selected monitors.')
+            }
             disabled={canDelete}
           >
             <Button
