@@ -20,7 +20,6 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorWorkflowParams, GlobalParams
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_workflow_serializer import (
@@ -101,13 +100,16 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
         if not can_edit_detector_workflow_connections(detector_workflow.detector, request):
             raise PermissionDenied
 
-        RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)
+        detector_workflow_id = detector_workflow.id
+        audit_log_data = detector_workflow.get_audit_log_data()
+
+        detector_workflow.delete()
         create_audit_entry(
             request=request,
             organization=organization,
-            target_object=detector_workflow.id,
+            target_object=detector_workflow_id,
             event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
-            data=detector_workflow.get_audit_log_data(),
+            data=audit_log_data,
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
