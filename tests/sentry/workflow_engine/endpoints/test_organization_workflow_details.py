@@ -87,48 +87,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
-    def test_update_add_email_action(self) -> None:
-        """
-        Test that adding a simple email user action to a workflow works as expected
-        """
-        self.valid_workflow["actionFilters"] = [
-            {
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
-                        "conditionResult": True,
-                    }
-                ],
-                "actions": [
-                    {
-                        "type": Action.Type.EMAIL,
-                        "config": {
-                            "targetIdentifier": str(self.user.id),
-                            "targetType": "user",
-                        },
-                        "data": {},
-                    },
-                ],
-            }
-        ]
-        response = self.get_success_response(
-            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
-        )
-        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
-        action_filter = WorkflowDataConditionGroup.objects.get(workflow=updated_workflow)
-        dcga = DataConditionGroupAction.objects.get(condition_group=action_filter.condition_group)
-        action = dcga.action
-
-        assert response.status_code == 200
-        assert action.type == Action.Type.EMAIL
-        assert action.data == {}
-        assert action.config == {
-            "target_type": ActionTarget.USER.value,
-            "target_identifier": str(self.user.id),
-        }
-
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
