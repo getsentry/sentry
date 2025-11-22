@@ -837,6 +837,66 @@ class TestGetTraceTimerange(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         expected_end = (span3_start + timedelta(milliseconds=8000)).isoformat()
         assert result["end"] == expected_end
 
+    def test_get_trace_timerange_success_short_id(self) -> None:
+        """Test getting timerange for a trace with multiple spans."""
+        # Create spans with different start and end times (within last 90d)
+        span1_start = before_now(minutes=10)
+        span2_start = before_now(minutes=5)
+        span3_start = before_now(minutes=2)
+
+        span1 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "First span (earliest start)",
+                "sentry_tags": {"transaction": "api/test", "op": "http.server"},
+                "is_segment": True,
+            },
+            start_ts=span1_start,
+            duration=5000,  # 5 seconds
+        )
+
+        span2 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Second span (middle)",
+                "sentry_tags": {"transaction": "api/test", "op": "db.query"},
+                "is_segment": False,
+            },
+            start_ts=span2_start,
+            duration=3000,  # 3 seconds
+        )
+
+        span3 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Third span (latest end)",
+                "sentry_tags": {"transaction": "api/test", "op": "cache.get"},
+                "is_segment": False,
+            },
+            start_ts=span3_start,
+            duration=8000,  # 8 seconds
+        )
+
+        self.store_spans([span1, span2, span3], is_eap=True)
+
+        result = get_trace_timerange(
+            trace_id=self.trace_id[:8],
+            organization_id=self.organization.id,
+            stats_period="90d",
+        )
+
+        assert result is not None
+        assert "start" in result
+        assert "end" in result
+
+        # Start should be span1's start time (earliest)
+        expected_start = span1_start.isoformat()
+        assert result["start"] == expected_start
+
+        # End should be span3's end time (latest)
+        expected_end = (span3_start + timedelta(milliseconds=8000)).isoformat()
+        assert result["end"] == expected_end
+
     def test_get_trace_timerange_single_span(self) -> None:
         """Test getting timerange for a trace with a single span."""
         span_start = before_now(minutes=5)
