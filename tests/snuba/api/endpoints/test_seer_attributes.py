@@ -33,11 +33,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             is_eap=True,
         )
 
-        result = get_attribute_names(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
-            stats_period="7d",
-        )
+        with self.feature(
+            [
+                "organizations:visibility-explore-view",
+            ]
+        ):
+            result = get_attribute_names(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                stats_period="7d",
+            )
         assert result == {
             "fields": {
                 "string": [

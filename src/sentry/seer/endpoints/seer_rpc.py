@@ -27,7 +27,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
-    TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
@@ -46,7 +45,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
@@ -66,7 +64,6 @@ from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
@@ -78,6 +75,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.assisted_query.traces_tools import get_attribute_names
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
@@ -368,61 +366,6 @@ def get_organization_seer_consent_by_org_name(
             continue
 
     return {"consent": False, "consent_url": consent_url}
-
-
-def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    type_mapping = {
-        AttributeKey.Type.TYPE_STRING: "string",
-        AttributeKey.Type.TYPE_DOUBLE: "number",
-    }
-
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    fields: dict[str, list[str]] = {type_str: [] for type_str in type_mapping.values()}
-
-    for attr_type, type_str in type_mapping.items():
-        req = TraceItemAttributeNamesRequest(
-            meta=RequestMeta(
-                organization_id=org_id,
-                cogs_category="events_analytics_platform",
-                referrer=Referrer.SEER_RPC.value,
-                project_ids=project_ids,
-                start_timestamp=start_time_proto,
-                end_timestamp=end_time_proto,
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-            ),
-            type=attr_type,
-            limit=1000,
-        )
-
-        fields_resp = snuba_rpc.attribute_names_rpc(req)
-
-        parsed_fields = [
-            as_attribute_key(
-                attr.name,
-                "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
-                SupportedTraceItemType.SPANS,
-            )["name"]
-            for attr in fields_resp.attributes
-            if attr.name
-            and can_expose_attribute(
-                attr.name, SupportedTraceItemType.SPANS, include_internal=False
-            )
-        ]
-
-        fields[type_str].extend(parsed_fields)
-
-    return {"fields": fields}
 
 
 def get_attribute_values_with_substring(
