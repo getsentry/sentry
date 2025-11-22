@@ -59,7 +59,7 @@ def _create_group_id_filter(group_ids: list[int]) -> TraceItemFilter:
         comparison_filter=ComparisonFilter(
             key=AttributeKey(
                 type=AttributeKey.TYPE_INT,
-                name="sentry.group_id",
+                name="group_id",
             ),
             op=ComparisonFilter.OP_IN,
             value=AttributeValue(val_int_array=IntArray(values=group_ids)),
