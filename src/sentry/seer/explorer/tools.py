@@ -3,6 +3,9 @@ import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
@@ -18,6 +21,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
+from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -26,10 +30,12 @@ from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
 from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +241,101 @@ def execute_timeseries_query(
             return {metric_name: data}
 
     return data
+
+
+def execute_trace_query(
+    *,
+    org_id: int,
+    trace_id: str,
+    dataset: str,
+    fields: list[str],
+    query: str,
+    project_ids: list[int] | None = None,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if project_ids else {}),
+        )
+    )
+
+    if dataset == "spans":
+        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+    elif dataset == "errors":
+        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_ERROR
+    elif dataset == "issuePlatform":
+        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
+    elif dataset == "logs" or dataset == "ourlogs":
+        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_LOG
+    elif dataset == "tracemetrics":
+        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_METRIC
+    else:
+        # Might work for other item types but we choose not to support them for now.
+        raise NotImplementedError(f"Unsupported dataset: {dataset}")
+
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+
+    resolver = RPCBase.get_resolver(params=snuba_params, config=SearchResolverConfig())
+    columns, _ = resolver.resolve_attributes(fields)
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=trace_item_type,
+                attributes=[col.proto_definition for col in columns],
+            )
+        ],
+    )
+    response = get_trace_rpc(request)
+
+    results = []
+    columns_by_name = {col.proto_definition.name: col for col in columns}
+    for item_group in response.item_groups:
+        for item in item_group.items:
+            item_dict: dict[str, Any] = {
+                "id": item.id,
+            }
+            for attribute in item.attributes:
+                resolved_column = columns_by_name[attribute.key.name]
+                if resolved_column.proto_definition.type == STRING:
+                    item_dict[resolved_column.public_alias] = attribute.value.val_str
+                elif resolved_column.proto_definition.type == DOUBLE:
+                    item_dict[resolved_column.public_alias] = attribute.value.val_double
+                elif resolved_column.search_type == "boolean":
+                    item_dict[resolved_column.public_alias] = attribute.value.val_int == 1
+                elif resolved_column.proto_definition.type == INT:
+                    item_dict[resolved_column.public_alias] = attribute.value.val_int
+                    if resolved_column.public_alias == "project.id":
+                        item_dict["project.slug"] = resolver.params.project_id_map.get(
+                            item_dict[resolved_column.public_alias], "Unknown"
+                        )
+            results.append(item_dict)
+
+        break  # There should only be one item group
+
+    return {"data": results}
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
