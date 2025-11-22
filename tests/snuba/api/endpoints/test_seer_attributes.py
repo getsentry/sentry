@@ -1,12 +1,11 @@
 from unittest.mock import patch
 from uuid import uuid4
 
-from sentry.seer.endpoints.seer_rpc import (
+from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
-    get_attributes_and_values,
-    get_spans,
 )
+from sentry.seer.endpoints.seer_rpc import get_attributes_and_values, get_spans
 from sentry.testutils.cases import BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_trace_item_attributes import (
