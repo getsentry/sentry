@@ -38,7 +38,7 @@ class TestEAPDeletion(TestCase):
         assert len(request.filters) == 1
         assert request.filters[0].item_type == TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
         assert request.filters[0].filter.HasField("comparison_filter")
-        assert request.filters[0].filter.comparison_filter.key.name == "sentry.group_id"
+        assert request.filters[0].filter.comparison_filter.key.name == "group_id"
         assert (
             list(request.filters[0].filter.comparison_filter.value.val_int_array.values)
             == self.group_ids
@@ -60,7 +60,7 @@ class TestEAPDeletion(TestCase):
         request = mock_rpc.call_args[0][0]
         group_filter = request.filters[0].filter
         assert group_filter.HasField("comparison_filter")
-        assert group_filter.comparison_filter.key.name == "sentry.group_id"
+        assert group_filter.comparison_filter.key.name == "group_id"
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
