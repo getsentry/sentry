@@ -40,7 +40,11 @@ class TraceData(BaseModel):
     spans: list[Span]
 
 
-class LLMDetectionTraceData(TraceData):
+class LLMDetectionTraceData(BaseModel):
+    trace_id: str
+    project_id: int
+    transaction_name: str
+    total_spans: int
     spans: list[EvidenceSpan]
 
 

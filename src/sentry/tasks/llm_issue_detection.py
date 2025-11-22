@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.index_data import get_trace_for_transaction, get_transactions_for_project
 from sentry.seer.models import SeerApiError
-from sentry.seer.sentry_data_models import LLMDetectionTraceData, TraceData
+from sentry.seer.sentry_data_models import LLMDetectionTraceData
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -74,7 +74,7 @@ class LLMIssueDetectionError(SeerApiError):
 
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
-    trace: TraceData,
+    trace: LLMDetectionTraceData,
     project_id: int,
     transaction_name: str,
 ) -> None:
@@ -199,14 +199,15 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         try:
-            trace: LLMDetectionTraceData | None = get_trace_for_transaction(
+            trace = get_trace_for_transaction(
                 transaction.name, transaction.project_id, llm_detection=True
             )
-            if (
-                not trace
-                or trace.total_spans < LOWER_SPAN_LIMIT
-                or trace.total_spans > UPPER_SPAN_LIMIT
-            ):
+            if not trace:
+                continue
+
+            assert isinstance(trace, LLMDetectionTraceData)
+
+            if trace.total_spans < LOWER_SPAN_LIMIT or trace.total_spans > UPPER_SPAN_LIMIT:
                 continue
 
             processed_count += 1
