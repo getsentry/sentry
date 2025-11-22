@@ -20,6 +20,7 @@ from sentry.seer.explorer.tools import (
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
+    get_trace_timerange,
     get_trace_waterfall,
     rpc_get_profile_flamegraph,
 )
@@ -121,46 +122,6 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 4
 
-    def test_spans_timeseries_count_metric_start_end_filter(self):
-        """Test timeseries query with count() metric using real data, filtered by start and end"""
-        # Since this is a small range, we need to specify the interval. The event endpoint's
-        # get_rollup fx doesn't go below 15m when calculating from date range.
-        result = execute_timeseries_query(
-            org_id=self.organization.id,
-            dataset="spans",
-            query="",
-            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-            end=_get_utc_iso_without_timezone(self.two_mins_ago),
-            interval="1m",
-            y_axes=["count()"],
-        )
-
-        assert result is not None
-        # Result is now dict from events-stats endpoint
-        assert "count()" in result
-        assert "data" in result["count()"]
-
-        data_points = result["count()"]["data"]
-        assert len(data_points) > 0
-
-        # Each data point is [timestamp, [{"count": value}]]
-        total_count = sum(point[1][0]["count"] for point in data_points if point[1])
-        assert total_count == 3  # Should exclude the span created at 1 minute ago
-
-    def test_spans_timeseries_count_metric_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_timeseries_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                y_axes=["count()"],
-            )
-
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
         result = execute_timeseries_query(
@@ -220,47 +181,6 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         cache_rows = [row for row in rows if row.get("span.op") == "cache.get"]
         assert len(cache_rows) == 1  # One cache span
-
-    def test_spans_table_query_start_end_filter(self):
-        result = execute_table_query(
-            org_id=self.organization.id,
-            dataset="spans",
-            fields=self.default_span_fields,
-            query="",
-            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-            end=_get_utc_iso_without_timezone(self.two_mins_ago),
-            sort="-timestamp",
-            per_page=10,
-        )
-
-        assert result is not None
-        assert "data" in result
-
-        rows = result["data"]
-        assert len(rows) == 3  # Should exclude the span created at 1 minute ago
-
-        # Verify span data
-        db_rows = [row for row in rows if row.get("span.op") == "db"]
-        assert len(db_rows) == 2  # Two database spans
-
-        http_rows = [row for row in rows if row.get("span.op") == "http.client"]
-        assert len(http_rows) == 1  # One HTTP span
-
-    def test_spans_table_query_start_end_errors_with_stats_period(self):
-        with pytest.raises(
-            ValueError, match="stats_period and start/end cannot be provided together"
-        ):
-            execute_table_query(
-                org_id=self.organization.id,
-                dataset="spans",
-                fields=self.default_span_fields,
-                query="",
-                stats_period="1h",
-                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
-                end=_get_utc_iso_without_timezone(self.two_mins_ago),
-                sort="-timestamp",
-                per_page=10,
-            )
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""
@@ -769,6 +689,153 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
+
+
+class TestGetTraceTimerange(APITransactionTestCase, SpanTestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.trace_id = uuid.uuid4().hex
+
+    def test_get_trace_timerange_success(self) -> None:
+        """Test getting timerange for a trace with multiple spans."""
+        # Create spans with different start and end times (within last 90d)
+        span1_start = before_now(minutes=10)
+        span2_start = before_now(minutes=5)
+        span3_start = before_now(minutes=2)
+
+        span1 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "First span (earliest start)",
+                "sentry_tags": {"transaction": "api/test", "op": "http.server"},
+                "is_segment": True,
+            },
+            start_ts=span1_start,
+            duration=5000,  # 5 seconds
+        )
+
+        span2 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Second span (middle)",
+                "sentry_tags": {"transaction": "api/test", "op": "db.query"},
+                "is_segment": False,
+            },
+            start_ts=span2_start,
+            duration=3000,  # 3 seconds
+        )
+
+        span3 = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Third span (latest end)",
+                "sentry_tags": {"transaction": "api/test", "op": "cache.get"},
+                "is_segment": False,
+            },
+            start_ts=span3_start,
+            duration=8000,  # 8 seconds
+        )
+
+        self.store_spans([span1, span2, span3], is_eap=True)
+
+        result = get_trace_timerange(
+            trace_id=self.trace_id,
+            organization_id=self.organization.id,
+            stats_period="90d",
+        )
+
+        assert result is not None
+        assert "start" in result
+        assert "end" in result
+
+        # Start should be span1's start time (earliest)
+        expected_start = span1_start.isoformat()
+        assert result["start"] == expected_start
+
+        # End should be span3's end time (latest)
+        expected_end = (span3_start + timedelta(milliseconds=8000)).isoformat()
+        assert result["end"] == expected_end
+
+    def test_get_trace_timerange_single_span(self) -> None:
+        """Test getting timerange for a trace with a single span."""
+        span_start = before_now(minutes=5)
+        span = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Single span",
+                "sentry_tags": {"transaction": "api/single", "op": "http.server"},
+                "is_segment": True,
+            },
+            start_ts=span_start,
+            duration=1000,  # 1 second
+        )
+
+        self.store_spans([span], is_eap=True)
+
+        result = get_trace_timerange(
+            trace_id=self.trace_id,
+            organization_id=self.organization.id,
+        )
+
+        assert result is not None
+        assert result["start"] == span_start.isoformat()
+        expected_end = (span_start + timedelta(milliseconds=1000)).isoformat()
+        assert result["end"] == expected_end
+
+    def test_get_trace_timerange_no_spans(self) -> None:
+        """Test that None is returned when no spans exist for trace."""
+        # Use a trace_id that doesn't exist
+        nonexistent_trace = uuid.uuid4().hex
+
+        result = get_trace_timerange(
+            trace_id=nonexistent_trace,
+            organization_id=self.organization.id,
+        )
+
+        assert result is None
+
+    def test_get_trace_timerange_custom_stats_period(self) -> None:
+        """Test that spans older than the stats period are not included."""
+        # Create a span within 14 days (should be included)
+        recent_span_start = before_now(days=10)
+        recent_span = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Recent span (within 14d)",
+                "sentry_tags": {"transaction": "api/test", "op": "http.server"},
+                "is_segment": True,
+            },
+            start_ts=recent_span_start,
+            duration=2000,
+        )
+
+        # Create a span older than 14 days (should be excluded)
+        old_span_start = before_now(days=20)
+        old_span = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "description": "Old span (older than 14d)",
+                "sentry_tags": {"transaction": "api/test", "op": "db.query"},
+                "is_segment": False,
+            },
+            start_ts=old_span_start,
+            duration=1000,
+        )
+
+        self.store_spans([recent_span, old_span], is_eap=True)
+
+        # Query with 14d stats period
+        result = get_trace_timerange(
+            trace_id=self.trace_id,
+            organization_id=self.organization.id,
+            stats_period="14d",
+        )
+
+        assert result is not None
+        # The start timestamp should be from the recent span, not the old one
+        assert result["start"] == recent_span_start.isoformat()
+        # Verify the old span was not included by checking the start is NOT old_span_start
+        assert result["start"] != old_span_start.isoformat()
 
 
 class _Project(BaseModel):

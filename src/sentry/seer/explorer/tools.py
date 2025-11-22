@@ -34,35 +34,17 @@ from sentry.utils.dates import parse_stats_period
 logger = logging.getLogger(__name__)
 
 
-def _validate_date_params(
-    *, stats_period: str | None = None, start: str | None = None, end: str | None = None
-) -> None:
-    """
-    Validate that either stats_period or both start and end are provided, but not both.
-    """
-    if not any([bool(stats_period), bool(start), bool(end)]):
-        raise ValueError("either stats_period or start and end must be provided")
-
-    if stats_period and (start or end):
-        raise ValueError("stats_period and start/end cannot be provided together")
-
-    if not stats_period and not all([bool(start), bool(end)]):
-        raise ValueError("start and end must be provided together")
-
-
 def execute_table_query(
     *,
     org_id: int,
     dataset: str,
     fields: list[str],
     per_page: int,
+    stats_period: str,
     query: str | None = None,
     sort: str | None = None,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
 ) -> dict[str, Any] | None:
@@ -73,12 +55,7 @@ def execute_table_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
-
-        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -102,8 +79,6 @@ def execute_table_query(
         "sort": sort if sort else ("-timestamp" if "timestamp" in fields else None),
         "per_page": per_page,
         "statsPeriod": stats_period,
-        "start": start,
-        "end": end,
         "project": project_ids,
         "projectSlug": project_slugs,
         "sampling": sampling_mode,
@@ -127,7 +102,6 @@ def execute_table_query(
         return {"data": resp.data["data"]}
     except client.ApiError as e:
         if e.status_code == 400:
-            logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return {"error": str(error_detail) if error_detail is not None else str(e.body)}
         raise
@@ -140,12 +114,10 @@ def execute_timeseries_query(
     y_axes: list[str],
     group_by: list[str] | None = None,
     query: str,
+    stats_period: str,
+    interval: str | None = None,
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-    interval: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     partial: bool | None = None,
     case_insensitive: bool | None = None,
@@ -159,12 +131,7 @@ def execute_timeseries_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
-
-        To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
-        Providing start or end with stats_period will result in a ValueError.
     """
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -182,8 +149,6 @@ def execute_timeseries_query(
         "field": y_axes + group_by,
         "query": query,
         "statsPeriod": stats_period,
-        "start": start,
-        "end": end,
         "interval": interval,
         "project": project_ids,
         "projectSlug": project_slugs,
@@ -341,6 +306,54 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         org_id=organization_id,
         trace=events,
     )
+
+
+def get_trace_timerange(
+    trace_id: str, organization_id: int, stats_period: str = "90d"
+) -> dict[str, Any] | None:
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "get_trace_timerange: Organization does not exist",
+            extra={"organization_id": organization_id, "trace_id": trace_id},
+        )
+        return None
+
+    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    if not projects:
+        return None
+
+    snuba_params = SnubaParams(
+        stats_period=stats_period,
+        projects=projects,
+        organization=organization,
+    )
+
+    spans = Spans.run_trace_query(
+        trace_id=trace_id,
+        params=snuba_params,
+        referrer=Referrer.SEER_RPC,
+        config=SearchResolverConfig(),
+        additional_attributes=[],
+    )
+    if not spans:
+        logger.warning(
+            "get_trace_timerange: No spans found",
+            extra={"organization_id": organization_id, "trace_id": trace_id},
+        )
+        return None
+
+    start_ts = min(span["precise.start_ts"] for span in spans)
+    end_ts = max(span["precise.finish_ts"] for span in spans)
+
+    start_dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+    end_dt = datetime.fromtimestamp(end_ts, tz=timezone.utc)
+
+    return {
+        "start": start_dt.isoformat(),
+        "end": end_dt.isoformat(),
+    }
 
 
 def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
