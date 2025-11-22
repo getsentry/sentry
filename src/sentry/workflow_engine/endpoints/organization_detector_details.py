@@ -31,6 +31,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_delete_detector,
     can_edit_detector,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
@@ -193,7 +194,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a detector
         """
-        if not can_edit_detector(detector, request):
+        if not can_delete_detector(detector, request):
             raise PermissionDenied
 
         if detector.type == ErrorGroupType.slug:
