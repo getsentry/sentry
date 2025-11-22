@@ -139,7 +139,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             url="https://example.com/sentry/alert-rule",
             status=200,
         )
-        self.sentry_app_installation = self.create_sentry_app_with_installation()
+        self.sentry_app = self.create_sentry_app_with_schema()
         self.sentry_app_settings = [
             {"name": "alert_prefix", "value": "[Not Good]"},
             {"name": "channel", "value": "#ignored-errors"},
@@ -160,8 +160,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                            "targetIdentifier": self.sentry_app_installation.uuid,
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
                         "data": {"settings": self.sentry_app_settings},
@@ -181,8 +181,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert action.type == Action.Type.SENTRY_APP
         assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            "target_identifier": self.sentry_app_installation.uuid,
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            "target_identifier": str(self.sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP.value,
         }
         assert action.data["settings"] == self.sentry_app_settings

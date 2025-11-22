@@ -38,7 +38,6 @@ class SentryAppActionHandler(ActionHandler):
         "properties": {
             "settings": {"type": ["array", "object"]},
         },
-        "required": ["settings"],
         "additionalProperties": False,
     }
 

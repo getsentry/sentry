@@ -15,12 +15,11 @@ from sentry.notifications.notification_action.registry import action_validator_r
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
 from sentry.rules.actions.sentry_apps.utils import validate_sentry_app_action
-from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 from .types import BaseActionValidatorHandler
 
@@ -207,18 +206,21 @@ class SentryAppActionValidatorHandler:
         self.organization = organization
 
     def clean_data(self) -> dict[str, Any]:
-        is_sentry_app_installation = (
-            SentryAppIdentifier(self.validated_data["config"]["sentry_app_identifier"])
-            == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+        installation = app_service.get_installation_by_id(
+            id=int(self.validated_data["config"]["target_identifier"])
         )
+        settings = self.validated_data["data"].get("settings", [])
         action = {
-            "settings": self.validated_data["data"]["settings"],
-            "sentryAppInstallationUuid": (
-                self.validated_data["config"]["target_identifier"]
-                if is_sentry_app_installation
-                else None
-            ),
+            "settings": settings,
+            "sentryAppInstallationUuid": installation.uuid,
         }
+        # XXX: it's only ok to not pass settings if there is no sentry app schema
+        # this means the app doesn't expect any settings
+        if not settings:
+            components = app_service.find_app_components(app_id=installation.sentry_app.id)
+            if any(component.app_schema for component in components):
+                raise ValidationError("'settings' is a required property")
+
         try:
             validate_sentry_app_action(action)
 

@@ -365,7 +365,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return group, event, group_event
 
-    def create_sentry_app_with_installation(self):
+    def create_sentry_app_with_schema(self):
         sentry_app_settings_schema = self.create_alert_rule_action_schema()
         sentry_app = self.create_sentry_app(
             name="Moo Deng's Fire Sentry App",
@@ -377,7 +377,5 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             },
             is_alertable=True,
         )
-        sentry_app_installation = self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization
-        )
-        return sentry_app_installation
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
+        return sentry_app
