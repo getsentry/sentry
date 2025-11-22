@@ -1,0 +1,318 @@
+<html>
+  <style>
+
+    #container {
+      position: relative;
+    }
+
+    #svgCont {
+      position: absolute;
+    }
+
+
+
+
+    .node rect {
+      cursor: move;
+      fill-opacity: .9;
+      shape-rendering: crispEdges;
+    }
+
+    .node text {
+      pointer-events: none;
+      text-shadow: 0 1px 0 #fff;
+    }
+
+    .link {
+      fill: none;
+      stroke: #000;
+      stroke-opacity: .15;
+    }
+
+    .link:hover {
+      stroke-opacity: .25;
+    }
+
+    </style>
+
+
+    <div id = 'container'>
+      <svg id = "svgCont"  width="1000" height="500"></svg>
+      <canvas id = "canvasCont"  width="1000" height="500"></canvas>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <script>
+energy = ({"nodes":[
+{"name":"Agricultural 'waste'"},
+{"name":"Bio-conversion"},
+{"name":"Liquid"},
+{"name":"Losses"},
+{"name":"Solid"},
+{"name":"Gas"},
+{"name":"Biofuel imports"},
+{"name":"Biomass imports"},
+{"name":"Coal imports"},
+{"name":"Coal"},
+{"name":"Coal reserves"},
+{"name":"District heating"},
+{"name":"Industry"},
+{"name":"Heating and cooling - commercial"},
+{"name":"Heating and cooling - homes"},
+{"name":"Electricity grid"},
+{"name":"Over generation / exports"},
+{"name":"H2 conversion"},
+{"name":"Road transport"},
+{"name":"Agriculture"},
+{"name":"Rail transport"},
+{"name":"Lighting & appliances - commercial"},
+{"name":"Lighting & appliances - homes"},
+{"name":"Gas imports"},
+{"name":"Ngas"},
+{"name":"Gas reserves"},
+{"name":"Thermal generation"},
+{"name":"Geothermal"},
+{"name":"H2"},
+{"name":"Hydro"},
+{"name":"International shipping"},
+{"name":"Domestic aviation"},
+{"name":"International aviation"},
+{"name":"National navigation"},
+{"name":"Marine algae"},
+{"name":"Nuclear"},
+{"name":"Oil imports"},
+{"name":"Oil"},
+{"name":"Oil reserves"},
+{"name":"Other waste"},
+{"name":"Pumped heat"},
+{"name":"Solar PV"},
+{"name":"Solar Thermal"},
+{"name":"Solar"},
+{"name":"Tidal"},
+{"name":"UK land based bioenergy"},
+{"name":"Wave"},
+{"name":"Wind"}
+],
+"links":[
+{"source":0,"target":1,"value":124.729},
+{"source":1,"target":2,"value":0.597},
+{"source":1,"target":3,"value":26.862},
+{"source":1,"target":4,"value":280.322},
+{"source":1,"target":5,"value":81.144},
+{"source":6,"target":2,"value":35},
+{"source":7,"target":4,"value":35},
+{"source":8,"target":9,"value":11.606},
+{"source":10,"target":9,"value":63.965},
+{"source":9,"target":4,"value":75.571},
+{"source":11,"target":12,"value":10.639},
+{"source":11,"target":13,"value":22.505},
+{"source":11,"target":14,"value":46.184},
+{"source":15,"target":16,"value":104.453},
+{"source":15,"target":14,"value":113.726},
+{"source":15,"target":17,"value":27.14},
+{"source":15,"target":12,"value":342.165},
+{"source":15,"target":18,"value":37.797},
+{"source":15,"target":19,"value":4.412},
+{"source":15,"target":13,"value":40.858},
+{"source":15,"target":3,"value":56.691},
+{"source":15,"target":20,"value":7.863},
+{"source":15,"target":21,"value":90.008},
+{"source":15,"target":22,"value":93.494},
+{"source":23,"target":24,"value":40.719},
+{"source":25,"target":24,"value":82.233},
+{"source":5,"target":13,"value":0.129},
+{"source":5,"target":3,"value":1.401},
+{"source":5,"target":26,"value":151.891},
+{"source":5,"target":19,"value":2.096},
+{"source":5,"target":12,"value":48.58},
+{"source":27,"target":15,"value":7.013},
+{"source":17,"target":28,"value":20.897},
+{"source":17,"target":3,"value":6.242},
+{"source":28,"target":18,"value":20.897},
+{"source":29,"target":15,"value":6.995},
+{"source":2,"target":12,"value":121.066},
+{"source":2,"target":30,"value":128.69},
+{"source":2,"target":18,"value":135.835},
+{"source":2,"target":31,"value":14.458},
+{"source":2,"target":32,"value":206.267},
+{"source":2,"target":19,"value":3.64},
+{"source":2,"target":33,"value":33.218},
+{"source":2,"target":20,"value":4.413},
+{"source":34,"target":1,"value":4.375},
+{"source":24,"target":5,"value":122.952},
+{"source":35,"target":26,"value":839.978},
+{"source":36,"target":37,"value":504.287},
+{"source":38,"target":37,"value":107.703},
+{"source":37,"target":2,"value":611.99},
+{"source":39,"target":4,"value":56.587},
+{"source":39,"target":1,"value":77.81},
+{"source":40,"target":14,"value":193.026},
+{"source":40,"target":13,"value":70.672},
+{"source":41,"target":15,"value":59.901},
+{"source":42,"target":14,"value":19.263},
+{"source":43,"target":42,"value":19.263},
+{"source":43,"target":41,"value":59.901},
+{"source":4,"target":19,"value":0.882},
+{"source":4,"target":26,"value":400.12},
+{"source":4,"target":12,"value":46.477},
+{"source":26,"target":15,"value":525.531},
+{"source":26,"target":3,"value":787.129},
+{"source":26,"target":11,"value":79.329},
+{"source":44,"target":15,"value":9.452},
+{"source":45,"target":1,"value":182.01},
+{"source":46,"target":15,"value":19.013},
+{"source":47,"target":15,"value":289.366}
+]})
+margin = ({top: 1, right: 1, bottom: 6, left: 1})
+width = 960 - margin.left - margin.right
+height = 500 - margin.top - margin.bottom
+colors = [
+   "#01ffff",
+  "#f6a7ab",
+  "#0b2934",
+  "#fcba74",
+  "#49d811",
+  "#ff0000",
+  "#cea9cf",
+  "#0137d0",
+  "#008fe1",
+  "#330120",
+  "#00dce6",
+  "#7e0050",
+  "#f98b10",
+  "#9c1bad",
+  "#ae1daf"
+]
+      drawChart = function(){
+        var svg = d3.select("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        var sankey = d3.sankey()
+          .nodeWidth(15)
+          .nodePadding(10)
+          .size([width, height]);
+
+        var formatNumber = d3.format(",.0f"),
+          format = function(d) { return formatNumber(d) + " TWh"; }
+
+        var path = sankey.link();
+
+        var freqCounter = 1;
+
+
+        energy.links.forEach(function(d){
+          d.o_value = d.value;
+          d.value = 1;
+        })
+
+        energy.nodes.forEach(function(d,i){
+          d.color = colors[i%colors.length]
+        })
+
+        sankey
+          .nodes(energy.nodes)
+          .links(energy.links)
+          .layout(32);
+
+        var link = svg.append("g").selectAll(".link")
+          .data(energy.links)
+        .enter().append("path")
+          .attr("class", "link")
+          .attr("d", path)
+          .style("stroke-width", function(d){
+            return Math.max(1, d.dy);
+          })
+          .sort(function(a,b) {return b.dy - a.dy});
+
+        link.append("title")
+          .text(function(d) {return d.source.name + " -> " + d.target.name + "\n" + format(d.o_value);});
+
+
+        var node = svg.append("g").selectAll(".node")
+          .data(energy.nodes)
+        .enter().append("g")
+          .attr("class", "node")
+          .attr("transform", function(d){ return "translate(" + d.x + ", " + d.y + ")";})
+        .call(d3.drag()
+        .on("drag", function (event,d){
+          d.x = event.x
+          d.y = event.y
+          d3.select(this).attr("transform", d => `translate(${d.x},${d.y})`);
+          sankey.relayout();
+          link.attr("d",path);}
+        ));
+
+        node.append("rect")
+          .attr("height", function(d) {return d.dy;})
+          .attr("width", sankey.nodeWidth())
+          .style("fill", function(d,i) {return d.color})
+          .style("rx", 5)
+          .style("stroke", "none");
+
+        var linkExtent = d3.extent(energy.links, function(d) {return d.o_value});
+
+        var frequencyScale = d3.scaleLinear().domain(linkExtent).range([0.05, 1]);
+        var particleSize = d3.scaleLinear().domain(linkExtent).range([1,5]);
+
+        energy.links.forEach(function(link) {
+          link.freq = frequencyScale(link.o_value);
+          link.particleSize = 2;
+          link.particleColor = d3.scaleLinear().domain([0,1])
+            .range([link.source.color, link.target.color])
+        });
+
+
+        var particles = [];
+
+          function tick(elapsed, time) {
+
+          //Remove complete particles
+          particles = particles.filter(function(d) {return d.current < d.path.getTotalLength()});
+
+
+        function particleEdgeCanvasPath(elapsed) {
+          var context = d3.select("canvas").node().getContext("2d")
+
+          context.clearRect(0,0,width,height);
+
+          context.fillStyle = "gray";
+          context.lineWidth = "1px";
+
+          for (var x in particles) {
+            //Particle Progress: difference between current time, and time of creation
+            var currentTime = elapsed - particles[x].time;
+            //Progress Adjusted for speed?
+            particles[x].current = currentTime * 0.15 * particles[x].speed
+            var currentPos = particles[x].path.getPointAtLength(particles[x].current);
+            context.beginPath();
+            context.fillStyle = particles[x].link.particleColor(0);
+            context.arc(currentPos.x, currentPos.y + particles[x].offset, particles[x].link.particleSize, 0, 2*Math.PI);
+            context.fill();
+
+          }
+        };
+
+
+          //Generate particle data
+          d3.selectAll("path.link")
+          .each(function(d) {
+            for (var x=0; x<2; x++) {
+              //Y jitter
+              var offset = (Math.random() - .5) * (d.dy - 4);
+              //Generate particles based on frequency distribution
+              if (Math.random() < d.freq) {
+                var length = this.getTotalLength();
+                particles.push({link: d, time: elapsed, offset: offset, path: this, length: length, animateTime: length, speed: 0.5 + (Math.random())})
+              }
+            }
+          })
+            particleEdgeCanvasPath(elapsed)
+        };
+
+        var t = d3.timer(tick, 1000);
+
+
+      }
+
+    </script>
+</html>

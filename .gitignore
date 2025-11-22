@@ -21,6 +21,8 @@ sentry-package.json
 /dist
 /env
 /tmp
+/packages
+/src/sentry/integrations/grpc/generated/
 node_modules
 /src/sentry/apidocs/api_ownership_stats_dont_modify.json
 /src/sentry/assets.json

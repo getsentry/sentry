@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package sentry.integrations.scm.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service ScmService {
+  // Repository operations
+  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
+  rpc GetRepository(GetRepositoryRequest) returns (Repository);
+
+  // Commit operations
+  rpc GetCommit(GetCommitRequest) returns (Commit);
+  rpc GetCommitContext(GetCommitContextRequest) returns (CommitContext);
+
+  // Code mapping operations
+  rpc CreateCodeMapping(CreateCodeMappingRequest) returns (CodeMapping);
+  rpc DeriveCodeMappings(DeriveCodeMappingsRequest) returns (DeriveCodeMappingsResponse);
+
+  // Issue integration
+  rpc CreateExternalIssue(CreateExternalIssueRequest) returns (ExternalIssue);
+  rpc LinkExternalIssue(LinkExternalIssueRequest) returns (ExternalIssue);
+}
+
+// Core data models
+message Repository {
+  int64 id = 1;
+  int64 organization_id = 2;
+  string name = 3;
+  string url = 4;
+  Provider provider = 5;
+  string external_id = 6;
+  RepositoryStatus status = 7;
+  google.protobuf.Timestamp date_added = 8;
+  map<string, string> config = 9;
+}
+
+message Commit {
+  string id = 1;
+  int64 repository_id = 2;
+  string key = 3;  // SHA
+  string message = 4;
+  CommitAuthor author = 5;
+  google.protobuf.Timestamp date_added = 6;
+}
+
+message CommitAuthor {
+  string name = 1;
+  string email = 2;
+  string external_id = 3;
+}
+
+message CommitContext {
+  int64 repository_id = 1;
+  string commit_id = 2;
+  string filename = 3;
+  int32 line_number = 4;
+  string blame_commit_id = 5;
+  CommitAuthor blame_author = 6;
+  string code_snippet = 7;
+}
+
+message CodeMapping {
+  int64 id = 1;
+  int64 organization_id = 2;
+  int64 project_id = 3;
+  int64 repository_id = 4;
+  string stack_root = 5;
+  string source_root = 6;
+  string default_branch = 7;
+}
+
+message ExternalIssue {
+  int64 id = 1;
+  int64 organization_id = 2;
+  int64 integration_id = 3;
+  string key = 4;
+  string title = 5;
+  string description = 6;
+  string web_url = 7;
+  map<string, string> metadata = 8;
+}
+
+enum Provider {
+  PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_GITHUB = 1;
+  PROVIDER_GITLAB = 2;
+  PROVIDER_BITBUCKET = 3;
+  PROVIDER_BITBUCKET_SERVER = 4;
+  PROVIDER_AZURE_DEVOPS = 5;
+  PROVIDER_GITHUB_ENTERPRISE = 6;
+}
+
+enum RepositoryStatus {
+  REPOSITORY_STATUS_UNSPECIFIED = 0;
+  REPOSITORY_STATUS_ACTIVE = 1;
+  REPOSITORY_STATUS_DISABLED = 2;
+  REPOSITORY_STATUS_HIDDEN = 3;
+}
+
+// Request/Response messages
+message ListRepositoriesRequest {
+  int64 organization_id = 1;
+  Provider provider = 2;
+  string query = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListRepositoriesResponse {
+  repeated Repository repositories = 1;
+  string next_page_token = 2;
+}
+
+message GetRepositoryRequest {
+  int64 repository_id = 1;
+}
+
+message GetCommitRequest {
+  int64 repository_id = 1;
+  string commit_sha = 2;
+}
+
+message GetCommitContextRequest {
+  int64 repository_id = 1;
+  string commit_sha = 2;
+  string filepath = 3;
+  int32 line_number = 4;
+}
+
+message CreateCodeMappingRequest {
+  int64 organization_id = 1;
+  int64 project_id = 2;
+  int64 repository_id = 3;
+  string stack_root = 4;
+  string source_root = 5;
+  string default_branch = 6;
+}
+
+message DeriveCodeMappingsRequest {
+  int64 organization_id = 1;
+  int64 project_id = 2;
+  repeated string stacktrace_paths = 3;
+}
+
+message DeriveCodeMappingsResponse {
+  repeated CodeMapping mappings = 1;
+}
+
+message CreateExternalIssueRequest {
+  int64 organization_id = 1;
+  int64 integration_id = 2;
+  string title = 3;
+  string description = 4;
+  map<string, string> metadata = 5;
+}
+
+message LinkExternalIssueRequest {
+  int64 group_id = 1;
+  int64 external_issue_id = 2;
+}

@@ -41,6 +41,8 @@ dependencies = [
     # See https://github.com/grpc/grpc/issues/23796 and
     # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
     "grpcio>=1.67.0",
+    "grpcio-tools>=1.67.0",  # For protobuf compilation
+    "grpcWSGI>=1.0.0",  # Sonora's WSGI middleware for gRPC-Web
     # not directly used, but provides a speedup for redis
     "hiredis>=2.3.2",
     "jsonschema>=4.20.0",
@@ -153,6 +155,7 @@ dev = [
     "msgpack-types>=0.2.0",
     "mypy>=1.17.1",
     "mypy-extensions>=1.0.0",
+    "mypy-protobuf>=3.5.0",  # Type stubs for protobuf
     "openapi-core>=0.18.2",
     "openapi-pydantic>=0.4.0",
     "pip>=23.3.1",
