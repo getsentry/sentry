@@ -3,22 +3,26 @@
 
 import io
 import sys
-sys.path.insert(0, '/Users/mikeihbe/code/sentry/src')
+
+sys.path.insert(0, "/Users/mikeihbe/code/sentry/src")
 
 # Test grpcWSGI without Django complications
 from grpcWSGI.server import grpcWSGI
 
+
 # Create a simple fallback app
 def fallback_app(environ, start_response):
-    start_response('200 OK', [('Content-Type', 'text/plain')])
-    return [b'Fallback app handled this request']
+    start_response("200 OK", [("Content-Type", "text/plain")])
+    return [b"Fallback app handled this request"]
+
 
 # Wrap with grpcWSGI
 grpc_app = grpcWSGI(fallback_app)
 
 # Add the generated directory to path
-sys.path.insert(0, '/Users/mikeihbe/code/sentry/src/sentry/integrations/grpc/generated')
+sys.path.insert(0, "/Users/mikeihbe/code/sentry/src/sentry/integrations/grpc/generated")
 import scm_pb2_grpc
+
 
 # Create a simple test servicer with all required methods
 class TestServicer:
@@ -50,6 +54,7 @@ class TestServicer:
     def LinkExternalIssue(self, request, context):
         return None
 
+
 # Register the service
 servicer = TestServicer()
 scm_pb2_grpc.add_ScmServiceServicer_to_server(servicer, grpc_app)
@@ -60,22 +65,23 @@ print(f"Number of handlers registered: {len(grpc_app._handlers)}")
 # Create a proper gRPC-Web message
 # Format: 1 byte flags (0x00 = uncompressed), 4 bytes length (big-endian), then message
 import struct
+
 import scm_pb2
 
 request_msg = scm_pb2.ListRepositoriesRequest(organization_id=1)
 serialized = request_msg.SerializeToString()
-grpc_web_message = struct.pack('!BI', 0, len(serialized)) + serialized
+grpc_web_message = struct.pack("!BI", 0, len(serialized)) + serialized
 
 # Create test environ
 environ = {
-    'REQUEST_METHOD': 'POST',
-    'PATH_INFO': '/sentry.integrations.scm.v1.ScmService/ListRepositories',
-    'CONTENT_TYPE': 'application/grpc-web+proto',
-    'CONTENT_LENGTH': str(len(grpc_web_message)),
-    'wsgi.input': io.BytesIO(grpc_web_message),
-    'wsgi.url_scheme': 'http',
-    'SERVER_NAME': 'localhost',
-    'SERVER_PORT': '8000',
+    "REQUEST_METHOD": "POST",
+    "PATH_INFO": "/sentry.integrations.scm.v1.ScmService/ListRepositories",
+    "CONTENT_TYPE": "application/grpc-web+proto",
+    "CONTENT_LENGTH": str(len(grpc_web_message)),
+    "wsgi.input": io.BytesIO(grpc_web_message),
+    "wsgi.url_scheme": "http",
+    "SERVER_NAME": "localhost",
+    "SERVER_PORT": "8000",
 }
 
 # Check if grpcWSGI recognizes the path
@@ -86,22 +92,24 @@ print(f"Handler found for path: {handler}")
 status_holder = []
 headers_holder = []
 
+
 def start_response(status, headers, exc_info=None):
     status_holder.append(status)
     headers_holder.append(headers)
     return lambda data: None
 
+
 # Execute the request
 print("\nExecuting request...")
 result = grpc_app(environ, start_response)
-body = b''.join(result)
+body = b"".join(result)
 
 print(f"Status: {status_holder}")
 print(f"Headers: {headers_holder}")
 print(f"Body: {body}")
 
 # Check what handled it
-if b'Fallback app' in body:
+if b"Fallback app" in body:
     print("\n✗ PROBLEM: Fallback app handled the request - grpcWSGI did NOT intercept!")
 else:
     print("\n✓ SUCCESS: grpcWSGI intercepted the request!")

@@ -13,14 +13,16 @@ Or separately:
     pip install sonora
 """
 
-import sys
-import os
-import hmac
 import hashlib
+import hmac
+import os
+import sys
 from typing import Optional
 
 # Add the generated protos to path if running from source
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../src/sentry/integrations/grpc/generated'))
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "../src/sentry/integrations/grpc/generated")
+)
 
 try:
     # Try importing from installed package
@@ -39,8 +41,8 @@ class SentryGrpcClient:
     def __init__(
         self,
         base_url: str = "http://localhost:8000",
-        auth_token: Optional[str] = None,
-        hmac_secret: Optional[str] = None
+        auth_token: str | None = None,
+        hmac_secret: str | None = None,
     ):
         """
         Initialize the client.
@@ -59,16 +61,10 @@ class SentryGrpcClient:
         if auth_token:
             headers["X-Grpc-Auth-Token"] = auth_token
 
-        self.transport = RequestsTransport(
-            base_url=base_url,
-            headers=headers
-        )
+        self.transport = RequestsTransport(base_url=base_url, headers=headers)
 
         # Create the client
-        self.client = Client(
-            service_stub=scm_pb2_grpc.ScmServiceStub,
-            transport=self.transport
-        )
+        self.client = Client(service_stub=scm_pb2_grpc.ScmServiceStub, transport=self.transport)
 
     def _sign_request(self, method: str, request) -> dict:
         """
@@ -89,25 +85,16 @@ class SentryGrpcClient:
         body_hex = body_bytes.hex()
 
         # Create signature
-        signing_payload = f"{method}:{body_hex}".encode('utf-8')
+        signing_payload = f"{method}:{body_hex}".encode()
         signature = hmac.new(
-            self.hmac_secret.encode('utf-8'),
-            signing_payload,
-            hashlib.sha256
+            self.hmac_secret.encode("utf-8"), signing_payload, hashlib.sha256
         ).hexdigest()
 
-        return {
-            "X-Signature": signature,
-            "X-Body": body_hex,
-            "X-Method": method
-        }
+        return {"X-Signature": signature, "X-Body": body_hex, "X-Method": method}
 
     def list_repositories(self, organization_id: int):
         """List repositories for an organization."""
-        request = scm_pb2.GetRepositoriesRequest(
-            organization_id=organization_id,
-            page_size=10
-        )
+        request = scm_pb2.GetRepositoriesRequest(organization_id=organization_id, page_size=10)
 
         # If using HMAC auth, update transport headers
         if self.hmac_secret:
@@ -123,19 +110,13 @@ class SentryGrpcClient:
             print(f"Error: {e}")
             return []
 
-    def create_issue(
-        self,
-        organization_id: int,
-        integration_id: int,
-        title: str,
-        description: str
-    ):
+    def create_issue(self, organization_id: int, integration_id: int, title: str, description: str):
         """Create an external issue."""
         request = scm_pb2.CreateIssueRequest(
             organization_id=organization_id,
             integration_id=integration_id,
             title=title,
-            description=description
+            description=description,
         )
 
         try:
@@ -146,18 +127,14 @@ class SentryGrpcClient:
             return None
 
     def check_file(
-        self,
-        organization_id: int,
-        repository_id: int,
-        filepath: str,
-        branch: Optional[str] = None
+        self, organization_id: int, repository_id: int, filepath: str, branch: str | None = None
     ):
         """Check if a file exists in a repository."""
         request = scm_pb2.CheckFileRequest(
             organization_id=organization_id,
             repository_id=repository_id,
             filepath=filepath,
-            branch=branch or ""
+            branch=branch or "",
         )
 
         try:
@@ -176,7 +153,7 @@ def main():
     # Create client
     client = SentryGrpcClient(
         base_url="http://localhost:8000",
-        auth_token=os.environ.get("SENTRY_GRPC_TOKEN")  # Get token from env
+        auth_token=os.environ.get("SENTRY_GRPC_TOKEN"),  # Get token from env
     )
 
     # Example 1: List repositories
@@ -194,7 +171,7 @@ def main():
         organization_id=1,
         integration_id=1,
         title="Test Issue from gRPC Client",
-        description="This is a test issue created via gRPC"
+        description="This is a test issue created via gRPC",
     )
     if issue:
         print(f"  Created issue: {issue.key} - {issue.title}")
@@ -205,10 +182,7 @@ def main():
     # Example 3: Check if a file exists
     print("\n3. Checking file existence...")
     exists, url = client.check_file(
-        organization_id=1,
-        repository_id=1,
-        filepath="README.md",
-        branch="main"
+        organization_id=1, repository_id=1, filepath="README.md", branch="main"
     )
     if exists:
         print(f"  File exists! URL: {url}")
