@@ -41,7 +41,10 @@ class DetectorQuota:
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
-    # Set to True to enforce only a single data source can be configured
+    """
+    Set to True in subclasses to enforce that only a single data source can be configured.
+    This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
     enforce_single_datasource = False
 
     name = serializers.CharField(
