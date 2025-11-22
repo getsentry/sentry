@@ -1,10 +1,3 @@
-"""
-Tools for fetching trace/span attributes for assisted query.
-
-This module provides RPC methods for getting available span attributes
-by calling the public API endpoint which ensures all built-in fields are included.
-"""
-
 import logging
 
 from sentry.api import client
