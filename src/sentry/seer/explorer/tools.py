@@ -56,6 +56,53 @@ def _validate_date_params(
         raise ValueError("start and end must be provided together")
 
 
+def _get_full_trace_id(
+    short_trace_id: str, organization: Organization, projects: list[Project]
+) -> str | None:
+    """
+    Get full trace id if a short id is provided. Queries EAP for a single span.
+    Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
+    TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
+    This can be done with a materialized string column for the first 8 chars and a secondary index.
+    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    """
+    now = datetime.now(timezone.utc)
+    window_days = 14
+    max_days = 90
+
+    # Slide back in time in 14-day windows
+    for days_back in range(0, max_days, window_days):
+        window_end = now - timedelta(days=days_back)
+        window_start = now - timedelta(days=min(days_back + window_days, max_days))
+
+        snuba_params = SnubaParams(
+            start=window_start,
+            end=window_end,
+            projects=projects,
+            organization=organization,
+            debug=True,
+        )
+
+        subquery_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{short_trace_id}",
+            selected_columns=["trace"],
+            orderby=[],
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+        )
+
+        data = subquery_result.get("data")
+        full_trace_id = data[0].get("trace") if data else None
+        if full_trace_id:
+            return full_trace_id
+
+    return None
+
+
 def execute_table_query(
     *,
     org_id: int,
@@ -249,7 +296,7 @@ def execute_trace_query(
     trace_id: str,
     dataset: str,
     fields: list[str],
-    query: str,
+    query: str | None = None,
     project_ids: list[int] | None = None,
     stats_period: str | None = None,
     start: str | None = None,
@@ -273,6 +320,17 @@ def execute_trace_query(
         )
     )
 
+    if len(trace_id) < 32:
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "execute_trace_query: No full trace id found for short trace id",
+                extra={"org_id": org_id, "trace_id": trace_id},
+            )
+            return None
+    else:
+        full_trace_id = trace_id
+
     if dataset == "spans":
         trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
     elif dataset == "errors":
@@ -294,6 +352,7 @@ def execute_trace_query(
         start=start_dt,
         end=end_dt,
         stats_period=stats_period,
+        query_string=query,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
@@ -304,7 +363,7 @@ def execute_trace_query(
     meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC)
     request = GetTraceRequest(
         meta=meta,
-        trace_id=trace_id,
+        trace_id=full_trace_id,
         items=[
             GetTraceRequest.TraceItem(
                 item_type=trace_item_type,
@@ -365,59 +424,14 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
 
-    # Get full trace id if a short id is provided. Queries EAP for a single span.
-    # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
-    # TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
-    # This can be done with a materialized string column for the first 8 chars and a secondary index.
-    # Alternatively we can try more consistent ways of passing the full ID to Explorer.
     if len(trace_id) < 32:
-        full_trace_id = None
-        now = datetime.now(timezone.utc)
-        window_days = 14
-        max_days = 90
-
-        # Slide back in time in 14-day windows
-        for days_back in range(0, max_days, window_days):
-            window_end = now - timedelta(days=days_back)
-            window_start = now - timedelta(days=min(days_back + window_days, max_days))
-
-            snuba_params = SnubaParams(
-                start=window_start,
-                end=window_end,
-                projects=projects,
-                organization=organization,
-                debug=True,
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "get_trace_waterfall: No full trace id found for short trace id",
+                extra={"organization_id": organization_id, "trace_id": trace_id},
             )
-
-            subquery_result = Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"trace:{trace_id}",
-                selected_columns=["trace"],
-                orderby=[],
-                offset=0,
-                limit=1,
-                referrer=Referrer.SEER_RPC,
-                config=SearchResolverConfig(),
-                sampling_mode=None,
-            )
-
-            data = subquery_result.get("data")
-            if not data:
-                # Temporary debug log
-                logger.warning(
-                    "get_trace_waterfall: No data returned from short id query",
-                    extra={
-                        "organization_id": organization_id,
-                        "trace_id": trace_id,
-                        "subquery_result": subquery_result,
-                        "start": window_start.isoformat(),
-                        "end": window_end.isoformat(),
-                    },
-                )
-
-            full_trace_id = data[0].get("trace") if data else None
-            if full_trace_id:
-                break
+            return None
     else:
         full_trace_id = trace_id
 
