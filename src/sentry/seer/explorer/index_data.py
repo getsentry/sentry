@@ -14,6 +14,7 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.explorer.llm_issue_detection import get_trace_for_llm_detection
 from sentry.seer.explorer.utils import (
     convert_profile_to_execution_tree,
     fetch_profile_data,
@@ -21,6 +22,7 @@ from sentry.seer.explorer.utils import (
 )
 from sentry.seer.sentry_data_models import (
     IssueDetails,
+    LLMDetectionTraceData,
     ProfileData,
     Span,
     TraceData,
@@ -113,7 +115,9 @@ def get_transactions_for_project(
     return transactions
 
 
-def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceData | None:
+def get_trace_for_transaction(
+    transaction_name: str, project_id: int, llm_detection: bool = False
+) -> TraceData | LLMDetectionTraceData | None:
     """
     Get a sample trace for a given transaction, choosing the one with median span count.
 
@@ -175,6 +179,15 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
             extra={"transaction_name": transaction_name, "project_id": project_id},
         )
         return None
+
+    if llm_detection:
+        return get_trace_for_llm_detection(
+            snuba_params=snuba_params,
+            trace_id=trace_id,
+            config=config,
+            project_id=project_id,
+            transaction_name=transaction_name,
+        )
 
     # Step 2: Get all spans in the chosen trace
     spans_result = Spans.run_table_query(

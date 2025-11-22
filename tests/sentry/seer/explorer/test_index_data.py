@@ -12,6 +12,7 @@ from sentry.seer.explorer.index_data import (
     get_trace_for_transaction,
     get_transactions_for_project,
 )
+from sentry.seer.sentry_data_models import EvidenceSpan, LLMDetectionTraceData
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.search.test_backend import SharedSnubaMixin
@@ -145,6 +146,69 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]
         assert len(root_spans) == 1  # Should have exactly one root span
+
+    def test_get_trace_for_transaction_llm_detection(self) -> None:
+        transaction_name = "api/users/profile"
+
+        # Create multiple traces with different span counts (same as test_get_trace_for_transaction)
+        traces_data = [
+            (5, "trace-medium", 0),
+            (2, "trace-small", 10),
+            (8, "trace-large", 20),
+        ]
+
+        spans = []
+        trace_ids = []
+        expected_trace_id = None
+
+        for span_count, trace_suffix, start_offset_minutes in traces_data:
+            trace_id = uuid.uuid4().hex
+            trace_ids.append(trace_id)
+            if trace_suffix == "trace-medium":
+                expected_trace_id = trace_id
+
+            for i in range(span_count):
+                span = self.create_span(
+                    {
+                        "description": f"span-{i}-{trace_suffix}",
+                        "sentry_tags": {"transaction": transaction_name},
+                        "trace_id": trace_id,
+                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                        "is_segment": i == 0,
+                    },
+                    start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
+                )
+                spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call with llm_detection=True
+        result = get_trace_for_transaction(transaction_name, self.project.id, llm_detection=True)
+
+        # Verify basic structure (same checks as regular test)
+        assert result is not None
+        assert result.transaction_name == transaction_name
+        assert result.project_id == self.project.id
+        assert result.trace_id in trace_ids
+        assert result.trace_id == expected_trace_id
+        assert result.total_spans == 5
+        assert len(result.spans) == 5
+
+        # Verify it's LLMDetectionTraceData with EvidenceSpan objects
+        assert isinstance(result, LLMDetectionTraceData)
+        for result_span in result.spans:
+            assert isinstance(result_span, EvidenceSpan)
+            assert result_span.span_id is not None
+            assert result_span.description is not None
+            assert result_span.description.startswith("span-")
+            assert "trace-medium" in result_span.description
+            assert hasattr(result_span, "op")
+            assert hasattr(result_span, "exclusive_time")
+            assert hasattr(result_span, "data")
+
+        # Verify parent-child relationships are preserved
+        root_spans = [s for s in result.spans if s.parent_span_id is None]
+        assert len(root_spans) == 1
 
 
 class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCase):

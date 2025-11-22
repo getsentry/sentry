@@ -22,12 +22,26 @@ class Span(BaseModel):
     span_description: str | None
 
 
+class EvidenceSpan(BaseModel):
+    span_id: str
+    parent_span_id: str | None = None
+    timestamp: float | None = None
+    op: str | None = None
+    description: str | None = None
+    exclusive_time: float | None = None
+    data: dict[str, Any] | None = None
+
+
 class TraceData(BaseModel):
     trace_id: str
     project_id: int
     transaction_name: str
     total_spans: int
     spans: list[Span]
+
+
+class LLMDetectionTraceData(TraceData):
+    spans: list[EvidenceSpan]
 
 
 class EAPTrace(BaseModel):

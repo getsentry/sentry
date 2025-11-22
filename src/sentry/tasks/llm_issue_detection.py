@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.index_data import get_trace_for_transaction, get_transactions_for_project
 from sentry.seer.models import SeerApiError
-from sentry.seer.sentry_data_models import TraceData
+from sentry.seer.sentry_data_models import LLMDetectionTraceData, TraceData
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -48,6 +48,7 @@ class DetectedIssue(BaseModel):
     evidence: str
     missing_telemetry: str | None = None
     title: str
+    confidence_score: float | None = None
 
 
 class IssueDetectionResponse(BaseModel):
@@ -94,6 +95,7 @@ def create_issue_occurrence_from_detection(
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
         "missing_telemetry": detected_issue.missing_telemetry,
+        "confidence_score": detected_issue.confidence_score,
     }
 
     evidence_display = [
@@ -197,8 +199,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         try:
-            trace: TraceData | None = get_trace_for_transaction(
-                transaction.name, transaction.project_id
+            trace: LLMDetectionTraceData | None = get_trace_for_transaction(
+                transaction.name, transaction.project_id, llm_detection=True
             )
             if (
                 not trace
