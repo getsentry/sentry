@@ -22,6 +22,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -348,7 +349,12 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
-def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[str, Any]:
+def rpc_get_profile_flamegraph(
+    profile_id: str,
+    organization_id: int,
+    trace_id: str | None = None,
+    span_description: str | None = None,
+) -> dict[str, Any]:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -362,6 +368,8 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     Args:
         profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
         organization_id: Organization ID to search within
+        trace_id: Optional trace ID to filter profile spans more precisely
+        span_description: Optional span description to filter profile spans more precisely
 
     Returns:
         Dictionary with either:
@@ -410,10 +418,17 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             organization=organization,
         )
 
+        query_string = f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)"
+        if trace_id:
+            query_string += f" trace:{trace_id}"
+        if span_description:
+            escaped_description = UNESCAPED_QUOTE_RE.sub('\\"', span_description)
+            query_string += f' span.description:"*{escaped_description}*"'
+
         # Query with aggregation to get profile metadata
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)",
+            query_string=query_string,
             selected_columns=[
                 "profile.id",
                 "profiler.id",
@@ -437,6 +452,9 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             extra={
                 "profile_id": profile_id,
                 "organization_id": organization_id,
+                "trace_id": trace_id,
+                "span_description": span_description,
+                "query_string": query_string,
                 "data": data,
                 "window_start": window_start.isoformat(),
                 "window_end": window_end.isoformat(),
