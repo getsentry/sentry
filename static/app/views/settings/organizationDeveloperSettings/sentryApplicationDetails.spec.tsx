@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
 
@@ -10,13 +8,11 @@ import {
   screen,
   userEvent,
   waitFor,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
-
-const router = RouterFixture();
-const location = LocationFixture();
 
 describe('Sentry Application Details', () => {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
@@ -31,17 +27,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Creating a new public Sentry App', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: '/sentry-apps/new-public/',
+      },
+      route: '/sentry-apps/new-public/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-public/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -141,17 +134,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Creating a new internal Sentry App', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: '/sentry-apps/new-internal/',
+      },
+      route: '/sentry-apps/new-internal/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={LocationFixture({pathname: 'new-internal/'})}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     it('does not show logo upload fields', () => {
@@ -175,17 +165,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Renders public app', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -240,17 +227,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Renders for internal apps', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -309,17 +293,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Renders masked values', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -359,17 +340,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing internal app tokens', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -449,17 +427,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing an existing public Sentry App', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      return render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -540,17 +515,14 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing an existing public Sentry App with a scope error', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/sentry-apps/sample-app/`,
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
     function renderComponent() {
-      render(
-        <SentryApplicationDetails
-          router={router}
-          location={location}
-          routes={router.routes}
-          routeParams={{}}
-          route={{}}
-          params={{appSlug: sentryApp.slug}}
-        />
-      );
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {

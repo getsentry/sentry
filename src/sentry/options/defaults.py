@@ -1554,16 +1554,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# default brownout crontab for api deprecations
+# Default brownout crontab for api deprecations
+# Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-cron",
     default="0 12 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+# Brownout duration fallback in seconds.
+# Used when a deprecation doesn't have a custom key defined.
 register(
-    "api.deprecation.brownout-duration-seconds",
+    "api.deprecation.brownout-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3517,6 +3519,8 @@ register(
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
+register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of events that use the processing store (the transient event payload) for attachment metadata (independant from payloads).
 register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # This forces symbolication to use the "stored attachment" codepath,

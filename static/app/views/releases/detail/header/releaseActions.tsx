@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -14,31 +13,27 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   projectSlug: string;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseActions({
-  location,
-  organization,
-  projectSlug,
-  release,
-  releaseMeta,
-  refetchData,
-}: Props) {
+function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
@@ -46,7 +41,7 @@ function ReleaseActions({
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(
+      navigate(
         makeReleasesPathname({
           organization,
           path: '/',

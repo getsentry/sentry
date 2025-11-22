@@ -81,23 +81,30 @@ def run_web_vitals_issue_detection() -> None:
         dispatch_detection_for_project_ids(project_ids_batch)
 
 
-def dispatch_detection_for_project_ids(project_ids: list[int]) -> None:
+# Returns a list of tuples of (project_id, success)
+def dispatch_detection_for_project_ids(
+    project_ids: list[int],
+) -> dict[int, dict[str, bool | str | None]]:
     # Spawn a sub-task for each project
     projects = Project.objects.filter(id__in=project_ids).select_related("organization")
     projects_checked_count = 0
     projects_dispatched_count = 0
+    results: dict[int, dict[str, bool | str | None]] = {}
 
     for project in projects:
         projects_checked_count += 1
         if not check_seer_setup_for_project(project):
+            results[project.id] = {"success": False, "reason": "missing_seer_setup"}
             continue
 
         # Check if web vitals detection is enabled in the project's performance issue settings
         performance_settings = get_merged_settings(project.id)
         if not performance_settings.get("web_vitals_detection_enabled", False):
+            results[project.id] = {"success": False, "reason": "web_vitals_detection_not_enabled"}
             continue
 
         detect_web_vitals_issues_for_project.delay(project.id)
+        results[project.id] = {"success": True}
         projects_dispatched_count += 1
 
     metrics.incr(
@@ -110,6 +117,8 @@ def dispatch_detection_for_project_ids(project_ids: list[int]) -> None:
         amount=projects_dispatched_count,
         sample_rate=1.0,
     )
+
+    return results
 
 
 @instrumented_task(

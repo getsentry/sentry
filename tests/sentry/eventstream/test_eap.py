@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsResponse
-from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE, ResponseMeta
+from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta, TraceItemType
 
 from sentry.deletions.tasks.nodestore import delete_events_from_eap
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
@@ -33,9 +33,16 @@ class TestEAPDeletion(TestCase):
         assert request.meta.project_ids == [self.project_id]
         assert request.meta.referrer == "deletions.group.eap"
         assert request.meta.cogs_category == "deletions"
+        assert request.meta.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
 
         assert len(request.filters) == 1
-        assert request.filters[0].item_type == TRACE_ITEM_TYPE_OCCURRENCE
+        assert request.filters[0].item_type == TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
+        assert request.filters[0].filter.HasField("comparison_filter")
+        assert request.filters[0].filter.comparison_filter.key.name == "group_id"
+        assert (
+            list(request.filters[0].filter.comparison_filter.value.val_int_array.values)
+            == self.group_ids
+        )
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_multiple_group_ids(self, mock_rpc):
@@ -51,7 +58,9 @@ class TestEAPDeletion(TestCase):
         )
 
         request = mock_rpc.call_args[0][0]
-        group_filter = request.filters[0].filter.and_filter.filters[1]
+        group_filter = request.filters[0].filter
+        assert group_filter.HasField("comparison_filter")
+        assert group_filter.comparison_filter.key.name == "group_id"
         assert list(group_filter.comparison_filter.value.val_int_array.values) == many_group_ids
 
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")

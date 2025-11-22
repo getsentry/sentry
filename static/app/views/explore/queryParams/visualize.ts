@@ -12,7 +12,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export const MAX_VISUALIZES = 4;
+export const MAX_VISUALIZES = 8;
 
 interface VisualizeOptions {
   chartType?: ChartType;
