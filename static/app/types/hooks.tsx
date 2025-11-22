@@ -3,7 +3,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/core/button';
 import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -325,6 +325,7 @@ type ReactHooks = {
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
+  'react-hook:use-filter-category-fields': (fields: Field[]) => Field[];
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-metric-detector-limit': () => {
     detectorCount: number;

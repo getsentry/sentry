@@ -79,7 +79,7 @@ describe('useFilterCategoryFields', () => {
       const {result} = renderHook(() => useFilterCategoryFields(fields));
 
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('quotaErrors');
+      expect(result.current[0]?.name).toBe('quotaErrors');
     });
   });
 
@@ -117,7 +117,7 @@ describe('useFilterCategoryFields', () => {
       const {result} = renderHook(() => useFilterCategoryFields(fields));
 
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('quotaSpendAllocations');
+      expect(result.current[0]?.name).toBe('quotaSpendAllocations');
     });
   });
 
@@ -183,7 +183,7 @@ describe('useFilterCategoryFields', () => {
 
       // Should filter based on available subscription data (org1)
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('quotaErrors');
+      expect(result.current[0]?.name).toBe('quotaErrors');
     });
   });
 
@@ -314,7 +314,7 @@ describe('useFilterCategoryFields', () => {
 
       // Should show transactions, hide spans
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('quotaTransactionsIndexed');
+      expect(result.current[0]?.name).toBe('quotaTransactionsIndexed');
     });
   });
 
@@ -389,7 +389,7 @@ describe('useFilterCategoryFields', () => {
 
       // Only errors should be shown
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('quotaErrors');
+      expect(result.current[0]?.name).toBe('quotaErrors');
     });
   });
 
