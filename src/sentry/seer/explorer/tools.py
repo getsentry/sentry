@@ -287,9 +287,13 @@ def execute_trace_query(
         # Might work for other item types but we choose not to support them for now.
         raise NotImplementedError(f"Unsupported dataset: {dataset}")
 
+    start_dt = datetime.fromisoformat(start) if start else None
+    end_dt = datetime.fromisoformat(end) if end else None
+
     snuba_params = SnubaParams(
-        start=start,
-        end=end,
+        start=start_dt,
+        end=end_dt,
+        stats_period=stats_period,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
