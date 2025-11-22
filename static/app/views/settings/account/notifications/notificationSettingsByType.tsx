@@ -13,12 +13,14 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -59,7 +61,11 @@ const notificationOptionsQueryKey = (notificationType: string) =>
 
 export function NotificationSettingsByType({notificationType}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
+  const organization = useOrganization();
   const queryClient = useQueryClient();
+  const hasSubscriptionFiltering = organization.features?.includes(
+    'subscription-based-notification-filtering'
+  );
   const {data: notificationOptions = [], status: notificationOptionStatus} = useApiQuery<
     NotificationOptionsObject[]
   >(notificationOptionsQueryKey(notificationType), {
@@ -147,8 +153,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
       identities.map(identity => [identity?.identityProvider?.externalId, identity])
     );
 
-    return organizations.filter(organization => {
-      const externalID = integrationExternalIDsByOrganizationID[organization.id]!;
+    return organizations.filter(org => {
+      const externalID = integrationExternalIDsByOrganizationID[org.id]!;
       const identity = identitiesByExternalId[externalID];
       return !!identity;
     });
@@ -156,7 +162,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const getUnlinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
     const linkedOrgs = getLinkedOrgs(provider);
-    return organizations.filter(organization => !linkedOrgs.includes(organization));
+    return organizations.filter(org => !linkedOrgs.includes(org));
   };
 
   const isProviderSupported = (provider: SupportedProviders) => {
@@ -183,37 +189,34 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const filterCategoryFields = (fields: Field[]) => {
+  // Legacy feature-flag-based filtering (fallback)
+  const filterCategoryFieldsLegacy = (fields: Field[]) => {
     // at least one org exists with am3 tiered plan
-    const hasOrgWithAm3 = organizations.some(organization =>
-      organization.features?.includes('am3-tier')
-    );
+    const hasOrgWithAm3 = organizations.some(org => org.features?.includes('am3-tier'));
 
     // at least one org exists without am3 tier plan
     const hasOrgWithoutAm3 = organizations.some(
-      organization => !organization.features?.includes('am3-tier')
+      org => !org.features?.includes('am3-tier')
     );
 
     // at least one org exists with am2 tier plan
-    const hasOrgWithAm2 = organizations.some(organization =>
-      organization.features?.includes('am2-tier')
-    );
+    const hasOrgWithAm2 = organizations.some(org => org.features?.includes('am2-tier'));
 
     // Check if any organization has the continuous-profiling-billing feature flag
-    const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
-      organization.features?.includes('continuous-profiling-billing')
+    const hasOrgWithContinuousProfilingBilling = organizations.some(org =>
+      org.features?.includes('continuous-profiling-billing')
     );
 
-    const hasSeerBilling = organizations.some(organization =>
-      organization.features?.includes('seer-billing')
+    const hasSeerBilling = organizations.some(org =>
+      org.features?.includes('seer-billing')
     );
 
-    const hasLogsBilling = organizations.some(organization =>
-      organization.features?.includes('logs-billing')
+    const hasLogsBilling = organizations.some(org =>
+      org.features?.includes('logs-billing')
     );
 
-    const hasPreventBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing')
+    const hasPreventBilling = organizations.some(org =>
+      org.features?.includes('seer-user-billing')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -249,6 +252,17 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
+  // New subscription-based filtering (used when feature flag is enabled)
+  const useFilterCategoryFieldsHook = HookStore.get(
+    'react-hook:use-filter-category-fields'
+  )[0];
+
+  // Choose which filtering approach to use based on feature flag
+  const filterCategoryFields =
+    hasSubscriptionFiltering && useFilterCategoryFieldsHook
+      ? useFilterCategoryFieldsHook
+      : filterCategoryFieldsLegacy;
+
   const getFields = (): Field[] => {
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
@@ -260,8 +274,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
     // but do not show the top level controller
     if (notificationType === 'quota') {
       if (
-        organizations.some(organization =>
-          organization.features?.includes('spend-visibility-notifications')
+        organizations.some(org =>
+          org.features?.includes('spend-visibility-notifications')
         )
       ) {
         fields.push(
