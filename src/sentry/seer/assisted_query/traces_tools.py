@@ -59,3 +59,72 @@ def get_attribute_names(
         fields[attr_type] = [item["name"] for item in resp.data if "name" in item]
 
     return {"fields": fields}
+
+
+def get_attribute_values_with_substring(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    fields_with_substrings: list[dict[str, str]],
+    stats_period: str = "7d",
+    limit: int = 100,
+    item_type: str = "spans",
+) -> dict:
+    """
+    Get attribute values for specific fields, optionally filtered by substring. Only string attributes are supported.
+
+    Args:
+        org_id: Organization ID
+        project_ids: List of project IDs to query
+        fields_with_substrings: List of dicts with "field" and optional "substring" keys
+            Example: [{"field": "span.status", "substring": "error"}]
+        stats_period: Time period string (e.g., "7d", "24h", "30d")
+        limit: Maximum number of values to return per field (API default is 1000)
+        item_type: Type of trace item (default: "spans")
+
+    Returns:
+        Dictionary with values:
+        {
+            "values": {
+                "span.status": ["ok", "error", ...],
+                "transaction": ["checkout", ...]
+            }
+        }
+    """
+    if not fields_with_substrings:
+        return {"values": {}}
+
+    organization = Organization.objects.get(id=org_id)
+    api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
+
+    values: dict[str, set[str]] = {}
+
+    for field_with_substring in fields_with_substrings:
+        field = field_with_substring["field"]
+        substring = field_with_substring.get("substring", "")
+
+        query_params = {
+            "itemType": item_type,
+            "attributeType": "string",
+            "statsPeriod": stats_period,
+            "project": project_ids,
+        }
+        if substring:
+            query_params["substringMatch"] = substring
+
+        # API returns: [{"value": "ok", "count": 123, ...}, ...]
+        resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/trace-items/attributes/{field}/values/",
+            data=query_params,
+        )
+
+        # Extract "value" from each item, filter out None/empty, and respect limit
+        field_values_list = [
+            item["value"] for item in resp.data if item.get("value") and "value" in item
+        ]
+        # Truncate to limit and convert to set for deduplication
+        values[field] = set(field_values_list[:limit])
+
+    return {"values": values}
