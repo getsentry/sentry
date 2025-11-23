@@ -173,7 +173,9 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=5,
+    # The task waits on cross-silo RPCs that have a 10s timeout, so give ourselves
+    # enough headroom to complete without tripping the worker deadline.
+    processing_deadline_duration=15,
     silo_mode=SiloMode.REGION,
 )
 @retry_decorator
