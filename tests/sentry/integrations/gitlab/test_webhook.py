@@ -122,6 +122,43 @@ class WebhookTest(GitLabTestCase):
         # organizations sharing an integration and not having the same
         # repositories enabled.
         assert response.status_code == 204
+        assert Commit.objects.count() == 0
+
+    def test_push_event_without_project_object_uses_top_level_id(self) -> None:
+        repo = self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(PUSH_EVENT)
+        del payload["project"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        assert response.status_code == 204
+
+        commits = Commit.objects.all()
+        assert len(commits) == 2
+        for commit in commits:
+            assert commit.repository_id == repo.id
+            assert commit.organization_id == self.organization.id
+
+    def test_push_event_without_any_project_identifiers(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(PUSH_EVENT)
+        del payload["project"]
+        del payload["project_id"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        assert response.status_code == 204
+        assert Commit.objects.count() == 0
 
     @patch("sentry.integrations.gitlab.webhooks.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
