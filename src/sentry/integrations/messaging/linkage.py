@@ -134,6 +134,9 @@ class IdentityLinkageView(LinkageView, ABC):
 
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
+        if self.is_auth_required(request, signed_params):
+            return self.handle_auth_required(request, signed_params)
+
         try:
             params = unsign(signed_params, salt=self.salt)
         except (SignatureExpired, BadSignature) as e:
