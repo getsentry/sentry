@@ -186,6 +186,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-external-projects-async-lookup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
