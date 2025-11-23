@@ -1,11 +1,10 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import grpc
-import pytest
 
 from sentry.integrations.grpc.generated import scm_pb2
 from sentry.integrations.grpc.services.scm_service import ScmServicer
-from sentry.models import Commit, Repository
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 
 
@@ -24,12 +23,8 @@ class TestScmService(TestCase):
         # Create real test data
         org = self.create_organization()
         project = self.create_project(organization=org)
-        repo1 = self.create_repo(
-            project=project, name="test-repo-1", provider="github", external_id="123"
-        )
-        repo2 = self.create_repo(
-            project=project, name="test-repo-2", provider="gitlab", external_id="456"
-        )
+        self.create_repo(project=project, name="test-repo-1", provider="github", external_id="123")
+        self.create_repo(project=project, name="test-repo-2", provider="gitlab", external_id="456")
 
         # Verify repos were created
         assert Repository.objects.filter(organization_id=org.id).count() == 2
@@ -53,8 +48,8 @@ class TestScmService(TestCase):
         """Test filtering repositories by provider."""
         org = self.create_organization()
         project = self.create_project(organization=org)
-        github_repo = self.create_repo(project=project, name="github-repo", provider="github")
-        gitlab_repo = self.create_repo(project=project, name="gitlab-repo", provider="gitlab")
+        self.create_repo(project=project, name="github-repo", provider="github")
+        self.create_repo(project=project, name="gitlab-repo", provider="gitlab")
 
         # Request only GitHub repos
         request = scm_pb2.ListRepositoriesRequest(
@@ -87,7 +82,7 @@ class TestScmService(TestCase):
         """Test getting non-existent repository."""
         request = scm_pb2.GetRepositoryRequest(repository_id=99999)
 
-        response = self.servicer.GetRepository(request, self.context)
+        self.servicer.GetRepository(request, self.context)
 
         self.context.set_code.assert_called_with(grpc.StatusCode.NOT_FOUND)
         self.context.set_details.assert_called()
@@ -98,7 +93,7 @@ class TestScmService(TestCase):
         project = self.create_project(organization=org)
         repo = self.create_repo(project=project)
         author = self.create_commit_author(name="Test Author", email="test@example.com")
-        commit = self.create_commit(
+        self.create_commit(
             repository=repo, key="abc123def456", message="Fix important bug", author=author
         )
 

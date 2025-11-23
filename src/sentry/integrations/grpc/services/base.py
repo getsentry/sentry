@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import grpc
 from django.conf import settings
@@ -50,7 +50,7 @@ class BaseGrpcServicer:
                 if return_type:
                     try:
                         return return_type()
-                    except:
+                    except Exception:
                         pass
                 return None
 
@@ -83,7 +83,7 @@ def authenticated_method(func: Callable[..., T]) -> Callable[..., T]:
             if return_type:
                 try:
                     return return_type()
-                except:
+                except Exception:
                     pass
             return None
 

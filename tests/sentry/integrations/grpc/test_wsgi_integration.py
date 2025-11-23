@@ -62,7 +62,7 @@ class GrpcWebIntegrationTest(SentryTestCase, Factories):
 
         # Call the application
         result = self.application(environ, start_response)
-        body = b"".join(result) if result else b""
+        _ = b"".join(result) if result else b""
 
         # Check that we got a gRPC response
         assert len(status_holder) == 1
@@ -106,7 +106,7 @@ class GrpcWebIntegrationTest(SentryTestCase, Factories):
 
         # Call the application
         result = self.application(environ, start_response)
-        body = b"".join(result) if result else b""
+        _ = b"".join(result) if result else b""
 
         # Check that we got a redirect or HTML response
         assert len(status_holder) == 1
@@ -139,7 +139,7 @@ class GrpcWebIntegrationTest(SentryTestCase, Factories):
 
         # Call the application
         result = self.application(environ, start_response)
-        body = b"".join(result) if result else b""
+        _ = b"".join(result) if result else b""
 
         # Check that we got a response
         assert len(status_holder) == 1

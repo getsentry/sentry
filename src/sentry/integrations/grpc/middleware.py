@@ -3,7 +3,6 @@ Middleware for handling gRPC-Web requests.
 """
 
 from django.utils.deprecation import MiddlewareMixin
-from django.views.decorators.csrf import csrf_exempt
 
 
 class GrpcWebMiddleware(MiddlewareMixin):

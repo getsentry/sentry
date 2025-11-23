@@ -57,25 +57,16 @@ def test_grpcwsgi_integration_direct():
     result = grpc_app(environ, start_response)
 
     # 7. Check results
-    print(f"Status: {status_holder}")
-    print(f"Headers: {headers_holder}")
-    print(f"Result type: {type(result)}")
-
     # If grpcWSGI handled it, we should NOT get a Django HTML response
     if result:
         body = b"".join(result)
-        print(f"Body length: {len(body)}")
-        print(f"Body starts with: {body[:100]}")
 
         # Check if it's HTML (Django) or binary (gRPC)
         is_html = b"<!DOCTYPE" in body or b"<html" in body
-        print(f"Is HTML response: {is_html}")
 
         if is_html:
-            print("ERROR: Django is handling the request, not grpcWSGI!")
             return False
         else:
-            print("SUCCESS: grpcWSGI handled the request!")
             return True
 
     return False
@@ -93,7 +84,5 @@ if __name__ == "__main__":
 
     # Run the test
     success = test_grpcwsgi_integration_direct()
-    if success:
-        print("\n✓ grpcWSGI integration is working!")
-    else:
-        print("\n✗ grpcWSGI integration is NOT working!")
+    if not success:
+        raise AssertionError("grpcWSGI integration is NOT working!")

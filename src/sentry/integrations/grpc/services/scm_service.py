@@ -4,7 +4,7 @@ import logging
 import re
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Optional
+from typing import Any
 
 import grpc
 

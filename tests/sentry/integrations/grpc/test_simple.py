@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from sentry.integrations.grpc.generated import scm_pb2
 from sentry.integrations.grpc.services.scm_service import ScmServicer
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 
 
@@ -16,17 +16,11 @@ class TestSimple(TestCase):
         project = self.create_project(organization=org)
 
         # Create repository
-        repo = self.create_repo(project=project, name="test-repo", provider="github")
-
-        # Check if repo exists
-        print(f"Created repo: {repo.id}, org: {repo.organization_id}")
-        print(f"Organization ID: {org.id}")
+        self.create_repo(project=project, name="test-repo", provider="github")
 
         # Query directly
         repos = Repository.objects.filter(organization_id=org.id)
-        print(f"Direct query found {repos.count()} repos")
-        for r in repos:
-            print(f"  - {r.name} (id={r.id}, org={r.organization_id})")
+        assert repos.count() > 0, "Should have at least one repo"
 
         # Create servicer and mock context
         servicer = ScmServicer()
@@ -38,9 +32,5 @@ class TestSimple(TestCase):
 
         # Call service
         response = servicer.ListRepositories(request, context)
-
-        print(f"Service response has {len(response.repositories)} repos")
-        for r in response.repositories:
-            print(f"  - {r.name} (id={r.id})")
 
         assert len(response.repositories) > 0, "Should have at least one repo"

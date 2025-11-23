@@ -1,11 +1,9 @@
 import hashlib
 import hmac
-import json
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 import grpc
-from django.conf import settings
 
 from sentry import options
 
