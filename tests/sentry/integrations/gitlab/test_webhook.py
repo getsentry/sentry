@@ -4,6 +4,8 @@ import orjson
 
 from fixtures.gitlab import (
     EXTERNAL_ID,
+    ISSUE_ASSIGNED_EVENT,
+    ISSUE_UNASSIGNED_EVENT,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
     PUSH_EVENT_IGNORED_COMMIT,
@@ -447,3 +449,43 @@ class WebhookTest(GitLabTestCase):
         )
         assert response.status_code == 409
         assert response.reason_phrase == "There is no integration that matches your organization."
+
+    @patch("sentry.integrations.gitlab.webhooks.sync_group_assignee_inbound_by_external_actor")
+    def test_issue_assigned(self, mock_sync: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_ASSIGNED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        # Verify sync_group_assignee_inbound_by_external_actor was called
+        assert mock_sync.called
+        call_args = mock_sync.call_args
+        assert call_args[1]["external_user_name"] == "@root"
+        assert (
+            call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        )
+        assert call_args[1]["assign"] is True
+
+    @patch("sentry.integrations.gitlab.webhooks.sync_group_assignee_inbound_by_external_actor")
+    def test_issue_unassigned(self, mock_sync: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_UNASSIGNED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        # Verify sync_group_assignee_inbound_by_external_actor was called for deassignment
+        assert mock_sync.called
+        call_args = mock_sync.call_args
+        assert call_args[1]["external_user_name"] == ""
+        assert (
+            call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        )
+        assert call_args[1]["assign"] is False
