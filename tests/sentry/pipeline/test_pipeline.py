@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
+from django.utils.safestring import mark_safe
 
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.base import ERR_MISMATCHED_USER, Pipeline
@@ -126,3 +127,23 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_pipeline_error_escapes_message_content(self) -> None:
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        unsafe_message = mark_safe('<svg/onload=alert("pwned")>')
+        resp = pipeline.error(unsafe_message)
+
+        assert b"<svg" not in resp.content
+        assert b"&lt;svg" in resp.content
+
+    def test_pipeline_warning_escapes_message_content(self) -> None:
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        unsafe_message = mark_safe('<img src=x onerror=alert("boom")>')
+        resp = pipeline.render_warning(unsafe_message)
+
+        assert b"<img" not in resp.content
+        assert b"&lt;img" in resp.content
