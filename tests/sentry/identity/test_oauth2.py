@@ -9,6 +9,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
+from sentry.identity import oauth2
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
@@ -40,6 +41,19 @@ class OAuth2CallbackViewTest(TestCase):
             client_id=123456,
             client_secret="secret-value",
         )
+
+    def _mock_pipeline(self):
+        pipeline = MagicMock()
+        pipeline.provider = MagicMock(key="dummy")
+        pipeline.error.return_value = MagicMock()
+        return pipeline
+
+    def _setup_record_event(self):
+        lifecycle = MagicMock()
+        context_manager = MagicMock()
+        context_manager.__enter__.return_value = lifecycle
+        context_manager.__exit__.return_value = None
+        return lifecycle, context_manager
 
     @responses.activate
     def test_exchange_token_success(self, mock_record: MagicMock) -> None:
@@ -156,6 +170,43 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_malicious_error_param_is_scrubbed(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get(
+            "/", {"error": "1ivlcrqyy') OR 679=(SELECT 679 FROM PG_SLEEP(15))--"}
+        )
+        request.subdomain = None
+        pipeline = self._mock_pipeline()
+
+        with patch("sentry.identity.oauth2.record_event") as mock_event:
+            lifecycle, context_manager = self._setup_record_event()
+            mock_event.return_value.capture.return_value = context_manager
+
+            response = self.view.dispatch(request, pipeline)
+
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(oauth2.ERR_INVALID_STATE)
+        lifecycle.record_failure.assert_called_once()
+        _, kwargs = lifecycle.record_failure.call_args
+        assert kwargs["extra"]["error"] == "<redacted>"
+
+    def test_safe_error_param_is_preserved(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "access_denied"})
+        request.subdomain = None
+        pipeline = self._mock_pipeline()
+
+        with patch("sentry.identity.oauth2.record_event") as mock_event:
+            lifecycle, context_manager = self._setup_record_event()
+            mock_event.return_value.capture.return_value = context_manager
+
+            response = self.view.dispatch(request, pipeline)
+
+        expected_message = f"{oauth2.ERR_INVALID_STATE}\nError: access_denied"
+        assert response == pipeline.error.return_value
+        pipeline.error.assert_called_once_with(expected_message)
+        lifecycle.record_failure.assert_called_once()
+        _, kwargs = lifecycle.record_failure.call_args
+        assert kwargs["extra"]["error"] == "access_denied"
 
 
 @control_silo_test
