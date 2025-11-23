@@ -1,10 +1,9 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry import eventstore, features
 from sentry.api import client
@@ -29,10 +28,12 @@ from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -294,14 +295,15 @@ def execute_trace_query(
     *,
     org_id: int,
     trace_id: str,
-    dataset: str,
-    fields: list[str],
+    dataset: Literal["spans", "logs", "tracemetrics"],
+    attributes: list[str],
     query: str | None = None,
     project_ids: list[int] | None = None,
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
+    limit: int | None = None,
 ) -> dict[str, Any] | None:
 
     _validate_date_params(stats_period=stats_period, start=start, end=end)
@@ -320,6 +322,7 @@ def execute_trace_query(
         )
     )
 
+    # Look up full trace id if a short id is provided.
     if len(trace_id) < 32:
         full_trace_id = _get_full_trace_id(trace_id, organization, projects)
         if not full_trace_id:
@@ -331,19 +334,14 @@ def execute_trace_query(
     else:
         full_trace_id = trace_id
 
+    # Build the GetTraceRequest.
+    rpc_cls: type[RPCBase]
     if dataset == "spans":
-        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
-    elif dataset == "errors":
-        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_ERROR
-    elif dataset == "issuePlatform":
-        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE
-    elif dataset == "logs" or dataset == "ourlogs":
-        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_LOG
-    elif dataset == "tracemetrics":
-        trace_item_type = TraceItemType.TRACE_ITEM_TYPE_METRIC
+        rpc_cls = Spans
+    elif dataset == "logs":
+        rpc_cls = OurLogs
     else:
-        # Might work for other item types but we choose not to support them for now.
-        raise NotImplementedError(f"Unsupported dataset: {dataset}")
+        rpc_cls = TraceMetrics
 
     start_dt = datetime.fromisoformat(start) if start else None
     end_dt = datetime.fromisoformat(end) if end else None
@@ -352,28 +350,32 @@ def execute_trace_query(
         start=start_dt,
         end=end_dt,
         stats_period=stats_period,
-        query_string=query,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
     )
 
-    resolver = RPCBase.get_resolver(params=snuba_params, config=SearchResolverConfig())
-    columns, _ = resolver.resolve_attributes(fields)
-    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC)
+    resolver = rpc_cls.get_resolver(params=snuba_params, config=SearchResolverConfig())
+    columns, _ = resolver.resolve_attributes(attributes)
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
     request = GetTraceRequest(
         meta=meta,
         trace_id=full_trace_id,
         items=[
             GetTraceRequest.TraceItem(
-                item_type=trace_item_type,
+                item_type=meta.trace_item_type,
                 attributes=[col.proto_definition for col in columns],
             )
         ],
     )
-    response = get_trace_rpc(request)
+    if limit:
+        request.limit = limit
 
-    results = []
+    # Query EAP EndpointGetTrace and format the response.
+    response = get_trace_rpc(request)
+    # print(response)
+
+    items: list[dict[str, Any]] = []
     columns_by_name = {col.proto_definition.name: col for col in columns}
     for item_group in response.item_groups:
         for item in item_group.items:
@@ -394,11 +396,11 @@ def execute_trace_query(
                         item_dict["project.slug"] = resolver.params.project_id_map.get(
                             item_dict[resolved_column.public_alias], "Unknown"
                         )
-            results.append(item_dict)
+            items.append(item_dict)
 
-        break  # There should only be one item group
+        # break  # There should only be one item group, for the requested item type.
 
-    return {"data": results}
+    return {"data": items}
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
@@ -434,16 +436,6 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
             return None
     else:
         full_trace_id = trace_id
-
-    if not isinstance(full_trace_id, str):
-        logger.warning(
-            "get_trace_waterfall: Trace not found from short id",
-            extra={
-                "organization_id": organization_id,
-                "trace_id": trace_id,
-            },
-        )
-        return None
 
     # Get full trace data.
     start, end = default_start_end_dates()

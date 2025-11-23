@@ -17,6 +17,7 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
+    execute_trace_query,
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
@@ -1773,7 +1774,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
 
         result = execute_table_query(
             org_id=self.organization.id,
-            dataset="ourlogs",
+            dataset="logs",
             fields=self.default_fields,
             per_page=10,
             stats_period="1h",
@@ -1787,3 +1788,58 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         for log in data:
             for field in self.default_fields:
                 assert field in log, field
+
+    def test_logs_trace_query(self) -> None:
+
+        trace_id = uuid.uuid4().hex
+        # Create logs with various attributes
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "User authentication failed",
+                    "severity_text": "ERROR",
+                    "severity_number": 17,
+                    "trace_id": trace_id,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Request processed successfully",
+                    "severity_text": "INFO",
+                    "severity_number": 9,
+                    "trace_id": trace_id,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        # print(self.organization.id, self.project.id)
+
+        result = execute_trace_query(
+            org_id=self.organization.id,
+            trace_id=trace_id,
+            dataset="logs",
+            attributes=[
+                # "id",
+                # "timestamp_precise",
+                # "project",  # project slug
+                "severity",
+                "trace.parent_span_id",
+                "message",
+            ],
+            stats_period="1d",
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+        assert len(result["data"]) == 2
+
+        # print(result)
