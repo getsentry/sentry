@@ -18,12 +18,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -115,6 +117,134 @@ class GitlabWebhook(SCMWebhook, ABC):
                 url=url_from_event,
                 config=dict(repo.config, path=path_from_event),
             )
+
+
+class IssuesEventWebhook(GitlabWebhook):
+    """
+    Handle Issue Hook
+
+    See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#issue-events
+    """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INBOUND_SYNC
+
+    def __call__(self, event: Mapping[str, Any], **kwargs):
+        if not (integration := kwargs.get("integration")):
+            raise ValueError("Integration must be provided")
+
+        external_issue_key = self._extract_issue_key(event, integration)
+        if not external_issue_key:
+            logger.warning(
+                "gitlab.webhook.issues.missing-external-issue-key",
+                extra={
+                    "integration_id": integration.id,
+                },
+            )
+            return
+
+        # Extract action from object_attributes
+        object_attributes = event.get("object_attributes", {})
+        action = object_attributes.get("action")
+
+        # Handle assignment changes
+        if action in GitLabIssueAction.values():
+            self._handle_assignment(integration, event, external_issue_key)
+
+    def _handle_assignment(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        external_issue_key: str,
+    ) -> None:
+        """
+        Handle issue assignment and unassignment events.
+
+        GitLab sends webhooks with the current assignees array, so we sync based on
+        the current state to avoid race conditions.
+        """
+        assignees = event.get("assignees", [])
+
+        # If there are no assignees, deassign
+        if not assignees:
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name="",
+                external_issue_key=external_issue_key,
+                assign=False,
+            )
+            logger.info(
+                "gitlab.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": None,
+                    "action": "deassigned",
+                },
+            )
+            return
+
+        # GitLab supports multiple assignees, but Sentry currently only supports one
+        # Take the first assignee from the current state
+        first_assignee = assignees[0]
+        assignee_username = first_assignee.get("username")
+
+        if not assignee_username:
+            logger.warning(
+                "gitlab.webhook.missing-assignee",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                },
+            )
+            return
+
+        # Sentry uses the @username format for assignees
+        assignee_name = f"@{assignee_username}"
+
+        sync_group_assignee_inbound_by_external_actor(
+            integration=integration,
+            external_user_name=assignee_name,
+            external_issue_key=external_issue_key,
+            assign=True,
+        )
+
+        logger.info(
+            "gitlab.webhook.assignment.synced",
+            extra={
+                "integration_id": integration.id,
+                "external_issue_key": external_issue_key,
+                "assignee_name": assignee_name,
+                "total_assignees": len(assignees),
+            },
+        )
+
+    def _extract_issue_key(
+        self, event: Mapping[str, Any], integration: RpcIntegration
+    ) -> str | None:
+        """
+        Extract and validate the external issue key from the event.
+
+        Returns the external issue key in format 'domain_name:path_with_namespace#issue_iid' or None if invalid.
+        """
+        project = event.get("project", {})
+        object_attributes = event.get("object_attributes", {})
+
+        path_with_namespace = project.get("path_with_namespace")
+        issue_iid = object_attributes.get("iid")
+
+        if not path_with_namespace or not issue_iid:
+            logger.warning(
+                "gitlab.webhook.missing-data",
+                extra={
+                    "project_path": path_with_namespace,
+                    "issue_iid": issue_iid,
+                },
+            )
+            return None
+
+        return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
 class MergeEventWebhook(GitlabWebhook):
@@ -267,6 +397,7 @@ class GitlabWebhookEndpoint(Endpoint):
     _handlers: dict[str, type[GitlabWebhook]] = {
         "Push Hook": PushEventWebhook,
         "Merge Request Hook": MergeEventWebhook,
+        "Issue Hook": IssuesEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

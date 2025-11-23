@@ -168,6 +168,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.get(GitLabApiClientPath.user)
 
+    def search_users(self, username: str):
+        """Search for a user by username
+
+        See https://docs.gitlab.com/ee/api/users.html#for-non-administrator-users
+        """
+        return self.get(GitLabApiClientPath.users, params={"username": username})
+
     def search_projects(self, group=None, query=None, simple=True):
         """Get projects
 
@@ -275,6 +282,22 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         return self.get(path, params={"scope": "all", "search": query, "iids": iids})
 
+    def update_issue_assignees(self, project_id: str, issue_iid: str, data: dict[str, Any]):
+        """Update an issue's assignees
+
+        See https://docs.gitlab.com/ee/api/issues.html#edit-an-issue
+        """
+        path = GitLabApiClientPath.issue.format(project=project_id, issue=issue_iid)
+        return self.put(path, data=data)
+
+    def update_issue_status(self, project_id: str, issue_iid: str, state: str):
+        """Update an issue's status
+
+        See https://docs.gitlab.com/ee/api/issues.html#edit-an-issue
+        """
+        path = GitLabApiClientPath.issue.format(project=project_id, issue=issue_iid)
+        return self.put(path, data={"state_event": state})
+
     def create_project_webhook(self, project_id):
         """Create a webhook on a project
 
@@ -288,11 +311,38 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
             "merge_requests_events": True,
             "push_events": True,
+            "issues_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
         resp = self.post(path, data=data)
 
         return resp["id"]
+
+    def get_project_webhooks(self, project_id):
+        """List webhooks for a project
+
+        See https://docs.gitlab.com/ee/api/projects.html#list-project-hooks
+        """
+        path = GitLabApiClientPath.project_hooks.format(project=project_id)
+        return self.get(path)
+
+    def update_project_webhook(self, project_id, hook_id):
+        """Update a webhook on a project to include all required events
+
+        See https://docs.gitlab.com/ee/api/projects.html#edit-project-hook
+        """
+        path = GitLabApiClientPath.project_hook.format(project=project_id, hook_id=hook_id)
+        hook_uri = reverse("sentry-extensions-gitlab-webhook")
+        model = self.installation.model
+        data = {
+            "url": absolute_uri(hook_uri),
+            "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
+            "merge_requests_events": True,
+            "push_events": True,
+            "issues_events": True,
+            "enable_ssl_verification": model.metadata["verify_ssl"],
+        }
+        return self.put(path, data=data)
 
     def delete_project_webhook(self, project_id, hook_id):
         """Delete a webhook from a project

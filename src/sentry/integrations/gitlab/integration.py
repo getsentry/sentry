@@ -47,6 +47,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
+from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 
@@ -109,7 +110,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
+class GitlabIntegration(
+    RepositoryIntegration, GitlabIssuesSpec, GitlabIssueSyncSpec, CommitContextIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
