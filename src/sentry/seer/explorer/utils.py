@@ -46,12 +46,16 @@ def normalize_description(description: str) -> str:
     return description
 
 
-def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
+def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], str | None]:
     """
     Converts profile data into a hierarchical representation of code execution.
     Selects the thread with the most in_app frames, or falls back to MainThread if no
     in_app frames exist (showing all frames including system frames).
     Calculates accurate durations for all nodes based on call stack transitions.
+
+    Returns:
+        Tuple of (execution_tree, selected_thread_id) where selected_thread_id is the
+        thread that was used to build the execution tree.
     """
     profile = profile_data.get(
         "profile"
@@ -61,14 +65,14 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:
-            return []
+            return [], None
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
     thread_metadata = profile.get("thread_metadata", {})
     if not all([frames, stacks, samples]):
-        return []
+        return [], None
 
     # Count in_app frames per thread
     thread_in_app_counts: dict[str, int] = {}
@@ -349,7 +353,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     for node in execution_tree:
         apply_durations(node)
 
-    return execution_tree
+    return execution_tree, selected_thread_id
 
 
 def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeNode]:
@@ -359,7 +363,7 @@ def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeN
     in_app frames exist (showing all frames including system frames).
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    dict_tree = _convert_profile_to_execution_tree(profile_data)
+    dict_tree, _ = _convert_profile_to_execution_tree(profile_data)
 
     def dict_to_execution_tree_node(node_dict: dict) -> ExecutionTreeNode:
         """Convert a dict node to an ExecutionTreeNode Pydantic object."""
