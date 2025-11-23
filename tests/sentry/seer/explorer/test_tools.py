@@ -17,7 +17,7 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
-    get_issue_details,
+    get_issue_and_event_details,
     get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
@@ -716,7 +716,7 @@ class _IssueMetadata(BaseModel):
     priority: str | None
     type: str
     issueType: str
-    issueTypeDescription: str  # Extra field added by get_issue_details.
+    issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -740,7 +740,7 @@ class _SentryEventData(BaseModel):
     tags: list[dict[str, str | None]] | None = None
 
 
-class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
     def _validate_event_timeseries(self, timeseries: dict):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
@@ -757,7 +757,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def _test_get_issue_details_success(
+    def _test_get_issue_and_event_details_success(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -793,19 +793,14 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             "oldest",
             "latest",
             "recommended",
-            events[1].event_id,
-            events[1].event_id[:8],
+            uuid.UUID(events[1].event_id).hex,  # no dashes
+            str(uuid.UUID(events[1].event_id)),  # with dashes
         ]:
-            result = get_issue_details(
+            result = get_issue_and_event_details(
                 issue_id=group.qualified_short_id if use_short_id else str(group.id),
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
-
-            # Short event IDs not supported.
-            if len(selected_event) == 8:
-                assert result is None
-                continue
 
             assert result is not None
             assert result["project_id"] == self.project.id
@@ -832,7 +827,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
                     event_dict["id"] == mock_get_recommended_event.return_value.event_id
                 ), selected_event
             else:
-                assert event_dict["id"] == selected_event, selected_event
+                assert (
+                    uuid.UUID(event_dict["id"]).hex == uuid.UUID(selected_event).hex
+                ), selected_event
 
             # Check event_trace_id matches mocked trace context.
             if event_dict["id"] == events[0].event_id:
@@ -844,13 +841,25 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             # Validate timeseries dict structure.
             self._validate_event_timeseries(result["event_timeseries"])
 
-    def test_get_issue_details_success_int_id(self):
-        self._test_get_issue_details_success(use_short_id=False)
+        # Short IDs and non-uuid not supported
+        for selected_event in [
+            events[1].event_id[:8],
+            "potato",
+        ]:
+            with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
+                get_issue_and_event_details(
+                    issue_id=group.qualified_short_id if use_short_id else str(group.id),
+                    organization_id=self.organization.id,
+                    selected_event=selected_event,
+                )
 
-    def test_get_issue_details_success_short_id(self):
-        self._test_get_issue_details_success(use_short_id=True)
+    def test_get_issue_and_event_details_success_int_id(self):
+        self._test_get_issue_and_event_details_success(use_short_id=False)
 
-    def test_get_issue_details_nonexistent_organization(self):
+    def test_get_issue_and_event_details_success_short_id(self):
+        self._test_get_issue_and_event_details_success(use_short_id=True)
+
+    def test_get_issue_and_event_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
         # Create a valid group.
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -860,17 +869,17 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         # Call with nonexistent organization ID.
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=99999,
             selected_event="latest",
         )
         assert result is None
 
-    def test_get_issue_details_nonexistent_group(self):
+    def test_get_issue_and_event_details_nonexistent_group(self):
         """Test returns None when group doesn't exist."""
         # Call with nonexistent group ID.
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id="99999",
             organization_id=self.organization.id,
             selected_event="latest",
@@ -880,7 +889,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
     @patch("sentry.models.group.get_oldest_or_latest_event")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_no_event_found(
+    def test_get_issue_and_event_details_no_event_found(
         self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
     ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -897,7 +906,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         for et in ["oldest", "latest", "recommended"]:
-            result = get_issue_details(
+            result = get_issue_and_event_details(
                 issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event=et,
@@ -905,7 +914,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             assert result is None, et
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_tags_exception(self, mock_get_tags):
+    def test_get_issue_and_event_details_tags_exception(self, mock_get_tags):
         mock_get_tags.side_effect = Exception("Test exception")
         """Test other fields are returned with null tags_overview when tag util fails."""
         # Create a valid group.
@@ -915,7 +924,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         group = event.group
         assert isinstance(group, Group)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="latest",
@@ -930,7 +939,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_with_assigned_user(
+    def test_get_issue_and_event_details_with_assigned_user(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -946,7 +955,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         # Create assignee.
         GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="recommended",
@@ -962,7 +971,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
+    def test_get_issue_and_event_details_with_assigned_team(
+        self, mock_get_tags, mock_get_recommended_event
+    ):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
@@ -974,7 +985,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         # Create assignee.
         GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="recommended",
@@ -991,7 +1002,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
     @patch("sentry.seer.explorer.tools.client")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_timeseries_resolution(
+    def test_get_issue_and_event_details_timeseries_resolution(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -1025,7 +1036,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             assert isinstance(group, Group)
             assert group.first_seen == first_seen
 
-            result = get_issue_details(
+            result = get_issue_and_event_details(
                 issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event="recommended",

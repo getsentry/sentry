@@ -784,9 +784,12 @@ def get_issue_and_event_details(
     timeseries_stats_period: str | None = None
     timeseries_interval: str | None = None
 
-    # First fetch event by ID if issue_id is not provided. Use this to get the issue ID, if any.
+    # Fetch the group object.
     if issue_id is None:
+        # Fetch event by ID if issue_id is not provided. Use this to fetch the group.
         uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
+
+        # We can't use get_event_by_id since we don't know the project yet.
         events_result = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[selected_event],
@@ -808,11 +811,11 @@ def get_issue_and_event_details(
             return None
 
         event = events_result[0]
-        issue_id = getattr(event, "group_id", None)
-        issue_id = str(issue_id) if issue_id else None
+        group = getattr(event, "group", None)
+        issue_id = str(group.id) if group else None
 
-    # Fetch the issue data, tags overview, and timeseries. If the previously fetched event does not have a group ID, this is skipped.
-    if issue_id is not None:
+    else:
+        # Fetch the group from issue_id.
         try:
             if issue_id.isdigit():
                 group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
@@ -826,8 +829,8 @@ def get_issue_and_event_details(
             )
             return None
 
-        assert isinstance(group, Group)
-
+    # Get the issue data, tags overview, and event count timeseries.
+    if isinstance(group, Group):
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
@@ -850,7 +853,7 @@ def get_issue_and_event_details(
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
 
     # Fetch event from group, if not already fetched.
-    if event is None and group is not None:
+    if event is None and isinstance(group, Group):
         if selected_event == "oldest":
             event = group.get_oldest_event()
         elif selected_event == "latest":
@@ -866,19 +869,18 @@ def get_issue_and_event_details(
                 tenant_ids={"organization_id": organization_id},
             )
 
-        if not event:
-            logger.warning(
-                "Could not find the selected event for the issue",
-                extra={
-                    "organization_id": organization_id,
-                    "issue_id": issue_id,
-                    "selected_event": selected_event,
-                },
-            )
-            return None
+    if event is None:
+        logger.warning(
+            "Could not find the selected event.",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": issue_id,
+                "selected_event": selected_event,
+            },
+        )
+        return None
 
     # Serialize event.
-    assert isinstance(event, Event | GroupEvent)
     serialized_event: IssueEventSerializerResponse = serialize(
         event, user=None, serializer=EventSerializer()
     )
