@@ -10,6 +10,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.pipeline.base import ERR_MISMATCHED_USER, Pipeline
 from sentry.pipeline.provider import PipelineProvider
 from sentry.pipeline.store import PipelineSessionStore
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -28,6 +29,31 @@ class DummyProvider(PipelineProvider["DummyPipeline"]):
 
     def get_pipeline_views(self) -> Sequence[PipelineStep]:
         return self.pipeline_views
+
+
+class NestedProvider(PipelineProvider["NestedPipeline"]):
+    key = "nested"
+    name = "nested"
+
+    def get_pipeline_views(self) -> Sequence[PipelineStep]:
+        return ()
+
+
+class NestedPipeline(Pipeline[Never, PipelineSessionStore]):
+    pipeline_name = "nested_pipeline"
+
+    @cached_property
+    def provider(self) -> NestedProvider:
+        provider = NestedProvider()
+        provider.set_pipeline(self)
+        provider.update_config(self.config)
+        return provider
+
+    def get_pipeline_views(self) -> Sequence[PipelineStep]:
+        return self.provider.get_pipeline_views()
+
+    def finish_pipeline(self) -> HttpResponse:
+        return HttpResponse()
 
 
 class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
@@ -126,3 +152,17 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    def test_fetch_state_prefers_parent_over_nested_pipeline(self) -> None:
+        nested_view = NestedPipelineView(
+            bind_key="nested_data",
+            pipeline_cls=NestedPipeline,
+            provider_key=NestedProvider.key,
+        )
+        with patch.object(DummyProvider, "pipeline_views", [PipelineStep(), nested_view]):
+            pipeline = DummyPipeline(self.request, "dummy", self.org)
+            pipeline.initialize()
+            pipeline.state.data = {"state": "expected-token"}
+            pipeline.state.step_index = 1
+
+            assert pipeline.fetch_state("state") == "expected-token"

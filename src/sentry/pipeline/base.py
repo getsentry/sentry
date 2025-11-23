@@ -242,9 +242,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         return data if key is None else data.get(key)
 
     def fetch_state(self, key: str | None = None) -> Any | None:
+        state_data = self.state.data
+        if state_data is not None and (key is None or key in state_data):
+            return self._fetch_state(key)
+
         step_index = self.step_index
         if step_index >= len(self.pipeline_views):
             return self._fetch_state(key)
+
         view = self.pipeline_views[step_index]
         if isinstance(view, NestedPipelineView):
             # Attempt to surface state from a nested pipeline
