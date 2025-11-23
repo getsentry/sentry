@@ -733,26 +733,25 @@ def get_issue_and_event_details(
 ) -> dict[str, Any] | None:
     """
     Tool to get details for a Sentry issue and one of its associated events. The issue_id can be ommitted so it
-    is automatically looked up from the event's grouping info. If the rare case the event is ungrouped, we return
-    null for all issue fields. Event details are always returned.
+    is automatically looked up from the event's grouping info.
 
     Args:
         organization_id: The ID of the organization to query.
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we try to fill this in with the event's group_id.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property, which we assume is always present.
         selected_event:
           If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
           If issue_id is not provided, this must be a UUID.
 
     Returns:
         A dict containing:
-            Issue fields (nullable iff issue_id is None):
+            Issue fields:
             `issue`: Serialized issue details.
             `tags_overview`: A summary of all tags in the issue.
             `event_timeseries`: Event counts over time for the issue.
             `timeseries_stats_period`: The stats period used for the event timeseries.
             `timeseries_interval`: The interval used for the event timeseries.
 
-            Non-nullable fields:
+            Event fields:
             `event`: Serialized event details.
             `event_id`: The event ID of the selected event.
             `event_trace_id`: The trace ID of the selected event.
@@ -775,21 +774,17 @@ def get_issue_and_event_details(
             "id", flat=True
         )
     )
+    if not org_project_ids:
+        return None
 
     event: Event | GroupEvent | None = None
-    group: Group | None = None
-    serialized_group: dict | None = None
-    tags_overview: dict | None = None
-    timeseries: dict | None = None
-    timeseries_stats_period: str | None = None
-    timeseries_interval: str | None = None
+    group: Group
 
     # Fetch the group object.
     if issue_id is None:
-        # Fetch event by ID if issue_id is not provided. Use this to fetch the group.
+        # If issue_id is not provided, first find the event. Then use this to fetch the group.
         uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
-
-        # We can't use get_event_by_id since we don't know the project yet.
+        # We can't use get_event_by_id since we don't know the exact project yet.
         events_result = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[selected_event],
@@ -811,8 +806,15 @@ def get_issue_and_event_details(
             return None
 
         event = events_result[0]
-        group = getattr(event, "group", None)
-        issue_id = str(group.id) if group else None
+        assert event is not None
+        if event.group is None:
+            logger.warning(
+                "Event is not associated with a group",
+                extra={"organization_id": organization_id, "event_id": event.event_id},
+            )
+            return None
+
+        group = event.group
 
     else:
         # Fetch the group from issue_id.
@@ -830,30 +832,32 @@ def get_issue_and_event_details(
             return None
 
     # Get the issue data, tags overview, and event count timeseries.
-    if isinstance(group, Group):
-        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-        serialized_group["issueTypeDescription"] = group.issue_type.description
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
 
-        try:
-            tags_overview = get_all_tags_overview(group)
-        except Exception:
-            logger.exception(
-                "Failed to get tags overview for issue",
-                extra={"organization_id": organization_id, "issue_id": issue_id},
-            )
-
-        ts_result = _get_issue_event_timeseries(
-            organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
+    try:
+        tags_overview = get_all_tags_overview(group)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
         )
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
+        tags_overview = None
+
+    ts_result = _get_issue_event_timeseries(
+        organization=organization,
+        project_id=group.project_id,
+        issue_short_id=group.qualified_short_id,
+        first_seen_delta=datetime.now(UTC) - group.first_seen,
+    )
+    if ts_result:
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
+    else:
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     # Fetch event from group, if not already fetched.
-    if event is None and isinstance(group, Group):
+    if event is None:
         if selected_event == "oldest":
             event = group.get_oldest_event()
         elif selected_event == "latest":

@@ -761,7 +761,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         self,
         mock_get_tags,
         mock_get_recommended_event,
-        use_short_id: bool,
+        issue_id_type: Literal["int_id", "short_id", "none"],
     ):
         """Test the queries and response format for a group of error events, and multiple event types."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -789,15 +789,41 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         assert events[1].group_id == group.id
         assert events[2].group_id == group.id
 
-        for selected_event in [
-            "oldest",
-            "latest",
-            "recommended",
-            uuid.UUID(events[1].event_id).hex,  # no dashes
-            str(uuid.UUID(events[1].event_id)),  # with dashes
-        ]:
+        issue_id_param = (
+            group.qualified_short_id
+            if issue_id_type == "short_id"
+            else str(group.id) if issue_id_type == "int_id" else None
+        )
+
+        if issue_id_param is None:
+            valid_selected_events = [
+                uuid.UUID(events[1].event_id).hex,  # no dashes
+                str(uuid.UUID(events[1].event_id)),  # with dashes
+            ]
+            invalid_selected_events = [
+                "oldest",
+                "latest",
+                "recommended",
+                events[1].event_id[:8],
+                "potato",
+            ]
+
+        else:
+            valid_selected_events = [
+                "oldest",
+                "latest",
+                "recommended",
+                uuid.UUID(events[1].event_id).hex,  # no dashes
+                str(uuid.UUID(events[1].event_id)),  # with dashes
+            ]
+            invalid_selected_events = [
+                events[1].event_id[:8],
+                "potato",
+            ]
+
+        for selected_event in valid_selected_events:
             result = get_issue_and_event_details(
-                issue_id=group.qualified_short_id if use_short_id else str(group.id),
+                issue_id=issue_id_param,
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
@@ -841,23 +867,22 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             # Validate timeseries dict structure.
             self._validate_event_timeseries(result["event_timeseries"])
 
-        # Short IDs and non-uuid not supported
-        for selected_event in [
-            events[1].event_id[:8],
-            "potato",
-        ]:
+        for selected_event in invalid_selected_events:
             with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
                 get_issue_and_event_details(
-                    issue_id=group.qualified_short_id if use_short_id else str(group.id),
+                    issue_id=issue_id_param,
                     organization_id=self.organization.id,
                     selected_event=selected_event,
                 )
 
     def test_get_issue_and_event_details_success_int_id(self):
-        self._test_get_issue_and_event_details_success(use_short_id=False)
+        self._test_get_issue_and_event_details_success(issue_id_type="int_id")
 
     def test_get_issue_and_event_details_success_short_id(self):
-        self._test_get_issue_and_event_details_success(use_short_id=True)
+        self._test_get_issue_and_event_details_success(issue_id_type="short_id")
+
+    def test_get_issue_and_event_details_success_null_issue_id(self):
+        self._test_get_issue_and_event_details_success(issue_id_type="none")
 
     def test_get_issue_and_event_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
@@ -876,9 +901,9 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         )
         assert result is None
 
-    def test_get_issue_and_event_details_nonexistent_group(self):
-        """Test returns None when group doesn't exist."""
-        # Call with nonexistent group ID.
+    def test_get_issue_and_event_details_nonexistent_issue(self):
+        """Test returns None when the requested issue doesn't exist."""
+        # Call with nonexistent issue ID.
         result = get_issue_and_event_details(
             issue_id="99999",
             organization_id=self.organization.id,
@@ -892,12 +917,13 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
     def test_get_issue_and_event_details_no_event_found(
         self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
     ):
+        """Test returns None when issue is found but selected_event is not."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         mock_get_recommended_event.return_value = None
         mock_get_oldest_or_latest_event.return_value = None
 
         # Create events with shared stacktrace (should have same group)
-        for i in range(3):
+        for i in range(2):
             data = load_data("python", timestamp=before_now(minutes=5 - i))
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             event = self.store_event(data=data, project_id=self.project.id)
@@ -905,13 +931,23 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         group = event.group
         assert isinstance(group, Group)
 
-        for et in ["oldest", "latest", "recommended"]:
+        for et in ["oldest", "latest", "recommended", uuid.uuid4().hex]:
             result = get_issue_and_event_details(
                 issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event=et,
             )
             assert result is None, et
+
+    def test_get_issue_and_event_details_no_event_found_null_issue_id(self):
+        """Test returns None when issue_id is not provided and selected_event is not found."""
+        _ = self.project  # Create an active project.
+        result = get_issue_and_event_details(
+            issue_id=None,
+            organization_id=self.organization.id,
+            selected_event=uuid.uuid4().hex,
+        )
+        assert result is None
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_issue_and_event_details_tags_exception(self, mock_get_tags):
