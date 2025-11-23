@@ -732,19 +732,19 @@ def get_issue_and_event_details(
     selected_event: str,
 ) -> dict[str, Any] | None:
     """
-    Tool to get details for a Sentry issue and one of its associated events. The issue_id can be ommitted so it
-    is automatically looked up from the event's grouping info.
+    Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
+    is issue is looked up from the event. We assume the event is always associated with an issue, otherwise None is returned.
 
     Args:
         organization_id: The ID of the organization to query.
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property, which we assume is always present.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property.
         selected_event:
           If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
           If issue_id is not provided, this must be a UUID.
 
     Returns:
         A dict containing:
-            Issue fields:
+            Issue fields: aside from `issue` these are nullable if an error occurred.
             `issue`: Serialized issue details.
             `tags_overview`: A summary of all tags in the issue.
             `event_timeseries`: Event counts over time for the issue.
@@ -754,7 +754,7 @@ def get_issue_and_event_details(
             Event fields:
             `event`: Serialized event details.
             `event_id`: The event ID of the selected event.
-            `event_trace_id`: The trace ID of the selected event.
+            `event_trace_id`: The trace ID of the selected event. Nullable.
             `project_id`: The event and issue's project ID.
             `project_slug`: The event and issue's project slug.
 
