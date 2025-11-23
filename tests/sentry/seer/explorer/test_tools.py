@@ -757,7 +757,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def _test_get_issue_and_event_details_success(
+    def _test_get_ie_details_basic(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -875,16 +875,16 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
                     selected_event=selected_event,
                 )
 
-    def test_get_issue_and_event_details_success_int_id(self):
-        self._test_get_issue_and_event_details_success(issue_id_type="int_id")
+    def test_get_ie_details_basic_int_id(self):
+        self._test_get_ie_details_basic(issue_id_type="int_id")
 
-    def test_get_issue_and_event_details_success_short_id(self):
-        self._test_get_issue_and_event_details_success(issue_id_type="short_id")
+    def test_get_ie_details_basic_short_id(self):
+        self._test_get_ie_details_basic(issue_id_type="short_id")
 
-    def test_get_issue_and_event_details_success_null_issue_id(self):
-        self._test_get_issue_and_event_details_success(issue_id_type="none")
+    def test_get_ie_details_basic_null_issue_id(self):
+        self._test_get_ie_details_basic(issue_id_type="none")
 
-    def test_get_issue_and_event_details_nonexistent_organization(self):
+    def test_get_ie_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
         # Create a valid group.
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -901,7 +901,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         )
         assert result is None
 
-    def test_get_issue_and_event_details_nonexistent_issue(self):
+    def test_get_ie_details_nonexistent_issue(self):
         """Test returns None when the requested issue doesn't exist."""
         # Call with nonexistent issue ID.
         result = get_issue_and_event_details(
@@ -914,7 +914,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
     @patch("sentry.models.group.get_oldest_or_latest_event")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_and_event_details_no_event_found(
+    def test_get_ie_details_no_event_found(
         self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
     ):
         """Test returns None when issue is found but selected_event is not."""
@@ -939,7 +939,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             )
             assert result is None, et
 
-    def test_get_issue_and_event_details_no_event_found_null_issue_id(self):
+    def test_get_ie_details_no_event_found_null_issue_id(self):
         """Test returns None when issue_id is not provided and selected_event is not found."""
         _ = self.project  # Create an active project.
         result = get_issue_and_event_details(
@@ -950,7 +950,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
         assert result is None
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_and_event_details_tags_exception(self, mock_get_tags):
+    def test_get_ie_details_tags_exception(self, mock_get_tags):
         mock_get_tags.side_effect = Exception("Test exception")
         """Test other fields are returned with null tags_overview when tag util fails."""
         # Create a valid group.
@@ -975,7 +975,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_and_event_details_with_assigned_user(
+    def test_get_ie_details_with_assigned_user(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -1007,9 +1007,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_and_event_details_with_assigned_team(
-        self, mock_get_tags, mock_get_recommended_event
-    ):
+    def test_get_ie_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
@@ -1038,7 +1036,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
     @patch("sentry.seer.explorer.tools.client")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_and_event_details_timeseries_resolution(
+    def test_get_ie_details_timeseries_resolution(
         self,
         mock_get_tags,
         mock_get_recommended_event,
