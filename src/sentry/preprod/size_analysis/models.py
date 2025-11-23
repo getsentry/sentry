@@ -5,10 +5,60 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.size_analysis.insight_models import (
+    AudioCompressionInsightResult,
+    DuplicateFilesInsightResult,
+    HermesDebugInfoInsightResult,
+    ImageOptimizationInsightResult,
+    LargeAudioFileInsightResult,
+    LargeImageFileInsightResult,
+    LargeVideoFileInsightResult,
+    LocalizedStringCommentsInsightResult,
+    LooseImagesInsightResult,
+    MainBinaryExportMetadataResult,
+    MultipleNativeLibraryArchInsightResult,
+    SmallFilesInsightResult,
+    StripBinaryInsightResult,
+    UnnecessaryFilesInsightResult,
+    VideoCompressionInsightResult,
+    WebPOptimizationInsightResult,
+)
 
 ###
 # Size analysis results (non-comparison)
 ###
+
+###
+# Insights results
+###
+
+
+class AndroidInsightResults(BaseModel):
+    duplicate_files: DuplicateFilesInsightResult | None
+    webp_optimization: WebPOptimizationInsightResult | None
+    large_images: LargeImageFileInsightResult | None
+    large_videos: LargeVideoFileInsightResult | None
+    large_audio: LargeAudioFileInsightResult | None
+    hermes_debug_info: HermesDebugInfoInsightResult | None
+    multiple_native_library_archs: MultipleNativeLibraryArchInsightResult | None
+
+
+class AppleInsightResults(BaseModel):
+    duplicate_files: DuplicateFilesInsightResult | None
+    large_images: LargeImageFileInsightResult | None
+    large_audios: LargeAudioFileInsightResult | None
+    large_videos: LargeVideoFileInsightResult | None
+    strip_binary: StripBinaryInsightResult | None
+    localized_strings_minify: LocalizedStringCommentsInsightResult | None
+    small_files: SmallFilesInsightResult | None
+    loose_images: LooseImagesInsightResult | None
+    hermes_debug_info: HermesDebugInfoInsightResult | None
+    image_optimization: ImageOptimizationInsightResult | None
+    main_binary_exported_symbols: MainBinaryExportMetadataResult | None
+    unnecessary_files: UnnecessaryFilesInsightResult | None
+    audio_compression: AudioCompressionInsightResult | None
+    video_compression: VideoCompressionInsightResult | None
+    alternate_icons_optimization: ImageOptimizationInsightResult | None
 
 
 class TreemapElement(BaseModel):
@@ -38,6 +88,7 @@ class SizeAnalysisResults(BaseModel):
     download_size: int
     install_size: int
     treemap: TreemapResults | None
+    insights: AndroidInsightResults | AppleInsightResults | None
     analysis_version: str | None
 
 
@@ -51,6 +102,7 @@ class DiffType(str, Enum):
     REMOVED = "removed"
     INCREASED = "increased"
     DECREASED = "decreased"
+    UNCHANGED = "unchanged"  # Only used for insight diffs
 
 
 class DiffItem(BaseModel):
@@ -71,8 +123,23 @@ class SizeMetricDiffItem(BaseModel):
     base_download_size: int
 
 
+class InsightDiffType(str, Enum):
+    NEW = "new"
+    RESOLVED = "resolved"
+    UNRESOLVED = "unresolved"
+
+
+class InsightDiffItem(BaseModel):
+    insight_type: str
+    status: InsightDiffType
+    total_savings_change: int
+    file_diffs: list[DiffItem]
+    group_diffs: list[DiffItem]
+
+
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
+    insight_diff_items: list[InsightDiffItem]
     size_metric_diff_item: SizeMetricDiffItem
     skipped_diff_item_comparison: bool
     head_analysis_version: str | None
