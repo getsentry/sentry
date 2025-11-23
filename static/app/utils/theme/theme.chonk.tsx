@@ -5,8 +5,9 @@ import styled, {
   type FilteringStyledOptions,
   type StyledOptions,
 } from '@emotion/styled';
-import color from 'color';
+import modifyColor from 'color';
 
+import {color} from './color';
 import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
 import commonTheme, {
   darkTheme,
@@ -18,6 +19,7 @@ import commonTheme, {
   generateThemeUtils,
   lightTheme,
 } from './theme';
+import {tokens} from './tokens';
 
 const CHART_PALETTE_LIGHT = [
   ['#7553FF'],
@@ -469,7 +471,8 @@ const formTheme: FormTheme = {
 };
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
+// @deprecated prefer using the `tokens.tsx` file
+function generateDeprecatedChonkTokens(colorScheme: typeof lightColors) {
   return {
     content: {
       primary: colorScheme.gray800,
@@ -552,295 +555,283 @@ const radius = {
 } as const;
 
 const lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#FFFFFF', // background.primary
-  surface400: '#F7F6FB', // background.secondary
-  surface300: '#F1EEF9', // background.tertiary
-  surface200: '#EAE7F6', // border.muted
-  surface100: '#DFDBEF', // border.primary
+  surface500: tokens.color.background.primary.light, // background.primary
+  surface400: tokens.color.background.secondary.light, // background.secondary
+  surface300: tokens.color.background.tertiary.light, // background.tertiary
+  surface200: tokens.color.border.secondary.light, // border.muted
+  surface100: tokens.color.border.primary.light, // border.primary
 
-  gray800: '#181423', // content.primary
-  gray700: '#3B434E', // ⚠ link.muted.active only
-  gray600: '#48515B', // ⚠ link.muted.hover only
-  gray500: '#57606B', // content.secondary, link.muted.default
-  gray400: '#707C89', // graphics.muted
-  gray300: 'rgba(112, 124, 137, 0.12)',
-  gray200: 'rgba(112, 124, 137, 0.09)',
-  gray100: 'rgba(112, 124, 137, 0.05)',
+  gray800: tokens.color.content.primary.light, // content.primary
+  gray700: color.neutral.light.opaque[1300], // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque[1200], // ⚠ link.muted.hover only
+  gray500: tokens.color.content.secondary.light, // content.secondary, link.muted.default
+  gray400: tokens.color.graphics.neutral.muted.light, // graphics.muted
+  gray300: color.neutral.light.transparent[300],
+  gray200: color.neutral.light.transparent[200],
+  gray100: color.neutral.light.transparent[100],
 
-  blue700: '#4E09BC', // ⚠ link.accent.active only
-  blue600: '#5D0CDC', // ⚠ link.accent.hover only
-  blue500: '#6C02FF', // content.accent, link.accent.default
-  blue400: '#8466FF', // graphics.muted, border.accent
-  blue300: 'rgba(132, 102, 255, 0.13)',
-  blue200: 'rgba(132, 102, 255, 0.09)',
-  blue100: 'rgba(132, 102, 255, 0.05)',
+  blue700: color.blue.light.opaque[1400], // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque[1300], // ⚠ link.accent.hover only
+  blue500: tokens.color.content.accent.light, // content.accent, link.accent.default
+  blue400: tokens.color.graphics.accent.muted.light, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent[300],
+  blue200: color.blue.light.transparent[200],
+  blue100: color.blue.light.transparent[100],
 
-  pink700: '#A11B6C', // ⚠ link.promotion.active only
-  pink600: '#B60979', // ⚠ link.promotion.hover only
-  pink500: '#D5008D', // content.promotion, link.promotion.default
-  pink400: '#FF4EB3', // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 78, 179, 0.17)',
-  pink200: 'rgba(255, 78, 179, 0.12)',
-  pink100: 'rgba(255, 78, 179, 0.06)',
+  pink700: color.pink.light.opaque[1300], // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque[1200], // ⚠ link.promotion.hover only
+  pink500: tokens.color.content.promotion.light, // content.promotion, link.promotion.default
+  pink400: tokens.color.graphics.promotion.muted.light, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent[300],
+  pink200: color.pink.light.transparent[200],
+  pink100: color.pink.light.transparent[100],
 
-  red700: '#9C0819', // ⚠ link.danger.active only
-  red600: '#B1001B', // ⚠ link.danger.hover only
-  red500: '#CB0020', // ⚠ content.danger, link.danger.default
-  red400: '#FF002B', // graphics.danger, border.danger
-  red300: 'rgba(255, 0, 43, 0.10)',
-  red200: 'rgba(255, 0, 43, 0.08)',
-  red100: 'rgba(255, 0, 43, 0.04)',
+  red700: color.red.light.opaque[1200], // ⚠ link.danger.active only
+  red600: color.red.light.opaque[1100], // ⚠ link.danger.hover only
+  red500: tokens.color.content.danger.light, // ⚠ content.danger, link.danger.default
+  red400: tokens.color.graphics.danger.muted.light, // graphics.danger, border.danger
+  red300: color.red.light.transparent[300],
+  red200: color.red.light.transparent[200],
+  red100: color.red.light.transparent[100],
 
-  yellow700: '#AD4A0D', // ⚠ link.warning.active only
-  yellow600: '#C55200', // ⚠ link.warning.hover only
-  yellow500: '#E66000', // content.warning, link.warning.default
-  yellow400: '#F3B01B', // graphics.warning, border.warning
-  yellow300: 'rgba(243, 176, 27, 0.24)',
-  yellow200: 'rgba(243, 176, 27, 0.17)',
-  yellow100: 'rgba(243, 176, 27, 0.07)',
+  yellow700: color.yellow.light.opaque[1200], // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque[1100], // ⚠ link.warning.hover only
+  yellow500: tokens.color.content.warning.light, // content.warning, link.warning.default
+  yellow400: tokens.color.graphics.warning.muted.light, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent[300],
+  yellow200: color.yellow.light.transparent[200],
+  yellow100: color.yellow.light.transparent[100],
 
-  green700: '#01651F', // ⚠ link.success.active only
-  green600: '#017526', // ⚠ link.success.hover only
-  green500: '#06892F', // content.success, link.success.default
-  green400: '#06AC3D', // graphics.success, border.success
-  green300: 'rgba(6, 172, 61, 0.10)',
-  green200: 'rgba(6, 172, 61, 0.07)',
-  green100: 'rgba(6, 172, 61, 0.04)',
+  green700: color.green.light.opaque[1200], // ⚠ link.success.active only
+  green600: color.green.light.opaque[1100], // ⚠ link.success.hover only
+  green500: tokens.color.content.success.light, // content.success, link.success.default
+  green400: tokens.color.graphics.success.muted.light, // graphics.success, border.success
+  green300: color.green.light.transparent[300],
+  green200: color.green.light.transparent[200],
+  green100: color.green.light.transparent[100],
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.categorical.light.blurple,
+    pink400: color.pink.light.opaque[400],
+    red400: color.red.light.opaque[1000],
+    yellow400: color.yellow.light.opaque[600],
+    green400: color.green.light.opaque[800],
   },
 };
 
 const darkColors: typeof lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#272433', // background.primary
-  surface400: '#231E2F', // background.secondary
-  surface300: '#191621', // background.teritary
-  surface200: '#0D071A', // border.muted
-  surface100: '#000000', // border.primary
+  surface500: tokens.color.background.primary.dark, // background.primary
+  surface400: tokens.color.background.secondary.dark, // background.secondary
+  surface300: tokens.color.background.tertiary.dark, // background.teritary
+  surface200: tokens.color.border.secondary.dark, // border.muted
+  surface100: tokens.color.border.primary.dark, // border.primary
 
-  gray800: '#F6F5FA', // content.primary
-  gray700: '#C6C0D6', // ⚠ link.muted.active only
-  gray600: '#B3ADC3', // ⚠ link.muted.hover only
-  gray500: '#A39EB3', // content.secondary, link.muted.default
-  gray400: '#6F6F78', // // graphics.muted
-  gray300: 'rgba(110, 110, 119, 0.38)',
-  gray200: 'rgba(110, 110, 119, 0.28)',
-  gray100: 'rgba(110, 110, 119, 0.20)',
+  gray800: tokens.color.content.primary.dark, // content.primary
+  gray700: color.neutral.dark.opaque[1300], // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque[1200], // ⚠ link.muted.hover only
+  gray500: tokens.color.content.secondary.dark, // content.secondary, link.muted.default
+  gray400: tokens.color.graphics.neutral.muted.dark, // // graphics.muted
+  gray300: color.neutral.dark.transparent[300],
+  gray200: color.neutral.dark.transparent[200],
+  gray100: color.neutral.dark.transparent[100],
 
-  blue700: '#BBB6FC', // ⚠ link.accent.active only
-  blue600: '#A89EFC', // ⚠ link.accent.hover only
-  blue500: '#9B8DFF', // content.accent, link.accent.default
-  blue400: '#8970FF', // // graphics.accent, border.accent
-  blue300: 'rgba(137, 112, 255, 0.26)',
-  blue200: 'rgba(137, 112, 255, 0.20)',
-  blue100: 'rgba(137, 112, 255, 0.14)',
+  blue700: color.blue.dark.opaque[1400], // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque[1300], // ⚠ link.accent.hover only
+  blue500: tokens.color.content.accent.dark, // content.accent, link.accent.default
+  blue400: tokens.color.graphics.accent.muted.dark, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent[300],
+  blue200: color.blue.dark.transparent[200],
+  blue100: color.blue.dark.transparent[100],
 
-  pink700: '#FFC4DF', // ⚠ link.promotion.active only
-  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
-  pink500: '#FF8BC6', // content.promotion, link.promotion.default
-  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 92, 182, 0.20)',
-  pink200: 'rgba(255, 92, 182, 0.15)',
-  pink100: 'rgba(255, 92, 182, 0.11)',
+  pink700: color.pink.dark.opaque[1400], // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque[1300], // ⚠ link.promotion.hover only
+  pink500: tokens.color.content.promotion.dark, // content.promotion, link.promotion.default
+  pink400: tokens.color.graphics.promotion.muted.dark, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent[300],
+  pink200: color.pink.dark.transparent[200],
+  pink100: color.pink.dark.transparent[100],
 
-  red700: '#FFB0A8', // ⚠ link.danger.active only
-  red600: '#FF8A82', // ⚠ link.danger.hover only
-  red500: '#FF6B65', // content.danger, link.danger.default
-  red400: '#FF333C', // // graphics.danger, border.danger
-  red300: 'rgba(255, 51, 60, 0.26)',
-  red200: 'rgba(255, 51, 60, 0.20)',
-  red100: 'rgba(255, 51, 60, 0.16)',
+  red700: color.red.dark.opaque[1400], // ⚠ link.danger.active only
+  red600: color.red.dark.opaque[1300], // ⚠ link.danger.hover only
+  red500: tokens.color.content.danger.dark, // content.danger, link.danger.default
+  red400: tokens.color.graphics.danger.muted.dark, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent[300],
+  red200: color.red.dark.transparent[200],
+  red100: color.red.dark.transparent[100],
 
-  yellow700: '#FCEBB7', // ⚠ link.warning.active only
-  yellow600: '#F8DC86', // ⚠ link.warning.hover only
-  yellow500: '#FDCF20', // content.warning, link.warning.default
-  yellow400: '#F7B31C', // graphics.warning, border.warning
-  yellow300: 'rgba(247, 179, 28, 0.17)',
-  yellow200: 'rgba(247, 179, 28, 0.13)',
-  yellow100: 'rgba(247, 179, 28, 0.09)',
+  yellow700: color.yellow.dark.opaque[1400], // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque[1300], // ⚠ link.warning.hover only
+  yellow500: tokens.color.content.warning.dark, // content.warning, link.warning.default
+  yellow400: tokens.color.graphics.warning.muted.dark, // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent[300],
+  yellow200: color.yellow.dark.transparent[200],
+  yellow100: color.yellow.dark.transparent[100],
 
-  green700: '#4AE969', // ⚠ link.success.active only
-  green600: '#32D859', // ⚠ link.success.hover only
-  green500: '#0CC848', // content.success, link.success.default
-  green400: '#09B340', // graphics.success, border.success
-  green300: 'rgba(9, 179, 64, 0.33)',
-  green200: 'rgba(9, 179, 64, 0.26)',
-  green100: 'rgba(9, 179, 64, 0.20)',
+  green700: color.green.dark.opaque[1400], // ⚠ link.success.active only
+  green600: color.green.dark.opaque[1300], // ⚠ link.success.hover only
+  green500: tokens.color.content.success.dark, // content.success, link.success.default
+  green400: tokens.color.graphics.success.muted.dark, // graphics.success, border.success
+  green300: color.green.dark.transparent[300],
+  green200: color.green.dark.transparent[200],
+  green100: color.green.dark.transparent[100],
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.categorical.dark.blurple,
+    pink400: color.pink.dark.opaque[400],
+    red400: color.red.dark.opaque[900],
+    yellow400: color.yellow.dark.opaque[1200],
+    green400: color.green.dark.opaque[1100],
   },
 };
 
 // Prism colors
-// @TODO(jonasbadalic): are these final?
 const prismLight = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#332B3B',
-  '--prism-inline-code': '#332B3B',
-  '--prism-inline-code-background': '#F5F3F7',
-  '--prism-highlight-background': '#5C78A31C',
-  '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#80708F',
-  '--prism-punctuation': '#332B3B',
-  '--prism-property': '#18408B',
-  '--prism-selector': '#177861',
-  '--prism-operator': '#235CC8',
-  '--prism-variable': '#332B3B',
-  '--prism-function': '#235CC8',
-  '--prism-keyword': '#BB3A3D',
+  '--prism-base': tokens.color.syntax.base.light,
+  '--prism-inline-code': tokens.color.syntax.inlineCode.light,
+  '--prism-inline-code-background': tokens.color.syntax.codeBackground.light,
+  '--prism-highlight-background': tokens.color.syntax.highlightBackround.light,
+  '--prism-highlight-accent': tokens.color.syntax.highlightAccent.light,
+  '--prism-comment': tokens.color.syntax.comment.light,
+  '--prism-punctuation': tokens.color.syntax.punctuation.light,
+  '--prism-property': tokens.color.syntax.property.light,
+  '--prism-selector': tokens.color.syntax.selector.light,
+  '--prism-operator': tokens.color.syntax.operator.light,
+  '--prism-variable': tokens.color.syntax.variable.light,
+  '--prism-function': tokens.color.syntax.function.light,
+  '--prism-keyword': tokens.color.syntax.keyword.light,
 };
 
-// @TODO(jonasbadalic): are these final?
 const prismDark = {
-  /**
-   * NOTE: Missing Palette All together
-   * COMPONENTS AFFECTED: Unknown
-   * TODO: Nothing yet, Low Prio
-   */
-  '--prism-base': '#D6D0DC',
-  '--prism-inline-code': '#D6D0DC',
-  '--prism-inline-code-background': '#18121C',
-  '--prism-highlight-background': '#A8A2C31C',
-  '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#998DA5',
-  '--prism-punctuation': '#D6D0DC',
-  '--prism-property': '#70A2FF',
-  '--prism-selector': '#1DCDA4',
-  '--prism-operator': '#70A2FF',
-  '--prism-variable': '#D6D0DC',
-  '--prism-function': '#70A2FF',
-  '--prism-keyword': '#F8777C',
+  '--prism-base': tokens.color.syntax.base.dark,
+  '--prism-inline-code': tokens.color.syntax.inlineCode.dark,
+  '--prism-inline-code-background': tokens.color.syntax.codeBackground.dark,
+  '--prism-highlight-background': tokens.color.syntax.highlightBackround.dark,
+  '--prism-highlight-accent': tokens.color.syntax.highlightAccent.dark,
+  '--prism-comment': tokens.color.syntax.comment.dark,
+  '--prism-punctuation': tokens.color.syntax.punctuation.dark,
+  '--prism-property': tokens.color.syntax.property.dark,
+  '--prism-selector': tokens.color.syntax.selector.dark,
+  '--prism-operator': tokens.color.syntax.operator.dark,
+  '--prism-variable': tokens.color.syntax.variable.dark,
+  '--prism-function': tokens.color.syntax.function.dark,
+  '--prism-keyword': tokens.color.syntax.keyword.dark,
 };
 
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowLight: `0 0 1px ${tokens.color.shadow.medium.light}`,
+  dropShadowMedium: `0 1px 2px ${tokens.color.shadow.medium.light}`,
+  dropShadowHeavy: `0 4px 24px ${tokens.color.shadow.low.light}`,
+  dropShadowHeavyTop: `0 -4px 24px ${tokens.color.shadow.low.light}`,
 };
 
 // @TODO(jonasbadalic): are these final?
 const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowLight: `0 0 1px ${tokens.color.shadow.low.dark}`,
+  dropShadowMedium: `0 1px 2px ${tokens.color.shadow.low.dark}`,
+  dropShadowHeavy: `0 4px 24px ${tokens.color.shadow.medium.dark}`,
+  dropShadowHeavyTop: `0 -4px 24px ${tokens.color.shadow.medium.dark}`,
 };
 
 const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
+  deprecatedTokens: ReturnType<typeof generateDeprecatedChonkTokens>,
   colors: typeof lightColors
 ) => ({
   /**
    * Heading text color
    */
-  headingColor: tokens.content.primary,
+  headingColor: deprecatedTokens.content.primary,
 
   /**
    * Primary text color
    */
-  textColor: tokens.content.primary,
+  textColor: deprecatedTokens.content.primary,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
+  subText: deprecatedTokens.content.muted,
 
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: tokens.background.secondary,
+  bodyBackground: deprecatedTokens.background.secondary,
 
   /**
    * Primary background color
    */
-  background: tokens.background.primary,
+  background: deprecatedTokens.background.primary,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: tokens.background.primary,
+  backgroundElevated: deprecatedTokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: tokens.background.secondary,
+  backgroundSecondary: deprecatedTokens.background.secondary,
 
   /**
    * Tertiary background color used as a stronger contrast against primary background
    */
-  backgroundTertiary: tokens.background.tertiary,
+  backgroundTertiary: deprecatedTokens.background.tertiary,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: tokens.background.primary,
+  headerBackground: deprecatedTokens.background.primary,
 
   /**
    * Primary border color
    */
-  border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  border: deprecatedTokens.border.primary,
+  translucentBorder: deprecatedTokens.border.primary,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: deprecatedTokens.border.muted,
+  translucentInnerBorder: deprecatedTokens.border.muted,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: tokens.content.success,
-  successText: tokens.content.success,
+  success: deprecatedTokens.content.success,
+  successText: deprecatedTokens.content.success,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
+  successFocus: deprecatedTokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
+  error: deprecatedTokens.content.danger,
+  errorText: deprecatedTokens.content.danger,
+  errorFocus: deprecatedTokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
+  danger: deprecatedTokens.content.danger,
+  dangerText: deprecatedTokens.content.danger,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
+  dangerFocus: deprecatedTokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
-  warning: tokens.content.warning,
-  warningText: tokens.content.warning,
+  warning: deprecatedTokens.content.warning,
+  warningText: deprecatedTokens.content.warning,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
+  warningFocus: deprecatedTokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -861,24 +852,24 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: deprecatedTokens.component.link.accent.active,
+  activeHover: deprecatedTokens.component.link.accent.hover,
+  activeText: deprecatedTokens.component.link.accent.default,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: deprecatedTokens.border.accent,
+  focusBorder: deprecatedTokens.border.accent,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
+  linkColor: deprecatedTokens.component.link.accent.default,
+  linkHoverColor: deprecatedTokens.component.link.accent.hover,
+  linkUnderline: deprecatedTokens.component.link.accent.default,
+  linkFocus: deprecatedTokens.border.accent,
 
   /**
    * Form placeholder text color
@@ -888,7 +879,7 @@ const generateAliases = (
   /**
    *
    */
-  rowBackground: tokens.background.primary,
+  rowBackground: deprecatedTokens.background.primary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -899,12 +890,12 @@ const generateAliases = (
   /**
    * Color for chart label text
    */
-  chartLabel: tokens.content.muted,
+  chartLabel: deprecatedTokens.content.muted,
 
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: tokens.content.muted,
+  chartOther: deprecatedTokens.content.muted,
 
   /**
    * Hover color of the drag handle used in the content slider diff view.
@@ -924,11 +915,11 @@ const generateAliases = (
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
+    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
     warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -937,11 +928,11 @@ const generateAliases = (
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
+    validActive: modifyColor(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
+    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
     warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
+    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
 
@@ -1074,11 +1065,14 @@ const chonkDarkColorMapping: ColorMapping = {
   red100: darkColors.red100,
 };
 
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
+const lightTokens = generateDeprecatedChonkTokens(lightColors);
+const darkTokens = generateDeprecatedChonkTokens(darkColors);
 
 const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const darkAliases = generateAliases(
+  generateDeprecatedChonkTokens(darkColors),
+  darkColors
+);
 
 interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
@@ -1087,9 +1081,9 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
     neutral: string;
   };
   colors: typeof lightColors & {
-    background: ReturnType<typeof generateChonkTokens>['background'];
-    border: ReturnType<typeof generateChonkTokens>['border'];
-    content: ReturnType<typeof generateChonkTokens>['content'];
+    background: ReturnType<typeof generateDeprecatedChonkTokens>['background'];
+    border: ReturnType<typeof generateDeprecatedChonkTokens>['border'];
+    content: ReturnType<typeof generateDeprecatedChonkTokens>['content'];
   };
   focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
@@ -1134,7 +1128,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   level: generateLevelTheme(chonkLightColorMapping),
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1153,9 +1147,9 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   colors: {
     ...lightColors,
-    content: generateChonkTokens(lightColors).content,
-    background: generateChonkTokens(lightColors).background,
-    border: generateChonkTokens(lightColors).border,
+    content: generateDeprecatedChonkTokens(lightColors).content,
+    background: generateDeprecatedChonkTokens(lightColors).background,
+    border: generateDeprecatedChonkTokens(lightColors).border,
   },
 
   sidebar: {
@@ -1202,7 +1196,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   level: generateLevelTheme(chonkDarkColorMapping),
 
   chart: {
-    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
@@ -1218,9 +1212,9 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
   colors: {
     ...darkColors,
-    content: generateChonkTokens(darkColors).content,
-    background: generateChonkTokens(darkColors).background,
-    border: generateChonkTokens(darkColors).border,
+    content: generateDeprecatedChonkTokens(darkColors).content,
+    background: generateDeprecatedChonkTokens(darkColors).background,
+    border: generateDeprecatedChonkTokens(darkColors).border,
   },
 
   sidebar: {
