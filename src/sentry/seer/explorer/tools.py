@@ -297,7 +297,6 @@ def execute_trace_query(
     trace_id: str,
     dataset: Literal["spans", "logs", "tracemetrics"],
     attributes: list[str],
-    query: str | None = None,
     project_ids: list[int] | None = None,
     stats_period: str | None = None,
     start: str | None = None,
@@ -373,7 +372,6 @@ def execute_trace_query(
 
     # Query EAP EndpointGetTrace and format the response.
     response = get_trace_rpc(request)
-    # print(response)
 
     items: list[dict[str, Any]] = []
     columns_by_name = {col.proto_definition.name: col for col in columns}
@@ -398,7 +396,9 @@ def execute_trace_query(
                         )
             items.append(item_dict)
 
-        # break  # There should only be one item group, for the requested item type.
+        break  # There should only be one item group, for the requested item type.
+
+    # TODO: support filter on results by attribute(s)?
 
     return {"data": items}
 

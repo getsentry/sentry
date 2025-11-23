@@ -1823,23 +1823,30 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(logs)
 
-        # print(self.organization.id, self.project.id)
-
         result = execute_trace_query(
             org_id=self.organization.id,
             trace_id=trace_id,
             dataset="logs",
             attributes=[
-                # "id",
-                # "timestamp_precise",
-                # "project",  # project slug
+                "timestamp_precise",
+                "project",  # project slug
                 "severity",
                 "trace.parent_span_id",
                 "message",
             ],
             stats_period="1d",
-            sampling_mode="HIGHEST_ACCURACY",
         )
+        assert result is not None
         assert len(result["data"]) == 2
 
-        # print(result)
+        assert result["data"][0]["project"] == self.project.slug
+        assert result["data"][0]["severity"] == "ERROR"
+        # TODO: assert result["data"][0]["trace.parent_span_id"] is None
+        assert result["data"][0]["message"] == "User authentication failed"
+        assert result["data"][0]["timestamp_precise"] == self.ten_mins_ago.isoformat()
+
+        assert result["data"][1]["project"] == self.project.slug
+        assert result["data"][1]["severity"] == "INFO"
+        # assert result["data"][1]["trace.parent_span_id"] is None
+        assert result["data"][1]["message"] == "Request processed successfully"
+        assert result["data"][1]["timestamp_precise"] == self.nine_mins_ago.isoformat()
