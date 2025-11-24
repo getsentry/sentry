@@ -230,9 +230,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                       onChange('replaceCaptured', e.target.checked.toString())
                     }
                   />
-                  <label htmlFor="replace-captured">
+                  <ReplaceCapturedLabel htmlFor="replace-captured">
                     {t('Only replace first capture match')}
-                  </label>
+                  </ReplaceCapturedLabel>
                 </Flex>
               </Flex>
             </FieldGroup>
@@ -413,9 +413,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                         onChange('replaceCaptured', e.target.checked.toString())
                       }
                     />
-                    <label htmlFor="replace-captured">
+                    <ReplaceCapturedLabel htmlFor="replace-captured">
                       {t('Only replace first capture match')}
-                    </label>
+                    </ReplaceCapturedLabel>
                   </Flex>
                 </Flex>
               </FieldGroup>
@@ -481,6 +481,11 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 
 const RegularExpression = styled(Input)`
   font-family: ${p => p.theme.text.familyMono};
+`;
+
+const ReplaceCapturedLabel = styled('label')`
+  font-weight: normal;
+  margin-bottom: 0;
 `;
 
 const DatasetRadioField = styled(RadioField)`
