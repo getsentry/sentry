@@ -33,6 +33,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       align="center"
       gap="md"
       columns={`24px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      data-test-id="metric-toolbar"
     >
       <VisualizeLabel
         index={queryIndex}
