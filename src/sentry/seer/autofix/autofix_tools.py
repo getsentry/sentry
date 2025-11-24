@@ -21,7 +21,7 @@ def get_profile_details(
     )
 
     if profile:
-        execution_tree = _convert_profile_to_execution_tree(profile)
+        execution_tree, _ = _convert_profile_to_execution_tree(profile)
         return (
             None
             if not execution_tree

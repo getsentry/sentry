@@ -1410,7 +1410,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
 
         # Mock the profile data fetch and conversion
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "main", "module": "app"}]
+        mock_convert_tree.return_value = ([{"function": "main", "module": "app"}], "1")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1447,7 +1447,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         mock_fetch_profile.return_value = {
             "chunk": {"profile": {"frames": [], "stacks": [], "samples": []}}
         }
-        mock_convert_tree.return_value = [{"function": "worker", "module": "tasks"}]
+        mock_convert_tree.return_value = ([{"function": "worker", "module": "tasks"}], "2")
 
         result = rpc_get_profile_flamegraph(profiler_id_8char, self.organization.id)
 
@@ -1484,7 +1484,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans(spans, is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "test", "module": "test"}]
+        mock_convert_tree.return_value = ([{"function": "test", "module": "test"}], "3")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1521,7 +1521,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans([span], is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "old_function", "module": "old"}]
+        mock_convert_tree.return_value = ([{"function": "old_function", "module": "old"}], "4")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1546,7 +1546,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans([span], is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "handler", "module": "server"}]
+        mock_convert_tree.return_value = ([{"function": "handler", "module": "server"}], "5")
 
         result = rpc_get_profile_flamegraph(full_profile_id, self.organization.id)
 
