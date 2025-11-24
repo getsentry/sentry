@@ -47,6 +47,18 @@ class SymbolicatorPlatform(Enum):
     native = "native"
 
 
+class FrameOrder(Enum):
+    """The order in which stack frames are sent to
+    and returned from Symbolicator."""
+
+    # Caller frames come before callee frames. This is the
+    # order in which stack frames are stored in events.
+    caller_first = "caller_first"
+    # Callee frames come before caller frames. This is the
+    # order in which stack frames are usually displayed.
+    callee_first = "callee_first"
+
+
 @dataclass(frozen=True)
 class SymbolicatorTaskKind:
     """Bundles information about a symbolication task:
@@ -261,8 +273,20 @@ class Symbolicator:
         return process_response(res)
 
     def process_payload(
-        self, platform, stacktraces, modules, signal=None, apply_source_context=True
+        self, platform, stacktraces, modules, frame_order, signal=None, apply_source_context=True
     ):
+        """
+        Process a native event by symbolicating its frames.
+
+        :param platform: The event's platform. This should be either unset or one of "objc", "cocoa", "swift", "native", "c", "csharp".
+        :param stacktraces: The event's stacktraces. Frames must contain an `instruction_address`.
+                            Frames are expected to be ordered according to the frame_order (see below).
+        :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
+                        `type` of either "proguard" or "source".
+        :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
+        :param signal: A numeric crash signal value. This is optional.
+        :param apply_source_context: Whether to add source context to frames.
+        """
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         json = {
@@ -271,6 +295,7 @@ class Symbolicator:
             "options": {
                 "dif_candidates": True,
                 "apply_source_context": apply_source_context,
+                "frame_order": frame_order.value,
             },
             "stacktraces": stacktraces,
             "modules": modules,
@@ -283,7 +308,22 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, platform, stacktraces, modules, release, dist, apply_source_context=True):
+    def process_js(
+        self, platform, stacktraces, modules, release, dist, frame_order, apply_source_context=True
+    ):
+        """
+        Process a JS event by remapping its frames with sourcemaps.
+
+        :param platform: The event's platform. This should be unset, "javascript", or "node".
+        :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+                            Frames are expected to be ordered according to the frame_order (see below).
+        :param modules: Minified source files/sourcemaps Thy must contain a `type` field with value "sourcemap",
+                        a `code_file`, and a `debug_id`.
+        :param release: The event's release.
+        :param dist: The event's dist.
+        :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
+        :param apply_source_context: Whether to add source context to frames.
+        """
         source = get_internal_artifact_lookup_source(self.project)
         scraping_config = get_scraping_config(self.project)
 
@@ -292,7 +332,10 @@ class Symbolicator:
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
-            "options": {"apply_source_context": apply_source_context},
+            "options": {
+                "apply_source_context": apply_source_context,
+                "frame_order": frame_order.value,
+            },
             "scraping": scraping_config,
         }
 
@@ -311,6 +354,7 @@ class Symbolicator:
         modules,
         release_package,
         classes,
+        frame_order,
         apply_source_context=True,
     ):
         """
@@ -320,10 +364,12 @@ class Symbolicator:
         :param platform: The event's platform. This should be either unset or "java".
         :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
         :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+                            Frames are expected to be ordered according to the frame_order (see below).
         :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
                         `type` of either "proguard" or "source".
         :param release_package: The name of the release's package. This is optional.
                                 Used for determining whether frames are in-app.
+        :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
         :param apply_source_context: Whether to add source context to frames.
         """
         source = get_internal_source(self.project)
@@ -335,7 +381,10 @@ class Symbolicator:
             "stacktraces": stacktraces,
             "modules": modules,
             "classes": classes,
-            "options": {"apply_source_context": apply_source_context},
+            "options": {
+                "apply_source_context": apply_source_context,
+                "frame_order": frame_order.value,
+            },
         }
 
         if release_package is not None:

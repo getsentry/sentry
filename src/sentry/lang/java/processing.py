@@ -6,7 +6,7 @@ from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.java.view_hierarchies import ViewHierarchies
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -220,6 +220,9 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release_package=release_package,
         classes=window_class_names + exception_class_names,
+        # We are sending frames in the same order in which
+        # they were stored in the event, so this has to be "caller_first".
+        frame_order=FrameOrder.caller_first,
     )
 
     if not _handle_response_status(data, response):
