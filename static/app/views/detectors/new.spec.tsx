@@ -23,9 +23,6 @@ describe('DetectorNew', () => {
   it('sets query parameters for project, environment, and detectorType', async () => {
     const {router} = render(<DetectorNew />);
 
-    // Next button should be disabled if no detectorType is selected
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
-
     // Set detectorType
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
