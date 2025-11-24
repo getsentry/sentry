@@ -9,6 +9,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType
@@ -524,3 +525,33 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             )
             == {}
         )
+
+
+class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    def test_workflow_engine(self) -> None:
+        occurrence_data = self.build_occurrence_data(
+            type=FeedbackGroup.type_id,
+            event_id=self.event.event_id,
+            project_id=self.project.id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "new_feedback_envelope",
+                "summary": "test",
+            },
+        )
+
+        self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
+        assert group_info is not None
+
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
+        assert self.group.type == FeedbackGroup.type_id
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
+        ) as mock_process_workflow:
+            self.call_post_process_group(self.group.id)
+            mock_process_workflow.assert_called_once()
