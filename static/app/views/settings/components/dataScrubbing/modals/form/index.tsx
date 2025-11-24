@@ -222,21 +222,20 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   onBlur={onValidate('pattern')}
                   id="regex-matches"
                 />
-                {hasCaptureGroups(values.pattern) && (
-                  <Flex gap="md" align="center">
-                    <Checkbox
-                      id="replace-captured"
-                      name="replaceCaptured"
-                      checked={values.replaceCaptured === 'true'}
-                      onChange={e =>
-                        onChange('replaceCaptured', e.target.checked.toString())
-                      }
-                    />
-                    <ReplaceCapturedLabel htmlFor="replace-captured">
-                      {t('Only replace first capture match')}
-                    </ReplaceCapturedLabel>
-                  </Flex>
-                )}
+                <Flex gap="md" align="center">
+                  <Checkbox
+                    id="replace-captured"
+                    name="replaceCaptured"
+                    checked={values.replaceCaptured === 'true'}
+                    disabled={!hasCaptureGroups(values.pattern)}
+                    onChange={e =>
+                      onChange('replaceCaptured', e.target.checked.toString())
+                    }
+                  />
+                  <ReplaceCapturedLabel htmlFor="replace-captured">
+                    {t('Only replace first capture match')}
+                  </ReplaceCapturedLabel>
+                </Flex>
               </Flex>
             </FieldGroup>
           )}
@@ -407,21 +406,20 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                     onBlur={onValidate('pattern')}
                     id="regex-matches"
                   />
-                  {hasCaptureGroups(values.pattern) && (
-                    <Flex gap="md" align="center">
-                      <Checkbox
-                        id="replace-captured"
-                        name="replaceCaptured"
-                        checked={values.replaceCaptured === 'true'}
-                        onChange={e =>
-                          onChange('replaceCaptured', e.target.checked.toString())
-                        }
-                      />
-                      <ReplaceCapturedLabel htmlFor="replace-captured">
-                        {t('Only replace first capture match')}
-                      </ReplaceCapturedLabel>
-                    </Flex>
-                  )}
+                  <Flex gap="md" align="center">
+                    <Checkbox
+                      id="replace-captured"
+                      name="replaceCaptured"
+                      checked={values.replaceCaptured === 'true'}
+                      disabled={!hasCaptureGroups(values.pattern)}
+                      onChange={e =>
+                        onChange('replaceCaptured', e.target.checked.toString())
+                      }
+                    />
+                    <ReplaceCapturedLabel htmlFor="replace-captured">
+                      {t('Only replace first capture match')}
+                    </ReplaceCapturedLabel>
+                  </Flex>
                 </Flex>
               </FieldGroup>
             )}
