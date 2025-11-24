@@ -125,8 +125,8 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
 
         # Should return a fake IGOP response
         assert response.data == {
-            "incidentId": fake_incident_identifier,
-            "incidentIdentifier": fake_incident_identifier,
+            "incidentId": str(fake_incident_identifier),
+            "incidentIdentifier": str(fake_incident_identifier),
             "groupId": str(group_no_igop.id),
             "openPeriodId": str(open_period_no_igop.id),
         }
