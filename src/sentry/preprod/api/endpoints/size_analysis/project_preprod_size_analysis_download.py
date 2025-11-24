@@ -78,7 +78,20 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                 size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                 and size_metrics.analysis_file_id
             ):
-                file_obj = File.objects.get(id=size_metrics.analysis_file_id)
+                try:
+                    file_obj = File.objects.get(id=size_metrics.analysis_file_id)
+                except File.DoesNotExist:
+                    logger.warning(
+                        "Analysis file not found for size metrics",
+                        extra={
+                            "size_metrics_id": size_metrics.id,
+                            "analysis_file_id": size_metrics.analysis_file_id,
+                        },
+                    )
+                    return Response(
+                        {"error": "Analysis file not found"},
+                        status=404,
+                    )
                 with file_obj.getfile() as fp:
                     analysis_data = json.load(fp)
                 break

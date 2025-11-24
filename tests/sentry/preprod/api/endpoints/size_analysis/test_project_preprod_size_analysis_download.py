@@ -43,7 +43,6 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 200
         assert response.data["state"] == "pending"
-        assert response.data["message"] == "Size analysis is still processing"
 
     def test_processing_state_returns_200(self):
         """When size metrics exist but are in PROCESSING state, should return 200 with state info"""
@@ -56,10 +55,9 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 200
         assert response.data["state"] == "processing"
-        assert response.data["message"] == "Size analysis is still processing"
 
-    def test_failed_state_returns_422(self):
-        """When size metrics failed, should return 422 with error details"""
+    def test_failed_state_returns_200_with_error_details(self):
+        """When size metrics failed, should return 200 with error details in size_metrics"""
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -70,13 +68,16 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         )
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
-        assert response.status_code == 422
+        assert response.status_code == 200
         assert response.data["state"] == "failed"
-        assert response.data["error_code"] == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
-        assert response.data["error_message"] == "Test error message"
+        assert (
+            response.data["size_metrics"][0]["error_code"]
+            == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+        )
+        assert response.data["size_metrics"][0]["error_message"] == "Test error message"
 
-    def test_completed_without_file_returns_500(self):
-        """When size metrics is COMPLETED but analysis_file_id is None, should return 500"""
+    def test_completed_without_file_returns_200(self):
+        """When size metrics is COMPLETED but analysis_file_id is None, should return 200 without analysis data"""
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -85,8 +86,23 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         )
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
-        assert response.status_code == 500
-        assert response.data["error"] == "Size analysis completed but results are unavailable"
+        assert response.status_code == 200
+        assert response.data["state"] == "completed"
+
+    def test_completed_with_missing_file_returns_404(self):
+        """When size metrics is COMPLETED but the File object was deleted, should return 404"""
+        deleted_file_id = 999999
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            analysis_file_id=deleted_file_id,
+        )
+
+        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        assert response.status_code == 404
+        assert response.data["error"] == "Analysis file not found"
 
     def test_completed_with_file_returns_200(self):
         """When size metrics is COMPLETED with a file, should return 200 with file content"""

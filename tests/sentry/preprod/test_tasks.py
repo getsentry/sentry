@@ -522,7 +522,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -554,7 +554,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
         status, details = self._run_task_and_verify_status(
-            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null}'
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
         )
 
         assert status == ChunkFileState.OK
@@ -567,7 +567,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
         # Verify existing PreprodArtifactSizeMetrics record was updated (not created new)
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=self.preprod_artifact
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
         assert len(size_metrics) == 1  # Should still be only 1 record
         assert size_metrics[0].id == existing_size_metrics.id  # Should be the same record
@@ -606,6 +607,81 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             preprod_artifact=self.preprod_artifact
         )
         assert len(size_metrics) == 0
+
+    def test_assemble_preprod_artifact_size_analysis_invalid_json_marks_pending_as_failed(
+        self,
+    ) -> None:
+        """Test that invalid JSON marks existing PENDING metrics as FAILED"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Invalid JSON should cause parsing to fail before any metrics are processed
+        status, details = self._run_task_and_verify_status(b"invalid json")
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify the existing PENDING metric was updated to FAILED
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert size_metrics[0].error_code == PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR
+
+    def test_assemble_preprod_artifact_size_analysis_empty_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that empty app_components falls back to top-level sizes for backwards compatibility"""
+        # Create an existing size metrics record in PENDING state
+        existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        # Empty app_components - should fall back to top-level download_size/install_size
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": []}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify the existing PENDING metric was updated to COMPLETED with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].id == existing_size_metrics.id
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
+
+    def test_assemble_preprod_artifact_size_analysis_null_app_components_uses_top_level_sizes(
+        self,
+    ) -> None:
+        """Test that null app_components falls back to top-level sizes for backwards compatibility"""
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": "1.0", "app_components": null}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # Verify a COMPLETED metric was created with top-level sizes
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert len(size_metrics) == 1
+        assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        assert size_metrics[0].max_install_size == 2000
+        assert size_metrics[0].max_download_size == 1000
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):

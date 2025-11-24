@@ -399,32 +399,53 @@ def _assemble_preprod_artifact_size_analysis(
 
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             app_components = size_analysis_results.app_components or []
-            for app_component in app_components:
-                # MAIN_ARTIFACT uses NULL identifier for backwards compatibility
-                # Other types use identifier to differentiate multiple components
-                identifier = (
-                    None
-                    if app_component.component_type
-                    == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-                    else app_component.app_id
-                )
 
+            if not app_components:
+                # No components in results - fall back to top-level sizes for backwards compatibility
+                # (e.g., Android sizes may not use app_components yet)
                 size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
                     preprod_artifact=preprod_artifact,
-                    metrics_artifact_type=app_component.component_type,
-                    identifier=identifier,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    identifier=None,
                     defaults={
                         "analysis_file_id": assemble_result.bundle.id,
-                        "min_install_size": None,  # No min value at this time
-                        "max_install_size": app_component.install_size,
-                        "min_download_size": None,  # No min value at this time
-                        "max_download_size": app_component.download_size,
+                        "min_install_size": None,
+                        "max_install_size": size_analysis_results.install_size,
+                        "min_download_size": None,
+                        "max_download_size": size_analysis_results.download_size,
                         "processing_version": size_analysis_results.analysis_version,
                         "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                     },
                 )
-                was_created = created or was_created
+                was_created = created
                 size_metrics_updated.append(size_metrics)
+            else:
+                for app_component in app_components:
+                    # MAIN_ARTIFACT uses NULL identifier for backwards compatibility
+                    # Other types use identifier to differentiate multiple components
+                    identifier = (
+                        None
+                        if app_component.component_type
+                        == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                        else app_component.app_id
+                    )
+
+                    size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=app_component.component_type,
+                        identifier=identifier,
+                        defaults={
+                            "analysis_file_id": assemble_result.bundle.id,
+                            "min_install_size": None,  # No min value at this time
+                            "max_install_size": app_component.install_size,
+                            "min_download_size": None,  # No min value at this time
+                            "max_download_size": app_component.download_size,
+                            "processing_version": size_analysis_results.analysis_version,
+                            "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                        },
+                    )
+                    was_created = created or was_created
+                    size_metrics_updated.append(size_metrics)
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -461,11 +482,26 @@ def _assemble_preprod_artifact_size_analysis(
 
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             try:
-                for size_metrics in size_metrics_updated:
+                if size_metrics_updated:
+                    # Update metrics that were already created/updated
+                    for size_metrics in size_metrics_updated:
+                        PreprodArtifactSizeMetrics.objects.update_or_create(
+                            preprod_artifact=preprod_artifact,
+                            identifier=size_metrics.identifier,
+                            metrics_artifact_type=size_metrics.metrics_artifact_type,
+                            defaults={
+                                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                                "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                                "error_message": str(e),
+                            },
+                        )
+                else:
+                    # No metrics were processed yet - update MAIN_ARTIFACT to FAILED
+                    # to avoid leaving any existing PENDING metrics stuck
                     PreprodArtifactSizeMetrics.objects.update_or_create(
                         preprod_artifact=preprod_artifact,
-                        identifier=size_metrics.identifier,
-                        metrics_artifact_type=size_metrics.metrics_artifact_type,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        identifier=None,
                         defaults={
                             "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
                             "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
