@@ -946,10 +946,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
-    def test_hits_capped_when_overestimated(self) -> None:
+    @patch("sentry.search.snuba.executors.PostgresSnubaQueryExecutor.calculate_hits")
+    def test_hits_capped_when_overestimated(self, mock_calculate_hits: MagicMock) -> None:
         """
         Test that when sampling overestimates the hit count and all results fit on one page,
         the X-Hits header is capped to the actual number of results returned.
+
+        This prevents UI bugs like showing "(6-11) of 11" when there are only 6 results.
         """
         self.login_as(user=self.user)
 
@@ -965,13 +968,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             groups.append(event.group)
 
+        # Mock calculate_hits to return an overestimate (simulating sampling inaccuracy)
+        # This would happen when Snuba thinks there are 11 groups but Postgres only has 6
+        mock_calculate_hits.return_value = 11
+
         # Make a request that returns all 6 groups on one page
         response = self.get_success_response(limit=25, query="is:unresolved")
 
         # Should return all 6 groups
         assert len(response.data) == 6
 
-        # X-Hits should be 6, not some overestimated value
+        # X-Hits should be corrected to 6, not the overestimated 11
         assert response["X-Hits"] == "6"
 
         # Verify no next page exists (we have all results)
