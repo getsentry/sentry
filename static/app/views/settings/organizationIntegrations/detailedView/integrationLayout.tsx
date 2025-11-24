@@ -166,7 +166,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <IconCloseCircle isCircled />
+    <IconCloseCircle />
     <span>{reason}</span>
   </div>
 ))`

@@ -27,7 +27,7 @@ export function AddCredentialsButton({project, origin}: AddCredentialsButtonProp
         size="sm"
         data-test-id="create-new-credentials"
         disabled={!hasWriteAccess}
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
         onClick={() => {
           openAddTempestCredentialsModal({organization, project, origin});
           trackAnalytics('tempest.credentials.add_modal_opened', {

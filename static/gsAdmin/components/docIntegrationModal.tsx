@@ -125,7 +125,7 @@ function DocIntegrationModal(props: Props) {
           }));
           setLastResourceId(lastResourceId + 1);
         }}
-        icon={<IconAdd size="xs" isCircled />}
+        icon={<IconAdd size="xs" />}
         key="add-button"
       >
         Add a resource link (e.g. docs, source code, feedback forms)

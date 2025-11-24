@@ -168,11 +168,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             </Fragment>
           ) : (
             <AuthStatus>
-              {has2fa ? (
-                <IconCheckmark isCircled color="success" />
-              ) : (
-                <IconFlag color="error" />
-              )}
+              {has2fa ? <IconCheckmark color="success" /> : <IconFlag color="error" />}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}
@@ -190,7 +186,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               >
                 <Button
                   data-test-id="remove"
-                  icon={<IconSubtract isCircled />}
+                  icon={<IconSubtract />}
                   size="sm"
                   busy={this.state.busy}
                 >
@@ -215,7 +211,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         ? t('You cannot modify this invite.')
                         : t('You do not have access to remove members')
                 }
-                icon={<IconSubtract isCircled />}
+                icon={<IconSubtract />}
               >
                 {t('Remove')}
               </Button>

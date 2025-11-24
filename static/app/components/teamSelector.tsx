@@ -298,7 +298,7 @@ export function TeamSelector(props: Props) {
               borderless
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               aria-label={t('Add %s to project', `#${team.slug}`)}
             />
           </Tooltip>
@@ -315,7 +315,7 @@ export function TeamSelector(props: Props) {
     const createOption = {
       value: CREATE_TEAM_VALUE,
       label: t('Create team'),
-      leadingItems: <IconAdd isCircled />,
+      leadingItems: <IconAdd />,
       searchKey: 'create',
       actor: null,
       disabled: !canCreateTeam,

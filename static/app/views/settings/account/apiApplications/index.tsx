@@ -80,7 +80,7 @@ export default function ApiApplications() {
             priority="primary"
             size="sm"
             onClick={handleCreateApplication}
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
           >
             {t('Create New Application')}
           </Button>

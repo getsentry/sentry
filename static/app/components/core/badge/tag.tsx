@@ -63,7 +63,7 @@ export function Tag({
           priority="link"
           borderless
           aria-label={t('Dismiss')}
-          icon={<IconClose isCircled size="xs" />}
+          icon={<IconClose size="xs" />}
         />
       )}
     </StyledTag>

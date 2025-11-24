@@ -410,7 +410,7 @@ export function ProjectPageFilter({
             size="xs"
             aria-label={t('Add Project')}
             to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
           >
             {t('Project')}
           </LinkButton>
