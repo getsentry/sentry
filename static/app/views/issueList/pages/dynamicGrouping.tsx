@@ -16,7 +16,7 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {IconChat, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -158,13 +158,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 
   if (isPending) {
-    return (
-      <Flex direction="column" gap="sm">
-        {[0, 1, 2].map(i => (
-          <Placeholder key={i} height="70px" />
-        ))}
-      </Flex>
-    );
+    return <LoadingIndicator mini />;
   }
 
   if (!groups || groups.length === 0) {
@@ -374,11 +368,7 @@ function DynamicGrouping() {
       </PageHeader>
 
       {isPending ? (
-        <Flex direction="column" gap="md" marginTop="lg">
-          {[0, 1, 2].map(i => (
-            <Placeholder key={i} height="200px" />
-          ))}
-        </Flex>
+        <LoadingIndicator />
       ) : (
         <Fragment>
           <Flex marginBottom="lg">
