@@ -196,7 +196,7 @@ describe('MetricsTabContent', () => {
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(2);
-    // selects the first metric available - sorted alphanumerically
+    // copies the last metric as a starting point
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
 
@@ -213,8 +213,8 @@ describe('MetricsTabContent', () => {
 
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
-    // selects the first metric available - sorted alphanumerically
-    expect(within(toolbars[2]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    // copies the last metric as a starting point
+    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 });
