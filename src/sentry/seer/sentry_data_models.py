@@ -37,7 +37,7 @@ class TraceData(BaseModel):
     project_id: int
     transaction_name: str
     total_spans: int
-    spans: list[Span] | list[EvidenceSpan]
+    spans: list[EvidenceSpan] | list[Span]
 
 
 class EAPTrace(BaseModel):
