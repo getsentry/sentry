@@ -97,7 +97,7 @@ def get_attribute_values_with_substring(
     organization = Organization.objects.get(id=org_id)
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
-    values: dict[str, list[str]] = {}
+    values: dict[str, set[str]] = {}
 
     for field_with_substring in fields_with_substrings:
         field = field_with_substring["field"]
@@ -122,7 +122,8 @@ def get_attribute_values_with_substring(
 
         # Extract "value" from each item, filter out None/empty, and respect limit
         field_values_list = [item["value"] for item in resp.data if item.get("value")]
-        # Truncate to limit, convert to set for deduplication, then to sorted list for JSON serialization
-        values[field] = sorted(set(field_values_list[:limit]))
+        # Merge with existing values if field already exists (multiple substrings for same field)
+        values.setdefault(field, set()).update(field_values_list[:limit])
 
-    return {"values": values}
+    # Convert sets to sorted lists for JSON serialization
+    return {"values": {field: sorted(field_values) for field, field_values in values.items()}}
