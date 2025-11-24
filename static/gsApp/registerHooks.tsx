@@ -11,7 +11,6 @@ import DashboardBanner from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
-import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
 import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
 import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
@@ -20,6 +19,7 @@ import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
@@ -203,7 +203,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     ContinuousProfilingBetaSDKAlertBanner,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
-  'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,
+  'component:explore-date-range-query-limit-footer': () =>
+    ExploreDateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */
