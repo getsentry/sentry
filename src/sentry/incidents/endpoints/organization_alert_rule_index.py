@@ -605,9 +605,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(
-                organization=organization
-            ).count()
+            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            # filter out alert rules without any projects
+            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 raise ValidationError(
