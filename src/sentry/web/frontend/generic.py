@@ -7,6 +7,8 @@ from django.contrib.staticfiles import finders
 from django.http import Http404, HttpResponseNotFound
 from django.views import static
 
+from sentry.web.frontend.base import all_silo_view
+
 FOREVER_CACHE = "max-age=315360000"
 
 # See
@@ -45,6 +47,7 @@ def resolve(path):
     return os.path.split(absolute_path)
 
 
+@all_silo_view
 def frontend_app_static_media(request, **kwargs):
     """
     Serve static files that should not have any versioned paths/filenames.
@@ -64,6 +67,7 @@ def frontend_app_static_media(request, **kwargs):
     return response
 
 
+@all_silo_view
 def static_media(request, **kwargs):
     """
     Serve static files below a given point in the directory structure.
