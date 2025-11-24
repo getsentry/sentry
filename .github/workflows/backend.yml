@@ -65,50 +65,27 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: backend-ci
-
       - name: Install sysstat (for sar)
         run: |
           sudo apt-get update
           sudo apt-get install -y sysstat
-          # Enable sysstat logging (required for sar to run)
-          sudo sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
-          sudo service sysstat restart
 
       - name: Start SAR system CPU monitor
         run: |
           mkdir -p perf_logs
 
           sar -u 1 > perf_logs/system_cpu.txt &
-          echo $! > perf_logs/sar_cpu.pid
+          SAR_CPU_PID=$!
 
-          sar -r 1 > perf_logs/memory.txt &
-          echo $! > perf_logs/sar_mem.pid
-          # assuming no swap
+          sleep 1
 
-          TOTAL_TEST_GROUPS=50 TEST_GROUP=0 python3 -b -m pytest \
-            tests \
-            --ignore tests/acceptance \
-            --ignore tests/apidocs \
-            --ignore tests/js \
-            --ignore tests/tools
+          kill $SAR_CPU_PID
+          wait $SAR_CPU_PID
 
-          kill $(cat perf_logs/sar_cpu.pid)
-          kill $(cat perf_logs/sar_mem.pid)
-
-      - name: Convert SAR log to JSON + CSV (optional)
-        run: |
           sadf -j perf_logs/system_cpu.txt -- -u > perf_logs/system_cpu.json
-          sadf -d perf_logs/system_cpu.txt -- -u > perf_logs/system_cpu.csv
 
       - name: Upload CPU logs
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-usage-logs
+          name: perf-logs
           path: perf_logs/
