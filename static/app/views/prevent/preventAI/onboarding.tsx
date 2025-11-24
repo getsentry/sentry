@@ -5,7 +5,6 @@ import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
 
-import {Alert} from 'sentry/components/core/alert';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -13,7 +12,6 @@ import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface OnboardingStepProps {
@@ -46,7 +44,7 @@ export function FeatureOverview() {
         {t('How to use AI Code Review')}
       </Text>
       <Text variant="muted" size="md">
-        {t('AI Code Review helps you ship better code with three features:')}
+        {t('AI Code Review helps you ship better code with new features:')}
       </Text>
       <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
         <li>
@@ -77,17 +75,6 @@ export function FeatureOverview() {
             )}
           </Text>
         </li>
-        <li>
-          <Text variant="muted" size="sm">
-            {tct('It generates unit tests for your PR when you prompt [sentryCommand].', {
-              sentryCommand: (
-                <Text variant="accent" size="sm" bold>
-                  @sentry generate-test
-                </Text>
-              ),
-            })}
-          </Text>
-        </li>
       </Container>
       <Text variant="muted" size="xs">
         {tct(
@@ -116,21 +103,8 @@ export function FeatureOverview() {
 export default function PreventAIOnboarding() {
   const organization = useOrganization();
   const theme = useTheme();
-  const regionData = getRegionDataFromOrganization(organization);
-  const isUSOrg = regionData?.name === 'us';
   return (
     <Flex direction="column" gap="2xl">
-      {!isUSOrg && (
-        <Container maxWidth="1000px">
-          <Alert.Container>
-            <Alert type="info">
-              {t(
-                'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
-              )}
-            </Alert>
-          </Alert.Container>
-        </Container>
-      )}
       <Flex
         direction="row"
         gap="md"
@@ -143,7 +117,7 @@ export default function PreventAIOnboarding() {
         <StyledImg src={preventHero} alt="AI Code Review Hero" />
         <Flex direction="column" gap="md" maxWidth="500px" padding="2xl 0">
           <Heading as="h1" style={{maxWidth: '400px'}}>
-            {t('Ship Code That Breaks Less With Code Reviews And Tests')}
+            {t('Ship Code That Breaks Less With Code Reviews')}
           </Heading>
           <Text variant="primary" size="md">
             {t('AI Code Review is an AI agent that automates tasks in your PR:')}
@@ -153,9 +127,6 @@ export default function PreventAIOnboarding() {
               {t(
                 'It reviews your pull requests, predicting errors and suggesting code fixes.'
               )}
-            </Container>
-            <Container as="li">
-              {t('It generates unit tests for untested code in your PR.')}
             </Container>
           </Container>
         </Flex>

@@ -327,11 +327,31 @@ interface LaunchCodingAgentParams {
   triggerSource?: 'root_cause' | 'solution';
 }
 
+interface LaunchCodingAgentResponse {
+  failed_count: number;
+  launched_count: number;
+  success: boolean;
+  failures?: Array<{
+    error_message: string;
+    repo_name: string;
+  }>;
+}
+
+function getErrorMessage(error: RequestError, agentName: string): string {
+  const detail = error.responseJSON?.detail;
+
+  if (detail && typeof detail === 'string') {
+    return detail;
+  }
+
+  return t('Failed to launch %s', agentName);
+}
+
 export function useLaunchCodingAgent(groupId: string, runId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<LaunchCodingAgentResponse, RequestError, LaunchCodingAgentParams>({
     mutationFn: (params: LaunchCodingAgentParams) => {
       return fetchMutation({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
@@ -343,8 +363,27 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         },
       });
     },
-    onSuccess: (_, params) => {
-      addSuccessMessage(t('%s launched successfully', params.agentName));
+    onSuccess: (data, params) => {
+      if (data.failures && data.failures.length > 0) {
+        data.failures.forEach(failure => {
+          addErrorMessage(t('%s: %s', failure.repo_name, failure.error_message));
+        });
+
+        if (data.launched_count > 0) {
+          const successRepoText =
+            data.launched_count === 1
+              ? t('%s launched for 1 repository', params.agentName)
+              : t(
+                  '%s launched for %s repositories',
+                  params.agentName,
+                  data.launched_count
+                );
+          addSuccessMessage(successRepoText);
+        }
+      } else {
+        addSuccessMessage(t('%s launched successfully', params.agentName));
+      }
+
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
       });
@@ -352,8 +391,9 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         queryKey: makeAutofixQueryKey(organization.slug, groupId, true),
       });
     },
-    onError: (_, params) => {
-      addErrorMessage(t('Failed to launch %s', params.agentName));
+    onError: (error, params) => {
+      const message = getErrorMessage(error, params.agentName);
+      addErrorMessage(message);
     },
   });
 }

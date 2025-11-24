@@ -38,14 +38,7 @@ class GithubRequestParser(BaseRequestParser):
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
     ) -> bool:
-        if options.get("github.webhook-type-routing.enabled"):
-            return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) == GithubWebhookType.INSTALLATION
-
-        return bool(
-            parsed_event.get("installation")
-            and not parsed_event.get("issue")
-            and parsed_event.get("action") in {"created", "deleted"}
-        )
+        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) == GithubWebhookType.INSTALLATION
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
@@ -100,18 +93,13 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        logger.info(
-            "overwatch.debug.forward_if_applicable.begin",
-            extra={
-                "headers_keys": list(self.request.headers.keys()),
-                "integration_id": integration.id,
-            },
+        response = self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
         )
+
         # The overwatch forwarder implements its own region-based checks
         OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
             event=event, headers=self.request.headers
         )
 
-        return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
-        )
+        return response

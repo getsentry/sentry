@@ -348,12 +348,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "deletions.group-hash-metadata.use-old-update-method",
-    default=False,  # Default using new update method
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 register(
@@ -677,6 +671,8 @@ register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_M
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to overwatch
 register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# enable verbose debug logging for overwatch webhook forwarding
+register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -846,7 +842,6 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1162,6 +1157,14 @@ register(
     type=Bool,
     default=True,
     flags=FLAG_MODIFIABLE_BOOL,
+)
+
+# Maximum token count for stacktraces sent to Seer for similarity analysis
+register(
+    "seer.similarity.max_token_count",
+    type=Int,
+    default=7000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -1551,16 +1554,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# default brownout crontab for api deprecations
+# Default brownout crontab for api deprecations
+# Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-cron",
     default="0 12 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+# Brownout duration fallback in seconds.
+# Used when a deprecation doesn't have a custom key defined.
 register(
-    "api.deprecation.brownout-duration-seconds",
+    "api.deprecation.brownout-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3175,6 +3180,13 @@ register(
 )
 
 register(
+    "workflow_engine.ensure_detector_association",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3368,15 +3380,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
@@ -3516,6 +3519,8 @@ register(
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
+register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of events that use the processing store (the transient event payload) for attachment metadata (independant from payloads).
 register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # This forces symbolication to use the "stored attachment" codepath,
@@ -3533,13 +3538,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -3579,14 +3577,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3612,12 +3602,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The allowlist of organization IDs for which deletion from EAP is enabled.
+# Controls whether deletion from EAP is enabled.
 register(
-    "eventstream.eap.deletion_enabled.organization_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "eventstream.eap.deletion-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
@@ -3645,6 +3635,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
@@ -3661,18 +3659,17 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables or disables Github webhook routing based on the type of webhook
-register(
-    "github.webhook-type-routing.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.scanner_no_consent.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -65,7 +65,10 @@ from sentry.grouping.ingest.hashing import (
     run_primary_grouping,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.grouping.ingest.seer import (
+    maybe_check_seer_for_matching_grouphash,
+    maybe_send_seer_for_new_model_training,
+)
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_group_creation_load_shed,
@@ -143,7 +146,10 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -1287,6 +1293,7 @@ def assign_event_to_group(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
+        maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
@@ -1298,6 +1305,9 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
+            maybe_send_seer_for_new_model_training(
+                event, secondary.existing_grouphash, secondary.variants
+            )
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
@@ -1426,6 +1436,9 @@ def handle_existing_grouphash(
         incoming_group_values=_get_group_processing_kwargs(job),
         release=job["release"],
     )
+
+    # Ensure the group has a DetectorGroup association for existing groups
+    ensure_association_with_detector(group)
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
@@ -2370,7 +2383,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.stored_id or attachment.data
+        attachment.stored_id or attachment.load_data(project)
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,

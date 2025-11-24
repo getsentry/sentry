@@ -181,7 +181,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
   return undefined;
 }
 
-function getPredefinedValues({
+export function getPredefinedValues({
   fieldDefinition,
   key,
   filterValue,
@@ -247,7 +247,7 @@ function getPredefinedValues({
   ];
 }
 
-function tokenSupportsMultipleValues(
+export function tokenSupportsMultipleValues(
   token: TokenResult<Token.FILTER>,
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null

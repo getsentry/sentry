@@ -53,7 +53,6 @@ describe('DetectorsList', () => {
           config: {
             detectionType: 'percent',
             comparisonDelta: 10,
-            thresholdPeriod: 10,
           },
           conditionGroup: {
             id: '1',
@@ -460,6 +459,26 @@ describe('DetectorsList', () => {
           })
         );
       });
+    });
+
+    it('can not delete system-created detectors', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [
+          ErrorDetectorFixture({
+            name: 'System Created Detector',
+          }),
+        ],
+      });
+      render(<AllMonitors />, {organization});
+      await screen.findByText('System Created Detector');
+
+      const rows = screen.getAllByTestId('detector-list-row');
+      const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
+      await userEvent.click(firstRowCheckbox);
+
+      // Verify that delete button is disabled
+      expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
     });
 
     it('shows option to select all query results when page is selected', async () => {

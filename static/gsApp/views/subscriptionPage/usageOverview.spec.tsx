@@ -6,7 +6,7 @@ import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -48,6 +48,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
@@ -73,6 +74,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
@@ -91,6 +93,54 @@ describe('UsageOverview', () => {
     expect(screen.getAllByRole('row', {name: /^View .+ usage$/i}).length).toBeGreaterThan(
       0
     );
+  });
+
+  it('renders some spend columns for non-self-serve with PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: true,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not render spend columns for non-self-serve without PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: false,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders table based on subscription state', () => {
@@ -176,8 +226,8 @@ describe('UsageOverview', () => {
   });
 
   it('renders table based on add-on state', () => {
-    organization.features.push('prevent-billing');
-    const subWithSeer = SubscriptionWithSeerFixture({organization});
+    organization.features.push('seer-user-billing');
+    const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, subWithSeer);
     render(
       <UsageOverview
@@ -186,18 +236,14 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
-    expect(screen.getByRole('cell', {name: 'Seer'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Collapse Seer details'})).toBeInTheDocument();
+    // Org has Seer user flag but did not buy Seer add on, only legacy add-on
+    expect(screen.getAllByRole('cell', {name: 'Seer'})).toHaveLength(1);
+    expect(screen.getAllByRole('row', {name: 'Collapse Seer details'})).toHaveLength(1);
     expect(screen.getByRole('cell', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Issue Scans'})).toBeInTheDocument();
 
-    // Org has Prevent flag but did not buy Prevent add on
-    expect(screen.getByRole('cell', {name: 'Prevent'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('row', {name: 'Collapse Prevent details'})
-    ).not.toBeInTheDocument();
     // We test it this way to ensure we don't show the cell with the proper display name or the raw DataCategory
-    expect(screen.queryByRole('cell', {name: /Prevent*Users/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: /Seer*Users/})).not.toBeInTheDocument();
     expect(screen.queryByRole('cell', {name: /Prevent*Reviews/})).not.toBeInTheDocument();
   });
 
@@ -272,7 +318,7 @@ describe('UsageOverview', () => {
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
     });
-    const subWithSeer = SubscriptionWithSeerFixture({organization});
+    const subWithSeer = SubscriptionWithLegacySeerFixture({organization});
     const mockLocation = LocationFixture();
     SubscriptionStore.set(organization.slug, subWithSeer);
 

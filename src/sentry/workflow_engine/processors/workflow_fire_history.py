@@ -37,6 +37,9 @@ def create_workflow_fire_histories(
 
     If we're reporting a fire due to delayed processing, is_delayed should be True.
     """
+    # Only write canonical fire history records
+    if not is_single_processing:
+        return []
     # Create WorkflowFireHistory objects for workflows we fire actions for
     workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(
@@ -67,7 +70,6 @@ def create_workflow_fire_histories(
             workflow_id=workflow_id,
             group=event_data.group,
             event_id=event_id,
-            is_single_written=is_single_processing,
         )
         for workflow_id in workflow_ids
     ]

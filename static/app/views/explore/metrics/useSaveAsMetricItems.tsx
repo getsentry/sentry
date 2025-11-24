@@ -7,7 +7,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,12 +30,15 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
 
-  const saveAsQuery = useMemo(() => {
+  const saveAsItems = useMemo(() => {
     if (!canUseMetricsSavedQueriesUI(organization)) {
-      return null;
+      return [];
     }
+
+    const items = [];
+
     if (defined(id) && savedQuery?.isPrebuilt === false) {
-      return {
+      items.push({
         key: 'update-query',
         textValue: t('Existing Query'),
         label: <span>{t('Existing Query')}</span>,
@@ -55,10 +57,10 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
             Sentry.captureException(error);
           }
         },
-      };
+      });
     }
 
-    return {
+    items.push({
       key: 'save-query',
       label: <span>{t('A New Query')}</span>,
       textValue: t('A New Query'),
@@ -76,7 +78,9 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
           traceItemDataset: TraceItemDataset.TRACEMETRICS,
         });
       },
-    };
+    });
+
+    return items;
   }, [id, savedQuery?.isPrebuilt, updateQuery, saveQuery, organization]);
 
   // TODO: Implement alert functionality when organizations:tracemetrics-alerts flag is enabled
@@ -84,6 +88,6 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
   // TODO: Implement dashboard functionality when organizations:tracemetrics-dashboards flag is enabled
 
   return useMemo(() => {
-    return [saveAsQuery].filter(Boolean) as MenuItemProps[];
-  }, [saveAsQuery]);
+    return saveAsItems;
+  }, [saveAsItems]);
 }

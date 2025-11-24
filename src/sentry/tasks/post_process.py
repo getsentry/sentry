@@ -659,32 +659,6 @@ def post_process_group(
             tags=metric_tags,
         )
 
-        if not is_reprocessed:
-            received_at = event.data.get("received")
-            saved_at = event.data.get("nodestore_insert")
-            post_processed_at = time()
-
-            if saved_at:
-                metrics.timing(
-                    "events.saved_to_post_processed",
-                    post_processed_at - saved_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-            else:
-                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
-
-            if received_at:
-                metrics.timing(
-                    "events.time-to-post-process",
-                    post_processed_at - received_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-            else:
-                metrics.incr("events.missing_received", tags=metric_tags)
-
 
 def run_post_process_job(job: PostProcessJob) -> None:
     group_event = job["event"]
@@ -1621,70 +1595,105 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
-    from sentry.tasks.autofix import start_seer_automation
+    from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
+    from sentry.seer.autofix.utils import (
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+    )
+    from sentry.tasks.autofix import (
+        generate_issue_summary_only,
+        generate_summary_and_run_automation,
+        run_automation_only_task,
+    )
 
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
-    if group.seer_fixability_score is not None:
-        return
+    # Default behaviour
+    if not features.has("projects:triage-signals-v0", group.project):
+        # Only run on issues with no existing scan
+        if group.seer_fixability_score is not None:
+            return
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
-        GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
-        GroupCategory.MOBILE,
-        GroupCategory.FRONTEND,
-        GroupCategory.DB_QUERY,
-        GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
-        return
+        if not is_issue_eligible_for_seer_automation(group):
+            return
 
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return
+        # Don't run if there's already a task in progress for this issue
+        lock_key, lock_name = get_issue_summary_lock_key(group.id)
+        lock = locks.get(lock_key, duration=1, name=lock_name)
+        if lock.locked():
+            return
 
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return
+        if is_seer_scanner_rate_limited(group.project, group.organization):
+            return
 
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return
+        generate_summary_and_run_automation.delay(group.id)
+    else:
+        # Triage signals V0 behaviour
+        # If event count < 10, only generate summary (no automation)
+        if group.times_seen_with_pending < 10:
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                logger.info("Triage signals V0: %s: summary already exists, skipping", group.id)
+                return
 
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization)
-    if not seer_enabled:
-        return
+            # Atomically set cache to prevent duplicate summary generation
+            summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
+            if not cache.add(summary_dispatch_cache_key, True, timeout=30):
+                return  # Another process already dispatched summary generation
 
-    from sentry import quotas
-    from sentry.constants import DataCategory
+            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
+            logger.info("Triage signals V0: %s: generating summary", group.id)
+            generate_issue_summary_only.delay(group.id)
+        else:
+            # Event count >= 10: run automation
+            # Long-term check to avoid re-running
+            if (
+                group.seer_autofix_last_triggered is not None
+                or group.seer_fixability_score
+                is not None  # TODO: Remove this once fixability is generated with generate_issue_summary_only
+                or group.project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.OFF
+            ):
+                return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
 
-    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
+            # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
+            automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
+            if not cache.add(automation_dispatch_cache_key, True, timeout=300):
+                return  # Another process already dispatched automation
 
-    if is_seer_scanner_rate_limited(project, group.organization):
-        return
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                # Summary exists, run automation directly
+                logger.info("Triage signals V0: %s: summary exists, running automation", group.id)
+                run_automation_only_task.delay(group.id)
+            else:
+                # Rate limit check before generating summary
+                if is_seer_scanner_rate_limited(group.project, group.organization):
+                    return
 
-    start_seer_automation.delay(group.id)
+                # No summary yet, generate summary + run automation in one go
+                logger.info(
+                    "Triage signals V0: %s: no summary, generating summary + running automation",
+                    group.id,
+                )
+                generate_summary_and_run_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

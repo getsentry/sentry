@@ -1,5 +1,6 @@
-import type {RefObject} from 'react';
+import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -26,10 +27,13 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  highlightedRowIndex?: number;
+  query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
 };
 
 export default function ReplayTable({
+  query,
   columns,
   error,
   isPending,
@@ -37,6 +41,7 @@ export default function ReplayTable({
   ref,
   replays,
   showDropdownFilters,
+  highlightedRowIndex = -1,
   sort,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
@@ -102,14 +107,20 @@ export default function ReplayTable({
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
       {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row
+        <RowWithScrollIntoView
+          scrollIntoView={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
-          {hasInteractiveColumn ? <InteractionStateLayer /> : null}
+          {hasInteractiveColumn ? (
+            <InteractionStateLayer
+              isHovered={highlightedRowIndex === rowIndex ? true : undefined}
+            />
+          ) : null}
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
+                query={query}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}
@@ -117,14 +128,36 @@ export default function ReplayTable({
               />
             </RowCell>
           ))}
-        </SimpleTable.Row>
+        </RowWithScrollIntoView>
       ))}
     </StyledSimpleTable>
   );
 }
 
+function RowWithScrollIntoView({
+  children,
+  scrollIntoView,
+  ...props
+}: {
+  children: React.ReactNode;
+  scrollIntoView: boolean;
+} & React.ComponentProps<typeof SimpleTable.Row>) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollIntoView) {
+      rowRef.current?.scrollIntoView();
+    }
+  }, [scrollIntoView]);
+  return (
+    <SimpleTable.Row {...props} ref={rowRef}>
+      {children}
+    </SimpleTable.Row>
+  );
+}
+
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
+  grid-auto-rows: min-content;
 
   [data-clickable='true'] {
     cursor: pointer;

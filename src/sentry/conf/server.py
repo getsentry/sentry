@@ -20,6 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
+from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -794,17 +795,13 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
-# Fernet keys for database encryption.
-# First key in the dict is used as a primary key, and if
-# encryption method options is "fernet", the first key will be
-# used to decrypt the data.
-#
-# Other keys are used only for data decryption. This structure
-# is used to allow easier key rotation when "fernet" is used
-# as an encryption method.
-DATABASE_ENCRYPTION_FERNET_KEYS = {
-    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+# Settings for encrypted database fields.
+DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
+    "method": "plaintext",
+    "fernet_primary_key_id": os.getenv("DATABASE_ENCRYPTION_FERNET_PRIMARY_KEY_ID"),
+    "fernet_keys_location": os.getenv("DATABASE_ENCRYPTION_FERNET_KEYS_LOCATION"),
 }
+
 
 #######################
 # Taskworker settings #
@@ -845,7 +842,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
-    "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -897,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.delete_pending_groups",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -1009,6 +1006,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "reattempt-deletions": {
         "task": "deletions:sentry.deletions.tasks.reattempt_deletions",
         "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+    },
+    "delete-pending-groups": {
+        "task": "deletions:sentry.tasks.delete_pending_groups",
+        # Runs every 2 hours during 9am-5pm Eastern Time (EST: UTC-5)
+        # 9am, 11am, 1pm, 3pm, 5pm EST = 14:00, 16:00, 18:00, 20:00, 22:00 UTC
+        "schedule": task_crontab("0", "14,16,18,20,22", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
@@ -1789,6 +1792,15 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "email": {"email"},
 }
 
+# Specialized scopes that can be granted to integration tokens even if the
+# user doesn't have them in their role. These are token-only scopes not intended
+# for user roles.
+SENTRY_TOKEN_ONLY_SCOPES = frozenset(
+    [
+        "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
@@ -1818,6 +1830,7 @@ SENTRY_SCOPE_SETS = (
         ("project:read", "Read access to projects."),
     ),
     (("project:releases", "Read, write, and admin access to project releases."),),
+    (("project:distribution", "Access to app distribution and preprod artifacts."),),
     (
         ("event:admin", "Read, write, and admin access to events."),
         ("event:write", "Read and write access to events."),
@@ -2115,7 +2128,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.10.0"
+SELF_HOSTED_STABLE_VERSION = "25.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2686,7 +2699,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
+FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
+DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
@@ -3033,7 +3048,6 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
-    "sentry-api-0-prompts-activity",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",

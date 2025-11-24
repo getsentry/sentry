@@ -30,6 +30,8 @@ SEER_TIMEOUT_S = 120
 SEER_RETRIES = 1
 
 NUM_TRANSACTIONS_TO_PROCESS = 10
+LOWER_SPAN_LIMIT = 20
+UPPER_SPAN_LIMIT = 500
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -81,14 +83,17 @@ def create_issue_occurrence_from_detection(
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
-
-    fingerprint = [f"llm-detected-{detected_issue.title}-{transaction_name}"]
+    project = Project.objects.get_from_cache(id=project_id)
+    title = detected_issue.title.lower().replace(" ", "-")
+    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
 
     evidence_data = {
         "trace_id": trace.trace_id,
         "transaction": transaction_name,
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
+        "evidence": detected_issue.evidence,
+        "missing_telemetry": detected_issue.missing_telemetry,
     }
 
     evidence_display = [
@@ -96,15 +101,6 @@ def create_issue_occurrence_from_detection(
         IssueEvidence(name="Impact", value=detected_issue.impact, important=False),
         IssueEvidence(name="Evidence", value=detected_issue.evidence, important=False),
     ]
-
-    if detected_issue.missing_telemetry:
-        evidence_display.append(
-            IssueEvidence(
-                name="Missing Telemetry",
-                value=detected_issue.missing_telemetry,
-                important=False,
-            )
-        )
 
     occurrence = IssueOccurrence(
         id=occurrence_id,
@@ -125,13 +121,15 @@ def create_issue_occurrence_from_detection(
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": "other",
+        "platform": project.platform or "other",
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
-        "tags": {
-            "trace_id": trace.trace_id,
-            "transaction": transaction_name,
-            "llm_detected": "true",
+        "transaction": transaction_name,
+        "contexts": {
+            "trace": {
+                "trace_id": trace.trace_id,
+                "type": "trace",
+            }
         },
     }
 
@@ -190,16 +188,26 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not transactions:
         return
 
-    # Sample a random subset of transactions to process
-    transactions = random.sample(transactions, min(len(transactions), NUM_TRANSACTIONS_TO_PROCESS))
+    # Shuffle transactions to randomize order
+    random.shuffle(transactions)
+
+    processed_count = 0
     for transaction in transactions:
+        if processed_count >= NUM_TRANSACTIONS_TO_PROCESS:
+            break
+
         try:
             trace: TraceData | None = get_trace_for_transaction(
                 transaction.name, transaction.project_id
             )
-            if not trace:
+            if (
+                not trace
+                or trace.total_spans < LOWER_SPAN_LIMIT
+                or trace.total_spans > UPPER_SPAN_LIMIT
+            ):
                 continue
 
+            processed_count += 1
             logger.info(
                 "Found trace for LLM issue detection",
                 extra={

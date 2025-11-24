@@ -47,11 +47,11 @@ def reattempt_deletions() -> None:
 
 def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
     # If a deletion is in progress and was scheduled to run more than
-    # a day ago we can assume the previous job died/failed.
+    # six hours ago we can assume the previous job died/failed.
     # Turning off the in_progress flag will result in the job being picked
     # up in the next deletion run allowing us to start over.
     queryset = model_class.objects.filter(
-        in_progress=True, date_scheduled__lte=timezone.now() - timedelta(days=1)
+        in_progress=True, date_scheduled__lte=timezone.now() - timedelta(hours=6)
     )
     queryset.update(in_progress=False)
 

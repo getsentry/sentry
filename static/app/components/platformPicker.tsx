@@ -262,7 +262,7 @@ function PlatformPicker({
       </PlatformList>
       {platformList.length === 0 && (
         <EmptyMessage
-          icon={<IconProject size="xl" />}
+          icon={<IconProject />}
           title={t("We don't have an SDK for that yet!")}
         >
           {tct(

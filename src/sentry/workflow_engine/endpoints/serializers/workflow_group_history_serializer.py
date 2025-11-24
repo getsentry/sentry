@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.models.group import Group
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.workflow_engine.models import Detector, Workflow, WorkflowFireHistory
+from sentry.workflow_engine.models import Detector, DetectorGroup, Workflow, WorkflowFireHistory
 
 
 @dataclass(frozen=True)
@@ -114,19 +114,30 @@ def fetch_workflow_groups_paginated(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
-        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
     group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
+
+    # Subquery to get the detector_id from DetectorGroup.
+    # The detector does not currently need to be connected to the workflow.
+    detector_subquery = DetectorGroup.objects.filter(
+        group=OuterRef("group"),
+    ).values(
+        "detector_id"
+    )[:1]
+
     qs = (
-        filtered_history.select_related("group", "detector")
+        filtered_history.select_related("group")
         .values("group")
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
-        .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))
+        .annotate(detector_id=Subquery(detector_subquery))
     )
+
+    # Count distinct groups for pagination
+    group_count = qs.count()
 
     return cast(
         CursorResult[Group],
@@ -134,5 +145,5 @@ def fetch_workflow_groups_paginated(
             qs,
             order_by=("-count", "-last_triggered"),
             on_results=convert_results,
-        ).get_result(per_page, cursor, count_hits=True),
+        ).get_result(per_page, cursor, known_hits=group_count),
     )

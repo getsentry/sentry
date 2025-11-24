@@ -407,18 +407,8 @@ describe('ProjectSeer', () => {
     const option = await screen.findByText('Code Changes');
     await userEvent.click(option);
 
-    // Form has saveOnBlur=true, so wait for the PUT request
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledTimes(1);
-    });
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({data: {automated_run_stopping_point: 'code_changes'}})
-      );
-    });
-
-    // Also check that the seer preferences POST was called with the new stopping point
+    // The field uses getData: () => ({}) to exclude itself from the form submission
+    // Only the seer preferences POST should be called with the actual data
     await waitFor(() => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -430,6 +420,14 @@ describe('ProjectSeer', () => {
         })
       );
     });
+
+    // The project PUT may be called but with empty data (no automated_run_stopping_point)
+    if (projectPutRequest.mock.calls.length > 0) {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {}})
+      );
+    }
   });
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
@@ -521,17 +519,13 @@ describe('ProjectSeer', () => {
       select.focus();
     });
 
-    // Open the menu and select 'Hand off to Cursor Background Agent'
+    // Open the menu and select 'Hand off to Cursor Cloud Agent'
     await userEvent.click(select);
-    const cursorOption = await screen.findByText('Hand off to Cursor Background Agent');
+    const cursorOption = await screen.findByText('Hand off to Cursor Cloud Agent');
     await userEvent.click(cursorOption);
 
-    // Form has saveOnBlur=true, so wait for the PUT request
-    await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledTimes(1);
-    });
-
-    // Wait for the seer preferences POST to be called with automation_handoff
+    // The field uses getData: () => ({}) to exclude itself from the form submission
+    // Only the seer preferences POST should be called with the actual data
     await waitFor(() => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -547,6 +541,162 @@ describe('ProjectSeer', () => {
           }),
         })
       );
+    });
+
+    // The project PUT may be called but with empty data (no automated_run_stopping_point)
+    if (projectPutRequest.mock.calls.length > 0) {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {}})
+      );
+    }
+  });
+
+  it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
+    const projectWithFeatureFlag = ProjectFixture({
+      features: ['triage-signals-v0'],
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithFeatureFlag},
+    });
+
+    // Wait for the page to load
+    await screen.findByText(/Automation/i);
+
+    // The Scan Issues toggle should NOT be visible
+    expect(
+      screen.queryByRole('checkbox', {
+        name: /Scan Issues/i,
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Scan Issues toggle when triage-signals-v0 feature flag is disabled', async () => {
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
+
+    // The Scan Issues toggle should be visible
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Scan Issues/i,
+    });
+    expect(toggle).toBeInTheDocument();
+  });
+
+  describe('Auto-Trigger Fixes with triage-signals-v0', () => {
+    it('shows as toggle when flag enabled, dropdown when disabled', async () => {
+      const projectWithFlag = ProjectFixture({
+        features: ['triage-signals-v0'],
+        seerScannerAutomation: true,
+        autofixAutomationTuning: 'off',
+      });
+
+      const {unmount} = render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: projectWithFlag},
+      });
+
+      await screen.findByText(/Automation/i);
+      expect(
+        screen.getByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('textbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeInTheDocument();
+
+      unmount();
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'high',
+          }),
+        },
+      });
+
+      await screen.findByText(/Automation/i);
+      expect(
+        screen.getByRole('textbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('maps values correctly: off=unchecked, others=checked', async () => {
+      const {unmount} = render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'off',
+          }),
+        },
+      });
+
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeChecked();
+      unmount();
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'high',
+          }),
+        },
+      });
+
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeChecked();
+    });
+
+    it('saves "medium" when toggled ON, "off" when toggled OFF', async () => {
+      const projectPutRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'off',
+          }),
+        },
+      });
+
+      const toggle = await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i});
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(projectPutRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({data: {autofixAutomationTuning: 'medium'}})
+        );
+      });
+
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(projectPutRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({data: {autofixAutomationTuning: 'off'}})
+        );
+      });
     });
   });
 });

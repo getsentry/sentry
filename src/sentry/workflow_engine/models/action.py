@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
@@ -23,11 +23,12 @@ from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
-if TYPE_CHECKING:
-    from sentry.workflow_engine.models import Detector
-
-
 logger = logging.getLogger(__name__)
+
+
+class ActionSnapshot(TypedDict):
+    id: int
+    type: Action.Type
 
 
 class ActionManager(BaseManager["Action"]):
@@ -112,11 +113,21 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             ),
         ]
 
+    def get_snapshot(self) -> ActionSnapshot:
+        return {
+            "id": self.id,
+            "type": Action.Type(self.type),
+        }
+
     def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
+    def trigger(self, event_data: WorkflowEventData) -> None:
+        from sentry.workflow_engine.processors.detector import get_detector_from_event_data
+
+        detector = get_detector_from_event_data(event_data)
+
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
             tags={"action_type": self.type, "detector_type": detector.type},

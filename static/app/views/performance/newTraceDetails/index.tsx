@@ -13,7 +13,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
-  TraceViewMetricsDataProvider,
+  TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
 import {
@@ -74,14 +74,12 @@ export default function TraceView() {
 
   return (
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewMetricsDataProvider traceSlug={traceSlug}>
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
-        >
-          <TraceViewImpl traceSlug={traceSlug} />
-        </TraceStateProvider>
-      </TraceViewMetricsDataProvider>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
+      >
+        <TraceViewImpl traceSlug={traceSlug} />
+      </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
 }
@@ -116,7 +114,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const trace = useTrace({
+    traceSlug,
+    timestamp: queryParams.timestamp,
+    additionalAttributes: ['thread.id'],
+  });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
   useTraceStateAnalytics({
@@ -193,7 +195,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsSection />
+              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
+                <TraceViewMetricsSection />
+              </TraceViewMetricsProviderWrapper>
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />

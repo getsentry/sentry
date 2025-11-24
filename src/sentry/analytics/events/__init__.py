@@ -62,7 +62,6 @@ from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
-from .open_pr_comment import *  # noqa: F401,F403
 from .org_auth_token_created import *  # noqa: F401,F403
 from .org_auth_token_deleted import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403
@@ -100,6 +99,7 @@ from .sso_enabled import *  # noqa: F401,F403
 from .suspectcommit_assignment import *  # noqa: F401,F403
 from .team_created import *  # noqa: F401,F403
 from .user_created import *  # noqa: F401,F403
+from .user_removed import *  # noqa: F401,F403
 from .user_signup import *  # noqa: F401,F403
 from .webhook_repository_created import *  # noqa: F401,F403
 from .weekly_report import *  # noqa: F401,F403
