@@ -150,15 +150,20 @@ def get_open_periods_for_group(
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
         query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
+    if not query_end:
+        query_end = timezone.now()
 
-    group_open_periods = GroupOpenPeriod.objects.filter(
-        group=group,
-        date_started__gte=query_start,
-    ).order_by("-date_started")
-    if query_end:
-        group_open_periods = group_open_periods.filter(
-            Q(date_ended__lte=query_end) | Q(date_ended__isnull=True)
+    # An open period overlaps with [query_start, query_end] if:
+    # - It started before or at query_end (date_started <= query_end)
+    # - AND (it ended at or after query_start OR is still open)
+    group_open_periods = (
+        GroupOpenPeriod.objects.filter(
+            group=group,
+            date_started__lte=query_end,
         )
+        .filter(Q(date_ended__gte=query_start) | Q(date_ended__isnull=True))
+        .order_by("-date_started")
+    )
 
     return group_open_periods[:limit]
 
