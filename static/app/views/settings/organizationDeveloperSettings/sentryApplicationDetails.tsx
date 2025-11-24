@@ -283,11 +283,11 @@ export default function SentryApplicationDetails() {
   const renderTokens = () => {
     if (!hasTokenAccess) {
       return (
-        <EmptyMessage description={t('You do not have access to view these tokens.')} />
+        <EmptyMessage>{t('You do not have access to view these tokens.')}</EmptyMessage>
       );
     }
     if (tokens.length < 1 && newTokens.length < 1) {
-      return <EmptyMessage description={t('No tokens created yet.')} />;
+      return <EmptyMessage>{t('No tokens created yet.')}</EmptyMessage>;
     }
     const tokensToDisplay = tokens.map(token => (
       <ApiTokenRow
@@ -441,7 +441,7 @@ export default function SentryApplicationDetails() {
                 <AddTokenHeader key="token-add">
                   <Button
                     size="xs"
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                     onClick={evt => onAddToken(evt)}
                     data-test-id="token-add"
                   >

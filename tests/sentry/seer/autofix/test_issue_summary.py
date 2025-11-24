@@ -798,6 +798,8 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.70),
         )
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
@@ -822,6 +824,8 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.50),
         )
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
@@ -1000,6 +1004,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = "solution"
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -1030,6 +1036,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.50),  # Medium = ROOT_CAUSE
         )
         mock_fetch.return_value = "open_pr"
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -1060,9 +1068,78 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),  # High = OPEN_PR
         )
         mock_fetch.return_value = None
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
 
         run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
         # Should use OPEN_PR from fixability
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
+
+
+@with_feature("organizations:gen-ai-features")
+@with_feature("projects:triage-signals-v0")
+class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        event_data = load_data("python")
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
+        self.user = self.create_user()
+
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    def test_alert_skips_automation_below_threshold(
+        self, mock_budget, mock_state, mock_fixability, mock_trigger
+    ):
+        """Alert automation should skip when event count < 10 with triage-signals-v0"""
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        mock_budget.return_value = True
+        mock_state.return_value = None
+        mock_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            scores=SummarizeIssueScores(fixability_score=0.70),
+        )
+
+        # Set event count to 5
+        self.group.times_seen = 5
+        self.group.times_seen_pending = 0
+
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        # Should not trigger automation
+        mock_trigger.delay.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.seer.autofix.issue_summary.quotas.backend.has_available_reserved_budget")
+    def test_alert_runs_automation_above_threshold(
+        self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_rate_limit
+    ):
+        """Alert automation should run when event count >= 10 with triage-signals-v0"""
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        mock_budget.return_value = True
+        mock_state.return_value = None
+        mock_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            scores=SummarizeIssueScores(fixability_score=0.70),
+        )
+
+        # Set event count to 10
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        # Should trigger automation
+        mock_trigger.delay.assert_called_once()

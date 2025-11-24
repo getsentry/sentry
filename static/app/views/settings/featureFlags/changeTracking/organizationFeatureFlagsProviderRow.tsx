@@ -56,13 +56,7 @@ export function OrganizationFeatureFlagsProviderRow({
               size="sm"
               disabled={isRemoving || !removeSecret}
               aria-label={t('Remove secret for %s provider', secret.provider)}
-              icon={
-                isRemoving ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
             >
               {t('Remove')}
             </Button>

@@ -2152,6 +2152,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
 
@@ -2809,6 +2810,10 @@ SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
 
 SEER_ALERT_DELETION_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
+)
+
+SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/alert-data"
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
