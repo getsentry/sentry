@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -35,7 +36,9 @@ export type AttributeDistribution = Array<{
 }>;
 
 export function AttributeDistribution() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'attributeBreakdownsSearch',
+  });
   const [page, setPage] = useState(0);
 
   const query = useQueryParamsQuery();
@@ -75,7 +78,7 @@ export function AttributeDistribution() {
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
     const attributeDistribution =

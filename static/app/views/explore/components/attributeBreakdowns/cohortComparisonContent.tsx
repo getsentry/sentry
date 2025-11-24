@@ -17,6 +17,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
@@ -46,14 +47,16 @@ export function CohortComparison({
     aggregateFunction: yAxis,
     range: selection.range,
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'attributeBreakdownsSearch',
+  });
   const sortingMethod: SortingMethod = 'rrr';
   const [page, setPage] = useState(0);
   const theme = useTheme();
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const filteredRankedAttributes = useMemo(() => {
     const attrs = data?.rankedAttributes;
