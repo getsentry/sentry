@@ -5,6 +5,7 @@ import sortBy from 'lodash/sortBy';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RadioField from 'sentry/components/forms/fields/radioField';
@@ -217,6 +218,20 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
+              <PatternOptions>
+                <Checkbox
+                  checked={(values as any).patternReplacement === 'first_capture'}
+                  onChange={e =>
+                    onChange(
+                      'patternReplacement' as any,
+                      e.target.checked ? 'first_capture' : 'entire'
+                    )
+                  }
+                />
+                <PatternOptionLabel>
+                  {t('Only replace first capture match')}
+                </PatternOptionLabel>
+              </PatternOptions>
             </FieldGroup>
           )}
         </FieldContainer>
@@ -384,6 +399,20 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
+              <PatternOptions>
+                <Checkbox
+                  checked={(values as any).patternReplacement === 'first_capture'}
+                  onChange={e =>
+                    onChange(
+                      'patternReplacement' as any,
+                      e.target.checked ? 'first_capture' : 'entire'
+                    )
+                  }
+                />
+                <PatternOptionLabel>
+                  {t('Only replace first capture match')}
+                </PatternOptionLabel>
+              </PatternOptions>
             </FieldGroup>
           )}
         </FieldContainer>
@@ -473,4 +502,14 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
+`;
+
+const PatternOptions = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+`;
+
+const PatternOptionLabel = styled('span')`
+  margin-left: ${space(1)};
 `;
