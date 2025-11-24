@@ -49,6 +49,7 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
+    'static/eslint/**/index.mjs',
   ],
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
