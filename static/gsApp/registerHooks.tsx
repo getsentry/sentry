@@ -37,7 +37,6 @@ import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
-import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
 import SuperuserWarning, {
   shouldExcludeOrg,
 } from 'getsentry/components/superuser/superuserWarning';
@@ -222,7 +221,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
-  'component:replay-feedback-button': () => ReplayZendeskFeedback,
   'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
