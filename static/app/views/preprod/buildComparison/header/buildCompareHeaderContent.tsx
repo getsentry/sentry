@@ -9,7 +9,7 @@ import {Heading} from '@sentry/scraps/text/heading';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -118,8 +118,8 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           )}
         </Flex>
       </Stack>
-      <FeedbackWidgetButton
-        optionOverrides={{
+      <FeedbackButton
+        feedbackOptions={{
           tags: {
             'feedback.source': 'preprod.buildDetails',
           },

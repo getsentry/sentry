@@ -1,7 +1,7 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
+import useFeedbackWidget from 'sentry/components/feedbackButton/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

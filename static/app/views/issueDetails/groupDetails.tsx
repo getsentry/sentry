@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {TabPanels, Tabs} from 'sentry/components/core/tabs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -918,7 +918,7 @@ function GroupDetails() {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
+          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
           <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
             <Outlet />
           </GroupDetailsPageContent>

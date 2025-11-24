@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -363,7 +363,7 @@ function ProfilingContentPageHeader() {
             )}
           />
         </Layout.Title>
-        <FeedbackWidgetButton />
+        <FeedbackButton />
       </StyledHeaderContent>
     </StyledLayoutHeader>
   );
