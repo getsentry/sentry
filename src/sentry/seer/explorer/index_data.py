@@ -14,15 +14,14 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.llm_issue_detection import get_trace_for_llm_detection
 from sentry.seer.explorer.utils import (
     convert_profile_to_execution_tree,
     fetch_profile_data,
     normalize_description,
 )
 from sentry.seer.sentry_data_models import (
+    EvidenceSpan,
     IssueDetails,
-    LLMDetectionTraceData,
     ProfileData,
     Span,
     TraceData,
@@ -116,8 +115,8 @@ def get_transactions_for_project(
 
 
 def get_trace_for_transaction(
-    transaction_name: str, project_id: int, llm_detection: bool = False
-) -> TraceData | LLMDetectionTraceData | None:
+    transaction_name: str, project_id: int, llm_issue_detection: bool = False
+) -> TraceData | None:
     """
     Get a sample trace for a given transaction, choosing the one with median span count.
 
@@ -180,26 +179,21 @@ def get_trace_for_transaction(
         )
         return None
 
-    if llm_detection:
-        return get_trace_for_llm_detection(
-            snuba_params=snuba_params,
-            trace_id=trace_id,
-            config=config,
-            project_id=project_id,
-            transaction_name=transaction_name,
-        )
-
     # Step 2: Get all spans in the chosen trace
+    selected_columns = [
+        "span_id",
+        "parent_span",
+        "span.op",
+        "span.description",
+        "precise.start_ts",
+    ]
+    if llm_issue_detection:
+        selected_columns.extend(["span.self_time", "span.duration", "span.status"])
+
     spans_result = Spans.run_table_query(
         params=snuba_params,
         query_string=f"trace:{trace_id}",
-        selected_columns=[
-            "span_id",
-            "parent_span",
-            "span.op",
-            "span.description",
-            "precise.start_ts",
-        ],
+        selected_columns=selected_columns,
         orderby=["precise.start_ts"],
         offset=0,
         limit=1000,
@@ -208,23 +202,39 @@ def get_trace_for_transaction(
         sampling_mode="NORMAL",
     )
 
-    # Step 4: Build span objects
+    # Step 3: Build span objects
     spans = []
     for row in spans_result.get("data", []):
         span_id = row.get("span_id")
         parent_span_id = row.get("parent_span")
         span_op = row.get("span.op")
         span_description = row.get("span.description")
+        span_exclusive_time = row.get("span.self_time")
+        span_duration = row.get("span.duration")
+        span_status = row.get("span.status")
 
         if span_id:
-            spans.append(
-                Span(
-                    span_id=span_id,
-                    parent_span_id=parent_span_id,
-                    span_op=span_op,
-                    span_description=span_description or "",
+            if llm_issue_detection:
+                spans.append(
+                    EvidenceSpan(
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
+                        span_op=span_op,
+                        span_description=span_description or "",
+                        span_exclusive_time=span_exclusive_time,
+                        span_duration=span_duration,
+                        span_status=span_status,
+                    )
                 )
-            )
+            else:
+                spans.append(
+                    Span(
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
+                        span_op=span_op,
+                        span_description=span_description or "",
+                    )
+                )
 
     return TraceData(
         trace_id=trace_id,

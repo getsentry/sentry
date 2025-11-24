@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
-from sentry.seer.sentry_data_models import EvidenceSpan, LLMDetectionTraceData
+from sentry.seer.sentry_data_models import EvidenceSpan, TraceData
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -164,13 +164,14 @@ class LLMIssueDetectionTest(TestCase):
         mock_span = EvidenceSpan(
             span_id="span123",
             parent_span_id=None,
-            op="db.query",
-            description="SELECT * FROM users",
-            exclusive_time=150.5,
-            data={"duration": 200.0, "status": "ok"},
+            span_op="db.query",
+            span_description="SELECT * FROM users",
+            span_exclusive_time=150.5,
+            span_duration=200.0,
+            span_status="ok",
         )
 
-        mock_trace = LLMDetectionTraceData(
+        mock_trace = TraceData(
             trace_id="trace-abc-123",
             project_id=self.project.id,
             transaction_name="api/users/list",

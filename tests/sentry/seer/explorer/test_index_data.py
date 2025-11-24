@@ -183,7 +183,9 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         self.store_spans(spans, is_eap=True)
 
         # Call with llm_detection=True
-        result = get_trace_for_transaction(transaction_name, self.project.id, llm_detection=True)
+        result = get_trace_for_transaction(
+            transaction_name, self.project.id, llm_issue_detection=True
+        )
 
         # Verify basic structure (same checks as regular test)
         assert result is not None
@@ -199,12 +201,13 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         for result_span in result.spans:
             assert isinstance(result_span, EvidenceSpan)
             assert result_span.span_id is not None
-            assert result_span.description is not None
-            assert result_span.description.startswith("span-")
-            assert "trace-medium" in result_span.description
-            assert hasattr(result_span, "op")
-            assert hasattr(result_span, "exclusive_time")
-            assert hasattr(result_span, "data")
+            assert result_span.span_description is not None
+            assert result_span.span_description.startswith("span-")
+            assert "trace-medium" in result_span.span_description
+            assert hasattr(result_span, "span_op")
+            assert hasattr(result_span, "span_exclusive_time")
+            assert hasattr(result_span, "span_status")
+            assert hasattr(result_span, "span_duration")
 
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]
