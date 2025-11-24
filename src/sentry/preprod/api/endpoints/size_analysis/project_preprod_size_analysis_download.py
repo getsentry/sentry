@@ -71,30 +71,32 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                 status=404,
             )
 
-        # Load the analysis file once (shared across all metrics)
-        analysis_data = None
-        for size_metrics in all_size_metrics:
-            if (
-                size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-                and size_metrics.analysis_file_id
-            ):
-                try:
-                    file_obj = File.objects.get(id=size_metrics.analysis_file_id)
-                except File.DoesNotExist:
-                    logger.warning(
-                        "Analysis file not found for size metrics",
-                        extra={
-                            "size_metrics_id": size_metrics.id,
-                            "analysis_file_id": size_metrics.analysis_file_id,
-                        },
-                    )
-                    return Response(
-                        {"error": "Analysis file not found"},
-                        status=404,
-                    )
-                with file_obj.getfile() as fp:
-                    analysis_data = json.load(fp)
-                break
+        analysis_file_ids = [
+            size_metrics.analysis_file_id
+            for size_metrics in all_size_metrics
+            if size_metrics.analysis_file_id
+        ]
+        if len(analysis_file_ids) != 1:
+            return Response(
+                {"error": "Multiple analysis files found for this artifact"},
+                status=409,
+            )
+        analysis_file_id = analysis_file_ids[0]
+        try:
+            file_obj = File.objects.get(id=analysis_file_id)
+        except File.DoesNotExist:
+            logger.warning(
+                "Analysis file not found for size metrics",
+                extra={
+                    "analysis_file_id": analysis_file_id,
+                },
+            )
+            return Response(
+                {"error": "Analysis file not found"},
+                status=404,
+            )
+        with file_obj.getfile() as fp:
+            analysis_data = json.load(fp)
 
         all_metrics_data = []
         for size_metrics in all_size_metrics:
@@ -118,7 +120,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
 
             all_metrics_data.append(metrics_data)
 
-        # Determine overall state for frontend compatibility
+        # Determine overall state for the frontend
         states = [m.state for m in all_size_metrics]
         if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED for s in states):
             overall_state = "failed"
