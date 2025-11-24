@@ -34,8 +34,8 @@ def delete_pending_groups() -> None:
     and schedules deletion tasks for them. Groups are batched by project to ensure
     efficient deletion processing.
 
-    Only processes groups with last_seen between 24 hours and 90 days ago to avoid
-    processing very recent groups (safety window) or very old stuck groups.
+    Only processes groups with last_seen between 4 hours and 90 days old to avoid processing
+    very recent groups (safety window) and very old stuck groups.
     """
     statuses_to_delete = [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
 
@@ -48,10 +48,10 @@ def delete_pending_groups() -> None:
         logger.info("delete_pending_groups.no_groups_found")
         return
 
-    # Round to midnight to make the task idempotent throughout the day
-    now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    min_last_seen = now - timedelta(days=MAX_LAST_SEEN_DAYS)
-    max_last_seen = now - timedelta(days=MIN_LAST_SEEN_DAYS)
+    # Process groups between 4 hours and 90 days old
+    now = timezone.now()
+    min_last_seen = now - timedelta(days=90)
+    max_last_seen = now - timedelta(hours=4)
     # Group by project_id to ensure all groups in a batch belong to the same project
     groups_by_project: dict[int, list[int]] = defaultdict(list)
     for group_id, project_id, last_seen in groups:
