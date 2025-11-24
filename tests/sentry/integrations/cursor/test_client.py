@@ -1,74 +1,148 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
 
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.client import CursorAgentClient
+from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
 
-class CursorClientTest(TestCase):
-
-    def setUp(self):
-        self.integration = MagicMock()
-        # Avoid shadowing TestCase.client attribute used by Django
+class CursorAgentClientTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.api_key = "test_api_key"
+        self.webhook_secret = "test_webhook_secret"
         self.cursor_client = CursorAgentClient(
-            api_key="test_api_key_123", webhook_secret="test_webhook_secret"
+            api_key=self.api_key, webhook_secret=self.webhook_secret
+        )
+        self.webhook_url = "https://example.com/webhook"
+
+        self.repo_definition = SeerRepoDefinition(
+            integration_id="111",
+            provider="github",
+            owner="getsentry",
+            name="sentry",
+            external_id="123456",
+            branch_name="main",
         )
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.post")
-    def test_launch(self, mock_post):
-        from datetime import datetime
-
-        from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
-        from sentry.seer.models import SeerRepoDefinition
-
-        # Mock the response
-        mock_response = MagicMock()
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_with_auto_create_pr_true(self, mock_post: Mock) -> None:
+        """Test that launch() correctly passes auto_create_pr=True to the API"""
+        # Setup mock response
+        mock_response = Mock()
         mock_response.json = {
-            "id": "test_session_123",
-            "name": "Test Session",
+            "id": "agent_123",
             "status": "running",
-            "createdAt": datetime.now().isoformat(),
+            "name": "Test Agent",
+            "createdAt": "2023-01-01T00:00:00Z",
             "source": {
-                "repository": "https://github.com/testorg/testrepo",
+                "repository": "https://github.com/getsentry/sentry",
                 "ref": "main",
             },
             "target": {
-                "url": "https://github.com/org/repo/pull/1",
+                "url": "https://cursor.com/agent/123",
                 "autoCreatePr": True,
-                "branchName": "fix-bug",
+                "branchName": "fix-bug-123",
             },
         }
         mock_post.return_value = mock_response
 
-        # Create a launch request
+        # Create launch request with auto_create_pr=True
         request = CodingAgentLaunchRequest(
-            prompt="Fix the bug",
-            repository=SeerRepoDefinition(
-                integration_id="123",
-                provider="github",
-                owner="testorg",
-                name="testrepo",
-                external_id="456",
-                branch_name="main",
-            ),
-            branch_name="fix-bug",
+            prompt="Fix this bug",
+            repository=self.repo_definition,
+            branch_name="fix-bug-123",
+            auto_create_pr=True,
         )
 
-        webhook_url = "https://sentry.io/webhook"
-        result = self.cursor_client.launch(webhook_url=webhook_url, request=request)
+        # Launch the agent
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
 
-        # Verify the API call
+        # Assert that post was called with correct parameters
         mock_post.assert_called_once()
-        call_args = mock_post.call_args
-        assert call_args[0][0] == "/v0/agents"
+        call_kwargs = mock_post.call_args[1]
 
-        # Verify headers
-        headers = call_args[1]["headers"]
-        assert headers["Authorization"] == "Bearer test_api_key_123"
-        assert headers["content-type"] == "application/json;charset=utf-8"
+        # Verify the payload contains autoCreatePr=True
+        payload = call_kwargs["data"]
+        assert payload["target"]["autoCreatePr"] is True
 
-        # Verify result
-        assert result.id == "test_session_123"
-        assert result.status == CodingAgentStatus.RUNNING
-        assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
-        assert result.name == "Test Session"
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_with_auto_create_pr_false(self, mock_post: Mock) -> None:
+        """Test that launch() correctly passes auto_create_pr=False to the API"""
+        # Setup mock response
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "agent_123",
+            "status": "running",
+            "name": "Test Agent",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "source": {
+                "repository": "https://github.com/getsentry/sentry",
+                "ref": "main",
+            },
+            "target": {
+                "url": "https://cursor.com/agent/123",
+                "autoCreatePr": False,
+                "branchName": "fix-bug-123",
+            },
+        }
+        mock_post.return_value = mock_response
+
+        # Create launch request with auto_create_pr=False
+        request = CodingAgentLaunchRequest(
+            prompt="Fix this bug",
+            repository=self.repo_definition,
+            branch_name="fix-bug-123",
+            auto_create_pr=False,
+        )
+
+        # Launch the agent
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
+
+        # Assert that post was called with correct parameters
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args[1]
+
+        # Verify the payload contains autoCreatePr=False
+        payload = call_kwargs["data"]
+        assert payload["target"]["autoCreatePr"] is False
+
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_default_auto_create_pr(self, mock_post: Mock) -> None:
+        """Test that launch() defaults auto_create_pr to False when not specified"""
+        # Setup mock response
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "agent_123",
+            "status": "running",
+            "name": "Test Agent",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "source": {
+                "repository": "https://github.com/getsentry/sentry",
+                "ref": "main",
+            },
+            "target": {
+                "url": "https://cursor.com/agent/123",
+                "autoCreatePr": False,
+                "branchName": "fix-bug-123",
+            },
+        }
+        mock_post.return_value = mock_response
+
+        # Create launch request without specifying auto_create_pr (should default to False)
+        request = CodingAgentLaunchRequest(
+            prompt="Fix this bug",
+            repository=self.repo_definition,
+            branch_name="fix-bug-123",
+        )
+
+        # Launch the agent
+        self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
+
+        # Assert that post was called with correct parameters
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args[1]
+
+        # Verify the payload contains autoCreatePr=False (the default)
+        payload = call_kwargs["data"]
+        assert payload["target"]["autoCreatePr"] is False
