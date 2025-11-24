@@ -214,6 +214,38 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         activity = IncidentActivity.objects.filter(incident_id=new_incident.id)
         assert len(activity) == 3  # detected, created, status change
 
+    def test_can_resolve_outstanding_incident(self) -> None:
+        """Test that we link and update an incident that was opened before the org started single processing on resolution"""
+        _, group_info = self.save_issue_occurrence()
+        group = group_info.group
+        assert group is not None
+
+        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
+
+        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+
+        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        incident = Incident.objects.get(id=dummy_relationship.incident_id)
+
+        # this is a little hacky, but to emulate dual processing -> single processing I will
+        # just delete the IGOP relationship
+        IncidentGroupOpenPeriod.objects.all().delete()
+
+        with self.tasks():
+            update_status(group, self.mock_status_change_message)
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        assert open_period.date_ended is not None
+        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        assert item.incident_id == incident.id
+        activity = IncidentActivity.objects.filter(incident_id=incident.id)
+        assert len(activity) == 4  # detected, created, priority change, close
+
+        last_activity_entry = activity[3]
+        assert last_activity_entry.type == 2
+        assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+        assert last_activity_entry.value == str(IncidentStatus.CLOSED.value)
+
     @mock.patch("sentry.models.group.logger")
     def test_bulk_transition_new_group_to_ongoing__metric_issues__no_incident_activites(
         self, mock_logger
