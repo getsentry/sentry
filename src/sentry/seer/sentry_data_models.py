@@ -22,10 +22,14 @@ class Span(BaseModel):
     span_description: str | None
 
 
-class EvidenceSpan(Span):
-    span_exclusive_time: float | None = None
-    span_duration: float | None = None
-    span_status: str | None = None
+class EvidenceSpan(BaseModel):
+    span_id: str | None = None
+    parent_span_id: str | None = None
+    timestamp: float | None = None
+    op: str | None = None
+    description: str | None = None
+    exclusive_time: float | None = None  # duration in milliseconds
+    data: dict[str, Any] | None = None
 
 
 class TraceData(BaseModel):

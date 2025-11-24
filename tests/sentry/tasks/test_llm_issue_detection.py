@@ -164,11 +164,13 @@ class LLMIssueDetectionTest(TestCase):
         mock_span = EvidenceSpan(
             span_id="span123",
             parent_span_id=None,
-            span_op="db.query",
-            span_description="SELECT * FROM users",
-            span_exclusive_time=150.5,
-            span_duration=200.0,
-            span_status="ok",
+            op="db.query",
+            description="SELECT * FROM users",
+            exclusive_time=150.5,
+            data={
+                "duration": 200.0,
+                "status": "ok",
+            },
         )
 
         mock_trace = TraceData(
