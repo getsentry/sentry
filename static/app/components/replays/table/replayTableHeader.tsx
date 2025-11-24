@@ -36,11 +36,13 @@ export default function ReplayTableHeader({
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
-  const headerStyle = stickyHeader ? ({position: 'sticky', top: 0} as const) : {};
+  const headerStyle = stickyHeader
+    ? ({position: 'sticky', top: 0} as React.CSSProperties)
+    : {};
 
   return (
     <Fragment>
-      <TableHeader style={{...headerStyle}}>
+      <TableHeader style={headerStyle}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}
