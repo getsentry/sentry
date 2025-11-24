@@ -2,7 +2,6 @@ from unittest import mock
 from unittest.mock import MagicMock, call
 
 from sentry import audit_log
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -311,8 +310,6 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
         )
-        with self.tasks():
-            run_scheduled_deletions()
 
         assert not DetectorWorkflow.objects.filter(
             detector_id=self.detector_1.id, workflow_id=self.workflow_1.id
@@ -335,9 +332,6 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},
         )
-        with self.tasks():
-            run_scheduled_deletions()
-
         assert not DetectorWorkflow.objects.filter(detector_id=self.detector_1.id).exists()
         assert DetectorWorkflow.objects.filter(detector_id=self.detector_2.id).exists()
 
