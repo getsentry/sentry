@@ -74,12 +74,11 @@ function ReprocessedBox({
   return (
     <BannerContainer priority="success" className={className}>
       <StyledBannerSummary>
-        <IconCheckmark color="successText" isCircled />
+        <IconCheckmark color="successText" />
         <span>{renderMessage()}</span>
         <StyledIconClose
           color="successText"
           aria-label={t('Dismiss')}
-          isCircled
           onClick={handleBannerDismiss}
         />
       </StyledBannerSummary>

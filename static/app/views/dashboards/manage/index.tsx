@@ -599,7 +599,7 @@ function ManageDashboards() {
                           }}
                           size="sm"
                           priority="primary"
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Import Dashboard from JSON')}
                         </Button>
