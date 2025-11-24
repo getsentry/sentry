@@ -136,6 +136,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_type: projectType,
+      project_slug: projectId,
     });
   };
 
