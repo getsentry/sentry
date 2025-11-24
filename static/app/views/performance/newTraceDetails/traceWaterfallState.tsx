@@ -1,11 +1,11 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import useFeedbackWidget from 'sentry/components/feedbackButton/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 import type {TraceTree} from './traceModels/traceTree';
@@ -101,10 +101,17 @@ function TraceEmpty() {
 
 function FeedbackLink() {
   const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
+  const openForm = useFeedbackForm();
 
-  return feedback ? (
-    <a href="#" ref={linkref} onClick={e => e.preventDefault()}>
+  return openForm ? (
+    <a
+      href="#"
+      ref={linkref}
+      onClick={e => {
+        e.preventDefault();
+        openForm();
+      }}
+    >
       {t('Send us feedback')}
     </a>
   ) : (
