@@ -394,7 +394,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         # data inconsistency. Cap hits to match the actual number of results.
         if (
             cursor_result.hits is not None
-            and not cursor_result.next.has_results
+            and cursor_result.next.has_results is False
             and not request.GET.get("cursor")
         ):
             actual_count = len(context)
