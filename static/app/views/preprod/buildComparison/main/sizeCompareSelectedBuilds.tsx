@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -34,7 +34,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
     <LinkButton
       to={buildUrl}
       onClick={() =>
-        trackPreprodBuildAnalytics('preprod.builds.compare.go_to_build_details', {
+        trackAnalytics('preprod.builds.compare.go_to_build_details', {
           organization,
           build_id: buildId,
           project_slug: projectId,
@@ -155,7 +155,7 @@ export function SizeCompareSelectedBuilds({
         <Button
           onClick={() => {
             if (baseBuildDetails) {
-              trackPreprodBuildAnalytics('preprod.builds.compare.trigger_comparison', {
+              trackAnalytics('preprod.builds.compare.trigger_comparison', {
                 organization,
                 project_slug: projectId,
                 project_type: projectType,

@@ -1,7 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 
-import makeAnalyticsFunction from './makeAnalyticsFunction';
-
 type BasePreprodBuildEvent = {
   organization: Organization;
   build_id?: string;
@@ -46,6 +44,3 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.compare.trigger_comparison':
     'Preprod Build Comparison: Compare Triggered',
 };
-
-export const trackPreprodBuildAnalytics =
-  makeAnalyticsFunction<PreprodBuildEventParameters>(preprodBuildEventMap);

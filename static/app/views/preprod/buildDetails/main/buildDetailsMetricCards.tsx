@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCode, IconDownload, IconLightning, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -149,14 +149,11 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     tooltip: t('View insight details'),
                     ariaLabel: t('View insight details'),
                     onClick: () => {
-                      trackPreprodBuildAnalytics(
-                        'preprod.builds.details.open_insights_sidebar',
-                        {
-                          organization,
-                          platform: platformProp ?? null,
-                          source: 'metric_card',
-                        }
-                      );
+                      trackAnalytics('preprod.builds.details.open_insights_sidebar', {
+                        organization,
+                        platform: platformProp ?? null,
+                        source: 'metric_card',
+                      });
                       onOpenInsightsSidebar();
                     },
                   }

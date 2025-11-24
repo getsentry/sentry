@@ -23,7 +23,7 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -182,7 +182,7 @@ export function SizeCompareSelectionContent({
                 isSelected={selectedBaseBuild === build}
                 onSelect={() => {
                   setSelectedBaseBuild(build);
-                  trackPreprodBuildAnalytics('preprod.builds.compare.select_base_build', {
+                  trackAnalytics('preprod.builds.compare.select_base_build', {
                     organization,
                     build_id: build.id,
                     project_slug: projectId,

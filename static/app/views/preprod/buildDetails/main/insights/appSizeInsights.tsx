@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
@@ -28,7 +28,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
   const organization = useOrganization();
 
   const openSidebar = useCallback(() => {
-    trackPreprodBuildAnalytics('preprod.builds.details.open_insights_sidebar', {
+    trackAnalytics('preprod.builds.details.open_insights_sidebar', {
       organization,
       platform: platform ?? null,
       source: 'insight_table',

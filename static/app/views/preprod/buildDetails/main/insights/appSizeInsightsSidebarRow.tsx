@@ -12,7 +12,7 @@ import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,7 +75,7 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
-    trackPreprodBuildAnalytics('preprod.builds.details.open_insight_details_modal', {
+    trackAnalytics('preprod.builds.details.open_insight_details_modal', {
       organization,
       insight_key: insight.key,
       platform: platform ?? null,
@@ -103,7 +103,7 @@ export function AppSizeInsightsSidebarRow({
 
   const handleToggleExpanded = () => {
     if (!isExpanded) {
-      trackPreprodBuildAnalytics('preprod.builds.details.expand_insight', {
+      trackAnalytics('preprod.builds.details.expand_insight', {
         organization,
         insight_key: insight.key,
         platform: platform ?? null,

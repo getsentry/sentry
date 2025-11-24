@@ -7,7 +7,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -105,7 +105,7 @@ export default function PreprodBuilds() {
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse, _rowIndex: number) => {
-      trackPreprodBuildAnalytics('preprod.builds.release.build_row_clicked', {
+      trackAnalytics('preprod.builds.release.build_row_clicked', {
         organization,
         project_type: projectPlatform ?? null,
         platform: build.app_info?.platform ?? projectPlatform ?? null,

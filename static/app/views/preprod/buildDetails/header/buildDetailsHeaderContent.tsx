@@ -23,7 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {trackPreprodBuildAnalytics} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -130,7 +130,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
 
   const handleCompareClick = () => {
-    trackPreprodBuildAnalytics('preprod.builds.details.compare_build_clicked', {
+    trackAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
