@@ -531,7 +531,7 @@ def rpc_get_profile_flamegraph(
         return {"error": "Failed to fetch profile data from profiling service"}
 
     # Convert to execution tree (returns dicts, not Pydantic models)
-    execution_tree = _convert_profile_to_execution_tree(profile_data)
+    execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
     if not execution_tree:
         logger.warning(
@@ -544,11 +544,6 @@ def rpc_get_profile_flamegraph(
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
-    # Extract thread_id from profile data
-    profile = profile_data.get("profile") or profile_data.get("chunk", {}).get("profile")
-    samples = profile.get("samples", []) if profile else []
-    thread_id = str(samples[0]["thread_id"]) if samples else None
-
     return {
         "execution_tree": execution_tree,
         "metadata": {
@@ -557,7 +552,7 @@ def rpc_get_profile_flamegraph(
             "is_continuous": is_continuous,
             "start_ts": min_start_ts,
             "end_ts": max_end_ts,
-            "thread_id": thread_id,
+            "thread_id": selected_thread_id,
         },
     }
 
