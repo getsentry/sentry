@@ -30,6 +30,7 @@ from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
     get_detector_by_event,
+    get_detectors_for_event,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -37,6 +38,7 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     WorkflowEventData,
 )
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
@@ -829,6 +831,95 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 },
             )
         }
+
+
+class TestGetDetectorsForEvent(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+        self.event = self.store_event(project_id=self.project.id, data={})
+        self.occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={"detector_id": self.detector.id},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    def test_activity_update(self) -> None:
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        result = get_detectors_for_event(event_data, detector=self.detector)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    def test_error_event(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.error_detector
+        assert result.detectors == {self.issue_stream_detector, self.error_detector}
+
+    def test_metric_issue(self) -> None:
+        self.group_event.occurrence = self.occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.detector
+        assert result.detectors == {self.issue_stream_detector, self.detector}
+
+    def test_event_without_detector(self) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=1,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},  # no detector id
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+        self.group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is not None
+        assert result.preferred_detector == self.issue_stream_detector
+        assert result.detectors == {self.issue_stream_detector}
+
+    def test_no_detectors(self) -> None:
+        self.issue_stream_detector.delete()
+        self.error_detector.delete()
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event(event_data)
+        assert result is None
 
 
 class TestGetDetectorByEvent(TestCase):
