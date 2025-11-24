@@ -9,7 +9,6 @@ from django.db import connection
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
-from sentry import features
 from sentry.api.paginator import GenericOffsetPaginator, OffsetPaginator
 from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -151,50 +150,47 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
         existing_data: dict[datetime, TimeSeriesValue] = {}
 
-        if features.has(
-            "organizations:workflow-engine-single-process-workflows", rule.project.organization
-        ):
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-                workflow = alert_rule_workflow.workflow
+        try:
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+            workflow = alert_rule_workflow.workflow
 
-                # Use raw SQL to combine data from both tables
-                with connection.cursor() as db_cursor:
-                    db_cursor.execute(
-                        """
-                        SELECT
-                            DATE_TRUNC('hour', date_added) as bucket,
-                            COUNT(*) as count
-                        FROM (
-                            SELECT date_added
-                            FROM sentry_rulefirehistory
-                            WHERE rule_id = %s
-                                AND date_added >= %s
-                                AND date_added < %s
+            # Use raw SQL to combine data from both tables
+            with connection.cursor() as db_cursor:
+                db_cursor.execute(
+                    """
+                    SELECT
+                        DATE_TRUNC('hour', date_added) as bucket,
+                        COUNT(*) as count
+                    FROM (
+                        SELECT date_added
+                        FROM sentry_rulefirehistory
+                        WHERE rule_id = %s
+                            AND date_added >= %s
+                            AND date_added < %s
 
-                            UNION ALL
+                        UNION ALL
 
-                            SELECT date_added
-                            FROM workflow_engine_workflowfirehistory
-                            WHERE workflow_id = %s
-                                AND date_added >= %s
-                                AND date_added < %s
-                        ) combined_data
-                        GROUP BY DATE_TRUNC('hour', date_added)
-                        ORDER BY bucket
-                        """,
-                        [rule.id, start, end, workflow.id, start, end],
-                    )
+                        SELECT date_added
+                        FROM workflow_engine_workflowfirehistory
+                        WHERE workflow_id = %s
+                            AND date_added >= %s
+                            AND date_added < %s
+                    ) combined_data
+                    GROUP BY DATE_TRUNC('hour', date_added)
+                    ORDER BY bucket
+                    """,
+                    [rule.id, start, end, workflow.id, start, end],
+                )
 
-                    results = db_cursor.fetchall()
+                results = db_cursor.fetchall()
 
-                # Convert raw SQL results to the expected format
-                existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
+            # Convert raw SQL results to the expected format
+            existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
 
-            except AlertRuleWorkflow.DoesNotExist:
-                # If no workflow is associated with this rule, just use the original behavior
-                logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
-                pass
+        except AlertRuleWorkflow.DoesNotExist:
+            # If no workflow is associated with this rule, just use the original behavior
+            logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
+            pass
 
         if not existing_data:
             qs = (
