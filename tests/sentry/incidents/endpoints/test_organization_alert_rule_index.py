@@ -1612,6 +1612,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Set limit to 2 alert rules
         mock_get_limit.return_value = 2
 
@@ -1646,6 +1653,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_metric_alert_limit_unlimited_plan(self) -> None:
+        # create orphaned metric alert
+        project_to_delete = self.create_project(organization=self.organization)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[project_to_delete]
+        )
+        project_to_delete.delete()
+
         # Create many alert rules
         for _ in range(5):
             self.create_alert_rule(organization=self.organization)
