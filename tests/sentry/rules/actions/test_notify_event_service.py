@@ -1,11 +1,15 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
+from sentry.rules.actions.notify_event_service import (
+    NotifyEventServiceAction,
+    find_alert_rule_action_ui_component,
+)
 from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
@@ -90,3 +94,32 @@ class NotifyEventServiceActionTest(RuleTestCase):
 
         results = rule.get_services()
         assert len(results) == 0
+
+
+class FindAlertRuleActionUiComponentTest(TestCase):
+    def test_handles_null_metric_alert_payload(self) -> None:
+        event = SimpleNamespace(data={"metric_alert": None})
+
+        assert not find_alert_rule_action_ui_component(event)
+
+    def test_detects_sentry_app_action(self) -> None:
+        event = SimpleNamespace(
+            data={
+                "metric_alert": {
+                    "alert_rule": {
+                        "triggers": [
+                            {
+                                "actions": [
+                                    {
+                                        "type": "sentry_app",
+                                        "settings": {"foo": "bar"},
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        assert find_alert_rule_action_ui_component(event)
