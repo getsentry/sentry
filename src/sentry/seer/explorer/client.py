@@ -122,7 +122,7 @@ class SeerExplorerClient:
         self.category_value = category_value
 
         # Validate that category_key and category_value are provided together
-        if (category_key is None) != (category_value is None):
+        if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
         # Validate access on init
