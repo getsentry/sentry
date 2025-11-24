@@ -427,7 +427,9 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
     return response_data.get("prompt")
 
 
-def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str:
+def get_coding_agent_prompt(
+    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
         AutofixTriggerSource.ROOT_CAUSE,
@@ -437,7 +439,12 @@ def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -
 
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
-    return f"Please fix the following issue:\n\n{autofix_prompt}"
+    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if instruction and instruction.strip():
+        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
+
+    return f"{base_prompt}\n\n{autofix_prompt}"
 
 
 def update_coding_agent_state(

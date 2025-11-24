@@ -124,7 +124,7 @@ class TestGetCodingAgentPrompt(TestCase):
 
         result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
 
-        expected = "Please fix the following issue:\n\nThis is the autofix prompt"
+        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
@@ -135,9 +135,44 @@ class TestGetCodingAgentPrompt(TestCase):
 
         result = get_coding_agent_prompt(12345, AutofixTriggerSource.ROOT_CAUSE)
 
-        expected = "Please fix the following issue:\n\nRoot cause analysis prompt"
+        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nRoot cause analysis prompt"
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt with custom instruction."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript"
+        )
+
+        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nUse TypeScript instead of JavaScript\n\nThis is the autofix prompt"
+        assert result == expected
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_blank_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt with blank instruction is ignored."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "   ")
+
+        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
+        assert result == expected
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_empty_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt with empty instruction is ignored."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "")
+
+        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
+        assert result == expected
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
 
 class TestAutofixStateParsing(TestCase):

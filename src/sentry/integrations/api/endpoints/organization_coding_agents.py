@@ -43,6 +43,7 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
         default=AutofixTriggerSource.SOLUTION,
         required=False,
     )
+    instruction = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
 
 @region_silo_endpoint
@@ -92,12 +93,14 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         run_id = validated["run_id"]
         integration_id = validated["integration_id"]
         trigger_source = validated["trigger_source"]
+        instruction = validated.get("instruction")
 
         results = launch_coding_agents_for_run(
             organization_id=organization.id,
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=trigger_source,
+            instruction=instruction,
         )
 
         successes = results["successes"]
