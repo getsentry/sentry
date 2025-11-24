@@ -11,7 +11,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -177,7 +177,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
               <Layout.HeaderActions>
                 <ButtonBar>
-                  <FeedbackWidgetButton />
+                  <FeedbackButton />
                   <LinkButton
                     size="sm"
                     to={
