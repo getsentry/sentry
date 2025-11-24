@@ -218,13 +218,16 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
-
-              <Checkbox
-                checked={values.replaceCaptured === 'true'}
-                onChange={this.handleChange('replaceCaptured')}
-              />
-
-              {t('Only replace first capture match')}
+              <span>
+                <Checkbox
+                  id="replace-captured"
+                  name="replaceCaptured"
+                  checked={values.replaceCaptured === 'true'}
+                  onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+                />
+                &nbsp;
+                {t('Only replace first capture match')}
+              </span>
             </FieldGroup>
           )}
         </FieldContainer>
@@ -392,24 +395,16 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
-              <Checkbox
-                id="replace-captured"
-                name="replaceCaptured"
-                checked={values.replaceCaptured === 'true'}
-                onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
-              />
-
-              {t('Only replace first capture match')}
-              {/* <Checkbox
-                checked={(values as any).replaceCaptured === 'first_capture'}
-                onChange={e =>
-                  onChange(
-                    'replaceCaptured' as any,
-                    e.target.checked ? 'first_capture' : 'entire'
-                  )
-                }
-              />
-              {t('Only replace first capture match')} */}
+              <span>
+                <Checkbox
+                  id="replace-captured"
+                  name="replaceCaptured"
+                  checked={values.replaceCaptured === 'true'}
+                  onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+                />
+                &nbsp;
+                {t('Only replace first capture match')}
+              </span>
             </FieldGroup>
           )}
         </FieldContainer>
