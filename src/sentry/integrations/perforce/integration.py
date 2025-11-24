@@ -171,9 +171,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if self._client is not None:
             return self._client
 
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration not found")
-
+        # Accessing self.org_integration will raise OrganizationIntegrationNotFound if it doesn't exist
         self._client = PerforceClient(
             integration=self.model,
             org_integration=self.org_integration,
@@ -498,7 +496,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             data: Updated configuration data from the form (only changed fields)
         """
         from sentry.integrations.services.integration import integration_service
-        from sentry.models.integrations.integration import Integration
 
         # Update integration metadata with new values
         metadata = dict(self.model.metadata)  # Create a mutable copy
@@ -511,7 +508,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         )
 
         # Refresh self.model from database to get updated metadata
-        self.model = Integration.objects.get(id=self.model.id)
+        refreshed = integration_service.get_integration(integration_id=self.model.id)
+        if refreshed:
+            self.model = refreshed
 
         # Invalidate cached client so it gets recreated with new credentials
         self._client = None
