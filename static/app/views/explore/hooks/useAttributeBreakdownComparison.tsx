@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey} from 'sentry/utils/fields';
@@ -9,7 +10,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
@@ -34,11 +34,11 @@ export type AttributeBreakdownsComparison = {
 };
 
 function useAttributeBreakdownComparison({
-  boxSelectOptions,
+  selection,
   chartInfo,
 }: {
-  boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
+  selection: Selection;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -46,8 +46,8 @@ function useAttributeBreakdownComparison({
   const {selection: pageFilters} = usePageFilters();
   const aggregateExtrapolation = location.query.extrapolate ?? '1';
 
-  const enableQuery = boxSelectOptions.xRange !== null;
-  const [x1, x2] = boxSelectOptions.xRange!;
+  const enableQuery = selection !== null;
+  const [x1, x2] = selection.range;
 
   // Ensure that we pass the existing queries in the search bar to the attribute breakdowns queries
   const currentQuery = location.query.query?.toString() ?? '';
