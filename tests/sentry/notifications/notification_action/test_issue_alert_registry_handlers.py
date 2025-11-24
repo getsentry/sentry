@@ -895,11 +895,11 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
     def test_raises_retry_error_for_api_error(self):
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import ApiError
-        from sentry.taskworker.retry import RetryError
+        from sentry.taskworker.retry import RetryTaskError
 
         self.mock_callback.side_effect = ApiError("API error", 500)
 
-        with pytest.raises(RetryError) as excinfo:
+        with pytest.raises(RetryTaskError) as excinfo:
             invoke_future_with_error_handling(
                 self.event_data, self.mock_callback, self.mock_futures
             )

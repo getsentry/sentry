@@ -7,7 +7,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DISCARD,
 )
 
-from sentry.taskworker.retry import LastAction, Retry, RetryError
+from sentry.taskworker.retry import LastAction, Retry, RetryTaskError
 
 
 class RuntimeChildError(RuntimeError):
@@ -64,7 +64,7 @@ def test_should_retry_retryerror() -> None:
     retry = Retry(times=5)
     state = retry.initial_state()
 
-    err = RetryError("something bad")
+    err = RetryTaskError("something bad")
     assert retry.should_retry(state, err)
 
     state.attempts = 4
