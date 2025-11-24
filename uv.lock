@@ -2024,6 +2024,7 @@ dependencies = [
     { name = "rfc3339-validator", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "rfc3986-validator", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-arroyo", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "sentry-conventions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-forked-email-reply-parser", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-kafka-schemas", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-ophio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2191,6 +2192,7 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.33.1" },
+    { name = "sentry-conventions", specifier = ">=0.3.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.15" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
@@ -2300,6 +2302,14 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-macosx_11_0_universal2.whl", hash = "sha256:c2f51b3b79113ec4080908af7a0a8a43a3bf30873a801ed8f095ba5cf7b73e9e" },
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:872462805c749cc974ba27709052194f080ff44762a47b98d7f520e34e64a260" },
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:9d0541a3cbe96697f354549f2464c24c3250aa189e58d690ca632f434c34e6e8" },
+]
+
+[[package]]
+name = "sentry-conventions"
+version = "0.3.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.3.0-py3-none-any.whl", hash = "sha256:675e23ab13c690726b24d2d8bd96b043a4710c4f479373fa3b061510a279d1c6" },
 ]
 
 [[package]]
