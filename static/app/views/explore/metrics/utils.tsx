@@ -1,6 +1,8 @@
+import type {ReactNode} from 'react';
 import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
@@ -27,6 +29,7 @@ import {
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -50,6 +53,29 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
         [`sentry._internal.cooccuring.type.${traceMetric.type}`]: ['true'],
       }).formatString()
     : undefined;
+}
+
+export function metricsPickableDays(): PickableDays {
+  const relativeOptions: Array<[string, ReactNode]> = [
+    ['1h', t('Last hour')],
+    ['24h', t('Last 24 hours')],
+    ['7d', t('Last 7 days')],
+    ['14d', t('Last 14 days')],
+    ['30d', t('Last 30 days')],
+  ];
+
+  return {
+    defaultPeriod: '24h',
+    maxPickableDays: 30, // May change with downsampled multi month support.
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      ...Object.fromEntries(relativeOptions),
+    }),
+  };
 }
 
 export function getMetricsUnit(

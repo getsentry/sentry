@@ -16,7 +16,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -41,6 +40,7 @@ import {
   FilterBarContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 const METRICS_GH_DISCUSSION_LINK =
   'https://github.com/getsentry/sentry/discussions/102275';
@@ -371,15 +371,16 @@ const Arcade = styled('iframe')`
 `;
 
 type MetricsTabOnboardingProps = {
-  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-};
+} & PickableDays;
 
 export function MetricsTabOnboarding({
-  datePageFilterProps,
   organization,
   project,
+  defaultPeriod,
+  maxPickableDays,
+  relativeOptions,
 }: MetricsTabOnboardingProps) {
   return (
     <ExploreBodySearch>
@@ -388,7 +389,11 @@ export function MetricsTabOnboarding({
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter {...datePageFilterProps} />
+            <DatePageFilter
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={relativeOptions}
+            />
           </StyledPageFilterBar>
         </FilterBarContainer>
         <Onboarding project={project} organization={organization} />

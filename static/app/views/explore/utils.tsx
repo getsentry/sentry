@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -5,7 +7,11 @@ import * as qs from 'query-string';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -396,6 +402,76 @@ export function viewSamplesTarget({
   });
 }
 
+type MaxPickableDays = 7 | 14 | 30 | 90;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
+
+export interface PickableDays {
+  defaultPeriod: DefaultPeriod;
+  maxPickableDays: MaxPickableDays;
+  relativeOptions: ({
+    arbitraryOptions,
+  }: {
+    arbitraryOptions: Record<string, ReactNode>;
+  }) => Record<string, ReactNode>;
+  isOptionDisabled?: ({value}: SelectOptionWithKey<string>) => boolean;
+  menuFooter?: ReactNode;
+}
+
+export function limitMaxPickableDays(organization: Organization): PickableDays {
+  const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
+    7: '7d',
+    14: '14d',
+    30: '30d',
+    90: '90d',
+  };
+
+  const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
+    ['7d', t('Last 7 days')],
+    ['14d', t('Last 14 days')],
+    ['30d', t('Last 30 days')],
+    ['90d', t('Last 90 days')],
+  ];
+
+  const maxPickableDays: MaxPickableDays = organization.features.includes(
+    'visibility-explore-range-high'
+  )
+    ? 90
+    : 30;
+  const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
+
+  const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
+  const enabledOptions = Object.fromEntries(relativeOptions.slice(0, index));
+  const disabledOptions = Object.fromEntries(
+    relativeOptions.slice(index).map(([value, label]) => {
+      return [value, <DisabledDateOption key={value} label={label} />];
+    })
+  );
+
+  const isOptionDisabled = (option: SelectOptionWithKey<string>): boolean => {
+    return disabledOptions.hasOwnProperty(option.value);
+  };
+
+  const menuFooter = index === relativeOptions.length ? null : <UpsellFooterHook />;
+
+  return {
+    defaultPeriod,
+    isOptionDisabled,
+    maxPickableDays,
+    menuFooter,
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      '1h': t('Last hour'),
+      '24h': t('Last 24 hours'),
+      ...enabledOptions,
+      ...disabledOptions,
+    }),
+  };
+}
+
 export function getDefaultExploreRoute(organization: Organization) {
   if (
     organization.features.includes('performance-trace-explorer') ||
@@ -434,6 +510,24 @@ export function computeVisualizeSampleTotals(
     return sampleCount;
   });
 }
+
+function DisabledDateOption({label}: {label: ReactNode}) {
+  return (
+    <Flex align="center">
+      {label}
+      <StyledIconBuisness />
+    </Flex>
+  );
+}
+
+const StyledIconBuisness = styled(IconBusiness)`
+  margin-left: auto;
+`;
+
+const UpsellFooterHook = HookOrDefault({
+  hookName: 'component:explore-date-range-query-limit-footer',
+  defaultComponent: () => undefined,
+});
 
 export function confirmDeleteSavedQuery({
   handleDelete,

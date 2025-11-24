@@ -11,23 +11,18 @@ import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -42,18 +37,16 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export const MAX_QUERIES_ALLOWED = 5;
 
-interface ContentProps {
-  datePageFilterProps: DatePageFilterProps;
-}
-
-function Content({datePageFilterProps}: ContentProps) {
+function Content() {
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
+  const datePageFilterProps = limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
@@ -212,19 +205,10 @@ function Content({datePageFilterProps}: ContentProps) {
 }
 
 export function MultiQueryModeContent() {
-  const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-    organization,
-  });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
   return (
-    <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Content datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
-    </PageFiltersContainer>
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <Content />
+    </TraceItemAttributeProvider>
   );
 }
 
