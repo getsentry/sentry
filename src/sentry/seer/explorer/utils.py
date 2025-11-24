@@ -194,7 +194,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         """
         frame_indices = stacks[stack_index]
         if not frame_indices:
-            return []
+            return list[dict[str, Any]]()
 
         # Create nodes for frames, maintaining order (bottom to top)
         nodes = []
