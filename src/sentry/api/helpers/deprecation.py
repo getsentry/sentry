@@ -16,6 +16,7 @@ from rest_framework.status import HTTP_410_GONE as GONE
 
 from sentry import options
 from sentry.options import UnknownOption
+from sentry.utils import metrics
 from sentry.utils.settings import is_self_hosted
 
 GONE_MESSAGE = {"message": "This API no longer exists."}
@@ -48,47 +49,48 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> b
 
     The `-duration` option defines how long brownouts will last in seconds.
     """
+    if now < deprecation_date:
+        return False
+
     # Will need to check redis if the hour fits into the brownout period
-    if now >= deprecation_date:
-        key = "api.deprecation.brownout" if not key else key
+    key = "api.deprecation.brownout" if not key else key
 
-        # Retrieve any custom schedule saved
-        # Fall back on the default schedule if there's any issue getting a custom one
-        cron_key, duration_key = _serialize_key(key)
-        try:
-            brownout_cron = options.get(cron_key)
-        except UnknownOption:
-            logger.exception("Unrecognized deprecation key %s", key)
-            brownout_cron = options.get("api.deprecation.brownout-cron")
+    # Retrieve any custom schedule saved
+    # Fall back on the default schedule if there's any issue getting a custom one
+    cron_key, duration_key = _serialize_key(key)
+    try:
+        brownout_cron = options.get(cron_key)
+    except UnknownOption:
+        logger.exception("Unrecognized deprecation key %s", key)
+        brownout_cron = options.get("api.deprecation.brownout-cron")
 
-        try:
-            brownout_duration = options.get(duration_key)
-        except UnknownOption:
-            logger.exception("Unrecognized deprecation duration %s", key)
-            brownout_duration = options.get("api.deprecation.brownout-duration")
+    try:
+        brownout_duration = options.get(duration_key)
+    except UnknownOption:
+        logger.exception("Unrecognized deprecation duration %s", key)
+        brownout_duration = options.get("api.deprecation.brownout-duration")
 
-        # Validate the formats, allow requests to pass through if validation failed
-        try:
-            brownout_duration = timedelta(seconds=brownout_duration)
-        except TypeError:
-            logger.exception("Invalid brownout duration")
-            return False
+    # Validate the formats, allow requests to pass through if validation failed
+    try:
+        brownout_duration = timedelta(seconds=brownout_duration)
+    except TypeError:
+        logger.exception("Invalid brownout duration")
+        return False
 
-        try:
-            # Move back one minute so we can iterate once and determine if now
-            # matches the cron schedule.
-            iter = CronSim(brownout_cron, now - timedelta(minutes=1))
-        except CronSimError:
-            logger.exception("Invalid crontab for blackout schedule")
-            return False
+    try:
+        # Move back one minute so we can iterate once and determine if now
+        # matches the cron schedule.
+        iter = CronSim(brownout_cron, now - timedelta(minutes=1))
+    except CronSimError:
+        logger.exception("Invalid crontab for blackout schedule")
+        return False
 
-        if next(iter) == now.replace(second=0, microsecond=0):
-            return True
+    if next(iter) == now.replace(second=0, microsecond=0):
+        return True
 
-        # If not, check if now is within `brownout_duration` of the last brownout time
-        brownout_start = next(CronSim(brownout_cron, now, reverse=True))
-        return brownout_start <= now < brownout_start + brownout_duration
-    return False
+    # If not, check if now is within `brownout_duration` of the last brownout time
+    brownout_start = next(CronSim(brownout_cron, now, reverse=True))
+    return brownout_start <= now < brownout_start + brownout_duration
 
 
 def _add_deprecation_headers(
@@ -138,8 +140,8 @@ def deprecated(
             self: SelfT, request: Request, *args: P.args, **kwargs: P.kwargs
         ) -> HttpResponseBase:
             matches_url_name = True
+            url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
             if url_names:
-                url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
                 matches_url_name = url_name in url_names
 
             # Don't do anything for deprecated endpoints on self hosted
@@ -149,16 +151,25 @@ def deprecated(
 
             now = timezone.now()
 
+            metric_action = "header"
             if (
                 now > deprecation_date
                 and matches_url_name
                 and _should_be_blocked(deprecation_date, now, key)
             ):
+                metric_action = "gone"
                 response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
             else:
                 response = func(self, request, *args, **kwargs)
 
             if matches_url_name:
+                metrics.incr(
+                    "api.deprecated.request",
+                    tags={
+                        "url_name": url_name,
+                        "action": metric_action,
+                    },
+                )
                 _add_deprecation_headers(response, deprecation_date, suggested_api)
 
             return response
