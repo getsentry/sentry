@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -24,7 +24,6 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -85,7 +84,6 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   findSuggestedColumns,
-  type PickableDays,
 } from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
@@ -93,7 +91,7 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
 }
@@ -135,7 +133,7 @@ function useControlSectionExpanded() {
 }
 
 interface SpanTabProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
 }
 
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
@@ -155,7 +153,6 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={datePageFilterProps.maxPickableDays}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
@@ -175,7 +172,7 @@ function useVisitExplore() {
 }
 
 interface SpanTabSearchSectionProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
 }
 
 function SpansSearchBar({
@@ -364,16 +361,14 @@ function SpanTabControlSection({
 
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
-  maxPickableDays: PickableDays['maxPickableDays'];
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
-  maxPickableDays,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {selection} = usePageFilters();
+  const {isReady} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -387,36 +382,31 @@ function SpanTabContentSection({
 
   const limit = 50;
 
-  const isAllowedSelection = useMemo(
-    () => checkIsAllowedSelection(selection, maxPickableDays),
-    [selection, maxPickableDays]
-  );
-
   const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'aggregate',
+    enabled: isReady && queryType === 'aggregate',
     queryExtras: {caseInsensitive},
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'samples',
+    enabled: isReady && queryType === 'samples',
     queryExtras: {caseInsensitive},
   });
   const tracesTableResult = useExploreTracesTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'traces',
+    enabled: isReady && queryType === 'traces',
     queryExtras: {caseInsensitive},
   });
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
-      enabled: isAllowedSelection,
+      enabled: isReady,
       queryExtras: {caseInsensitive},
     });
 
@@ -530,15 +520,6 @@ function SpanTabContentSection({
       </TourElement>
     </ExploreContentSection>
   );
-}
-
-function checkIsAllowedSelection(
-  selection: PageFilters,
-  maxPickableDays: PickableDays['maxPickableDays']
-) {
-  const maxPickableMinutes = maxPickableDays * 24 * 60;
-  const selectedMinutes = getDiffInMinutes(selection.datetime);
-  return selectedMinutes <= maxPickableMinutes;
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
