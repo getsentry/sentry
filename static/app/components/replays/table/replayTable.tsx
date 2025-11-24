@@ -44,6 +44,7 @@ export default function ReplayTable({
   showDropdownFilters,
   highlightedRowIndex = -1,
   sort,
+  // stickyHeader only works if the table is inside a scrollable container
   stickyHeader = false,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
