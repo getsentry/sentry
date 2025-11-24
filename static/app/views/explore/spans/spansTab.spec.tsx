@@ -191,7 +191,10 @@ describe('SpansTabContent', () => {
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
-    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
     expect(groupBys).toEqual(['project']);

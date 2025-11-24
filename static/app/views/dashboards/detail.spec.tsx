@@ -1809,7 +1809,7 @@ describe('Dashboards > Detail', () => {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2]!, 's');
+      await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
