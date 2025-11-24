@@ -10,6 +10,7 @@ from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -370,7 +371,8 @@ class StatefulDetectorHandler(
                     },
                 )
                 return []
-            return serialize(data_sources)
+            # Serializers return camelcased keys, but evidence data should use snakecase
+            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
         except Exception:
             logger.exception(
                 "Failed to serialize data source definition when building workflow engine evidence data"
