@@ -1,13 +1,10 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
@@ -23,32 +20,6 @@ import {
 } from 'sentry/views/explore/queryParams/savedQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-  return (
-    <Button
-      size="xs"
-      aria-label="trace-metrics-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm?.({
-          messagePlaceholder: t('How can we make metrics work better for you?'),
-          tags: {
-            ['feedback.source']: 'metrics-listing',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  );
-}
 
 export default function MetricsContent() {
   const organization = useOrganization();
@@ -117,9 +88,16 @@ function MetricsHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
-          <FeedbackButton />
-        </ButtonBar>
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make metrics work better for you?'),
+            tags: {
+              ['feedback.source']: 'metrics-listing',
+              ['feedback.owner']: 'performance',
+            },
+          }}
+        />
       </Layout.HeaderActions>
     </Layout.Header>
   );
