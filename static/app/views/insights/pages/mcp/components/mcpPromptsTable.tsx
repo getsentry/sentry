@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -99,19 +100,26 @@ export function McpPromptsTable() {
       switch (column.key) {
         case SpanFields.MCP_PROMPT_NAME:
           return <McpPromptCell prompt={dataRow[SpanFields.MCP_PROMPT_NAME]} />;
-        case 'failure_rate()':
+        case 'failure_rate()': {
+          const search = new MutableSearch(query);
+          search.addFilterValue(SpanFields.SPAN_STATUS, 'internal_error');
+          search.addFilterValue(
+            SpanFields.MCP_PROMPT_NAME,
+            dataRow[SpanFields.MCP_PROMPT_NAME]
+          );
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error ${SpanFields.MCP_PROMPT_NAME}:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
+                query: search.formatString(),
                 selection,
                 organization,
                 referrer: MCPReferrer.MCP_PROMPT_TABLE,
               })}
             />
           );
+        }
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case AVG_DURATION:
@@ -145,6 +153,10 @@ function McpPromptCell({prompt}: {prompt: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const search = new MutableSearch('');
+  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.MCP_PROMPT_NAME, prompt);
+
   const link = getExploreUrl({
     organization,
     selection,
@@ -162,7 +174,7 @@ function McpPromptCell({prompt}: {prompt: string}) {
       'span.duration',
       'timestamp',
     ],
-    query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
+    query: search.formatString(),
     sort: `-count(span.duration)`,
   });
   return <Link to={link}>{prompt}</Link>;

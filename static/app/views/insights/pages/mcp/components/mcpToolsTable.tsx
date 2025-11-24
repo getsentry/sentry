@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -99,19 +100,26 @@ export function McpToolsTable() {
       switch (column.key) {
         case SpanFields.MCP_TOOL_NAME:
           return <McpToolCell tool={dataRow[SpanFields.MCP_TOOL_NAME]} />;
-        case 'failure_rate()':
+        case 'failure_rate()': {
+          const search = new MutableSearch(query);
+          search.addFilterValue(SpanFields.SPAN_STATUS, 'internal_error');
+          search.addFilterValue(
+            SpanFields.MCP_TOOL_NAME,
+            dataRow[SpanFields.MCP_TOOL_NAME]
+          );
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                query: search.formatString(),
                 selection,
                 organization,
                 referrer: MCPReferrer.MCP_TOOL_TABLE,
               })}
             />
           );
+        }
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case AVG_DURATION:
@@ -145,6 +153,10 @@ function McpToolCell({tool}: {tool: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const search = new MutableSearch('');
+  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.MCP_TOOL_NAME, tool);
+
   const link = getExploreUrl({
     organization,
     selection,
@@ -155,7 +167,7 @@ function McpToolCell({tool}: {tool: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
-    query: `span.op:mcp.server ${SpanFields.MCP_TOOL_NAME}:"${tool}"`,
+    query: search.formatString(),
     sort: `-count(span.duration)`,
     field: ['span.description', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
   });
