@@ -112,19 +112,21 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
               additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
-          <ChartsContainerItem key="release2">
-            <SpanSamplesContainer
-              groupId={groupId}
-              moduleName={moduleName}
-              transactionName={transactionName}
-              transactionMethod={transactionMethod}
-              release={secondaryRelease}
-              sectionTitle={t('Release 2')}
-              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
-              spanOp={spanOp}
-              additionalFilters={additionalFilters}
-            />
-          </ChartsContainerItem>
+          {secondaryRelease && (
+            <ChartsContainerItem key="release2">
+              <SpanSamplesContainer
+                groupId={groupId}
+                moduleName={moduleName}
+                transactionName={transactionName}
+                transactionMethod={transactionMethod}
+                release={secondaryRelease}
+                sectionTitle={t('Release 2')}
+                searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
+                spanOp={spanOp}
+                additionalFilters={additionalFilters}
+              />
+            </ChartsContainerItem>
+          )}
         </ChartsContainer>
       </SampleDrawerBody>
     </PageAlertProvider>

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -100,6 +100,25 @@ describe('ScreenLoadEventSamples', () => {
     });
   });
 
+  it('makes a request without release filter when release is empty string', async () => {
+    render(
+      <ScreenLoadEventSamples
+        release=""
+        sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+        cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+        transaction="ErrorController"
+      />
+    );
+
+    await waitFor(() => {
+      expect(mockEventsRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // Check that the request query does not include a release filter
+    const requestCall = mockEventsRequest.mock.calls[0];
+    expect(requestCall[1].query.query).not.toContain('release:');
+  });
+
   it('makes a request for the release and transaction passed as props', async () => {
     render(
       <ScreenLoadEventSamples
@@ -107,7 +126,6 @@ describe('ScreenLoadEventSamples', () => {
         sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
         cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
         transaction="ErrorController"
-        showDeviceClassSelector
       />
     );
 

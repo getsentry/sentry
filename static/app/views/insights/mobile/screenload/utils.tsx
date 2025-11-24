@@ -46,6 +46,15 @@ export function transformDeviceClassEvents({
         data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
+
+    // all option
+    if (!primaryRelease && !secondaryRelease) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      transformedData[YAXIS_COLUMNS[val]].all = {
+        seriesName: 'all',
+        data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
+      };
+    }
   });
 
   const deviceClassIndex = Object.fromEntries(
@@ -57,8 +66,9 @@ export function transformDeviceClassEvents({
       const deviceClass = row['device.class'];
       const index = deviceClassIndex[deviceClass];
 
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
+      const release = row.release || 'all';
+      const isPrimary = release === 'all' || release === primaryRelease;
+
       yAxes.forEach(val => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (transformedData[YAXIS_COLUMNS[val]][release]) {
