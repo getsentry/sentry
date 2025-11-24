@@ -28,6 +28,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      scrollToIndex: jest.fn(),
       options: {
         scrollMargin: 0,
       },
@@ -42,6 +43,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      scrollToIndex: jest.fn(),
       options: {
         scrollMargin: 0,
       },
@@ -156,6 +158,19 @@ describe('OurlogsSection', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${logId}/`,
+      method: 'GET',
+      body: {
+        itemId: logId,
+        timestamp: '2025-04-03T15:50:10+00:00',
+        attributes: [
+          {name: 'severity', type: 'str', value: 'error'},
+          {name: 'special_field', type: 'str', value: 'special value'},
+        ],
+      },
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: {},
@@ -232,5 +247,41 @@ describe('OurlogsSection', () => {
 
     expect(within(aside).getByTestId('tree-key-severity')).toBeInTheDocument();
     expect(within(aside).getByTestId('tree-key-severity')).toHaveTextContent('severity');
+  });
+
+  it('renders Open in explore button with correct URL when trace_id exists', async () => {
+    render(<OurlogsSection event={event} project={project} group={group} />, {
+      organization: OrganizationFixture({
+        features: ['ourlogs-enabled', 'visibility-explore-view'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {
+            project: project.id,
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/i am a log/)).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText(/i am a log/));
+
+    const aside = screen.getByRole('complementary', {name: 'logs drawer'});
+    expect(aside).toBeInTheDocument();
+
+    const openInExploreButton = within(aside).getByRole('button', {
+      name: 'Open in explore',
+    });
+    expect(openInExploreButton).toBeInTheDocument();
+    expect(openInExploreButton).toHaveAttribute('target', '_blank');
+
+    const href = openInExploreButton.getAttribute('href');
+    expect(href).toBe(
+      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&environment=dev&logsQuery=trace%3A00000000000000000000000000000000&project=2&start=2019-03-19T00%3A00%3A00'
+    );
   });
 });

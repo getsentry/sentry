@@ -1110,7 +1110,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'new-internal/',
@@ -1121,7 +1120,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/',
@@ -1132,7 +1130,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/dashboard/',
@@ -1471,7 +1468,12 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'details/:ruleId/',
-          component: make(() => import('sentry/views/alerts/rules/metric/details')),
+          component: make(
+            () =>
+              import(
+                'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleDetails'
+              )
+          ),
           deprecatedRouteProps: true,
         },
         {
@@ -1487,22 +1489,23 @@ function buildRoutes(): RouteObject[] {
             },
             {
               path: ':ruleId/',
-              component: make(() => import('sentry/views/alerts/edit')),
+              component: make(
+                () =>
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+              ),
               deprecatedRouteProps: true,
             },
           ],
         },
         {
           path: ':projectId/:ruleId/details/',
-          children: [
-            {
-              index: true,
-              component: make(
-                () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-              ),
-              deprecatedRouteProps: true,
-            },
-          ],
+          component: make(
+            () =>
+              import(
+                'sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleDetails'
+              )
+          ),
+          deprecatedRouteProps: true,
         },
         {
           path: 'uptime/',
@@ -1511,12 +1514,20 @@ function buildRoutes(): RouteObject[] {
           children: [
             {
               path: ':projectId/:detectorId/details/',
-              component: make(() => import('sentry/views/alerts/rules/uptime/details')),
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/alerts/workflowEngineRedirectWrappers/uptimeAlertRuleDetails'
+                  )
+              ),
             },
             {
               path: 'existing-or-create/',
               component: make(
-                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+                () =>
+                  import(
+                    'sentry/views/alerts/workflowEngineRedirectWrappers/uptimeExistingOrCreate'
+                  )
               ),
             },
           ],
@@ -1557,7 +1568,12 @@ function buildRoutes(): RouteObject[] {
             },
             {
               path: ':ruleId/',
-              component: make(() => import('sentry/views/alerts/edit')),
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
+                  )
+              ),
               deprecatedRouteProps: true,
             },
           ],
@@ -1574,7 +1590,12 @@ function buildRoutes(): RouteObject[] {
           children: [
             {
               path: ':ruleId/',
-              component: make(() => import('sentry/views/alerts/edit')),
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
+                  )
+              ),
               deprecatedRouteProps: true,
             },
           ],
@@ -1600,7 +1621,12 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'wizard/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      component: make(
+        () =>
+          import(
+            'sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider'
+          )
+      ),
       children: [
         {
           index: true,
@@ -1623,7 +1649,9 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':alertType/',
-          component: make(() => import('sentry/views/alerts/create')),
+          component: make(
+            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+          ),
           deprecatedRouteProps: true,
         },
       ],
@@ -1634,7 +1662,12 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':projectId/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      component: make(
+        () =>
+          import(
+            'sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider'
+          )
+      ),
       deprecatedRouteProps: true,
       children: [
         {
@@ -2679,6 +2712,11 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'dynamic-groups/',
+      component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',

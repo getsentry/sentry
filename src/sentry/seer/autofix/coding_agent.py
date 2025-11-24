@@ -193,6 +193,7 @@ def _launch_agents_for_repos(
     run_id: int,
     organization,
     trigger_source: AutofixTriggerSource,
+    instruction: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for all repositories in the solution.
@@ -225,12 +226,14 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound("No repos to run agents")
+        raise NotFound(
+            "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
+        )
 
-    prompt = get_coding_agent_prompt(run_id, trigger_source)
+    prompt = get_coding_agent_prompt(run_id, trigger_source, instruction)
 
     if not prompt:
-        raise APIException("No prompt to send to agents.")
+        raise APIException("Issue fetching prompt to send to coding agents.")
 
     successes = []
     failures = []
@@ -316,6 +319,7 @@ def launch_coding_agents_for_run(
     integration_id: int,
     run_id: int,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
+    instruction: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
@@ -325,6 +329,7 @@ def launch_coding_agents_for_run(
         integration_id: The coding agent integration ID
         run_id: The autofix run ID
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
+        instruction: Optional custom instruction to append to the prompt
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -359,7 +364,7 @@ def launch_coding_agents_for_run(
     )
 
     results = _launch_agents_for_repos(
-        installation, autofix_state, run_id, organization, trigger_source
+        installation, autofix_state, run_id, organization, trigger_source, instruction
     )
 
     if not results["successes"] and not results["failures"]:

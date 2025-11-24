@@ -371,6 +371,13 @@ const SECTIONS: TSection[] = [
         name: 'Teamwork',
         defaultProps: {},
       },
+      {
+        id: 'linear',
+        groups: ['logo'],
+        keywords: ['tickets', 'issues', 'project', 'linear'],
+        name: 'Linear',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -390,10 +397,9 @@ const SECTIONS: TSection[] = [
           'previous',
           'west',
         ],
-        additionalProps: ['isCircled', 'direction', 'isDouble'],
+        additionalProps: ['direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'left',
           isDouble: false,
         },
@@ -413,7 +419,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'right',
         },
       },
@@ -423,7 +428,6 @@ const SECTIONS: TSection[] = [
         keywords: ['up', 'point', 'direct', 'move', 'arrow', 'top', 'north', 'collapse'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'up',
         },
       },
@@ -442,7 +446,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'down',
         },
       },
@@ -772,69 +775,29 @@ const SECTIONS: TSection[] = [
         id: 'add',
         groups: ['action'],
         keywords: ['plus', 'create', 'new', 'insert', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Add',
-        defaultProps: {
-          isCircled: false,
-        },
-      },
-      {
-        id: 'add-isCircled',
-        name: 'Add',
-        defaultProps: {
-          isCircled: true,
-        },
+        defaultProps: {},
       },
       {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Subtract',
-        defaultProps: {
-          isCircled: false,
-        },
-      },
-      {
-        id: 'subtract-isCircled',
-        name: 'Subtract',
-        defaultProps: {
-          isCircled: true,
-        },
+        defaultProps: {},
       },
       {
         id: 'checkmark',
         groups: ['action'],
         keywords: ['done', 'finish', 'success', 'confirm', 'resolve'],
-        additionalProps: ['isCircled'],
         name: 'Checkmark',
-        defaultProps: {
-          isCircled: false,
-        },
-      },
-      {
-        id: 'checkmark-isCircled',
-        name: 'Checkmark',
-        defaultProps: {
-          isCircled: true,
-        },
+        defaultProps: {},
       },
       {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
-        additionalProps: ['isCircled'],
         name: 'Close',
-        defaultProps: {
-          isCircled: false,
-        },
-      },
-      {
-        id: 'close-isCircled',
-        name: 'Close',
-        defaultProps: {
-          isCircled: true,
-        },
+        defaultProps: {},
       },
       {
         id: 'divide',
@@ -1530,6 +1493,20 @@ const SECTIONS: TSection[] = [
         name: 'Image',
         defaultProps: {},
       },
+      {
+        id: 'creditCard',
+        groups: ['device'],
+        keywords: ['creditCard', 'card', 'payment'],
+        name: 'CreditCard',
+        defaultProps: {},
+      },
+      {
+        id: 'receipt',
+        groups: ['device'],
+        keywords: ['receipt', 'invoice', 'payment'],
+        name: 'Receipt',
+        defaultProps: {},
+      },
     ],
   },
 ];
@@ -1913,7 +1890,7 @@ function propsToVariant(props: Record<string, unknown>): string | null {
     if (['type', 'direction', 'variant'].includes(key)) {
       return typeof value === 'string' ? value : null;
     }
-    // isSolid, isCircled, isZoomIn
+    // isSolid, isZoomIn
     if (key.startsWith('is') && value) {
       return lowerFirst(key.replace('is', ''));
     }

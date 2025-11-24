@@ -764,6 +764,32 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.refresh_from_db()
         assert self.detector.config != invalid_config
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    def test_anomaly_detection_to_static(self, mock_seer_request: mock.MagicMock) -> None:
+        self.detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC}
+        self.detector.save()
+
+        updated_config = {"detection_type": AlertRuleDetectionType.STATIC}
+        data = {"config": updated_config}
+        mock_seer_request.return_value = True
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+        self.detector.refresh_from_db()
+        # Verify config was updated in database (snake_case)
+        assert self.detector.config == updated_config
+        # API returns camelCase
+        assert response.data["config"] == {"detectionType": "static"}
+        mock_seer_request.assert_called_once_with(
+            source_id=int(self.data_source.source_id), organization=self.organization
+        )
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -843,3 +869,19 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_seer_request.assert_called_once_with(
             source_id=int(self.data_source.source_id), organization=self.organization
         )
+
+    def test_cannot_delete_system_created_detector(self) -> None:
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
+
+        # Verify detector was not deleted
+        error_detector.refresh_from_db()
+        assert error_detector.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=error_detector.id
+        ).exists()

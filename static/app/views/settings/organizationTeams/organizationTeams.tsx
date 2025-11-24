@@ -60,7 +60,7 @@ export default function OrganizationTeams({
           organization,
         })
       }
-      icon={<IconAdd isCircled />}
+      icon={<IconAdd />}
     >
       {t('Create Team')}
     </Button>
