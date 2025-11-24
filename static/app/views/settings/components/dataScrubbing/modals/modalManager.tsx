@@ -245,8 +245,9 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
       [field]: value,
     };
 
-    if (values.type !== RuleType.PATTERN && values.pattern) {
+    if (values.type !== RuleType.PATTERN) {
       values.pattern = '';
+      values.replaceCaptured = 'false';
     }
 
     if (values.type === RuleType.PATTERN && !hasCaptureGroups(values.pattern)) {
