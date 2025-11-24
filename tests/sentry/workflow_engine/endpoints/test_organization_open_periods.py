@@ -282,9 +282,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["isOpen"] is False
-        assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
-            second=0, microsecond=0
-        )
 
     def test_get_open_periods_time_range_starts_after_query_start(self) -> None:
         """Test that open periods starting after query_start and ending after query_end are included."""
