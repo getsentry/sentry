@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import type {UseQueryResult} from 'sentry/utils/queryClient';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 type FilterSelectorTriggerProps = {
@@ -33,13 +34,19 @@ function FilterSelectorTrigger({
   const isAllSelected =
     activeFilterValues.length === 0 || activeFilterValues.length === options.length;
 
+  const tagKey = prettifyTagKey(tag.key);
+  const truncatedTagKey = middleEllipsis(tagKey, 50, /[\s-_:]/);
+  const truncatedValue = activeFilterValues[0]
+    ? middleEllipsis(activeFilterValues[0], 60, /[\s-_:]/)
+    : '';
+
   return (
     <ButtonLabelWrapper>
       <TextOverflow>
-        {prettifyTagKey(tag.key)}:{' '}
+        {truncatedTagKey}:{' '}
         {!isFetching && (
           <span style={{fontWeight: 'normal'}}>
-            {isAllSelected ? t('All') : activeFilterValues[0]}
+            {isAllSelected ? t('All') : truncatedValue}
           </span>
         )}
       </TextOverflow>

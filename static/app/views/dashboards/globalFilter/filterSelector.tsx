@@ -15,6 +15,7 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -124,7 +125,7 @@ function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {label: value, value});
+      map.set(value, {label: middleEllipsis(value, 70, /[\s-_:]/), value});
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
@@ -254,7 +255,6 @@ function FilterSelector({
         setStagedFilterValues(value);
       }}
       sizeLimit={30}
-      maxMenuWidth={500}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
