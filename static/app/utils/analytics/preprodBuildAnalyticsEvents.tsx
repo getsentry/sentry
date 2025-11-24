@@ -15,6 +15,7 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.compare.select_base_build': BasePreprodBuildEvent;
   'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent;
   'preprod.builds.details.compare_build_clicked': BasePreprodBuildEvent;
+  'preprod.builds.details.delete_build': BasePreprodBuildEvent;
   'preprod.builds.details.expand_insight': BasePreprodBuildEvent & {
     insight_key: string;
   };
@@ -36,6 +37,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.details.expand_insight': 'Preprod Build Details: Insight Expanded',
   'preprod.builds.details.open_insight_details_modal':
     'Preprod Build Details: Open Insight Details Modal',
+  'preprod.builds.details.delete_build': 'Preprod Build Details: Delete Build',
   'preprod.builds.details.compare_build_clicked':
     'Preprod Build Details: Compare Clicked',
   'preprod.builds.compare.go_to_build_details':

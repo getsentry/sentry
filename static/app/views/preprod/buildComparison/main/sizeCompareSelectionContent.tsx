@@ -186,7 +186,6 @@ export function SizeCompareSelectionContent({
                     organization,
                     build_id: build.id,
                     project_slug: projectId,
-                    project_type: headBuildDetails.app_info?.platform ?? null,
                     platform:
                       build.app_info?.platform ??
                       headBuildDetails.app_info?.platform ??

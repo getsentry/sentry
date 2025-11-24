@@ -104,7 +104,7 @@ export default function PreprodBuilds() {
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
   const handleBuildRowClick = useCallback(
-    (build: BuildDetailsApiResponse, _rowIndex: number) => {
+    (build: BuildDetailsApiResponse) => {
       trackAnalytics('preprod.builds.release.build_row_clicked', {
         organization,
         project_type: projectPlatform ?? null,

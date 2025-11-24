@@ -139,6 +139,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const handleConfirmDelete = () => {
     handleDeleteArtifact();
+    trackAnalytics('preprod.builds.details.delete_build', {
+      organization,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
+      project_slug: projectId,
+      project_type: buildDetailsData.app_info?.platform ?? null,
+    });
   };
 
   return (
