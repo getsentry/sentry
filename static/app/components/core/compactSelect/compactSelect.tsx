@@ -26,16 +26,10 @@ interface BaseSelectProps<Value extends SelectKey>
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributiveOmit<
-    SingleListProps<Value>,
-    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-  >;
+  DistributiveOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
 
 export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributiveOmit<
-    MultipleListProps<Value>,
-    'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
-  >;
+  DistributiveOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
 
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
@@ -126,6 +120,8 @@ export function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
+      items={itemsWithKey}
+      value={value}
       clearable={clearable}
       onClear={({overlayState}) => {
         if (clearable) {
