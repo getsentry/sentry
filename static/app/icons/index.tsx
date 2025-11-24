@@ -67,6 +67,7 @@ export {IconJson} from './iconJson';
 export {IconKeyDown} from './iconKeyDown';
 export {IconLab} from './iconLab';
 export {IconLightning} from './iconLightning';
+export {IconLinear} from './iconLinear';
 export {IconLink} from './iconLink';
 export {IconList} from './iconList';
 export {IconLocation} from './iconLocation';

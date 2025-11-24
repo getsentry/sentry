@@ -371,6 +371,13 @@ const SECTIONS: TSection[] = [
         name: 'Teamwork',
         defaultProps: {},
       },
+      {
+        id: 'linear',
+        groups: ['logo'],
+        keywords: ['tickets', 'issues', 'project', 'linear'],
+        name: 'Linear',
+        defaultProps: {},
+      },
     ],
   },
   {
