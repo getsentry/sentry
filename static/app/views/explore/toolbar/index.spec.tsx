@@ -304,16 +304,17 @@ describe('ExploreToolbar', () => {
 
     let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
+    const spanOpColumn = screen.getAllByTestId('editor-column')[0]!;
 
     expect(groupBys).toEqual(['']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(spanOpColumn).getByRole('button', {name: '\u2014'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(groupBys).toEqual(['span.op']);
 
-    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(spanOpColumn).getByRole('button', {name: 'span.op'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'project'}));
@@ -322,7 +323,12 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['project', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    const projectColumn = screen.getAllByTestId('editor-column')[1]!;
+    await userEvent.click(
+      within(projectColumn).getByRole('button', {
+        name: '\u2014',
+      })
+    );
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
@@ -356,8 +362,9 @@ describe('ExploreToolbar', () => {
     expect(groupBys).toEqual(['']);
 
     const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
 
-    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
     expect(mode).toEqual(Mode.AGGREGATE);
