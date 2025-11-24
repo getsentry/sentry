@@ -42,6 +42,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             code=migrate_fallthrough_type,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["workflow_engine_workflowfirehistory"]},
+            hints={"tables": ["workflow_engine_action"]},
         ),
     ]
