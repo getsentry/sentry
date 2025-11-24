@@ -114,8 +114,8 @@ class TestNotificationActionMigrationUtils(TestCase):
                         assert action.data.get(field) == source_value
                     else:
                         # For unmapped fields, check directly with empty string default
-                        if action.type == Action.Type.EMAIL and field == "fallthroughType":
-                            # for email actions, the default value for fallthroughType should be "ActiveMembers"
+                        if action.type == Action.Type.EMAIL and field == "fallthrough_type":
+                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
                             assert action.data.get(field) == compare_dict.get(
                                 field, "ActiveMembers"
                             )
@@ -131,10 +131,10 @@ class TestNotificationActionMigrationUtils(TestCase):
                 if key not in exclude_keys:
                     if (
                         action.type == Action.Type.EMAIL
-                        and key == "fallthroughType"
+                        and key == "fallthrough_type"
                         and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
-                        # for email actions, fallthroughType should only be set for when targetType is ISSUE_OWNERS
+                        # for email actions, fallthrough_type should only be set for when targetType is ISSUE_OWNERS
                         continue
                     else:
                         assert compare_dict[key] == action.data[key]
@@ -626,9 +626,9 @@ class TestNotificationActionMigrationUtils(TestCase):
             {
                 "uuid": "12345678-90ab-cdef-0123-456789abcdef",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
+                "fallthrough_type": "NoOne",
             },
-            # This should be ok since we have a default value for fallthroughType
+            # This should be ok since we have a default value for fallthrough_type
             {
                 "uuid": "12345678-90ab-cdef-0123-456789abcdef",
                 "id": "sentry.mail.actions.NotifyEmailAction",

@@ -25,6 +25,7 @@ from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     TicketingIssueAlertHandler,
 )
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -538,35 +539,35 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         # These are the actions that are healed from the old email action data blobs
         # It removes targetIdentifier for IssueOwner targets (since that shouldn't be set for those)
-        # It also removes the fallthroughType for Team and Member targets (since that shouldn't be set for those)
+        # It also removes the fallthrough_type for Team and Member targets (since that shouldn't be set for those)
         self.HEALED_EMAIL_ACTION_DATA_BLOBS = [
             # IssueOwners (targetIdentifier is "None")
             {
-                "targetType": "IssueOwners",
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "ActiveMembers",
+                "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
             },
             # NoOne Fallthrough (targetIdentifier is "")
             {
-                "targetType": "IssueOwners",
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
+                "fallthrough_type": FallthroughChoiceType.NO_ONE,
             },
             # AllMembers Fallthrough (targetIdentifier is None)
             {
-                "targetType": "IssueOwners",
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "AllMembers",
+                "fallthrough_type": "AllMembers",
             },
             # NoOne Fallthrough (targetIdentifier is "None")
             {
-                "targetType": "IssueOwners",
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
+                "fallthrough_type": FallthroughChoiceType.NO_ONE,
             },
             # ActiveMembers Fallthrough
             {
-                "targetType": "Member",
+                "targetType": ActionTargetType.MEMBER.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": "3234013",
             },
@@ -574,11 +575,11 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": "2160509",
-                "targetType": "Member",
+                "targetType": ActionTargetType.MEMBER.value,
             },
             # Team Email
             {
-                "targetType": "Team",
+                "targetType": ActionTargetType.TEAM.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": "188022",
             },
@@ -587,10 +588,8 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob(self) -> None:
         for expected, healed in zip(EMAIL_ACTION_DATA_BLOBS, self.HEALED_EMAIL_ACTION_DATA_BLOBS):
             action_data = pop_keys_from_data_blob(expected, Action.Type.EMAIL)
-
             # pop the targetType from the action_data
             target_type = EmailActionHelper.get_target_type_object(action_data.pop("targetType"))
-
             # Handle all possible targetIdentifier formats
             target_identifier: str | None = str(expected["targetIdentifier"])
             if target_identifier in ("None", "", None):
@@ -605,8 +604,27 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
                 },
             )
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
-
             assert blob == healed
+
+    def test_build_rule_action_blob_fallthrough_type_camel_case(self) -> None:
+        """
+        Test that while we are temporarily allowing both fallthroughType and fallthrough_type in Action.data
+        that both work when building the action data blob and result in the snake case version
+        """
+        action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            data={"fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS},
+            config={
+                "target_type": ActionTarget.ISSUE_OWNERS,
+                "target_identifier": None,
+            },
+        )
+        blob = self.handler.build_rule_action_blob(action, self.organization.id)
+        assert blob == {
+            "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+        }
 
 
 class TestPluginIssueAlertHandler(BaseWorkflowTest):
