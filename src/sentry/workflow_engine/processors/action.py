@@ -126,7 +126,11 @@ def update_workflow_action_group_statuses(
     )
     if len(missing_statuses) != len(created_statuses):
         # pairs that weren't created
-        created_pairs = {(status.workflow_id, status.action_id) for status in created_statuses}
+        created_pairs = {
+            (status.workflow_id, status.action_id)
+            for status in created_statuses
+            if status.id is not None
+        }
         missing_pairs = {
             (status.workflow_id, status.action_id) for status in missing_statuses
         } - created_pairs
