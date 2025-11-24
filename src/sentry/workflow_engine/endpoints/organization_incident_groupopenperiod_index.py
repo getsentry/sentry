@@ -97,8 +97,8 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
                 # Serialize the GroupOpenPeriod as if it were an IncidentGroupOpenPeriod
                 return Response(
                     {
-                        "incidentId": fake_id,
-                        "incidentIdentifier": fake_id,
+                        "incidentId": str(fake_id),
+                        "incidentIdentifier": str(fake_id),
                         "groupId": str(group_open_period.group_id),
                         "openPeriodId": str(group_open_period.id),
                     }
