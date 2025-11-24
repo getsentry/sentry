@@ -1,11 +1,10 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
@@ -32,8 +31,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-const STORAGE_KEY = 'dynamic-grouping-cluster-data';
-
 interface AssignedEntity {
   email: string | null;
   id: string;
@@ -52,9 +49,12 @@ interface ClusterSummary {
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
-  summary: string;
   tags: string[];
   title: string;
+}
+
+interface TopIssuesResponse {
+  data: ClusterSummary[];
 }
 
 // Compact issue preview for dynamic grouping - no short ID or quick fix icon
@@ -215,7 +215,7 @@ function ClusterCard({
               </TitleHeading>
             </Disclosure.Title>
             <Disclosure.Content>
-              <SummaryText variant="muted">{cluster.summary}</SummaryText>
+              <SummaryText variant="muted">{cluster.description}</SummaryText>
               {cluster.fixability_score !== null && (
                 <ConfidenceText size="sm" variant="muted">
                   {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
@@ -267,53 +267,23 @@ function DynamicGrouping() {
   const organization = useOrganization();
   const user = useUser();
   const {teams} = useUserTeams();
-  const [jsonInput, setJsonInput] = useState('');
-  const [clusterData, setClusterData] = useState<ClusterSummary[]>([]);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [showInput, setShowInput] = useState(true);
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
+  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setClusterData(parsed);
-        setJsonInput(stored);
-        setShowInput(false);
-      } catch {
-        // If stored data is invalid, clear it
-        localStorage.removeItem(STORAGE_KEY);
-      }
+  // Fetch cluster data from API
+  const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
+    [`/organizations/${organization.slug}/top-issues/`],
+    {
+      staleTime: 60000, // Cache for 1 minute
     }
-  }, []);
+  );
 
-  const handleJsonSubmit = () => {
-    try {
-      const parsed = JSON.parse(jsonInput);
-      if (!Array.isArray(parsed)) {
-        setParseError(t('JSON must be an array of cluster summaries'));
-        return;
-      }
-      setClusterData(parsed);
-      setParseError(null);
-      setShowInput(false);
-      localStorage.setItem(STORAGE_KEY, jsonInput);
-    } catch (error) {
-      setParseError(error instanceof Error ? error.message : t('Invalid JSON format'));
-    }
-  };
-
-  const handleClear = () => {
-    setClusterData([]);
-    setJsonInput('');
-    setParseError(null);
-    setShowInput(true);
-    localStorage.removeItem(STORAGE_KEY);
-  };
+  const clusterData = useMemo(
+    () => topIssuesResponse?.data ?? [],
+    [topIssuesResponse?.data]
+  );
 
   const handleRemoveCluster = (clusterId: number) => {
     // Start animation
@@ -321,18 +291,10 @@ function DynamicGrouping() {
 
     // Wait for animation to complete before removing
     setTimeout(() => {
-      const updatedClusters = clusterData.filter(
-        cluster => cluster.cluster_id !== clusterId
-      );
-      setClusterData(updatedClusters);
+      const updatedRemovedIds = new Set(removedClusterIds);
+      updatedRemovedIds.add(clusterId);
+      setRemovedClusterIds(updatedRemovedIds);
       setRemovingClusterId(null);
-
-      // Update localStorage with the new data
-      if (updatedClusters.length > 0) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedClusters));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
     }, 300); // Match the animation duration
   };
 
@@ -364,6 +326,11 @@ function DynamicGrouping() {
   const filteredAndSortedClusters = useMemo(() => {
     return [...clusterData]
       .filter((cluster: ClusterSummary) => {
+        // Filter out removed clusters
+        if (removedClusterIds.has(cluster.cluster_id)) {
+          return false;
+        }
+
         // Filter by fixability score - hide clusters below threshold
         const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
         if (fixabilityScore < minFixabilityScore) {
@@ -380,7 +347,13 @@ function DynamicGrouping() {
         (a: ClusterSummary, b: ClusterSummary) =>
           (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
       );
-  }, [clusterData, filterByAssignedToMe, minFixabilityScore, isClusterAssignedToMe]);
+  }, [
+    clusterData,
+    removedClusterIds,
+    filterByAssignedToMe,
+    minFixabilityScore,
+    isClusterAssignedToMe,
+  ]);
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
@@ -409,52 +382,15 @@ function DynamicGrouping() {
       />
 
       <PageHeader>
-        <Flex justify="between" align="start" gap="sm">
-          <div style={{flex: 1}}>
-            <Heading as="h1">{t('Top Issues')}</Heading>
-          </div>
-          {clusterData.length > 0 && !showInput && (
-            <Flex gap="sm" style={{flexShrink: 0}}>
-              <Button size="sm" onClick={() => setShowInput(true)}>
-                {t('Update Data')}
-              </Button>
-              <Button size="sm" priority="danger" onClick={handleClear}>
-                {t('Clear')}
-              </Button>
-            </Flex>
-          )}
-        </Flex>
+        <Heading as="h1">{t('Top Issues')}</Heading>
       </PageHeader>
 
-      {showInput || clusterData.length === 0 ? (
-        <Container
-          padding="lg"
-          border="primary"
-          radius="md"
-          marginBottom="lg"
-          background="primary"
-        >
-          <Flex direction="column" gap="md">
-            <Text size="sm" variant="muted">
-              {t('Paste cluster summaries JSON data below:')}
-            </Text>
-            <JsonTextarea
-              value={jsonInput}
-              onChange={e => setJsonInput(e.target.value)}
-              placeholder={t('Paste JSON array here...')}
-              rows={10}
-            />
-            {parseError && <Alert type="error">{parseError}</Alert>}
-            <Flex gap="sm">
-              <Button priority="primary" onClick={handleJsonSubmit}>
-                {t('Load Data')}
-              </Button>
-              {clusterData.length > 0 && (
-                <Button onClick={() => setShowInput(false)}>{t('Cancel')}</Button>
-              )}
-            </Flex>
-          </Flex>
-        </Container>
+      {isPending ? (
+        <Flex direction="column" gap="md" marginTop="lg">
+          {[0, 1, 2].map(i => (
+            <Placeholder key={i} height="200px" />
+          ))}
+        </Flex>
       ) : (
         <Fragment>
           <Flex marginBottom="lg">
@@ -512,16 +448,24 @@ function DynamicGrouping() {
             </Disclosure>
           </Container>
 
-          <CardsGrid>
-            {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
-              <ClusterCard
-                key={cluster.cluster_id}
-                cluster={cluster}
-                onRemove={handleRemoveCluster}
-                isRemoving={removingClusterId === cluster.cluster_id}
-              />
-            ))}
-          </CardsGrid>
+          {filteredAndSortedClusters.length === 0 ? (
+            <Container padding="lg" border="primary" radius="md" background="primary">
+              <Text variant="muted" style={{textAlign: 'center'}}>
+                {t('No clusters match the current filters')}
+              </Text>
+            </Container>
+          ) : (
+            <CardsGrid>
+              {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
+                <ClusterCard
+                  key={cluster.cluster_id}
+                  cluster={cluster}
+                  onRemove={handleRemoveCluster}
+                  isRemoving={removingClusterId === cluster.cluster_id}
+                />
+              ))}
+            </CardsGrid>
+          )}
         </Fragment>
       )}
     </PageContainer>
@@ -740,30 +684,6 @@ const IconWrapper = styled('span')`
 const EventCount = styled('span')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const JsonTextarea = styled('textarea')`
-  width: 100%;
-  min-height: 300px;
-  padding: ${space(1.5)};
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 0 0 1px ${p => p.theme.purple300};
-  }
-
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const AdvancedFilterContent = styled('div')`
