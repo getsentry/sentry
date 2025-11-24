@@ -6,12 +6,14 @@ from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
+from sentry.ingest.transaction_clusterer.normalization import normalize_segment_name
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -35,6 +37,7 @@ from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,7 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
+    safe_execute(_normalize_segment_name, segment_span, project.organization)
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
@@ -138,6 +142,24 @@ def _enrich_spans(
     groupings.write_to_spans(spans)
 
     return segment, spans
+
+
+@metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
+def _normalize_segment_name(segment_span: CompatibleSpan, organization: Organization) -> None:
+    if not features.has("organizations:normalize_segment_names_in_span_enrichment", organization):
+        return
+
+    segment_name = attribute_value(
+        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
+    ) or segment_span.get("name")
+    if not segment_name:
+        return
+
+    source = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
+    unknown_if_parameterized = not source
+    known_to_be_unparameterized = source == "url"
+    if unknown_if_parameterized or known_to_be_unparameterized:
+        normalize_segment_name(segment_span)
 
 
 @metrics.wraps("spans.consumers.process_segments.add_segment_name")
