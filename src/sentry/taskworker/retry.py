@@ -84,7 +84,7 @@ class Retry:
         if self.max_attempts_reached(state):
             return False
 
-        # Explicit RetryError with attempts left.
+        # Explicit RetryTaskError with attempts left.
         if isinstance(exc, RetryTaskError):
             return True
 
