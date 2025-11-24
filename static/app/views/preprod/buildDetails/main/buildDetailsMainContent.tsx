@@ -40,6 +40,7 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
+  projectType?: string | null;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -49,6 +50,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeQuery,
     buildDetailsData,
     isBuildDetailsPending = false,
+    projectType,
   } = props;
   const {
     data: appSizeData,
@@ -322,6 +324,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         processedInsights={processedInsights}
         totalSize={totalSize}
         platform={buildDetailsData?.app_info?.platform ?? null}
+        projectType={projectType}
         onOpenInsightsSidebar={openInsightsSidebar}
       />
 
@@ -370,7 +373,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
       <AppSizeInsights
         processedInsights={processedInsights}
-        platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform ?? undefined)}
+        projectType={projectType}
       />
     </Stack>
   );

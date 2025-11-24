@@ -73,6 +73,8 @@ import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEve
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
 import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
+import type {PreprodBuildEventParameters} from './analytics/preprodBuildAnalyticsEvents';
+import {preprodBuildEventMap} from './analytics/preprodBuildAnalyticsEvents';
 import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
@@ -113,6 +115,7 @@ interface EventParameters
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
+    PreprodBuildEventParameters,
     ReleasesEventParameters,
     ReplayEventParameters,
     SearchEventParameters,
@@ -151,6 +154,7 @@ const allEventMap: Record<string, string | null> = {
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
   ...performanceEventMap,
+  ...preprodBuildEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
   ...exploreAnalyticsEventMap,

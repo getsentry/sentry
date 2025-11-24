@@ -28,6 +28,7 @@ interface PreprodBuildsTableProps {
   projectSlug: string;
   error?: boolean;
   hasSearchQuery?: boolean;
+  onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
 }
 
@@ -36,6 +37,7 @@ export function PreprodBuildsTable({
   isLoading,
   error,
   pageLinks,
+  onRowClick,
   organizationSlug,
   projectSlug,
   hasSearchQuery,
@@ -59,7 +61,7 @@ export function PreprodBuildsTable({
 
     return (
       <SimpleTable.Row key={build.id}>
-        <FullRowLink to={linkUrl}>
+        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
           <InteractionStateLayer />
           <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
@@ -176,7 +178,7 @@ export function PreprodBuildsTable({
       </SimpleTable.Empty>
     );
   } else {
-    tableContent = <Fragment>{builds.map(renderBuildRow)}</Fragment>;
+    tableContent = <Fragment>{builds.map(build => renderBuildRow(build))}</Fragment>;
   }
 
   return (

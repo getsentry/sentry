@@ -20,6 +20,7 @@ interface AppSizeInsightsSidebarProps {
   onClose: () => void;
   processedInsights: ProcessedInsight[];
   platform?: Platform;
+  projectType?: string | null;
 }
 
 function getInsightsDocsUrl(platform?: Platform): string {
@@ -37,6 +38,7 @@ export function AppSizeInsightsSidebar({
   isOpen,
   onClose,
   platform,
+  projectType,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
@@ -141,6 +143,7 @@ export function AppSizeInsightsSidebar({
                       isExpanded={expandedInsights.has(insight.key)}
                       onToggleExpanded={() => toggleExpanded(insight.key)}
                       platform={platform}
+                      projectType={projectType}
                       itemsPerPage={isGroupedInsight ? 10 : undefined}
                     />
                   );
