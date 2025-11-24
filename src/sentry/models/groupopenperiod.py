@@ -144,6 +144,21 @@ def get_open_periods_for_group(
     query_end: datetime | None = None,
     limit: int | None = None,
 ) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods for a group that overlap with the query time range.
+
+    To overlap with [query_start, query_end], an open period must:
+    1. Start before the query ends
+    2. End after the query starts (or still be open)
+
+    This covers all overlap cases:
+    - Period starts before query and ends within query range
+    - Period starts before query and ends after query (open period spans entire query range)
+    - Period starts within query and ends within query (open period completely inside query range)
+    - Period starts within query and ends after query
+    - Period starts before query and is still open
+    - Period starts within query and is still open
+    """
     if not should_create_open_periods(group.type):
         return GroupOpenPeriod.objects.none()
 
@@ -153,15 +168,15 @@ def get_open_periods_for_group(
     if not query_end:
         query_end = timezone.now()
 
-    # An open period overlaps with [query_start, query_end] if:
-    # - It started before or at query_end (date_started <= query_end)
-    # - AND (it ended at or after query_start OR is still open)
+    started_before_query_ends = Q(date_started__lte=query_end)
+    ended_after_query_starts = Q(date_ended__gte=query_start)
+    still_open = Q(date_ended__isnull=True)
+
     group_open_periods = (
         GroupOpenPeriod.objects.filter(
             group=group,
-            date_started__lte=query_end,
         )
-        .filter(Q(date_ended__gte=query_start) | Q(date_ended__isnull=True))
+        .filter(started_before_query_ends & (ended_after_query_starts | still_open))
         .order_by("-date_started")
     )
 
