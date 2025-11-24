@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import orjson
 import requests
@@ -96,21 +96,36 @@ class SeerExplorerClient:
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
+            category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
             custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
+            intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
     """
 
     def __init__(
         self,
         organization: Organization,
         user: User | AnonymousUser | None = None,
+        category_key: str | None = None,
+        category_value: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         custom_tools: list[type[ExplorerTool]] | None = None,
+        intelligence_level: Literal["low", "medium", "high"] = "medium",
     ):
         self.organization = organization
         self.user = user
         self.artifact_schema = artifact_schema
         self.custom_tools = custom_tools or []
+        self.intelligence_level = intelligence_level
+        self.category_key = category_key
+        self.category_value = category_value
+
+        # Validate that category_key and category_value are provided together
+        if category_key == "" or category_value == "":
+            raise ValueError("category_key and category_value cannot be empty strings")
+        if bool(category_key) != bool(category_value):
+            raise ValueError("category_key and category_value must be provided together")
 
         # Validate access on init
         has_access, error = has_seer_explorer_access_with_detail(organization, user)
@@ -121,21 +136,13 @@ class SeerExplorerClient:
         self,
         prompt: str,
         on_page_context: str | None = None,
-        category_key: str | None = None,
-        category_value: str | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
 
-        The client automatically collects user/org context (teams, projects, etc.)
-        and sends it to Seer for the agent to use. If artifact_schema was provided
-        in the constructor, it will be automatically included.
-
         Args:
             prompt: The initial task/query for the agent
             on_page_context: Optional context from the user's screen
-            category_key: Optional category key for filtering/grouping runs
-            category_value: Optional category value for filtering/grouping runs
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -152,6 +159,7 @@ class SeerExplorerClient:
             "insert_index": None,
             "on_page_context": on_page_context,
             "user_org_context": collect_user_org_context(self.user, self.organization),
+            "intelligence_level": self.intelligence_level,
         }
 
         # Add artifact schema if provided
@@ -164,11 +172,9 @@ class SeerExplorerClient:
                 extract_tool_schema(tool).dict() for tool in self.custom_tools
             ]
 
-        if category_key or category_value:
-            if not category_key or not category_value:
-                raise ValueError("category_key and category_value must be provided together")
-            payload["category_key"] = category_key
-            payload["category_value"] = category_value
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -193,10 +199,7 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
     ) -> int:
         """
-        Continue an existing Seer Explorer session.
-
-        This allows you to add follow-up queries to an ongoing conversation.
-        User context is NOT collected again (it was already captured at start).
+        Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
 
         Args:
             run_id: The run ID from start_run()
