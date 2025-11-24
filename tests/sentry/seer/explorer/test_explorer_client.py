@@ -103,8 +103,10 @@ class TestSeerExplorerClient(TestCase):
         mock_response.json.return_value = {"run_id": 999}
         mock_post.return_value = mock_response
 
-        client = SeerExplorerClient(self.organization, self.user)
-        run_id = client.start_run("Fix bug", category_key="bug-fixer", category_value="issue-123")
+        client = SeerExplorerClient(
+            self.organization, self.user, category_key="bug-fixer", category_value="issue-123"
+        )
+        run_id = client.start_run("Fix bug")
 
         assert run_id == 999
         body = orjson.loads(mock_post.call_args[1]["data"])
@@ -112,26 +114,60 @@ class TestSeerExplorerClient(TestCase):
         assert body["category_value"] == "issue-123"
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
-    def test_start_run_category_key_only_raises_error(self, mock_access):
+    def test_init_category_key_only_raises_error(self, mock_access):
         """Test that ValueError is raised when only category_key is provided"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user)
         with pytest.raises(
             ValueError, match="category_key and category_value must be provided together"
         ):
-            client.start_run("Test query", category_key="bug-fixer")
+            SeerExplorerClient(self.organization, self.user, category_key="bug-fixer")
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
-    def test_start_run_category_value_only_raises_error(self, mock_access):
+    def test_init_category_value_only_raises_error(self, mock_access):
         """Test that ValueError is raised when only category_value is provided"""
         mock_access.return_value = (True, None)
 
-        client = SeerExplorerClient(self.organization, self.user)
         with pytest.raises(
             ValueError, match="category_key and category_value must be provided together"
         ):
-            client.start_run("Test query", category_value="issue-123")
+            SeerExplorerClient(self.organization, self.user, category_value="issue-123")
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_with_intelligence_level(self, mock_access):
+        """Test that intelligence_level is stored"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user, intelligence_level="high")
+        assert client.intelligence_level == "high"
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_default_intelligence_level(self, mock_access):
+        """Test that intelligence_level defaults to 'medium'"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user)
+        assert client.intelligence_level == "medium"
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_includes_intelligence_level(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """Test that intelligence_level is included in the payload"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 555}
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user, intelligence_level="low")
+        run_id = client.start_run("Test query")
+
+        assert run_id == 555
+        body = orjson.loads(mock_post.call_args[1]["data"])
+        assert body["intelligence_level"] == "low"
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.requests.post")
