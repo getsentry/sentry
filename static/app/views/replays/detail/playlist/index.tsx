@@ -41,6 +41,7 @@ export default function Playlist() {
       query={location.query}
       replays={replays}
       showDropdownFilters={false}
+      stickyHeader
     />
   );
 }

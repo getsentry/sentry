@@ -20,18 +20,29 @@ type Props = {
   replays: ReplayListRecord[];
   onSortClick?: (key: string) => void;
   sort?: Sort;
+  stickyHeader?: boolean;
 };
 
-export default function ReplayTableHeader({columns, replays, onSortClick, sort}: Props) {
+export default function ReplayTableHeader({
+  columns,
+  replays,
+  onSortClick,
+  sort,
+  stickyHeader,
+}: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
   const queryOptions = parseQueryKey(queryKey).options;
   const queryString = queryOptions?.query?.query;
 
+  const headerStyle: React.CSSProperties = stickyHeader
+    ? {position: 'sticky', top: 0}
+    : {};
+
   return (
     <Fragment>
-      <TableHeader>
+      <TableHeader style={headerStyle}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}

@@ -30,6 +30,7 @@ type Props = SortProps & {
   highlightedRowIndex?: number;
   query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
+  stickyHeader?: boolean;
 };
 
 export default function ReplayTable({
@@ -43,6 +44,8 @@ export default function ReplayTable({
   showDropdownFilters,
   highlightedRowIndex = -1,
   sort,
+  // stickyHeader only works if the table is inside a scrollable container
+  stickyHeader = false,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
@@ -59,6 +62,7 @@ export default function ReplayTable({
           replays={replays}
           onSortClick={onSortClick}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
         <SimpleTable.Empty>
           <LoadingIndicator />
@@ -79,6 +83,7 @@ export default function ReplayTable({
           onSortClick={onSortClick}
           replays={replays}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
 
         <SimpleTable.Empty>
@@ -102,6 +107,7 @@ export default function ReplayTable({
         onSortClick={onSortClick}
         replays={replays}
         sort={sort}
+        stickyHeader={stickyHeader}
       />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
