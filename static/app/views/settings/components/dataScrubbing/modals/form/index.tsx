@@ -218,20 +218,13 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
-              <PatternOptions>
-                <Checkbox
-                  checked={(values as any).patternReplacement === 'first_capture'}
-                  onChange={e =>
-                    onChange(
-                      'patternReplacement' as any,
-                      e.target.checked ? 'first_capture' : 'entire'
-                    )
-                  }
-                />
-                <PatternOptionLabel>
-                  {t('Only replace first capture match')}
-                </PatternOptionLabel>
-              </PatternOptions>
+
+              <Checkbox
+                checked={values.replaceCaptured === 'true'}
+                onChange={this.handleChange('replaceCaptured')}
+              />
+
+              {t('Only replace first capture match')}
             </FieldGroup>
           )}
         </FieldContainer>
@@ -399,20 +392,14 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
-              <PatternOptions>
-                <Checkbox
-                  checked={(values as any).patternReplacement === 'first_capture'}
-                  onChange={e =>
-                    onChange(
-                      'patternReplacement' as any,
-                      e.target.checked ? 'first_capture' : 'entire'
-                    )
-                  }
-                />
-                <PatternOptionLabel>
-                  {t('Only replace first capture match')}
-                </PatternOptionLabel>
-              </PatternOptions>
+              <Checkbox
+                id="replace-captured"
+                name="replaceCaptured"
+                checked={values.replaceCaptured === 'true'}
+                onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+              />
+
+              {t('Only replace first capture match')}
             </FieldGroup>
           )}
         </FieldContainer>
@@ -502,14 +489,4 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
-`;
-
-const PatternOptions = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-`;
-
-const PatternOptionLabel = styled('span')`
-  margin-left: ${space(1)};
 `;

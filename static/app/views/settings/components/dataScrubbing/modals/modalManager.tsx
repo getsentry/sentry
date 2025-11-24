@@ -118,7 +118,7 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
       source: initialState?.source ?? '',
       placeholder: initialState?.placeholder ?? '',
       pattern: initialState?.pattern ?? '',
-      patternReplacement: (initialState as any)?.patternReplacement ?? 'entire',
+      replaceCaptured: initialState?.replaceCaptured ?? 'false',
     };
   }
 

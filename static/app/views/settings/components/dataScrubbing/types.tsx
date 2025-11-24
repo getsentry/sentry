@@ -75,6 +75,7 @@ export type RuleDefault = RuleBase & {
 
 type RulePattern = RuleBase & {
   pattern: string;
+  replaceCaptured: string;
   type: RuleType.PATTERN;
 } & Pick<RuleDefault, 'method'>;
 
