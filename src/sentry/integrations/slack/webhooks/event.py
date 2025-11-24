@@ -32,7 +32,8 @@ from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.workflows.integrations import process_slack_thread_for_seer
+from sentry.seer.workflows.slack import process_initial_slack_mention_for_seer
+from sentry.seer.workflows.types import ThreadMessage
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -308,16 +309,19 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def on_app_mention(self, request: Request, slack_request: SlackDMRequest) -> Response:
         data = slack_request.data.get("event", {})
         channel_id = data.get("channel")
-        message_ts = data.get("ts")
-        reply_thread_ts = data.get("thread_ts") or message_ts
+        trigger_ts = data.get("ts")
+        trigger_text = data.get("text", "")
+        reply_thread_ts = data.get("thread_ts") or trigger_ts
         if not channel_id or not reply_thread_ts:
             return self.respond()
 
         # TODO(leander): Check if the organization has access to seer and communicate that early
-        process_slack_thread_for_seer.delay(
+        # TODO(leander): Use the `authorizations[0].user_id` to replace <@ID> in trigger text to <@Sentry>
+        process_initial_slack_mention_for_seer.delay(
             channel_id=channel_id,
-            message_ts=message_ts,
-            reply_thread_ts=reply_thread_ts,
+            trigger_ts=trigger_ts,
+            trigger_text=trigger_text,
+            thread_ts=reply_thread_ts,
             integration_id=slack_request.integration.id,
         )
 
