@@ -854,8 +854,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
 
         # Verify detector was not deleted
-        self.detector.refresh_from_db()
-        assert self.detector.status != ObjectStatus.PENDING_DELETION
+        error_detector.refresh_from_db()
+        assert error_detector.status != ObjectStatus.PENDING_DELETION
         assert not RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=self.detector.id
+            model_name="Detector", object_id=error_detector.id
         ).exists()

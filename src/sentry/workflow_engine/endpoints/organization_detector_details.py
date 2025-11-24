@@ -21,7 +21,6 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.issues import grouptype
@@ -196,9 +195,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         if not can_delete_detector(detector, request):
             raise PermissionDenied
-
-        if detector.type == ErrorGroupType.slug:
-            return Response(status=403)
 
         validator = get_detector_validator(
             request, detector.project, detector.type, instance=detector
