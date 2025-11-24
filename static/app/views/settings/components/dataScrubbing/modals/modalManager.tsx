@@ -29,7 +29,7 @@ import {
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
 import Modal from './modal';
-import {useSourceGroupData} from './utils';
+import {hasCaptureGroups, useSourceGroupData} from './utils';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
@@ -247,6 +247,10 @@ class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
 
     if (values.type !== RuleType.PATTERN && values.pattern) {
       values.pattern = '';
+    }
+
+    if (values.type === RuleType.PATTERN && !hasCaptureGroups(values.pattern)) {
+      values.replaceCaptured = 'false';
     }
 
     if (values.method !== MethodType.REPLACE && values.placeholder) {

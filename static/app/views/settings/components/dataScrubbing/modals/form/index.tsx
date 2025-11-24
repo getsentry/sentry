@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasCaptureGroups} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
 import {
   AllowedDataScrubbingDatasets,
   MethodType,
@@ -221,19 +222,21 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   onBlur={onValidate('pattern')}
                   id="regex-matches"
                 />
-                <Flex gap="md" align="center">
-                  <Checkbox
-                    id="replace-captured"
-                    name="replaceCaptured"
-                    checked={values.replaceCaptured === 'true'}
-                    onChange={e =>
-                      onChange('replaceCaptured', e.target.checked.toString())
-                    }
-                  />
-                  <ReplaceCapturedLabel htmlFor="replace-captured">
-                    {t('Only replace first capture match')}
-                  </ReplaceCapturedLabel>
-                </Flex>
+                {hasCaptureGroups(values.pattern) && (
+                  <Flex gap="md" align="center">
+                    <Checkbox
+                      id="replace-captured"
+                      name="replaceCaptured"
+                      checked={values.replaceCaptured === 'true'}
+                      onChange={e =>
+                        onChange('replaceCaptured', e.target.checked.toString())
+                      }
+                    />
+                    <ReplaceCapturedLabel htmlFor="replace-captured">
+                      {t('Only replace first capture match')}
+                    </ReplaceCapturedLabel>
+                  </Flex>
+                )}
               </Flex>
             </FieldGroup>
           )}
@@ -404,19 +407,21 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                     onBlur={onValidate('pattern')}
                     id="regex-matches"
                   />
-                  <Flex gap="md" align="center">
-                    <Checkbox
-                      id="replace-captured"
-                      name="replaceCaptured"
-                      checked={values.replaceCaptured === 'true'}
-                      onChange={e =>
-                        onChange('replaceCaptured', e.target.checked.toString())
-                      }
-                    />
-                    <ReplaceCapturedLabel htmlFor="replace-captured">
-                      {t('Only replace first capture match')}
-                    </ReplaceCapturedLabel>
-                  </Flex>
+                  {hasCaptureGroups(values.pattern) && (
+                    <Flex gap="md" align="center">
+                      <Checkbox
+                        id="replace-captured"
+                        name="replaceCaptured"
+                        checked={values.replaceCaptured === 'true'}
+                        onChange={e =>
+                          onChange('replaceCaptured', e.target.checked.toString())
+                        }
+                      />
+                      <ReplaceCapturedLabel htmlFor="replace-captured">
+                        {t('Only replace first capture match')}
+                      </ReplaceCapturedLabel>
+                    </Flex>
+                  )}
                 </Flex>
               </FieldGroup>
             )}
