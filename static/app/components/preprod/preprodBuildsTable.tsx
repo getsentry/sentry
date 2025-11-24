@@ -28,7 +28,7 @@ interface PreprodBuildsTableProps {
   projectSlug: string;
   error?: boolean;
   hasSearchQuery?: boolean;
-  onRowClick?: (build: BuildDetailsApiResponse, rowIndex: number) => void;
+  onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
 }
 
@@ -56,12 +56,12 @@ export function PreprodBuildsTable({
     </SimpleTable.Header>
   );
 
-  const renderBuildRow = (build: BuildDetailsApiResponse, rowIndex: number) => {
+  const renderBuildRow = (build: BuildDetailsApiResponse) => {
     const linkUrl = `/organizations/${organizationSlug}/preprod/${projectSlug}/${build.id}`;
 
     return (
       <SimpleTable.Row key={build.id}>
-        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build, rowIndex)}>
+        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
           <InteractionStateLayer />
           <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
@@ -178,9 +178,7 @@ export function PreprodBuildsTable({
       </SimpleTable.Empty>
     );
   } else {
-    tableContent = (
-      <Fragment>{builds.map((build, index) => renderBuildRow(build, index))}</Fragment>
-    );
+    tableContent = <Fragment>{builds.map(build => renderBuildRow(build))}</Fragment>;
   }
 
   return (
