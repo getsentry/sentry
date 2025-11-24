@@ -475,6 +475,9 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    sentry_sdk.serializer.MAX_DATABAG_DEPTH = 100
+    sentry_sdk.serializer.MAX_DATABAG_BREADTH = 100
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
