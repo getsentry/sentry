@@ -76,6 +76,7 @@ export function ToolbarVisualizeDropdown({
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
             disabled={fieldOptions.length === 1}
+            menuWidth="250px"
           />
         );
       })}
