@@ -65,14 +65,16 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:
-            return list[dict[Any, Any]](), None
+            empty_tree: list[dict[Any, Any]] = []
+            return empty_tree, None
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
     thread_metadata = profile.get("thread_metadata", {})
     if not all([frames, stacks, samples]):
-        return list[dict[Any, Any]](), None
+        empty_tree_2: list[dict[Any, Any]] = []
+        return empty_tree_2, None
 
     # Count in_app frames per thread
     thread_in_app_counts: dict[str, int] = {}
@@ -194,7 +196,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         """
         frame_indices = stacks[stack_index]
         if not frame_indices:
-            return list[dict[str, Any]]()
+            empty_stack: list[dict[str, Any]] = []
+            return empty_stack
 
         # Create nodes for frames, maintaining order (bottom to top)
         nodes = []
@@ -207,7 +210,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         return nodes
 
     if not selected_thread_id:
-        return list[dict[Any, Any]](), None
+        empty_tree_3: list[dict[Any, Any]] = []
+        return empty_tree_3, None
 
     # Build the execution tree and track call stacks
     execution_tree: list[dict[str, Any]] = []
