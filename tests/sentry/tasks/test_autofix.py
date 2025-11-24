@@ -3,9 +3,11 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState
-from sentry.tasks.autofix import check_autofix_status
+from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
+from sentry.tasks.autofix import check_autofix_status, generate_issue_summary_only
+from sentry.testutils.cases import TestCase as SentryTestCase
 
 
 class TestCheckAutofixStatus(TestCase):
@@ -96,3 +98,32 @@ class TestCheckAutofixStatus(TestCase):
 
         # Check that the logger.error was not called
         mock_logger.assert_not_called()
+
+
+class TestGenerateIssueSummaryOnly(SentryTestCase):
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_generates_fixability_score(
+        self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
+    ) -> None:
+        """Test that fixability score is generated and saved to the group."""
+        group = self.create_group(project=self.project)
+
+        mock_generate_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(group.id),
+            headline="Test",
+            whats_wrong="Test",
+            trace="Test",
+            possible_cause="Test",
+            scores=SummarizeIssueScores(fixability_score=0.75, actionability_score=0.85),
+        )
+
+        generate_issue_summary_only(group.id)
+
+        mock_get_issue_summary.assert_called_once_with(
+            group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
+        )
+        mock_generate_fixability.assert_called_once_with(group)
+
+        group.refresh_from_db()
+        assert group.seer_fixability_score == 0.75
