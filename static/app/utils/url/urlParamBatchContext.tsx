@@ -39,7 +39,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
       {replace: true, preventScrollReset: true}
     );
     pendingUpdates.current = {};
-  }, [location, navigate]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounced URL updater function
   const updateURL = useMemo(
@@ -78,7 +80,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   }, [updateURL]);
 
   return (
-    <BatchContext value={{batchUrlParamUpdates, flushUpdates}}>{children}</BatchContext>
+    <BatchContext.Provider value={{batchUrlParamUpdates, flushUpdates}}>
+      {children}
+    </BatchContext.Provider>
   );
 }
 

@@ -163,7 +163,7 @@ function Chart({
   setTab,
 }: ChartProps) {
   const organization = useOrganization();
-  const {setChartSelection} = useChartSelection();
+  const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
@@ -254,6 +254,11 @@ function Chart({
     </Fragment>
   );
 
+  const initialChartSelection =
+    chartSelection && chartSelection.chartIndex === index
+      ? chartSelection.selection
+      : undefined;
+
   const widget = (
     <Widget
       Title={Title}
@@ -264,10 +269,7 @@ function Chart({
             chartInfo={chartInfo}
             chartRef={chartRef}
             chartXRangeSelection={{
-              initialSelection: {
-                range: [1763941159024.5266, 1763941508324.1692],
-                panelId: 'grid--\u0000series\u00000\u00000',
-              },
+              initialSelection: initialChartSelection,
               onClearSelection: () => {
                 setChartSelection(null);
               },
