@@ -1279,6 +1279,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -1287,6 +1288,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_preferences,
         mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
@@ -1294,6 +1296,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         """Test POST endpoint with custom instruction."""
         mock_get_providers.return_value = ["github"]
         mock_get_prompt.return_value = "Test prompt with custom instruction"
+        mock_get_preferences.return_value = None
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_get_org_integration.return_value = self.rpc_org_integration
@@ -1325,6 +1328,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -1333,6 +1337,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_preferences,
         mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
@@ -1340,6 +1345,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         """Test POST endpoint with blank instruction gets trimmed to empty string."""
         mock_get_providers.return_value = ["github"]
         mock_get_prompt.return_value = "Test prompt without instruction"
+        mock_get_preferences.return_value = None
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_get_org_integration.return_value = self.rpc_org_integration
@@ -1367,6 +1373,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -1375,6 +1382,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_preferences,
         mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
@@ -1382,6 +1390,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         """Test POST endpoint with empty instruction."""
         mock_get_providers.return_value = ["github"]
         mock_get_prompt.return_value = "Test prompt"
+        mock_get_preferences.return_value = None
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_get_org_integration.return_value = self.rpc_org_integration
@@ -1409,6 +1418,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -1417,6 +1427,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_preferences,
         mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
@@ -1424,6 +1435,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         """Test POST endpoint with max length instruction."""
         mock_get_providers.return_value = ["github"]
         mock_get_prompt.return_value = "Test prompt with long instruction"
+        mock_get_preferences.return_value = None
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_get_org_integration.return_value = self.rpc_org_integration
@@ -1488,6 +1500,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -1496,6 +1509,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_preferences,
         mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
@@ -1503,6 +1517,7 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         """Test POST endpoint with custom instruction and root_cause trigger."""
         mock_get_providers.return_value = ["github"]
         mock_get_prompt.return_value = "Root cause prompt with instruction"
+        mock_get_preferences.return_value = None
 
         mock_rpc_integration = self._create_mock_rpc_integration()
         mock_get_org_integration.return_value = self.rpc_org_integration
