@@ -10,7 +10,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import LastAction, Retry, RetryError
+from sentry.taskworker.retry import LastAction, Retry, RetryTaskError
 from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 from sentry.testutils.helpers.task_runner import TaskRunner
@@ -147,7 +147,7 @@ def test_should_retry(task_namespace: TaskNamespace) -> None:
         namespace=task_namespace,
         retry=retry,
     )
-    err = RetryError("try again plz")
+    err = RetryTaskError("try again plz")
     assert task.should_retry(state, err)
 
     state.attempts = 3
