@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import debounce from 'lodash/debounce';
+import * as qs from 'query-string';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type BatchContextType = {
@@ -13,7 +13,6 @@ const BatchContext = createContext<BatchContextType | null>(null);
 
 export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Store the pending updates in a `ref`. This way, queuing more updates
   // doesn't update any state, so the context doesn't re-render and cause a
@@ -27,9 +26,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
 
     navigate(
       {
-        ...location,
+        pathname: window.location.pathname,
         query: {
-          ...location.query,
+          ...qs.parse(window.location.search),
           ...pendingUpdates.current,
         },
       },
@@ -39,9 +38,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
       {replace: true, preventScrollReset: true}
     );
     pendingUpdates.current = {};
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [navigate]);
 
   // Debounced URL updater function
   const updateURL = useMemo(
