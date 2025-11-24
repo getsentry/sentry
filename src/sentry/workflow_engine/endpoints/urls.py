@@ -4,6 +4,7 @@ from .organization_alertrule_detector_index import OrganizationAlertRuleDetector
 from .organization_alertrule_workflow_index import OrganizationAlertRuleWorkflowIndexEndpoint
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_anomaly_data import OrganizationDetectorAnomalyDataEndpoint
 from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
@@ -36,6 +37,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/$",
         OrganizationDetectorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-detector-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>[^/]+)/anomaly-data/$",
+        OrganizationDetectorAnomalyDataEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-anomaly-data",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/$",

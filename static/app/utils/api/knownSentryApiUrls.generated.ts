@@ -231,6 +231,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/detector-workflow/$detectorWorkflowId/'
   | '/organizations/$organizationIdOrSlug/detectors/'
   | '/organizations/$organizationIdOrSlug/detectors/$detectorId/'
+  | '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/'
   | '/organizations/$organizationIdOrSlug/detectors/count/'
   | '/organizations/$organizationIdOrSlug/discover/homepage/'
   | '/organizations/$organizationIdOrSlug/discover/saved/'
