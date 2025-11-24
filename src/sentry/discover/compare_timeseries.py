@@ -9,6 +9,7 @@ import sentry_sdk
 from django.urls import reverse
 
 from sentry import features
+from sentry.analytics.events.rule_snooze import RuleSnoozed
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models.alert_rule import (
@@ -248,6 +249,8 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     false_positive_misfire = 0
     false_negative_misfire = 0
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
+    rule_snoozed_object = RuleSnoozed.objects.filter(alert_rule=alert_rule).first()
+    rule_snoozed = rule_snoozed_object.user_id is None
     missing_buckets = 0
     all_zeros = True
     trigger_action_types: dict[str, int] = defaultdict(int)
@@ -330,6 +333,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("false_positive_misfires", false_positive_misfire)
         scope.set_tag("false_negative_misfires", false_negative_misfire)
+        scope.set_tag("rule_snoozed", rule_snoozed)
         for trigger_action_type, count in trigger_action_types.items():
             scope.set_tag(f"trigger_action_type.{trigger_action_type}", count)
         sentry_sdk.capture_message("False Misfires", level="info")
