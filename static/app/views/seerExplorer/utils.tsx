@@ -62,7 +62,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_issue_details: (args, isLoading) => {
+  get_issue_and_event_details: (args, isLoading) => {
     const issueId = args.issue_id || '';
     const selectedEvent = args.selected_event;
     if (selectedEvent) {
@@ -414,7 +414,7 @@ export function buildToolLinkUrl(
         query,
       };
     }
-    case 'get_issue_details': {
+    case 'get_issue_and_event_details': {
       const {event_id, issue_id} = toolLink.params;
 
       return {pathname: `/issues/${issue_id}/events/${event_id}/`};
