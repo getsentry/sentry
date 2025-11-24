@@ -12,7 +12,7 @@ from sentry.seer.explorer.index_data import (
     get_trace_for_transaction,
     get_transactions_for_project,
 )
-from sentry.seer.sentry_data_models import EvidenceSpan, LLMDetectionTraceData
+from sentry.seer.sentry_data_models import EvidenceSpan, TraceData
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.search.test_backend import SharedSnubaMixin
@@ -196,8 +196,8 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         assert result.total_spans == 5
         assert len(result.spans) == 5
 
-        # Verify it's LLMDetectionTraceData with EvidenceSpan objects
-        assert isinstance(result, LLMDetectionTraceData)
+        # Verify it's TraceData with EvidenceSpan objects
+        assert isinstance(result, TraceData)
         for result_span in result.spans:
             assert isinstance(result_span, EvidenceSpan)
             assert result_span.span_id is not None
