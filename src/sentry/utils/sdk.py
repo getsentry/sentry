@@ -9,6 +9,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.serializer
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
