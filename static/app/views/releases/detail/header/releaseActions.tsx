@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout/container';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -188,20 +189,22 @@ function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props)
   return (
     <ButtonBar>
       {openFeedbackForm ? (
-        <Button
-          size="sm"
-          icon={<IconMegaphone />}
-          onClick={() =>
-            openFeedbackForm({
-              messagePlaceholder: t('How can we improve the Releases experience?'),
-              tags: {
-                ['feedback.source']: 'release-detail',
-              },
-            })
-          }
-        >
-          {t('Give Feedback')}
-        </Button>
+        <Container display={{'2xs': 'none', xs: 'block'}}>
+          <Button
+            size="sm"
+            icon={<IconMegaphone />}
+            onClick={() =>
+              openFeedbackForm({
+                messagePlaceholder: t('How can we improve the Releases experience?'),
+                tags: {
+                  ['feedback.source']: 'release-detail',
+                },
+              })
+            }
+          >
+            {t('Give Feedback')}
+          </Button>
+        </Container>
       ) : null}
       <ButtonBar merged gap="0">
         <LinkButton
