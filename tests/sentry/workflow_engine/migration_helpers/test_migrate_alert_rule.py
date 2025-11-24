@@ -1310,11 +1310,6 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=sentry_app,
             alert_rule_trigger=self.alert_rule_trigger,
-            sentry_app_config=[
-                {"name": "title", "value": "An alert"},
-                {"name": "points", "value": "3"},
-                {"name": "assignee", "value": "Denny"},
-            ],
         )
         action, _, _ = migrate_metric_action(sentry_app_trigger_action)
         update_alert_rule_trigger_action(

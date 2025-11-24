@@ -858,11 +858,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
-            data={
-                "settings": [
-                    {"name": "best_emoji", "value": ":fire:"},
-                ]
-            },
         )
         webhook_action = self.create_action(
             type=Action.Type.WEBHOOK,
