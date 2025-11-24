@@ -10,7 +10,7 @@ const path = require('node:path');
  * @param {Array<{testFilePath: string, perfStats: {runtime: number}}>} results.testResults - Array of test result objects
  * @returns {Object} The original results object
  */
-module.exports = results => {
+function writeReport(results) {
   if (!results.success) {
     throw new Error('Balance reporter requires all tests to succeed.');
   }
@@ -29,4 +29,6 @@ module.exports = results => {
   );
 
   return results;
-};
+}
+
+module.exports = writeReport;
