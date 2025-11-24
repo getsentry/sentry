@@ -348,6 +348,8 @@ function AutofixRootCauseDisplay({
       instruction: instruction || undefined,
     });
 
+    setSolutionText('');
+
     trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
       group_id: groupId,
