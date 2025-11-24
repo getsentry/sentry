@@ -1,8 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -48,6 +53,38 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
+        data: [
+          {'metric.name': 'foo', 'metric.type': 'counter', 'count(metric.name)': 1},
+          {'metric.name': 'bar', 'metric.type': 'distribution', 'count(metric.name)': 2},
+          {'metric.name': 'baz', 'metric.type': 'gauge', 'count(metric.name)': 3},
+        ],
+        meta: {
+          fields: {},
+          units: {},
+          isMetricsData: false,
+          isMetricsExtractedData: false,
+          tips: {},
+          datasetReason: 'unchanged',
+          dataset: 'tracemetrics',
+          dataScanned: 'full',
+          accuracy: {
+            confidence: [],
+          },
+        },
+        confidence: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-options',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
         data: [],
         meta: {
           fields: {},
@@ -64,6 +101,40 @@ describe('MetricsTabContent', () => {
         },
         confidence: [],
       },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-aggregates-table',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {
+          fields: {},
+          units: {},
+          isMetricsData: false,
+          isMetricsExtractedData: false,
+          tips: {},
+          datasetReason: 'unchanged',
+          dataset: 'tracemetrics',
+          dataScanned: 'full',
+          accuracy: {
+            confidence: [],
+          },
+        },
+        confidence: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-samples-table',
+        }),
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -98,33 +169,52 @@ describe('MetricsTabContent', () => {
   });
 
   it('should add a metric when Add Metric button is clicked', async () => {
-    const router = RouterFixture({
-      location: initialRouterConfig.location,
-    });
-
     render(
       <ProviderWrapper>
         <MetricsTabContent {...datePageFilterProps} />
       </ProviderWrapper>,
       {
-        router,
+        initialRouterConfig,
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
-    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
+    let toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+    // have to wait for the response to load
+    await waitFor(() => {
+      // selects the first metric available - sorted alphanumerically
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    const addButton = screen.getByRole('button', {name: 'Add Metric'});
+    let addButton = screen.getByRole('button', {name: 'Add Metric'});
     expect(addButton).toBeInTheDocument();
     expect(addButton).toBeEnabled();
 
     await userEvent.click(addButton);
 
-    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(2);
+    // selects the first metric available - sorted alphanumerically
+    expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
 
-    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeInTheDocument();
+    // change the second metric from bar to foo
+    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
+    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
+    expect(within(toolbars[1]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+
+    addButton = screen.getByRole('button', {name: 'Add Metric'});
+    expect(addButton).toBeInTheDocument();
+    expect(addButton).toBeEnabled();
+
+    await userEvent.click(addButton);
+
+    toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
+    // selects the first metric available - sorted alphanumerically
+    expect(within(toolbars[2]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 });
