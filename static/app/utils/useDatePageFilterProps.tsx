@@ -3,7 +3,6 @@ import {useMemo, type ReactNode} from 'react';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {MaxPickableDaysOptions} from 'sentry/utils/useMaxPickableDays';
 
@@ -16,10 +15,7 @@ export function useDatePageFilterProps({
   upsellFooter,
 }: UseDatePageFilterPropsProps): DatePageFilterProps {
   return useMemo(() => {
-    if (!defined(maxPickableDays)) {
-      return {};
-    }
-
+    // ensure the available relative options are always sorted
     const availableRelativeOptions: Array<[number, string, ReactNode]> = [
       [1 / 24, '1h', t('Last hour')],
       [1, '24h', t('Last 24 hours')],
@@ -28,8 +24,6 @@ export function useDatePageFilterProps({
       [30, '30d', t('Last 30 days')],
       [90, '90d', t('Last 90 days')],
     ];
-    // ensure the available relative options are always sorted
-    availableRelativeOptions.sort((a, b) => a[0] - b[0]);
 
     // find the relative options that should be enabled based on the maxPickableDays
     const pickableIndex =
@@ -41,10 +35,8 @@ export function useDatePageFilterProps({
     );
 
     // find the relative options that should be disabled based on the maxUpgradableDays
-    // if maxUpgradableDays isn't defined, there should be no disabled options
-    const upgradableIndex = maxUpgradableDays
-      ? availableRelativeOptions.findLastIndex(([days]) => days <= maxUpgradableDays) + 1
-      : pickableIndex;
+    const upgradableIndex =
+      availableRelativeOptions.findLastIndex(([days]) => days <= maxUpgradableDays) + 1;
     const disabledOptions = Object.fromEntries(
       availableRelativeOptions
         .slice(pickableIndex, upgradableIndex)

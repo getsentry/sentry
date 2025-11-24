@@ -5,23 +5,22 @@ import type {DatePageFilterProps} from 'sentry/components/organizations/datePage
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 
 export interface MaxPickableDaysOptions {
   /**
    * The maximum number of days the user is allowed to pick on the date page filter
    */
-  maxPickableDays: DatePageFilterProps['maxPickableDays'];
+  maxPickableDays: NonNullable<DatePageFilterProps['maxPickableDays']>;
   /**
    * The maximum number of days the user can upgrade to on the date page filter
    */
-  maxUpgradableDays: DatePageFilterProps['maxPickableDays'];
+  maxUpgradableDays: NonNullable<DatePageFilterProps['maxPickableDays']>;
   defaultPeriod?: DatePageFilterProps['defaultPeriod'];
   upsellFooter?: ReactNode;
 }
 
 interface UseMaxPickableDaysProps {
-  dataCategories: DataCategory[];
+  dataCategories: readonly [DataCategory, ...DataCategory[]];
   organization: Organization;
 }
 
@@ -39,15 +38,13 @@ export function useMaxPickableDays({
 }
 
 function getBestMaxPickableDays(
-  dataCategories: DataCategory[],
+  dataCategories: readonly [DataCategory, ...DataCategory[]],
   getMaxPickableDaysFor: (dataCategory: DataCategory) => MaxPickableDaysOptions
 ) {
-  let maxPickableDays: MaxPickableDaysOptions = {
-    maxPickableDays: undefined,
-    maxUpgradableDays: undefined,
-  };
+  let maxPickableDays: MaxPickableDaysOptions = getMaxPickableDaysFor(dataCategories[0]);
 
-  for (const dataCategory of dataCategories) {
+  for (let i = 1; i < dataCategories.length; i++) {
+    const dataCategory = dataCategories[i]!;
     const maxPickableDaysForDataCategory = getMaxPickableDaysFor(dataCategory);
     maxPickableDays = max(maxPickableDays, maxPickableDaysForDataCategory);
   }
@@ -59,35 +56,15 @@ function max(
   a: MaxPickableDaysOptions,
   b: MaxPickableDaysOptions
 ): MaxPickableDaysOptions {
-  if (!defined(a.maxPickableDays)) {
-    return b;
-  }
-
-  if (!defined(b.maxPickableDays)) {
-    return a;
-  }
-
-  if (a.maxPickableDays > b.maxPickableDays) {
-    return a;
-  }
-
   if (a.maxPickableDays < b.maxPickableDays) {
     return b;
   }
 
-  if (!defined(a.maxUpgradableDays)) {
+  if (a.maxUpgradableDays < b.maxUpgradableDays) {
     return b;
   }
 
-  if (!defined(b.maxUpgradableDays)) {
-    return a;
-  }
-
-  if (a.maxUpgradableDays > b.maxUpgradableDays) {
-    return a;
-  }
-
-  return b;
+  return a;
 }
 
 const DESCRIPTION = t('To query over longer time ranges, upgrade to Business');
@@ -119,10 +96,9 @@ function getMaxPickableDays(
         defaultPeriod: '24h',
       };
     default:
-      return {
-        maxPickableDays: undefined,
-        maxUpgradableDays: undefined,
-      };
+      throw new Error(
+        `Unsupported data category: ${dataCategory} for getMaxPickableDays`
+      );
   }
 }
 
