@@ -94,6 +94,7 @@ export {IconPrint} from './iconPrint';
 export {IconProfiling} from './iconProfiling';
 export {IconProject} from './iconProject';
 export {IconQuestion} from './iconQuestion';
+export {IconReceipt} from './iconReceipt';
 export {IconRefresh} from './iconRefresh';
 export {IconReleases} from './iconReleases';
 export {IconRepository} from './iconRepository';

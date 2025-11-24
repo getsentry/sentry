@@ -1537,6 +1537,13 @@ const SECTIONS: TSection[] = [
         name: 'CreditCard',
         defaultProps: {},
       },
+      {
+        id: 'receipt',
+        groups: ['device'],
+        keywords: ['receipt', 'invoice', 'payment'],
+        name: 'Receipt',
+        defaultProps: {},
+      },
     ],
   },
 ];
