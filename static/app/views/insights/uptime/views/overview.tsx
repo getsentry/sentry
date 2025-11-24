@@ -6,7 +6,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -79,7 +79,7 @@ export default function UptimeOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton />
+            <FeedbackButton />
             <LinkButton
               size="sm"
               priority="primary"

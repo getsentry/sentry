@@ -10,9 +10,9 @@ import type {FeedbackModalIntegration} from '@sentry/core';
 import isEqual from 'lodash/isEqual';
 
 import {
-  useFeedback,
+  useFeedbackSDKIntegration,
   type UseFeedbackOptions,
-} from 'sentry/components/feedback/widget/useFeedback';
+} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 
 /**
  * A function that opens the feedback form. It accepts some option overrides
@@ -42,6 +42,8 @@ const GlobalFeedbackFormContext = createContext<OpenForm>(null);
  *
  * return <Button onClick={() => openForm({formTitle: 'Custom Title'})}>{t('Give Feedback')}</button>;
  * ```
+ *
+ * @deprecated This hook is too low level. Use `<FeedbackButton/>` or `<FloatingFeedbackButton/>` instead.
  */
 export function useFeedbackForm() {
   return useContext(GlobalFeedbackFormContext);
@@ -53,7 +55,7 @@ function useOpenForm() {
   // This is used to determine if we should reuse the existing form instance
   const formOptionsOverrideRef = useRef<UseFeedbackOptions | null>(null);
 
-  const {feedback, options} = useFeedback({});
+  const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 
   const close = useCallback(() => {
     if (formRef.current) {
@@ -89,7 +91,7 @@ function useOpenForm() {
         cleanup();
 
         formRef.current = await feedback.createForm({
-          ...options,
+          ...defaultOptions,
           ...optionOverrides,
           onFormClose: close,
           onFormSubmitted: cleanup,
@@ -100,7 +102,7 @@ function useOpenForm() {
         formRef.current.open();
       }
     },
-    [cleanup, feedback, options, close]
+    [cleanup, feedback, defaultOptions, close]
   );
 
   useEffect(() => {

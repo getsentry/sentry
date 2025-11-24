@@ -13,7 +13,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -168,7 +168,7 @@ export function InviteBanner({
   return (
     <Fragment>
       {/* this is temporary to collect feedback about the banner */}
-      <FloatingFeedbackWidget />
+      <FloatingFeedbackButton />
       <StyledCard>
         <CardTitleContainer>
           <CardTitleContent>

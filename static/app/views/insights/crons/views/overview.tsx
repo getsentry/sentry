@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -98,7 +98,7 @@ function CronsOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar>
-            <FeedbackWidgetButton />
+            <FeedbackButton />
             <Button
               icon={<IconList />}
               size="sm"

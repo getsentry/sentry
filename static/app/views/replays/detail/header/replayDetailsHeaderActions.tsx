@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ConfigureReplayCard from 'sentry/components/replays/header/configureReplayCard';
-import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
+import ReplayFeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {space} from 'sentry/styles/space';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -37,7 +37,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
     >
       {({replay}) => (
         <ButtonActionsWrapper>
-          {replay.isVideoReplay() ? <FeedbackWidgetButton /> : <FeedbackButton />}
+          {replay.isVideoReplay() ? <FeedbackButton /> : <ReplayFeedbackButton />}
           <ConfigureReplayCard
             isMobile={replay.isVideoReplay()}
             replayRecord={replay.getReplay()}

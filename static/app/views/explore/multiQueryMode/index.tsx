@@ -1,7 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -58,7 +58,7 @@ export default function MultiQueryMode() {
             <ButtonBar>
               <StarSavedQueryButton />
               {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-              <FeedbackWidgetButton />
+              <FeedbackButton />
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>

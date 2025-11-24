@@ -15,7 +15,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -560,7 +560,7 @@ function ManageDashboards() {
                           onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
-                      <FeedbackWidgetButton />
+                      <FeedbackButton />
                       <DashboardCreateLimitWrapper>
                         {({
                           hasReachedDashboardLimit,

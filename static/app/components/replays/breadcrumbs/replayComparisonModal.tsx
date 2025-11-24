@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
@@ -88,8 +88,8 @@ export default function ReplayComparisonModal({
                 </AutoWideHovercard>
               ) : null}
               {focusTrap ? (
-                <FeedbackWidgetButton
-                  optionOverrides={{
+                <FeedbackButton
+                  feedbackOptions={{
                     onFormOpen: () => {
                       focusTrap.pause();
                     },

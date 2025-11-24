@@ -10,7 +10,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
@@ -143,8 +143,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
       <Layout.HeaderActions>
         <Flex align="center" gap="sm" flexShrink={0}>
-          <FeedbackWidgetButton
-            optionOverrides={{
+          <FeedbackButton
+            feedbackOptions={{
               tags: {
                 'feedback.source': 'preprod.buildDetails',
               },
