@@ -122,6 +122,8 @@ class SeerExplorerClient:
         self.category_value = category_value
 
         # Validate that category_key and category_value are provided together
+        if category_key == "" or category_value == "":
+            raise ValueError("category_key and category_value cannot be empty strings")
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
