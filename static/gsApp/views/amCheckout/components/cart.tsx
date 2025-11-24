@@ -22,13 +22,8 @@ import useMedia from 'sentry/utils/useMedia';
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
-import {
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  type Plan,
-  type PreviewData,
-  type Subscription,
-} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
+import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   formatReservedWithUnits,
@@ -772,9 +767,7 @@ function Cart({
             // for immediate changes, effectiveAt is the current day
             const {effectiveAt, atPeriodEnd, invoiceItems, billedAmount, proratedAmount} =
               data;
-            const planItem = invoiceItems.find(
-              item => item.type === InvoiceItemType.SUBSCRIPTION
-            );
+            const planItem = invoiceItems.find(item => item.type === 'subscription');
             const renewalDate = moment(
               planItem?.period_end ?? subscription.contractPeriodEnd
             )

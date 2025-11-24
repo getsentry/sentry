@@ -44,7 +44,6 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
                     openUpsellModal({
                       organization,
                       source: `feature.auth_provider.${p.provider.key}`,
-                      defaultSelection: 'sso',
                     })
                   }
                 >

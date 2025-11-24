@@ -65,7 +65,7 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
-        return AutofixStoppingPoint.SOLUTION
+        return AutofixStoppingPoint.ROOT_CAUSE
     # 0.76 + 0.02 - extra buffer to avoid opening too many PRs.
     elif fixability_score < FixabilityScoreThresholds.SUPER_HIGH.value + 0.02:
         return AutofixStoppingPoint.CODE_CHANGES
@@ -290,7 +290,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     return False
 
 
-def _run_automation(
+def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
@@ -298,6 +298,36 @@ def _run_automation(
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
+
+    # Check event count for ALERT source with triage-signals-v0
+    if source == SeerAutomationSource.ALERT and features.has(
+        "projects:triage-signals-v0", group.project
+    ):
+        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+        times_seen = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+        if times_seen < 10:
+            logger.info(
+                "Triage signals V0: skipping alert automation, event count < 10",
+                extra={"group_id": group.id, "event_count": times_seen},
+            )
+            return
+
+    # Only log for projects with triage-signals-v0
+    if features.has("projects:triage-signals-v0", group.project):
+        try:
+            times_seen = group.times_seen_with_pending
+        except (AssertionError, AttributeError):
+            times_seen = group.times_seen
+        logger.info(
+            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
+            group.id,
+            source.value,
+            times_seen,
+        )
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -346,6 +376,7 @@ def _run_automation(
 
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
+        logger.info("Triage signals V0: %s: generating stopping point", group.id)
         fixability_stopping_point = _get_stopping_point_from_fixability(
             issue_summary.scores.fixability_score
         )
@@ -358,7 +389,11 @@ def _run_automation(
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
         )
-        logger.info("Final stopping point after upper bound: %s", stopping_point)
+        logger.info(
+            "Triage signals V0: %s: Final stopping point after upper bound: %s",
+            group.id,
+            stopping_point,
+        )
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -402,7 +437,7 @@ def _generate_summary(
 
     if should_run_automation:
         try:
-            _run_automation(group, user, event, source)
+            run_automation(group, user, event, source)
         except Exception:
             logger.exception(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}

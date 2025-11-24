@@ -1114,7 +1114,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'new-internal/',
@@ -1125,7 +1124,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/',
@@ -1136,7 +1134,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':appSlug/dashboard/',
@@ -2696,6 +2693,11 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'dynamic-groups/',
+      component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'views/:viewId/',

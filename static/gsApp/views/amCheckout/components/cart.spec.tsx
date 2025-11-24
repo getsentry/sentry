@@ -18,12 +18,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanTier,
-} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import Cart from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
@@ -143,7 +138,7 @@ describe('Cart', () => {
       },
       onDemandMaxSpend: 50_00,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -170,7 +165,7 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Continuous profile hours');
     expect(planItem).toHaveTextContent('Available');
 
-    const seerItem = screen.getByTestId('summary-item-product-seer');
+    const seerItem = screen.getByTestId('summary-item-product-legacySeer');
     expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
@@ -280,13 +275,13 @@ describe('Cart', () => {
           {
             amount: 2_00,
             description: 'Tax',
-            type: InvoiceItemType.SALES_TAX,
+            type: 'sales_tax',
           },
           {
             amount: 89_00,
             description: 'Business Plan',
             period_end: moment(MOCK_TODAY).add(1, 'day').format('YYYY-MM-DD'),
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
           },
         ],
       },
@@ -329,7 +324,7 @@ describe('Cart', () => {
             amount: 89_00,
             description: 'Business Plan',
             period_end: moment(MOCK_TODAY).add(2, 'year').format('YYYY-MM-DD'),
-            type: InvoiceItemType.SUBSCRIPTION,
+            type: 'subscription',
           },
         ],
       },
@@ -501,7 +496,7 @@ describe('Cart', () => {
         sharedMaxBudget: 1_00,
       },
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -613,13 +608,13 @@ describe('Cart', () => {
             amount: 25_00,
             description: '500 pay-as-you-go replays',
             data: {quantity: 500},
-            type: InvoiceItemType.ONDEMAND_REPLAYS,
+            type: 'ondemand_replays',
           },
           {
             amount: 25_00,
             description: '50 GB pay-as-you-go attachments',
             data: {quantity: 53687091200},
-            type: InvoiceItemType.ONDEMAND_ATTACHMENTS,
+            type: 'ondemand_attachments',
           },
         ],
       },

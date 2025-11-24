@@ -20,7 +20,7 @@ export default function IntegrationAlertRules() {
       <PanelHeader>{t('Project Configuration')}</PanelHeader>
       <PanelBody>
         {projects.length === 0 && (
-          <EmptyMessage size="large">
+          <EmptyMessage size="lg">
             {t('You have no projects to add Alert Rules to')}
           </EmptyMessage>
         )}

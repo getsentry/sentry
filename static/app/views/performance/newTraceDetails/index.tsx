@@ -114,7 +114,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const trace = useTrace({
+    traceSlug,
+    timestamp: queryParams.timestamp,
+    additionalAttributes: ['thread.id'],
+  });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
   useTraceStateAnalytics({

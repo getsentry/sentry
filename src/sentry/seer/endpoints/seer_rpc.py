@@ -92,6 +92,7 @@ from sentry.seer.explorer.index_data import (
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
+    get_issue_and_event_details,
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
@@ -1209,6 +1210,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_details": get_issue_details,
+    "get_issue_and_event_details": get_issue_and_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,

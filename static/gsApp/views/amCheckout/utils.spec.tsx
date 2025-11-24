@@ -1,6 +1,6 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 
-import {AddOnCategory, InvoiceItemType, PlanTier} from 'getsentry/types';
+import {AddOnCategory, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -12,7 +12,7 @@ describe('utils', () => {
   const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
   const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
   const DEFAULT_ADDONS = {
-    [AddOnCategory.SEER]: {
+    [AddOnCategory.LEGACY_SEER]: {
       enabled: false,
     },
   };
@@ -93,7 +93,7 @@ describe('utils', () => {
           attachments: 1,
         },
         addOns: {
-          [AddOnCategory.SEER]: {
+          [AddOnCategory.LEGACY_SEER]: {
             enabled: true,
           },
         },
@@ -111,7 +111,7 @@ describe('utils', () => {
           attachments: 1,
         },
         addOns: {
-          [AddOnCategory.SEER]: {
+          [AddOnCategory.LEGACY_SEER]: {
             enabled: true,
           },
         },
@@ -140,7 +140,7 @@ describe('utils', () => {
           basePrice: 1000,
           amount: 10 * 100,
           discountType: 'percentPoints',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(900);
       expect(
@@ -148,7 +148,7 @@ describe('utils', () => {
           basePrice: 8900,
           amount: 40 * 100,
           discountType: 'percentPoints',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(5340);
       expect(
@@ -156,7 +156,7 @@ describe('utils', () => {
           basePrice: 10000,
           amount: 1000,
           discountType: 'amountCents',
-          creditCategory: InvoiceItemType.SUBSCRIPTION,
+          creditCategory: 'subscription',
         })
       ).toBe(9000);
     });
@@ -400,7 +400,7 @@ describe('utils', () => {
         reservedUptime: 60,
         reservedAttachments: 70,
         reservedProfileDuration: 80,
-        addOnSeer: false,
+        addOnLegacySeer: false,
       });
     });
   });

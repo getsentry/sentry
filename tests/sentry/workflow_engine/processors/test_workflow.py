@@ -189,9 +189,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=non_matching_env_workflow,
         )
 
-        dcg = self.create_data_condition_group()
+        matching_dcg = self.create_data_condition_group()
         matching_env_workflow = self.create_workflow(
-            when_condition_group=dcg,
+            when_condition_group=matching_dcg,
             environment=env,
         )
         self.create_detector_workflow(
@@ -199,8 +199,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=matching_env_workflow,
         )
 
+        mismatched_dcg = self.create_data_condition_group()
         mismatched_env_workflow = self.create_workflow(
-            when_condition_group=dcg, environment=other_env
+            when_condition_group=mismatched_dcg, environment=other_env
         )
         self.create_detector_workflow(
             detector=self.error_detector,
@@ -749,7 +750,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.batch_client = DelayedWorkflowClient()
 
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
+    @patch("sentry.workflow_engine.tasks.utils.IssueOccurrence.fetch")
+    def test_metrics_issue_dual_processing_metrics(
+        self, mock_fetch: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self.group_event.occurrence
+
         with self.tasks():
             process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_any_call(

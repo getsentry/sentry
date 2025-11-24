@@ -43,7 +43,7 @@ class WorkflowValidator(CamelSnakeSerializer):
         self, action_filter: dict[str, Any]
     ) -> tuple[ListInputData, InputData]:
         try:
-            actions = action_filter["actions"]
+            actions = action_filter.pop("actions")
         except KeyError:
             raise serializers.ValidationError("Missing actions key in action filter")
 

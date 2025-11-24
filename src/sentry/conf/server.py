@@ -893,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.delete_pending_groups",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -1005,6 +1006,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "reattempt-deletions": {
         "task": "deletions:sentry.deletions.tasks.reattempt_deletions",
         "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+    },
+    "delete-pending-groups": {
+        "task": "deletions:sentry.tasks.delete_pending_groups",
+        # Runs every 2 hours during 9am-5pm Eastern Time (EST: UTC-5)
+        # 9am, 11am, 1pm, 3pm, 5pm EST = 14:00, 16:00, 18:00, 20:00, 22:00 UTC
+        "schedule": task_crontab("0", "14,16,18,20,22", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
@@ -2145,6 +2152,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
 
@@ -2804,6 +2812,10 @@ SEER_ALERT_DELETION_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
 )
 
+SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/alert-data"
+)
+
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
@@ -3041,7 +3053,6 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
-    "sentry-api-0-prompts-activity",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",
