@@ -189,16 +189,14 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 function ClusterCard({
   cluster,
   onRemove,
-  isRemoving,
 }: {
   cluster: ClusterSummary;
-  isRemoving: boolean;
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
 
   return (
-    <CardContainer isRemoving={isRemoving}>
+    <CardContainer>
       <Flex
         justify="between"
         align="start"
@@ -269,7 +267,6 @@ function DynamicGrouping() {
   const {teams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
   const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
   // Fetch cluster data from API
@@ -286,16 +283,7 @@ function DynamicGrouping() {
   );
 
   const handleRemoveCluster = (clusterId: number) => {
-    // Start animation
-    setRemovingClusterId(clusterId);
-
-    // Wait for animation to complete before removing
-    setTimeout(() => {
-      const updatedRemovedIds = new Set(removedClusterIds);
-      updatedRemovedIds.add(clusterId);
-      setRemovedClusterIds(updatedRemovedIds);
-      setRemovingClusterId(null);
-    }, 300); // Match the animation duration
+    setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
   // Check if a cluster has at least one issue assigned to the current user or their teams
@@ -461,7 +449,6 @@ function DynamicGrouping() {
                   key={cluster.cluster_id}
                   cluster={cluster}
                   onRemove={handleRemoveCluster}
-                  isRemoving={removingClusterId === cluster.cluster_id}
                 />
               ))}
             </CardsGrid>
@@ -489,7 +476,7 @@ const CardsGrid = styled('div')`
   gap: ${space(3)};
 `;
 
-const CardContainer = styled('div')<{isRemoving: boolean}>`
+const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -497,11 +484,7 @@ const CardContainer = styled('div')<{isRemoving: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  opacity: ${p => (p.isRemoving ? 0 : 1)};
-  transform: ${p => (p.isRemoving ? 'scale(0.95)' : 'scale(1)')};
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
