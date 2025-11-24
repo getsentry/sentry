@@ -57,7 +57,6 @@ interface TopIssuesResponse {
   data: ClusterSummary[];
 }
 
-// Compact issue preview for dynamic grouping - no short ID or quick fix icon
 function CompactIssuePreview({group}: {group: Group}) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
@@ -135,11 +134,9 @@ function CompactIssuePreview({group}: {group: Group}) {
   );
 }
 
-// Fetch and display actual issues from the group_ids
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
 
-  // Only fetch first 3 issues for preview
   const previewGroupIds = groupIds.slice(0, 3);
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
@@ -153,7 +150,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
       },
     ],
     {
-      staleTime: 60000, // Cache for 1 minute
+      staleTime: 60000,
     }
   );
 
@@ -179,7 +176,6 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 }
 
-// Individual cluster card
 function ClusterCard({
   cluster,
   onRemove,
@@ -267,7 +263,7 @@ function DynamicGrouping() {
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
-      staleTime: 60000, // Cache for 1 minute
+      staleTime: 60000,
     }
   );
 
@@ -280,18 +276,15 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  // Check if a cluster has at least one issue assigned to the current user or their teams
   const isClusterAssignedToMe = useMemo(() => {
     const userId = user.id;
     const teamIds = teams.map(team => team.id);
 
     return (cluster: ClusterSummary) => {
-      // If no assignedTo data, include the cluster
       if (!cluster.assignedTo || cluster.assignedTo.length === 0) {
         return false;
       }
 
-      // Check if any assigned entity matches the user or their teams
       return cluster.assignedTo.some(entity => {
         if (entity.type === 'user' && entity.id === userId) {
           return true;
@@ -304,31 +297,24 @@ function DynamicGrouping() {
     };
   }, [user.id, teams]);
 
-  // Filter and sort clusters by fixability score (descending)
   const filteredAndSortedClusters = useMemo(() => {
     return [...clusterData]
-      .filter((cluster: ClusterSummary) => {
-        // Filter out removed clusters
+      .filter(cluster => {
         if (removedClusterIds.has(cluster.cluster_id)) {
           return false;
         }
 
-        // Filter by fixability score - hide clusters below threshold
         const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
         if (fixabilityScore < minFixabilityScore) {
           return false;
         }
 
-        // If "Assigned to Me" filter is enabled, only show clusters assigned to the user
         if (filterByAssignedToMe) {
           return isClusterAssignedToMe(cluster);
         }
         return true;
       })
-      .sort(
-        (a: ClusterSummary, b: ClusterSummary) =>
-          (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
-      );
+      .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
   }, [
     clusterData,
     removedClusterIds,
@@ -339,7 +325,7 @@ function DynamicGrouping() {
 
   const totalIssues = useMemo(() => {
     return filteredAndSortedClusters.reduce(
-      (sum: number, c: ClusterSummary) => sum + (c.cluster_size ?? c.group_ids.length),
+      (sum, c) => sum + (c.cluster_size ?? c.group_ids.length),
       0
     );
   }, [filteredAndSortedClusters]);
@@ -434,7 +420,7 @@ function DynamicGrouping() {
             </Container>
           ) : (
             <CardsGrid>
-              {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
+              {filteredAndSortedClusters.map(cluster => (
                 <ClusterCard
                   key={cluster.cluster_id}
                   cluster={cluster}
@@ -449,7 +435,6 @@ function DynamicGrouping() {
   );
 }
 
-// Styled Components
 const PageContainer = styled('div')`
   padding: ${space(3)} ${space(4)};
   max-width: 1600px;
