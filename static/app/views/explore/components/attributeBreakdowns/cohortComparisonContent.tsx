@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button/button';
 import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,7 +20,6 @@ import {getUserTimezone} from 'sentry/utils/dates';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './cohortComparisonChart';
@@ -32,14 +32,14 @@ const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
-  boxSelectOptions,
+  selection,
   chartInfo,
 }: {
-  boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
+  selection: Selection;
 }) {
   const {data, isLoading, isError} = useAttributeBreakdownComparison({
-    boxSelectOptions,
+    selection,
     chartInfo,
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,11 +85,11 @@ export function CohortComparison({
   }, [filteredRankedAttributes]);
 
   const selectionHint = useMemo(() => {
-    if (!boxSelectOptions.xRange) {
+    if (!selection) {
       return null;
     }
 
-    const [x1, x2] = boxSelectOptions.xRange;
+    const [x1, x2] = selection.range;
 
     let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
     const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
@@ -120,10 +120,10 @@ export function CohortComparison({
         : t(`Selection is data between %s - %s`, startDate, endDate),
       baseline: t('Baseline is all other spans from your query'),
     };
-  }, [boxSelectOptions.xRange, chartInfo.yAxis]);
+  }, [selection, chartInfo.yAxis]);
 
   return (
-    <Panel>
+    <Panel data-explore-chart-selection-region>
       <Flex direction="column" gap="xl" padding="xl">
         {isLoading ? (
           <LoadingIndicator />

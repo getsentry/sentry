@@ -1,40 +1,33 @@
 import {useCallback} from 'react';
-import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
-  boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
+  clearSelection: () => void;
+  selection: Selection;
   setTab: (tab: Mode | Tab) => void;
-  triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({
-  boxSelectOptions,
-  chartInfo,
-  triggerWrapperRef,
-  setTab,
-}: Props) {
+export function FloatingTrigger({chartInfo, selection, clearSelection, setTab}: Props) {
   const router = useRouter();
-  const triggerPosition = boxSelectOptions.floatingTriggerPosition;
   const {setChartSelection} = useChartSelection();
 
   const handleZoomIn = useCallback(() => {
-    const coordRange = boxSelectOptions.xRange;
-    let startTimestamp = coordRange?.[0];
-    let endTimestamp = coordRange?.[1];
+    const coordRange = selection.range;
+    let startTimestamp = coordRange[0];
+    let endTimestamp = coordRange[1];
 
     if (!startTimestamp || !endTimestamp) {
       return;
@@ -55,37 +48,24 @@ export function FloatingTrigger({
       router,
       {save: true}
     );
-    boxSelectOptions.clearSelection();
-  }, [boxSelectOptions, router]);
+    clearSelection();
+  }, [clearSelection, selection, router]);
 
   const handleFindAttributeBreakdowns = useCallback(() => {
     setChartSelection({
-      boxSelectOptions,
+      selection,
       chartInfo,
     });
     setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [boxSelectOptions, chartInfo, setChartSelection, setTab]);
+  }, [selection, chartInfo, setChartSelection, setTab]);
 
-  if (!triggerPosition) return null;
-
-  return createPortal(
-    <div
-      ref={triggerWrapperRef}
-      style={{
-        position: 'absolute',
-        top: triggerPosition.top,
-        left: triggerPosition.left,
-        zIndex: 1000,
-      }}
-    >
-      <List>
-        <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
-        <ListItem onClick={handleFindAttributeBreakdowns}>
-          {t('Compare Attribute Breakdowns')}
-        </ListItem>
-      </List>
-    </div>,
-    document.body
+  return (
+    <List>
+      <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
+      <ListItem onClick={handleFindAttributeBreakdowns}>
+        {t('Compare Attribute Breakdowns')}
+      </ListItem>
+    </List>
   );
 }
 

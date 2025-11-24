@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,17 +9,18 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {AttributeComparisonCTA} from 'sentry/views/explore/components/attributeBreakdowns/attributeComparisonCTA';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {Tab} from 'sentry/views/explore/hooks/useTab';
@@ -161,25 +162,14 @@ function Chart({
   topEvents,
   setTab,
 }: ChartProps) {
+  const organization = useOrganization();
+  const {setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
-  const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const boxSelectOptions = useChartBoxSelect({
-    chartRef,
-    chartWrapperRef,
-    triggerWrapperRef,
-  });
-
-  // Re-activate box selection when the series data changes
-  useEffect(() => {
-    boxSelectOptions.reActivateSelection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeseriesResult]);
 
   const chartType = visualize.chartType;
   const chartIcon =
@@ -273,10 +263,24 @@ function Chart({
           <ChartVisualization
             chartInfo={chartInfo}
             chartRef={chartRef}
-            brush={boxSelectOptions.brush}
-            onBrushEnd={boxSelectOptions.onBrushEnd}
-            onBrushStart={boxSelectOptions.onBrushStart}
-            toolBox={boxSelectOptions.toolBox}
+            chartXRangeSelection={{
+              onClearSelection: () => {
+                setChartSelection(null);
+              },
+              disabled: !organization.features.includes(
+                'performance-spans-suspect-attributes'
+              ),
+              actionMenuRenderer: (selection, clearSelection) => {
+                return (
+                  <FloatingTrigger
+                    chartInfo={chartInfo}
+                    selection={selection}
+                    clearSelection={clearSelection}
+                    setTab={setTab}
+                  />
+                );
+              },
+            }}
           />
         )
       }
@@ -304,17 +308,7 @@ function Chart({
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
-      {index === 0 ? ( // Only show the CTA on the first chart
-        <AttributeComparisonCTA>{widget}</AttributeComparisonCTA>
-      ) : (
-        widget
-      )}
-      <FloatingTrigger
-        chartInfo={chartInfo}
-        setTab={setTab}
-        boxSelectOptions={boxSelectOptions}
-        triggerWrapperRef={triggerWrapperRef}
-      />
+      {index === 0 ? <AttributeComparisonCTA>{widget}</AttributeComparisonCTA> : widget}
     </ChartWrapper>
   );
 }
