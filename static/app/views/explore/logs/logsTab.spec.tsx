@@ -2,7 +2,6 @@ import {initializeLogsTest} from 'sentry-fixture/log';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -16,8 +15,9 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
-const datePageFilterProps: DatePageFilterProps = {
+const datePageFilterProps: PickableDays = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
   relativeOptions: ({arbitraryOptions}) => ({
@@ -171,7 +171,7 @@ describe('LogsTabContent', () => {
   it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContent {...datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -213,7 +213,7 @@ describe('LogsTabContent', () => {
   it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContent {...datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -257,7 +257,7 @@ describe('LogsTabContent', () => {
   it('should pass caseInsensitive to the query', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContent {...datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );

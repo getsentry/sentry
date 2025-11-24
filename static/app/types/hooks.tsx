@@ -110,11 +110,6 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
-type DateRangeQueryLimitFooterProps = {
-  description: string;
-  source: string;
-};
-
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -194,9 +189,9 @@ type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:explore-date-range-query-limit-footer': () => React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
-  'component:header-date-page-filter-upsell-footer': () => React.ComponentType<DateRangeQueryLimitFooterProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
