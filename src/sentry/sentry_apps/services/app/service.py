@@ -86,7 +86,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def get_installation_by_sentry_app_id(
         self, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryApp | None:
+    ) -> RpcSentryAppInstallation | None:
         pass
 
     @rpc_method
