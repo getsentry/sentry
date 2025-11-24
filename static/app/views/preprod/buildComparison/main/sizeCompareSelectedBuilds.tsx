@@ -48,7 +48,7 @@ function BuildButton({
           build_id: buildId,
           project_slug: projectId,
           platform,
-          project_type: projectType ?? null,
+          project_type: projectType,
           slot,
         })
       }
@@ -173,7 +173,7 @@ export function SizeCompareSelectedBuilds({
                 project_slug: projectId,
                 platform,
                 build_id: headBuildDetails.id,
-                project_type: projectType ?? null,
+                project_type: projectType,
               });
               onTriggerComparison();
             }

@@ -81,7 +81,7 @@ export function AppSizeInsightsSidebarRow({
       organization,
       insight_key: insight.key,
       platform: platform ?? null,
-      project_type: projectType ?? null,
+      project_type: projectType,
     });
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
@@ -110,7 +110,7 @@ export function AppSizeInsightsSidebarRow({
         organization,
         insight_key: insight.key,
         platform: platform ?? null,
-        project_type: projectType ?? null,
+        project_type: projectType,
       });
     }
     onToggleExpanded();

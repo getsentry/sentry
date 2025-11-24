@@ -37,7 +37,7 @@ export function AppSizeInsights({
       organization,
       platform: platform ?? null,
       source: 'insight_table',
-      project_type: projectType ?? null,
+      project_type: projectType,
     });
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');

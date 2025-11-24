@@ -154,7 +154,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                       trackAnalytics('preprod.builds.details.open_insights_sidebar', {
                         organization,
                         platform: platformProp ?? null,
-                        project_type: projectType ?? null,
+                        project_type: projectType,
                         source: 'metric_card',
                       });
                       onOpenInsightsSidebar();

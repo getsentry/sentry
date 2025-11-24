@@ -193,11 +193,7 @@ export function SizeCompareSelectionContent({
                       build.app_info?.platform ??
                       headBuildDetails.app_info?.platform ??
                       null,
-                    project_type:
-                      projectType ??
-                      build.app_info?.platform ??
-                      headBuildDetails.app_info?.platform ??
-                      null,
+                    project_type: projectType,
                   });
                 }}
               />
