@@ -35,6 +35,7 @@ interface BuildDetailsMetricCardsProps {
   sizeInfo: BuildDetailsSizeInfo | undefined;
   totalSize: number;
   platform?: Platform | null;
+  projectType?: string | null;
 }
 
 interface MetricCardConfig {
@@ -59,6 +60,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     processedInsights,
     totalSize,
     platform: platformProp,
+    projectType,
     onOpenInsightsSidebar,
   } = props;
 
@@ -152,6 +154,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                       trackAnalytics('preprod.builds.details.open_insights_sidebar', {
                         organization,
                         platform: platformProp ?? null,
+                        project_type: projectType ?? null,
                         source: 'metric_card',
                       });
                       onOpenInsightsSidebar();

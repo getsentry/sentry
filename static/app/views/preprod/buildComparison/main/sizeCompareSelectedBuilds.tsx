@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -16,11 +17,19 @@ interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
+  projectType: string | null;
   slot: 'head' | 'base';
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonProps) {
+function BuildButton({
+  buildDetails,
+  icon,
+  label,
+  onRemove,
+  slot,
+  projectType,
+}: BuildButtonProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
@@ -39,6 +48,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
           build_id: buildId,
           project_slug: projectId,
           platform,
+          project_type: projectType ?? null,
           slot,
         })
       }
@@ -124,6 +134,8 @@ export function SizeCompareSelectedBuilds({
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const platform = headBuildDetails.app_info?.platform ?? null;
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
 
   return (
     <ComparisonContainer>
@@ -132,6 +144,7 @@ export function SizeCompareSelectedBuilds({
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
         slot="head"
+        projectType={projectType}
       />
 
       <Text>{t('vs')}</Text>
@@ -143,6 +156,7 @@ export function SizeCompareSelectedBuilds({
           label={t('Base')}
           onRemove={onClearBaseBuild}
           slot="base"
+          projectType={projectType}
         />
       ) : (
         <SelectBuild>
@@ -159,6 +173,7 @@ export function SizeCompareSelectedBuilds({
                 project_slug: projectId,
                 platform,
                 build_id: headBuildDetails.id,
+                project_type: projectType ?? null,
               });
               onTriggerComparison();
             }

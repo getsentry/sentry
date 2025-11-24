@@ -62,12 +62,13 @@ interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
+  projectType: string | null;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId} = props;
+  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
     handleDeleteArtifact,
@@ -134,6 +135,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
+      project_type: projectType,
     });
   };
 
@@ -144,7 +146,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_slug: projectId,
-      project_type: buildDetailsData.app_info?.platform ?? null,
+      project_type: projectType,
     });
   };
 

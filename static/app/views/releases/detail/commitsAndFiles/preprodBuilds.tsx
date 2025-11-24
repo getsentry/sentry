@@ -108,7 +108,7 @@ export default function PreprodBuilds() {
       trackAnalytics('preprod.builds.release.build_row_clicked', {
         organization,
         project_type: projectPlatform ?? null,
-        platform: build.app_info?.platform ?? projectPlatform ?? null,
+        platform: build.app_info?.platform ?? null,
         build_id: build.id,
         project_slug: projectSlug,
       });

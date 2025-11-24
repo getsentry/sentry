@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -63,6 +64,8 @@ export function SizeCompareSelectionContent({
   const {projectId} = useParams<{
     projectId: string;
   }>();
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
@@ -187,6 +190,11 @@ export function SizeCompareSelectionContent({
                     build_id: build.id,
                     project_slug: projectId,
                     platform:
+                      build.app_info?.platform ??
+                      headBuildDetails.app_info?.platform ??
+                      null,
+                    project_type:
+                      projectType ??
                       build.app_info?.platform ??
                       headBuildDetails.app_info?.platform ??
                       null,

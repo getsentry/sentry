@@ -56,12 +56,14 @@ export function AppSizeInsightsSidebarRow({
   onToggleExpanded,
   platform,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
+  projectType,
 }: {
   insight: ProcessedInsight;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   itemsPerPage?: number;
   platform?: Platform;
+  projectType?: string | null;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -79,6 +81,7 @@ export function AppSizeInsightsSidebarRow({
       organization,
       insight_key: insight.key,
       platform: platform ?? null,
+      project_type: projectType ?? null,
     });
     if (insight.key === 'alternate_icons_optimization') {
       openAlternativeIconsInsightModal();
@@ -107,6 +110,7 @@ export function AppSizeInsightsSidebarRow({
         organization,
         insight_key: insight.key,
         platform: platform ?? null,
+        project_type: projectType ?? null,
       });
     }
     onToggleExpanded();

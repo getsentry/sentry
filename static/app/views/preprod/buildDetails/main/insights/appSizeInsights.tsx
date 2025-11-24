@@ -20,9 +20,14 @@ import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessin
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
   platform?: Platform;
+  projectType?: string | null;
 }
 
-export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
+export function AppSizeInsights({
+  processedInsights,
+  platform,
+  projectType,
+}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
   const organization = useOrganization();
@@ -32,11 +37,12 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
       organization,
       platform: platform ?? null,
       source: 'insight_table',
+      project_type: projectType ?? null,
     });
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [organization, platform, searchParams, setSearchParams]);
+  }, [organization, platform, projectType, searchParams, setSearchParams]);
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -123,6 +129,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
         platform={platform}
+        projectType={projectType}
       />
     </Container>
   );
