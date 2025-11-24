@@ -81,7 +81,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       ? (query.referrer as ReplayListQueryReferrer)
       : 'replayList',
   });
-  const {data} = useApiQuery<{
+  const {data, isLoading} = useApiQuery<{
     data: ReplayListRecord[];
     enabled: boolean;
   }>(queryKey, {
@@ -106,7 +106,11 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 replay={replay}
               >
                 <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
-                  <ReplayPlaylistProvider currentReplay={replayRecord} replays={replays}>
+                  <ReplayPlaylistProvider
+                    currentReplay={replayRecord}
+                    isLoading={isLoading}
+                    replays={replays}
+                  >
                     {children}
                   </ReplayPlaylistProvider>
                 </ReplaySummaryContextProvider>

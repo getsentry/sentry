@@ -26,7 +26,7 @@ const MOBILE_COLUMNS = [
 ];
 
 export default function Playlist() {
-  const {replays, currentReplayIndex} = useReplayPlaylist();
+  const {replays, currentReplayIndex, isLoading} = useReplayPlaylist();
   const location = useLocation();
 
   const {allMobileProj} = useAllMobileProj({});
@@ -36,7 +36,8 @@ export default function Playlist() {
       columns={columns}
       error={null}
       highlightedRowIndex={currentReplayIndex}
-      isPending={false}
+      // we prefer isLoading since isPending is true even if not enabled
+      isPending={isLoading}
       query={location.query}
       replays={replays}
       showDropdownFilters={false}
