@@ -7,6 +7,7 @@ import orjson
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from urllib3 import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
@@ -151,12 +152,12 @@ def get_project_seer_preferences(project_id: int):
     path = "/v1/project-preference"
     body = orjson.dumps({"project_id": project_id})
 
-    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
     response = make_signed_seer_api_request(
-        connection_pool,
+        autofix_connection_pool,
         path,
         body=body,
         timeout=5,
+        retry=Retry(total=2, backoff_factor=0.5),
     )
 
     if response.status == 200:

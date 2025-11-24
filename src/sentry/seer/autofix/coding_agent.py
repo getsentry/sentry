@@ -8,6 +8,7 @@ import orjson
 from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -210,7 +211,7 @@ def _launch_agents_for_repos(
         if preference_response and preference_response.preference:
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except SeerApiError:
+    except (SeerApiError, TimeoutError, MaxRetryError):
         logger.exception(
             "coding_agent.get_project_seer_preferences_error",
             extra={
