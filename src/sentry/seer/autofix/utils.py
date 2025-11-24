@@ -157,7 +157,7 @@ def get_project_seer_preferences(project_id: int):
         path,
         body=body,
         timeout=5,
-        retry=Retry(total=2, backoff_factor=0.5),
+        retries=Retry(total=2, backoff_factor=0.5),
     )
 
     if response.status == 200:
