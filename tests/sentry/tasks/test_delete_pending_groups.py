@@ -55,7 +55,7 @@ class DeletePendingGroupsTest(TestCase):
         )
 
         with patch(
-            "sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async"
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_delete_task:
             delete_pending_groups()
 
@@ -76,7 +76,7 @@ class DeletePendingGroupsTest(TestCase):
             wrong_status.id,
         ]
 
-    @patch("sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async")
+    @patch("sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async")
     def test_groups_by_project(self, mock_delete_task: MagicMock) -> None:
         """Test that groups are properly grouped by project when scheduling deletion."""
         project1 = self.create_project()
@@ -109,8 +109,8 @@ class DeletePendingGroupsTest(TestCase):
             elif call_kwargs["project_id"] == project2.id:
                 assert set(call_kwargs["object_ids"]) == {group3.id}
 
-    @patch("sentry.tasks.delete_pending_groups.GROUP_CHUNK_SIZE", new=10)
-    @patch("sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async")
+    @patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", 10)
+    @patch("sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async")
     @patch("sentry.tasks.delete_pending_groups.metrics.incr")
     def test_chunks_large_batches(
         self,
