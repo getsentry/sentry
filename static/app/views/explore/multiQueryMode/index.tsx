@@ -4,6 +4,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -62,7 +63,9 @@ export default function MultiQueryMode() {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Page>
-          <MultiQueryModeContent />
+          <PageFiltersContainer>
+            <MultiQueryModeContent />
+          </PageFiltersContainer>
         </Layout.Page>
       </SentryDocumentTitle>
     </Feature>

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -30,25 +29,36 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 const MAX_METRICS_ALLOWED = 4;
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
-type MetricsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type MetricsTabProps = PickableDays;
 
-export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
+export function MetricsTabContent({
+  defaultPeriod,
+  maxPickableDays,
+  relativeOptions,
+}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
-      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
+      <MetricsTabFilterSection
+        defaultPeriod={defaultPeriod}
+        maxPickableDays={maxPickableDays}
+        relativeOptions={relativeOptions}
+      />
       <MetricsQueryBuilderSection />
       <MetricsTabBodySection />
     </MultiMetricsQueryParamsProvider>
   );
 }
 
-function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
+function MetricsTabFilterSection({
+  defaultPeriod,
+  maxPickableDays,
+  relativeOptions,
+}: PickableDays) {
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -57,7 +67,9 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             <ProjectPageFilter />
             <EnvironmentPageFilter />
             <DatePageFilter
-              {...datePageFilterProps}
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={relativeOptions}
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>

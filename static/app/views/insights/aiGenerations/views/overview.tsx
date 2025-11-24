@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
@@ -18,12 +17,9 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -35,6 +31,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {GenerationsToolbar} from 'sentry/views/insights/aiGenerations/views/components/generationsToolbar';
@@ -61,14 +58,11 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-interface AIGenerationsPageProps {
-  datePageFilterProps: DatePageFilterProps;
-}
-
-function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
+function AIGenerationsPage() {
   const organization = useOrganization();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const showOnboarding = useShowOnboarding();
+  const datePageFilterProps = limitMaxPickableDays(organization);
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const [searchQuery, setSearchQuery] = useQueryState(
@@ -261,21 +255,11 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-    organization,
-  });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
   return (
-    <ModulePageProviders
-      moduleName={ModuleName.AI_GENERATIONS}
-      maxPickableDays={datePageFilterProps.maxPickableDays}
-    >
+    <ModulePageProviders moduleName={ModuleName.AI_GENERATIONS}>
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <SpansQueryParamsProvider>
-          <AIGenerationsPage datePageFilterProps={datePageFilterProps} />
+          <AIGenerationsPage />
         </SpansQueryParamsProvider>
       </TraceItemAttributeProvider>
     </ModulePageProviders>

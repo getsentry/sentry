@@ -2,17 +2,14 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {DataCategory} from 'sentry/types/core';
-import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -30,12 +27,10 @@ import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {ModuleName} from 'sentry/views/insights/types';
 
-interface AgentToolsLandingPageProps {
-  datePageFilterProps: DatePageFilterProps;
-}
-
-function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps) {
+function AgentToolsLandingPage() {
+  const organization = useOrganization();
   const showOnboarding = useShowAgentOnboarding();
+  const datePageFilterProps = limitMaxPickableDays(organization);
   useDefaultToAllProjects();
 
   const agentSpanSearchProps = useAgentSpanSearchProps();
@@ -94,21 +89,13 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-    organization,
-  });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
   return (
     <ModulePageProviders
       moduleName={ModuleName.AGENT_TOOLS}
       analyticEventName="insight.page_loads.agent_tools"
-      maxPickableDays={datePageFilterProps.maxPickableDays}
     >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentToolsLandingPage datePageFilterProps={datePageFilterProps} />
+        <AgentToolsLandingPage />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );
