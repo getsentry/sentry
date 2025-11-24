@@ -284,6 +284,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 extra_fields={
                     "org_id": projects[0].organization_id,
                     "event_types": data.get("event_types"),
+                    "extrapolation_mode": data.get("extrapolation_mode"),
                 },
             )
         except UnsupportedQuerySubscription as e:

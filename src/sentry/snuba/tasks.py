@@ -19,7 +19,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
@@ -133,6 +133,9 @@ def update_subscription_in_snuba(
             extra_fields={
                 "org_id": subscription.project.organization_id,
                 "event_types": subscription.snuba_query.event_types,
+                "extrapolation_mode": ExtrapolationMode(
+                    subscription.snuba_query.extrapolation_mode
+                ),
             },
         )
         old_entity_key = (
