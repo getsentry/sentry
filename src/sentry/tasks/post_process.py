@@ -975,7 +975,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     try:
         process_workflows_event.apply_async(
             kwargs=dict(
-                project_id=job["event"].project_id,
                 event_id=job["event"].event_id,
                 occurrence_id=job["event"].occurrence_id,
                 group_id=job["event"].group_id,

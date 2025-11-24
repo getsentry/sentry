@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * To get started with this ESLint Configuration list be sure to read at least
  * these sections of the docs:
