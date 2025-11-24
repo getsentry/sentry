@@ -72,11 +72,13 @@ function CompactIssuePreview({group}: {group: Group}) {
 
   const items = [
     group.project ? (
-      <ShadowlessProjectBadge project={group.project} avatarSize={12} hideName />
+      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
     ) : null,
     group.isUnhandled ? <UnhandledTag /> : null,
     group.count ? (
-      <EventCount>{tn('%s event', '%s events', group.count)}</EventCount>
+      <Text size="xs" bold>
+        {tn('%s event', '%s events', group.count)}
+      </Text>
     ) : null,
     group.lifetime || group.firstSeen || group.lastSeen ? (
       <TimesTag
@@ -85,52 +87,63 @@ function CompactIssuePreview({group}: {group: Group}) {
       />
     ) : null,
     group.numComments > 0 ? (
-      <CommentsLink
+      <Link
         to={{
           pathname: `${issuesPath}${group.id}/activity/`,
           query: {filter: 'comments'},
         }}
       >
-        <IconChat
-          size="xs"
-          color={
-            group.subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
-          }
-        />
-        <span>{group.numComments}</span>
-      </CommentsLink>
+        <Flex gap="xs" align="center">
+          <IconChat
+            size="xs"
+            color={
+              group.subscriptionDetails?.reason === 'mentioned'
+                ? 'successText'
+                : undefined
+            }
+          />
+          <span>{group.numComments}</span>
+        </Flex>
+      </Link>
     ) : null,
     showReplayCount ? <IssueReplayCount group={group} /> : null,
   ].filter(defined);
 
   return (
-    <CompactIssueWrapper>
-      <CompactTitle>
+    <Flex direction="column" gap="xs">
+      <IssueTitle>
         {group.isBookmarked && (
-          <IconWrapper>
-            <IconStar isSolid color="yellow300" size="xs" />
-          </IconWrapper>
+          <IconStar
+            isSolid
+            color="yellow300"
+            size="xs"
+            style={{marginRight: space(0.5)}}
+          />
         )}
         <EventOrGroupTitle data={group} withStackTracePreview />
-      </CompactTitle>
-      <CompactMessage
+      </IssueTitle>
+      <IssueMessage
         data={group}
         level={group.level}
         message={getMessage(group)}
         type={group.type}
       />
-      {subtitle && <CompactLocation>{subtitle}</CompactLocation>}
+      {subtitle && (
+        <Text size="sm" variant="muted" ellipsis>
+          {subtitle}
+        </Text>
+      )}
       {items.length > 0 && (
-        <CompactExtra>
+        <Flex wrap="wrap" gap="sm" align="center">
           {items.map((item, i) => (
             <Fragment key={i}>
               {item}
-              {i < items.length - 1 ? <CompactSeparator /> : null}
+              {i < items.length - 1 ? <MetaSeparator /> : null}
             </Fragment>
           ))}
-        </CompactExtra>
+        </Flex>
       )}
-    </CompactIssueWrapper>
+    </Flex>
   );
 }
 
@@ -155,7 +168,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   );
 
   if (isPending) {
-    return <LoadingIndicator mini />;
+    return <LoadingIndicator size={24} />;
   }
 
   if (!groups || groups.length === 0) {
@@ -165,12 +178,12 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   return (
     <Flex direction="column" gap="sm">
       {groups.map(group => (
-        <IssuePreviewContainer
+        <IssuePreviewLink
           key={group.id}
           to={`/organizations/${organization.slug}/issues/${group.id}/`}
         >
           <CompactIssuePreview group={group} />
-        </IssuePreviewContainer>
+        </IssuePreviewLink>
       ))}
     </Flex>
   );
@@ -184,50 +197,51 @@ function ClusterCard({
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
+  const issueCount = cluster.cluster_size ?? cluster.group_ids.length;
 
   return (
     <CardContainer>
       <Flex
         justify="between"
         align="start"
-        gap="sm"
+        gap="md"
         paddingBottom="md"
-        marginBottom="md"
         borderBottom="primary"
       >
-        <TitleContainer direction="column" gap="xs">
-          <StyledDisclosure>
-            <Disclosure.Title>
-              <TitleHeading as="h3" size="md">
-                {cluster.title}
-              </TitleHeading>
-            </Disclosure.Title>
-            <Disclosure.Content>
-              <SummaryText variant="muted">{cluster.description}</SummaryText>
-              {cluster.fixability_score !== null && (
-                <ConfidenceText size="sm" variant="muted">
-                  {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
-                </ConfidenceText>
-              )}
-            </Disclosure.Content>
-          </StyledDisclosure>
-        </TitleContainer>
-        <IssueCount>
-          <CountNumber>{cluster.cluster_size ?? cluster.group_ids.length}</CountNumber>
-          <CountLabel size="xs" variant="muted">
-            {tn('issue', 'issues', cluster.cluster_size ?? cluster.group_ids.length)}
-          </CountLabel>
-        </IssueCount>
+        <Disclosure>
+          <Disclosure.Title>
+            <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
+              {cluster.title}
+            </Heading>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <Text as="p" variant="muted" style={{marginBottom: space(1.5)}}>
+              {cluster.description}
+            </Text>
+            {cluster.fixability_score !== null && (
+              <Text size="sm" variant="muted">
+                {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
+              </Text>
+            )}
+          </Disclosure.Content>
+        </Disclosure>
+        <IssueCountBadge>
+          <IssueCountNumber>{issueCount}</IssueCountNumber>
+          <Text size="xs" variant="muted" uppercase>
+            {tn('issue', 'issues', issueCount)}
+          </Text>
+        </IssueCountBadge>
       </Flex>
 
-      <Flex direction="column" flex="1">
+      <Flex direction="column" flex="1" paddingTop="md">
         <ClusterIssues groupIds={cluster.group_ids} />
 
         {cluster.group_ids.length > 3 && (
           <Text
             size="sm"
             variant="muted"
-            style={{marginTop: space(1), fontStyle: 'italic', textAlign: 'center'}}
+            align="center"
+            style={{marginTop: space(1), fontStyle: 'italic'}}
           >
             {t('+ %s more similar issues', cluster.group_ids.length - 3)}
           </Text>
@@ -336,7 +350,7 @@ function DynamicGrouping() {
   }
 
   return (
-    <PageContainer>
+    <Container padding="lg" maxWidth="1600px" margin="0 auto">
       <Breadcrumbs
         crumbs={[
           {
@@ -349,31 +363,30 @@ function DynamicGrouping() {
         ]}
       />
 
-      <PageHeader>
-        <Heading as="h1">{t('Top Issues')}</Heading>
-      </PageHeader>
+      <Heading as="h1" style={{marginBottom: space(2)}}>
+        {t('Top Issues')}
+      </Heading>
 
       {isPending ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
-          <Flex marginBottom="lg">
-            <Text size="sm" variant="muted">
-              {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
-              )}
-            </Text>
-          </Flex>
+          <Text size="sm" variant="muted">
+            {tn(
+              'Viewing %s issue in %s cluster',
+              'Viewing %s issues across %s clusters',
+              totalIssues,
+              filteredAndSortedClusters.length
+            )}
+          </Text>
 
           <Container
-            padding="md"
+            padding="sm"
             border="primary"
             radius="md"
-            marginBottom="lg"
             background="primary"
+            marginTop="md"
+            marginBottom="lg"
           >
             <Disclosure>
               <Disclosure.Title>
@@ -382,7 +395,7 @@ function DynamicGrouping() {
                 </Text>
               </Disclosure.Title>
               <Disclosure.Content>
-                <AdvancedFilterContent>
+                <Flex direction="column" gap="md" paddingTop="md">
                   <Flex gap="sm" align="center">
                     <Checkbox
                       checked={filterByAssignedToMe}
@@ -407,14 +420,14 @@ function DynamicGrouping() {
                       size="sm"
                     />
                   </Flex>
-                </AdvancedFilterContent>
+                </Flex>
               </Disclosure.Content>
             </Disclosure>
           </Container>
 
           {filteredAndSortedClusters.length === 0 ? (
             <Container padding="lg" border="primary" radius="md" background="primary">
-              <Text variant="muted" style={{textAlign: 'center'}}>
+              <Text variant="muted" align="center" as="div">
                 {t('No clusters match the current filters')}
               </Text>
             </Container>
@@ -431,26 +444,18 @@ function DynamicGrouping() {
           )}
         </Fragment>
       )}
-    </PageContainer>
+    </Container>
   );
 }
 
-const PageContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
-  max-width: 1600px;
-  margin: 0 auto;
-`;
-
-const PageHeader = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
+// Grid layout for cards - needs CSS grid
 const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: ${space(3)};
 `;
 
+// Card with hover effect - needs custom transition/hover styles
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -458,7 +463,6 @@ const CardContainer = styled('div')`
   padding: ${space(3)};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -469,57 +473,8 @@ const CardContainer = styled('div')`
   }
 `;
 
-const SummaryText = styled(Text)`
-  line-height: 1.6;
-  display: block;
-  margin-bottom: ${space(1.5)};
-`;
-
-const ConfidenceText = styled(Text)`
-  display: block;
-  margin-top: ${space(1.5)};
-`;
-
-const TitleContainer = styled(Flex)`
-  flex: 1;
-  min-width: 0;
-`;
-
-const StyledDisclosure = styled(Disclosure)`
-  /* Target the button inside Disclosure.Title */
-  button {
-    width: 100%;
-    display: flex !important;
-    text-align: left !important;
-    white-space: normal;
-    word-break: break-word;
-    padding: 0;
-    margin: 0;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-  }
-
-  /* Ensure inner content is left-aligned */
-  button > *,
-  button span {
-    text-align: left !important;
-    justify-content: flex-start !important;
-  }
-
-  /* Adjust content padding */
-  & > div:last-child {
-    padding-top: ${space(1)};
-  }
-`;
-
-const TitleHeading = styled(Heading)`
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-  text-align: left;
-`;
-
-const IssueCount = styled('div')`
+// Issue count badge with custom background color
+const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -529,54 +484,41 @@ const IssueCount = styled('div')`
   flex-shrink: 0;
 `;
 
-const CountNumber = styled('div')`
+const IssueCountNumber = styled('div')`
   font-size: 24px;
   font-weight: 600;
   color: ${p => p.theme.purple400};
   line-height: 1;
 `;
 
-const CountLabel = styled(Text)`
-  margin-top: ${space(0.25)};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  display: inline-block;
-  width: 6ch;
-  text-align: center;
-`;
-
-const IssuePreviewContainer = styled(Link)`
+// Issue preview link with hover transform effect
+const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  transition: all 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
 
   &:hover {
     border-color: ${p => p.theme.purple300};
     background: ${p => p.theme.backgroundElevated};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transform: translateX(2px);
   }
 `;
 
-const CompactIssueWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.75)};
-`;
-
-const CompactTitle = styled('div')`
+// Issue title with ellipsis and nested em styling for EventOrGroupTitle
+const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   line-height: 1.4;
-  text-align: left;
   ${p => p.theme.overflowEllipsis};
 
-  & em {
+  em {
     font-size: ${p => p.theme.fontSize.sm};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
@@ -584,71 +526,18 @@ const CompactTitle = styled('div')`
   }
 `;
 
-const CompactMessage = styled(EventMessage)`
+// EventMessage override for compact display
+const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  line-height: 1.4;
 `;
 
-const CompactLocation = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.3;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const CompactExtra = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column dense;
-  gap: ${space(0.75)};
-  justify-content: start;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
-  line-height: 1.2;
-
-  & > a {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const CompactSeparator = styled('div')`
+// Meta separator line
+const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
-  border-radius: 1px;
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
-`;
-
-const CommentsLink = styled(Link)`
-  display: inline-grid;
-  gap: ${space(0.5)};
-  align-items: center;
-  grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
-`;
-
-const IconWrapper = styled('span')`
-  display: inline-flex;
-  margin-right: ${space(0.5)};
-`;
-
-const EventCount = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const AdvancedFilterContent = styled('div')`
-  padding: ${space(2)} 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 export default DynamicGrouping;
