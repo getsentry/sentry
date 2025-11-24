@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -190,10 +191,9 @@ export function ReleasesDrawerTable({
   );
 
   const tableEmptyMessage = (
-    <MessageContainer>
-      <Title>{t('No releases')}</Title>
-      <Subtitle>{t('There are no releases within this timeframe')}</Subtitle>
-    </MessageContainer>
+    <EmptyMessage title={t('No releases')}>
+      {t('There are no releases within this timeframe')}
+    </EmptyMessage>
   );
 
   return (
@@ -224,23 +224,6 @@ export function ReleasesDrawerTable({
     </div>
   );
 }
-
-const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Title = styled('div')`
-  font-size: 24px;
-`;
-
-const MessageContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${space(1)};
-  justify-items: center;
-  text-align: center;
-  padding: ${space(4)};
-`;
 
 const CellWrapper = styled('div')`
   & div {
