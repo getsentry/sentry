@@ -11,7 +11,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 def migrate_fallthrough_type(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Action = apps.get_model("workflow_engine", "Action")
     for action in RangeQuerySetWrapper(Action.objects.all()):
-        if action.data.get("fallthroughType"):
+        if "fallthroughType" in action.data:
             new_data = action.data.copy()
             del new_data["fallthroughType"]
             new_data["fallthrough_type"] = action.data["fallthroughType"]

@@ -5,7 +5,7 @@ from sentry.workflow_engine.models import Action
 
 
 class TestActionDataFallthroughType(TestMigrations):
-    migrate_from = "0103_action_data_fallthrough_type"
+    migrate_from = "0103_add_unique_constraint"
     migrate_to = "0104_action_data_fallthrough_type"
     app = "workflow_engine"
 
