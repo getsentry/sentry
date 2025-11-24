@@ -88,10 +88,18 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
         fake_id = incident_identifier or incident_id
         if fake_id:
             calculated_open_period_id = get_object_id_from_fake_id(int(fake_id))
-            group_open_period = GroupOpenPeriod.objects.filter(
+            gop_queryset = GroupOpenPeriod.objects.filter(
                 id=calculated_open_period_id,
                 project__organization=organization,
-            ).first()
+            )
+
+            if group_id:
+                gop_queryset = gop_queryset.filter(group_open_period__group_id=group_id)
+
+            if open_period_id:
+                gop_queryset = gop_queryset.filter(group_open_period_id=open_period_id)
+
+            group_open_period = gop_queryset.first()
 
             if group_open_period:
                 # Serialize the GroupOpenPeriod as if it were an IncidentGroupOpenPeriod
