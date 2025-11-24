@@ -398,7 +398,7 @@ class OrganizationSerializer(Serializer):
         if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
 
-        return sorted(feature_set)
+        return list(feature_set)
 
     def serialize(
         self,
