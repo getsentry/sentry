@@ -52,6 +52,7 @@ interface ClusterSummary {
   group_ids: number[];
   issue_titles: string[];
   project_ids: number[];
+  summary: string;
   tags: string[];
   title: string;
 }
@@ -206,14 +207,23 @@ function ClusterCard({
         marginBottom="md"
         borderBottom="primary"
       >
-        <ClusterTitle as="h3" size="md">
-          {cluster.title}
-          {cluster.fixability_score !== null && (
-            <Text size="sm" variant="muted" style={{fontWeight: 'normal'}}>
-              {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
-            </Text>
-          )}
-        </ClusterTitle>
+        <TitleContainer direction="column" gap="xs">
+          <StyledDisclosure>
+            <Disclosure.Title>
+              <TitleHeading as="h3" size="md">
+                {cluster.title}
+              </TitleHeading>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <SummaryText variant="muted">{cluster.summary}</SummaryText>
+              {cluster.fixability_score !== null && (
+                <ConfidenceText size="sm" variant="muted">
+                  {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
+                </ConfidenceText>
+              )}
+            </Disclosure.Content>
+          </StyledDisclosure>
+        </TitleContainer>
         <IssueCount>
           <CountNumber>{cluster.cluster_size ?? cluster.group_ids.length}</CountNumber>
           <CountLabel size="xs" variant="muted">
@@ -223,10 +233,6 @@ function ClusterCard({
       </Flex>
 
       <Flex direction="column" flex="1">
-        <Text variant="muted" style={{lineHeight: 1.6, marginBottom: space(2)}}>
-          {cluster.description}
-        </Text>
-
         <ClusterIssues groupIds={cluster.group_ids} />
 
         {cluster.group_ids.length > 3 && (
@@ -561,13 +567,54 @@ const CardContainer = styled('div')<{isRemoving: boolean}>`
   }
 `;
 
-const ClusterTitle = styled(Heading)`
+const SummaryText = styled(Text)`
+  line-height: 1.6;
+  display: block;
+  margin-bottom: ${space(1.5)};
+`;
+
+const ConfidenceText = styled(Text)`
+  display: block;
+  margin-top: ${space(1.5)};
+`;
+
+const TitleContainer = styled(Flex)`
   flex: 1;
-  line-height: 1.3;
-  color: ${p => p.theme.headingColor};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
+  min-width: 0;
+`;
+
+const StyledDisclosure = styled(Disclosure)`
+  /* Target the button inside Disclosure.Title */
+  button {
+    width: 100%;
+    display: flex !important;
+    text-align: left !important;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0;
+    margin: 0;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+  }
+
+  /* Ensure inner content is left-aligned */
+  button > *,
+  button span {
+    text-align: left !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Adjust content padding */
+  & > div:last-child {
+    padding-top: ${space(1)};
+  }
+`;
+
+const TitleHeading = styled(Heading)`
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  text-align: left;
 `;
 
 const IssueCount = styled('div')`
@@ -577,7 +624,6 @@ const IssueCount = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   background: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
-  min-width: 60px;
   flex-shrink: 0;
 `;
 
@@ -593,6 +639,9 @@ const CountLabel = styled(Text)`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
+  display: inline-block;
+  width: 6ch;
+  text-align: center;
 `;
 
 const IssuePreviewContainer = styled(Link)`
@@ -622,6 +671,7 @@ const CompactTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   line-height: 1.4;
+  text-align: left;
   ${p => p.theme.overflowEllipsis};
 
   & em {
