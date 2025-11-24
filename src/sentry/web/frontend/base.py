@@ -84,7 +84,7 @@ class ViewSiloLimit(SiloLimit):
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
                 f"Received {request.method} request at {request.path!r} to server in "
-                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+                f"{current_mode} mode. This view is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
                 raise self.AvailabilityError(message)
@@ -118,6 +118,11 @@ region_silo_view = ViewSiloLimit(SiloMode.REGION)
 Apply to frontend views that exist in REGION Silo
 If a request is received and the application is not in REGION/MONOLITH
 mode a 404 will be returned.
+"""
+
+all_silo_view = ViewSiloLimit(SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH)
+"""
+Apply to frontend views that respond in both CONTROL and REGION mode.
 """
 
 

@@ -1,9 +1,11 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
+from sentry.web.frontend.base import all_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@all_silo_view
 class Error404View(View):
     def dispatch(self, request: HttpRequest, exception=None) -> HttpResponse:
         # HACK: We don't have any use for exception, but in Django 2.0,

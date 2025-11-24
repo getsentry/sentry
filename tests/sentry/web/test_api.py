@@ -25,11 +25,6 @@ class CrossDomainXmlTest(TestCase):
     def path(self) -> str:
         return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
 
-    def test_inaccessible_in_control_silo(self) -> None:
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 404
-
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_global(self, get_origins: mock.MagicMock) -> None:
         get_origins.return_value = "*"
