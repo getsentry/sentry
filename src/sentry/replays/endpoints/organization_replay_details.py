@@ -67,7 +67,7 @@ def query_replay_instance_eap(
             ],
             alias="count_rage_clicks",
         ),
-        Function("max", parameters=[Column("is_archived")], alias="is_archived"),
+        Function("max", parameters=[Column("is_archived")], alias="isArchived"),
     ]
 
     snuba_query = Query(
