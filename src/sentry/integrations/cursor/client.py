@@ -42,7 +42,9 @@ class CursorAgentClient(CodingAgentClient):
             ),
             webhook=CursorAgentLaunchRequestWebhook(url=webhook_url, secret=self.webhook_secret),
             target=CursorAgentLaunchRequestTarget(
-                autoCreatePr=True, branchName=request.branch_name, openAsCursorGithubApp=True
+                autoCreatePr=request.auto_create_pr,
+                branchName=request.branch_name,
+                openAsCursorGithubApp=True,
             ),
         )
 

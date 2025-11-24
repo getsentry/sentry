@@ -4,9 +4,11 @@ from enum import StrEnum
 from typing import TypedDict
 
 import orjson
+import pydantic
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from urllib3 import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
@@ -17,7 +19,13 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    PreferenceResponse,
+    SeerApiError,
+    SeerApiResponseValidationError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -131,6 +139,37 @@ class CodingAgentStateUpdateRequest(BaseModel):
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
 )
+
+
+def get_project_seer_preferences(project_id: int):
+    """
+    Fetch Seer project preferences from the Seer API.
+
+    Args:
+        project_id: The project ID to fetch preferences for
+
+    Returns:
+        PreferenceResponse object if successful, None otherwise
+    """
+    path = "/v1/project-preference"
+    body = orjson.dumps({"project_id": project_id})
+
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=5,
+        retries=Retry(total=2, backoff_factor=0.5),
+    )
+
+    if response.status == 200:
+        try:
+            result = orjson.loads(response.data)
+            return PreferenceResponse.validate(result)
+        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
+            raise SeerApiResponseValidationError(str(e)) from e
+
+    raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
