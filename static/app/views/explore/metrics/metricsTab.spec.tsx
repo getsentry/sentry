@@ -9,11 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
-const datePageFilterProps: PickableDays = {
+const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
   relativeOptions: ({arbitraryOptions}) => ({
@@ -171,7 +171,7 @@ describe('MetricsTabContent', () => {
   it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
-        <MetricsTabContent {...datePageFilterProps} />
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
         initialRouterConfig,
