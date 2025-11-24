@@ -170,7 +170,8 @@ x-sentry-service-config:
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
-    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
+    backend-ci:
+      [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
