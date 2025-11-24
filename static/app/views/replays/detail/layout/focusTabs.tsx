@@ -51,7 +51,7 @@ function getReplayTabs({
           >
             {t('AI Summary')}
           </Tooltip>
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
