@@ -91,7 +91,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         assert result == {
             "values": {
-                "transaction": {"bar", "baz"},
+                "transaction": ["bar", "baz"],
             }
         }
 
