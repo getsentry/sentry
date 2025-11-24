@@ -39,7 +39,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
         Download size analysis results for a preprod artifact
         ````````````````````````````````````````````````````
 
-        Download size analysis results for a preprod artifact.
+        Download the size analysis results for a preprod artifact.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           artifact belongs to.
