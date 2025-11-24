@@ -138,6 +138,8 @@ export function useChartXRangeSelection({
 
     return {
       selection: initialSelection,
+      // Action menu position is not set on load.
+      // It's calculated from the selection selection range once brushing ends.
       actionMenuPosition: null,
     };
   }, [initialSelection]);
@@ -145,7 +147,7 @@ export function useChartXRangeSelection({
   const [state, setState] = useState<State>(initialState);
 
   const tooltipFrameRef = useRef<number | null>(null);
-  const enableBrushModeFrameRef = useRef<number | null>(null);
+  const brushStateSyncFrameRef = useRef<number | null>(null);
 
   const onBrushStart = useCallback<EChartBrushStartHandler>(
     (_evt, chartInstance) => {
@@ -244,6 +246,8 @@ export function useChartXRangeSelection({
     [clearSelection]
   );
 
+  // This effect sets up the event listener for clearing of the selection
+  //  when the user clicks outside the declared inbound regions.
   useEffect(() => {
     if (disabled || !state?.selection) return;
 
@@ -264,15 +268,20 @@ export function useChartXRangeSelection({
     });
   }, [chartRef]);
 
+  // This effect fires whenever state changes. It:
+  // - Re-draws the selection box in the chart on state change enforcing persistence.
+  // - Populates the rest of the state from the optional `initialSelection` prop on load.
+  // - Activates brush mode on load and when we re-draw the box/clear the selection.
   useEffect(() => {
-    if (disabled) {
+    const chartInstance = chartRef.current?.getEchartsInstance();
+
+    if (disabled || !chartInstance) {
       return;
     }
 
-    const chartInstance = chartRef.current?.getEchartsInstance();
-
-    // Re-draw the box in the chart when a new selection is made
-    if (state?.selection && chartInstance) {
+    // Re-draw the box in the chart whenever state.selection changes,
+    // enforcing persistence.
+    if (state?.selection) {
       chartInstance.dispatchAction({
         type: 'brush',
         areas: [
@@ -285,10 +294,19 @@ export function useChartXRangeSelection({
         ],
       });
 
-      // Synchronize the action menu position with the selection box
-      // only if the action menu position is not already set, this is used on load when we
-      // initialize the state, from the initialSelection prop.
-      if (!state.actionMenuPosition) {
+      // We re-connect the group after drawing the box, so that the cursor is synced across all charts again.
+      // Check the onBrushStart handler for more details.
+      if (chartsGroupName) {
+        echarts?.connect(chartsGroupName);
+      }
+    }
+
+    // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
+    // and this ensures ECharts has fully processed the dispatchAction above.
+    brushStateSyncFrameRef.current = requestAnimationFrame(() => {
+      // We only propagate the range of the selection box to the consumers,
+      // so we need to calculate the rest of the state from the range on load.
+      if (state && !state.actionMenuPosition) {
         const newState = calculateNewState({
           chartInstance,
           newRange: state.selection.range,
@@ -300,22 +318,13 @@ export function useChartXRangeSelection({
         }
       }
 
-      // We re-connect the group after drawing the box, so that the cursor is synced across all charts again.
-      // Check the onBrushStart handler for more details.
-      if (chartsGroupName) {
-        echarts?.connect(chartsGroupName);
-      }
-    }
-
-    // Activate brush mode on load and when we re-draw the box/clear the selection
-    enableBrushModeFrameRef.current = requestAnimationFrame(() => {
       enableBrushMode();
     });
 
     // eslint-disable-next-line consistent-return
     return () => {
-      if (enableBrushModeFrameRef.current)
-        cancelAnimationFrame(enableBrushModeFrameRef.current);
+      if (brushStateSyncFrameRef.current)
+        cancelAnimationFrame(brushStateSyncFrameRef.current);
       if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
     };
   }, [state, disabled, enableBrushMode, chartRef, chartsGroupName, deps]);
