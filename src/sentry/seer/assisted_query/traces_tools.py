@@ -1,6 +1,7 @@
 import logging
 
 from sentry.api import client
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 
@@ -45,7 +46,7 @@ def get_attribute_names(
             "attributeType": attr_type,
             "itemType": item_type,
             "statsPeriod": stats_period,
-            "project": project_ids,
+            "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         }
 
         # API returns: [{"key": "...", "name": "span.op", "attributeSource": {...}}, ...]
@@ -56,7 +57,7 @@ def get_attribute_names(
             params=query_params,
         )
 
-        fields[attr_type] = [item["name"] for item in resp.data if "name" in item]
+        fields[attr_type] = [item["name"] for item in resp.data]
 
     return {"fields": fields}
 
@@ -107,7 +108,7 @@ def get_attribute_values_with_substring(
             "itemType": item_type,
             "attributeType": "string",
             "statsPeriod": stats_period,
-            "project": project_ids,
+            "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         }
         if substring:
             query_params["substringMatch"] = substring
