@@ -1,12 +1,10 @@
 import logging
 from collections import defaultdict
 from datetime import timedelta
-from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
-from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.api.helpers.group_index.delete import schedule_group_deletion_tasks
 from sentry.models.group import Group, GroupStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -41,9 +39,7 @@ def delete_pending_groups() -> None:
     """
     statuses_to_delete = [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
 
-    # XXX: If needed add a partial index with the status and last_seen fields
-    # This can timeout for lack of an index on the status field
-    # Not using the last_seen index to avoid the lack of composite index on status and last_seen
+    # Just using status to take advantage of the status DB index
     groups = Group.objects.filter(status__in=statuses_to_delete).values_list(
         "id", "project_id", "last_seen"
     )[:BATCH_LIMIT]
@@ -71,19 +67,7 @@ def delete_pending_groups() -> None:
     )
 
     for project_id, group_ids in groups_by_project.items():
-        # Schedule deletion tasks in chunks of GROUP_CHUNK_SIZE
-        for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):
-            chunk = group_ids[i : i + GROUP_CHUNK_SIZE]
-            transaction_id = str(uuid4())
-
-            delete_groups_for_project.apply_async(
-                kwargs={
-                    "project_id": project_id,
-                    "object_ids": chunk,
-                    "transaction_id": transaction_id,
-                }
-            )
-            total_tasks += 1
+        total_tasks += schedule_group_deletion_tasks(project_id, group_ids)
 
     metrics.incr("delete_pending_groups.groups_scheduled", amount=total_groups, sample_rate=1.0)
     metrics.incr("delete_pending_groups.tasks_scheduled", amount=total_tasks, sample_rate=1.0)
