@@ -750,7 +750,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.batch_client = DelayedWorkflowClient()
 
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
+    @patch("sentry.workflow_engine.tasks.utils.IssueOccurrence.fetch")
+    def test_metrics_issue_dual_processing_metrics(
+        self, mock_fetch: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self.group_event.occurrence
+
         with self.tasks():
             process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_any_call(

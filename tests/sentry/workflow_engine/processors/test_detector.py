@@ -30,8 +30,6 @@ from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
     get_detector_by_event,
-    get_detector_by_group,
-    get_detectors_by_groupevents_bulk,
     process_detectors,
 )
 from sentry.workflow_engine.types import (
@@ -940,116 +938,6 @@ class TestGetDetectorByEvent(TestCase):
         result = get_detector_by_event(event_data)
 
         assert result == self.error_detector
-
-
-class TestGetDetectorsByGroupEventsBulk(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.project1 = self.create_project()
-        self.project2 = self.create_project()
-        self.group1 = self.create_group(project=self.project1)
-        self.group2 = self.create_group(project=self.project2)
-
-        self.detector1 = self.create_detector(project=self.project1, type="metric_issue")
-        self.detector2 = self.create_detector(project=self.project2, type="error")
-        self.detector3 = self.create_detector(project=self.project2, type="metric_issue")
-
-        self.event1 = self.store_event(project_id=self.project1.id, data={})
-        self.event2 = self.store_event(project_id=self.project2.id, data={})
-
-    def test_empty_list(self) -> None:
-        result = get_detectors_by_groupevents_bulk([])
-        assert result == {}
-
-    def test_mixed_occurrences(self) -> None:
-        """Test bulk fetch with mixed events (some with occurrences, some without)"""
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={"detector_id": self.detector1.id},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-
-        group_event1 = GroupEvent.from_event(self.event1, self.group1)
-        group_event1.occurrence = occurrence
-
-        group_event2 = GroupEvent.from_event(self.event2, self.group2)
-        group_event2.occurrence = None
-
-        events = [group_event1, group_event2]
-        result = get_detectors_by_groupevents_bulk(events)
-
-        assert result[group_event1.event_id] == self.detector1
-        assert result[group_event2.event_id] == self.detector2
-        assert len(result) == 2
-
-    def test_mixed_occurrences_missing_detectors(self) -> None:
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-        self.detector2.delete()
-
-        group_event1 = GroupEvent.from_event(self.event1, self.group1)
-        group_event1.occurrence = occurrence
-
-        group_event2 = GroupEvent.from_event(self.event2, self.group2)
-        group_event2.occurrence = None
-
-        events = [group_event1, group_event2]
-
-        with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
-            result = get_detectors_by_groupevents_bulk(events)
-
-            assert result == {}
-            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
-
-
-class TestGetDetectorByGroup(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.project = self.create_project()
-        self.group = self.create_group(project=self.project)
-        self.detector = self.create_detector(project=self.project, type="metric_issue")
-        self.error_detector = self.create_detector(project=self.project, type="error")
-        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
-
-    def test_uses_detector_group(self) -> None:
-        DetectorGroup.objects.create(detector=self.detector, group=self.group)
-
-        assert get_detector_by_group(self.group) == self.detector
-
-    def test_error_group(self) -> None:
-        assert get_detector_by_group(self.group) == self.error_detector
-
-    def test_type_detector(self) -> None:
-        self.group.update(type=MetricIssue.type_id)
-        assert get_detector_by_group(self.group) == self.detector
-
-    def test_issue_stream_fallback(self) -> None:
-        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
-
-        assert get_detector_by_group(self.group) == self.issue_stream_detector
 
 
 class TestAssociateNewGroupWithDetector(TestCase):

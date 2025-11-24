@@ -28,7 +28,6 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowActionGroupStatus,
 )
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -149,13 +148,11 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(
-    actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
-) -> None:
+def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, detector, event_data)
+        task_params = build_trigger_action_task_params(action, event_data)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 

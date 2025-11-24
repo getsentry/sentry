@@ -47,7 +47,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
@@ -680,11 +679,6 @@ def fire_actions_for_groups(
         },
     )
 
-    # Bulk fetch detectors
-    event_id_to_detector = get_detectors_by_groupevents_bulk(
-        [group_event for group_event, _ in group_to_groupevent.values()]
-    )
-
     # Feature check caching to keep us within the trace budget.
     trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
     single_processing_ff = features.has(
@@ -708,17 +702,6 @@ def fire_actions_for_groups(
         for group, (group_event, start_timestamp) in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
                 workflow_event_data = WorkflowEventData(event=group_event, group=group)
-                detector = event_id_to_detector.get(group_event.event_id)
-
-                if detector is None:
-                    logger.warning(
-                        "No detector found for event, skipping",
-                        extra={
-                            "event_id": group_event.event_id,
-                            "group_id": group.id,
-                        },
-                    )
-                    continue
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
                 filtered_actions = filter_recently_fired_workflow_actions(
@@ -732,7 +715,6 @@ def fire_actions_for_groups(
                 )
 
                 workflow_fire_histories = create_workflow_fire_histories(
-                    detector,
                     filtered_actions,
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
@@ -758,7 +740,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, detector, workflow_event_data)
+                fire_actions(filtered_actions, workflow_event_data)
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
