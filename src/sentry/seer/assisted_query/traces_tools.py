@@ -127,4 +127,6 @@ def get_attribute_values_with_substring(
         values.setdefault(field, set()).update(field_values_list[:limit])
 
     # Convert sets to sorted lists for JSON serialization
-    return {"values": {field: sorted(field_values) for field, field_values in values.items()}}
+    return {
+        "values": {field: sorted(field_values)[:limit] for field, field_values in values.items()}
+    }
