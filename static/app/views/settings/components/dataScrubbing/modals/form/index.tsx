@@ -211,25 +211,30 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               required
               showHelpInTooltip
             >
-              <RegularExpression
-                type="text"
-                name="pattern"
-                placeholder={t('[a-zA-Z0-9]+')}
-                onChange={this.handleChange('pattern')}
-                value={values.pattern}
-                onBlur={onValidate('pattern')}
-                id="regex-matches"
-              />
-              <span>
-                <Checkbox
-                  id="replace-captured"
-                  name="replaceCaptured"
-                  checked={values.replaceCaptured === 'true'}
-                  onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+              <Flex gap="md" direction="column">
+                <RegularExpression
+                  type="text"
+                  name="pattern"
+                  placeholder={t('[a-zA-Z0-9]+')}
+                  onChange={this.handleChange('pattern')}
+                  value={values.pattern}
+                  onBlur={onValidate('pattern')}
+                  id="regex-matches"
                 />
-                &nbsp;
-                {t('Only replace first capture match')}
-              </span>
+                <Flex gap="md" align="center">
+                  <Checkbox
+                    id="replace-captured"
+                    name="replaceCaptured"
+                    checked={values.replaceCaptured === 'true'}
+                    onChange={e =>
+                      onChange('replaceCaptured', e.target.checked.toString())
+                    }
+                  />
+                  <label htmlFor="replace-captured">
+                    {t('Only replace first capture match')}
+                  </label>
+                </Flex>
+              </Flex>
             </FieldGroup>
           )}
         </FieldContainer>
@@ -408,7 +413,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                         onChange('replaceCaptured', e.target.checked.toString())
                       }
                     />
-                    {t('Only replace first capture match')}
+                    <label htmlFor="replace-captured">
+                      {t('Only replace first capture match')}
+                    </label>
                   </Flex>
                 </Flex>
               </FieldGroup>
