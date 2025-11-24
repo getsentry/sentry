@@ -67,6 +67,9 @@ class Remark:
     rule_id: str
     range: tuple[int, int]
 
+    def serialize(self) -> list:
+        return [self.rule_id, self.ty, self.range[0], self.range[1]]
+
 
 # Ported from Relay:
 # https://github.com/getsentry/relay/blob/aad4b6099d12422e88dd5df49abae11247efdd99/relay-event-normalization/src/transactions/processor.rs#L350
@@ -107,8 +110,6 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     }
     attributes[f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}"] = {
         "type": "string",
-        "value": orjson.dumps(
-            {"meta": {"": {"rem": [[r.rule_id, r.ty, r.range[0], r.range[1]] for r in remarks]}}}
-        ).decode(),
+        "value": orjson.dumps({"meta": {"": {"rem": [r.serialize() for r in remarks]}}}).decode(),
     }
     segment_span["attributes"] = attributes
