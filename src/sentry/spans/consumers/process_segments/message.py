@@ -37,6 +37,7 @@ from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    _normalize_segment_name(segment_span, project.organization)
+    safe_execute(_normalize_segment_name, segment_span, project.organization)
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
