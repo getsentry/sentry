@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
+import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -9,20 +12,89 @@ import {
   ProvidedFormattedQuery,
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  MetricDetector,
-  SnubaQueryDataSource,
-} from 'sentry/types/workflowEngine/detectors';
+import {
+  DataConditionType,
+  DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
-interface MetricDetectorDetectProps {
-  detector: MetricDetector;
+function getDetectorTypeLabel(detector: MetricDetector) {
+  if (detector.config.detectionType === 'dynamic') {
+    return t('Dynamic threshold');
+  }
+  if (detector.config.detectionType === 'percent') {
+    return t('Percent change');
+  }
+  return t('Static threshold');
 }
 
-function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
+function DetectorPriorities({detector}: {detector: MetricDetector}) {
+  if (detector.config.detectionType === 'dynamic') {
+    return <div>{t('Sentry will automatically update priority.')}</div>;
+  }
+
+  const conditions = detector.conditionGroup?.conditions || [];
+
+  // Filter out OK conditions and sort by priority level
+  const priorityConditions = conditions
+    .filter(condition => condition.conditionResult !== DetectorPriorityLevel.OK)
+    .sort((a, b) => (a.conditionResult || 0) - (b.conditionResult || 0));
+
+  if (priorityConditions.length === 0) {
+    return null;
+  }
+
+  const getConditionLabel = (condition: (typeof priorityConditions)[0]) => {
+    const comparisonValue =
+      typeof condition.comparison === 'number' ? String(condition.comparison) : '';
+    const unit = getMetricDetectorSuffix(
+      detector.config.detectionType,
+      detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+    );
+
+    if (detector.config.detectionType === 'percent') {
+      const direction =
+        condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
+      const delta = detector.config.comparisonDelta;
+      const ago = t('than the previous %s', getExactDuration(delta));
+      return `${comparisonValue}${unit} ${direction} ${ago}`;
+    }
+
+    const typeLabel =
+      condition.type === DataConditionType.GREATER ? t('Above') : t('Below');
+    return `${typeLabel} ${comparisonValue}${unit}`;
+  };
+
+  return (
+    <Grid columns="1fr auto auto" width="fit-content" align="center" gap="sm">
+      {priorityConditions.map((condition, index) => (
+        <Fragment key={index}>
+          <div>{getConditionLabel(condition)}</div>
+          <IconArrow direction="right" />
+          <GroupPriorityBadge
+            showLabel
+            priority={
+              DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
+                condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
+              ]
+            }
+          />
+        </Fragment>
+      ))}
+    </Grid>
+  );
+}
+
+export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetector}) {
+  const dataSource = detector.dataSources?.[0];
+
   if (!dataSource.queryObj) {
     return <Container>{t('Query not found.')}</Container>;
   }
@@ -75,14 +147,14 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
           <Heading as="h4">{t('Interval:')}</Heading>
           <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
         </Flex>
+        <Flex gap="xs" align="baseline">
+          <Heading as="h4">{t('Threshold:')}</Heading>
+          <Value>{getDetectorTypeLabel(detector)}</Value>
+        </Flex>
+        <DetectorPriorities detector={detector} />
       </Flex>
     </Container>
   );
-}
-
-export function MetricDetectorDetailsDetect({detector}: MetricDetectorDetectProps) {
-  const dataSource = detector.dataSources?.[0];
-  return <SnubaQueryDetails dataSource={dataSource} />;
 }
 
 const Query = styled('dl')`
