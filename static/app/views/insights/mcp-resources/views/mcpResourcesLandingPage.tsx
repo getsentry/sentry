@@ -3,14 +3,17 @@ import {Fragment} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {DataCategory} from 'sentry/types/core';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -28,11 +31,12 @@ import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useSho
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 
-function McpResourcesLandingPage() {
-  const organization = useOrganization();
-  const showOnboarding = useShowMCPOnboarding();
-  const datePageFilterProps = limitMaxPickableDays(organization);
+interface McpResourcesLandingPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
 
+function McpResourcesLandingPage({datePageFilterProps}: McpResourcesLandingPageProps) {
+  const showOnboarding = useShowMCPOnboarding();
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   return (
@@ -89,13 +93,21 @@ function McpResourcesLandingPage() {
 }
 
 function PageWithProviders() {
+  const organization = useOrganization();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+    organization,
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <ModulePageProviders
       moduleName={ModuleName.MCP_RESOURCES}
       analyticEventName="insight.page_loads.mcp_resources"
+      maxPickableDays={datePageFilterProps.maxPickableDays}
     >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <McpResourcesLandingPage />
+        <McpResourcesLandingPage datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );
