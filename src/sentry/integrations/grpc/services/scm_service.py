@@ -2,16 +2,18 @@
 
 import logging
 import re
+from collections.abc import Callable
 from contextlib import contextmanager
 from functools import wraps
 from typing import Any
 
 import grpc
+from google.protobuf import empty_pb2
 
 from sentry.integrations import manager as integrations_manager
 from sentry.integrations.grpc.generated import scm_pb2, scm_pb2_grpc
 from sentry.integrations.grpc.services.base import BaseGrpcServicer, authenticated_method
-from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -27,6 +29,88 @@ def _camel_to_snake(name: str) -> str:
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     # Insert an underscore before any uppercase letter that follows a lowercase letter
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def proxy_to_integration(
+    method_name: str | None = None,
+    transform_request: Callable | None = None,
+    transform_response: Callable | None = None,
+):
+    """
+    Create a generic proxy method that calls the integration method.
+
+    Args:
+        method_name: Optional name of the method to call on the integration.
+                     If not specified, the function name is converted to snake_case.
+        transform_request: Optional function to transform request before calling integration
+        transform_response: Optional function to transform integration response to protobuf
+
+    Returns:
+        Decorated method that proxies to integration
+    """
+
+    def decorator(func):
+        @authenticated_method
+        @wraps(func)
+        def wrapper(self, request, context):
+            # Determine method name: use provided or derive from function name
+            actual_method_name = method_name or _camel_to_snake(func.__name__)
+            logger.info("Calling proxy method %s for %s", actual_method_name, func.__name__)
+
+            with self.integration_installation(request, context) as installation:
+                if not installation:
+                    # Error was already set in context manager
+                    return_type = func.__annotations__.get("return")
+                    if return_type:
+                        return return_type()
+                    else:
+                        return empty_pb2.Empty()
+
+                # Check if integration has the method
+                if not hasattr(installation, actual_method_name):
+                    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+                    context.set_details(
+                        f"Integration does not support method: {actual_method_name}"
+                    )
+                    return_type = func.__annotations__.get("return")
+                    if return_type:
+                        return return_type()
+                    else:
+                        return empty_pb2.Empty()
+
+                try:
+                    # Transform request if transformer provided
+                    if transform_request:
+                        args, kwargs = transform_request(request)
+                    else:
+                        # Default: pass empty args and kwargs
+                        args, kwargs = [], {}
+
+                    # Call the integration method
+                    result = getattr(installation, actual_method_name)(*args, **kwargs)
+
+                    # Transform response if transformer provided
+                    if transform_response:
+                        return transform_response(result)
+                    else:
+                        # Default: return result as-is (should be a protobuf message)
+                        return result
+
+                except Exception as e:
+                    logger.exception("Error calling %s", actual_method_name)
+                    context.set_code(grpc.StatusCode.INTERNAL)
+                    context.set_details(str(e))
+                    return_type = func.__annotations__.get("return")
+                    if return_type:
+                        return return_type()
+                    else:
+                        return empty_pb2.Empty()
+
+        # Copy annotations from original function to wrapper
+        wrapper.__annotations__ = func.__annotations__.copy()
+        return wrapper
+
+    return decorator
 
 
 class ScmServicer(scm_pb2_grpc.ScmServiceServicer, BaseGrpcServicer):
@@ -55,8 +139,8 @@ class ScmServicer(scm_pb2_grpc.ScmServiceServicer, BaseGrpcServicer):
 
             # Get integration based on what's in the request
             if hasattr(request, "integration_id") and request.integration_id:
-                org_integration = OrganizationIntegration.objects.get(
-                    organization=org, integration_id=request.integration_id
+                org_integration = integration_service.get_organization_integration(
+                    organization_id=org.id, integration_id=request.integration_id
                 )
             elif hasattr(request, "provider") and request.provider != scm_pb2.PROVIDER_UNSPECIFIED:
                 provider_map = {
@@ -71,36 +155,80 @@ class ScmServicer(scm_pb2_grpc.ScmServiceServicer, BaseGrpcServicer):
                 if not provider_key:
                     raise ValueError(f"Unknown provider: {request.provider}")
 
-                org_integration = OrganizationIntegration.objects.get(
-                    organization=org, integration__provider=provider_key
+                # Use integration service to get org integrations
+                org_integrations = integration_service.get_organization_integrations(
+                    organization_id=org.id
                 )
+                # Find one with matching provider
+                org_integration = None
+                for oi in org_integrations:
+                    integration = integration_service.get_integration(
+                        integration_id=oi.integration_id
+                    )
+                    if integration and integration.provider == provider_key:
+                        org_integration = oi
+                        break
+                if not org_integration:
+                    raise ValueError(f"No integration found for provider {provider_key}")
             else:
                 # Get first available SCM integration
-                org_integration = OrganizationIntegration.objects.filter(
-                    organization=org,
-                    integration__provider__in=[
-                        "github",
-                        "gitlab",
-                        "bitbucket",
-                        "bitbucket_server",
-                        "vsts",
-                        "github_enterprise",
-                    ],
-                ).first()
+                org_integrations = integration_service.get_organization_integrations(
+                    organization_id=org.id
+                )
+                # Find first SCM integration
+                org_integration = None
+                scm_providers = [
+                    "github",
+                    "gitlab",
+                    "bitbucket",
+                    "bitbucket_server",
+                    "vsts",
+                    "github_enterprise",
+                ]
+                for oi in org_integrations:
+                    integration = integration_service.get_integration(
+                        integration_id=oi.integration_id
+                    )
+                    if integration and integration.provider in scm_providers:
+                        org_integration = oi
+                        break
                 if not org_integration:
                     raise ValueError(
                         f"No SCM integration found for organization {request.organization_id}"
                     )
 
+            # Get the full integration object
+            integration = integration_service.get_integration(
+                integration_id=org_integration.integration_id
+            )
+            if not integration:
+                raise ValueError(f"Integration {org_integration.integration_id} not found")
+
             # Get integration class and create installation
-            integration_cls = integrations_manager.get(org_integration.integration.provider)
+            integration_cls = integrations_manager.get(integration.provider)
             if not integration_cls:
-                raise ValueError(
-                    f"Integration provider {org_integration.integration.provider} not found"
-                )
+                raise ValueError(f"Integration provider {integration.provider} not found")
+
+            # Create a mock integration model with minimal required fields for get_installation
+            # This avoids silo mode issues
+            class MockIntegration:
+                def __init__(self, id, provider, name, external_id, metadata):
+                    self.id = id
+                    self.provider = provider
+                    self.name = name
+                    self.external_id = external_id
+                    self.metadata = metadata
+
+            integration_model = MockIntegration(
+                id=integration.id,
+                provider=integration.provider,
+                name=integration.name,
+                external_id=integration.external_id,
+                metadata=integration.metadata or {},
+            )
 
             installation = integration_cls.get_installation(
-                model=org_integration.integration, organization_id=request.organization_id
+                model=integration_model, organization_id=request.organization_id
             )
 
             yield installation
@@ -109,89 +237,11 @@ class ScmServicer(scm_pb2_grpc.ScmServiceServicer, BaseGrpcServicer):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"Organization {request.organization_id} not found")
             yield None
-        except OrganizationIntegration.DoesNotExist:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details(f"Integration not found for organization {request.organization_id}")
-            yield None
         except Exception as e:
             logger.exception("Error loading integration")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(e))
             yield None
-
-    @classmethod
-    def proxy_to_integration(
-        cls,
-        method_name: str | None = None,
-        transform_request: callable | None = None,
-        transform_response: callable | None = None,
-    ):
-        """
-        Create a generic proxy method that calls the integration method.
-
-        Args:
-            method_name: Optional name of the method to call on the integration.
-                         If not specified, the function name is converted to snake_case.
-            transform_request: Optional function to transform request before calling integration
-            transform_response: Optional function to transform integration response to protobuf
-
-        Returns:
-            Decorated method that proxies to integration
-        """
-
-        def decorator(func):
-            @wraps(func)
-            @authenticated_method
-            def wrapper(self, request, context):
-                # Determine method name: use provided or derive from function name
-                actual_method_name = method_name or _camel_to_snake(func.__name__)
-
-                with self.integration_installation(request, context) as installation:
-                    if not installation:
-                        # Return empty response of the expected type
-                        return_type = func.__annotations__.get("return")
-                        return return_type() if return_type else None
-
-                    try:
-                        # Transform request if needed
-                        if transform_request:
-                            args, kwargs = transform_request(request)
-                        else:
-                            # Default: pass request fields as kwargs
-                            kwargs = {
-                                k: getattr(request, k) for k in request.DESCRIPTOR.fields_by_name
-                            }
-                            args = []
-
-                        # Call the integration method
-                        method = getattr(installation, actual_method_name)
-                        result = method(*args, **kwargs)
-
-                        # Transform response if needed
-                        if transform_response:
-                            return transform_response(result)
-                        else:
-                            # Default: return result as-is
-                            return result
-
-                    except (NotImplementedError, AttributeError) as e:
-                        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-                        context.set_details(
-                            f"Method {actual_method_name} not found on integration: {e}"
-                        )
-                        return_type = func.__annotations__.get("return")
-                        return return_type() if return_type else None
-                    except Exception as e:
-                        context.set_code(grpc.StatusCode.INTERNAL)
-                        context.set_details(
-                            f"Error calling {actual_method_name} on integration: {e}"
-                        )
-                        return_type = func.__annotations__.get("return")
-                        return return_type() if return_type else None
-
-            return wrapper
-
-        return decorator
 
     # Helper functions for common transformations
     def _get_repo_from_id(self, repo_id: int) -> Repository | None:
