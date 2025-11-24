@@ -34,6 +34,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
     ExternalProviders.MSTEAMS,
     ExternalProviders.JIRA_SERVER,
+    ExternalProviders.PERFORCE,
     ExternalProviders.CUSTOM,
 }
 
