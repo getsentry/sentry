@@ -18,7 +18,6 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_workflow_serializer import (
     DetectorWorkflowSerializer,
@@ -135,13 +134,16 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        detector_workflows = list(queryset)
+
         # check that the user has permission to edit all detectors connections before deleting
-        for detector_workflow in queryset:
+        for detector_workflow in detector_workflows:
             if not can_edit_detector_workflow_connections(detector_workflow.detector, request):
                 raise PermissionDenied
 
-        for detector_workflow in queryset:
-            RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)
+        queryset.delete()
+
+        for detector_workflow in detector_workflows:
             create_audit_entry(
                 request=request,
                 organization=organization,

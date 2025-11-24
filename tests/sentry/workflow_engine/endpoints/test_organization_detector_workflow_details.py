@@ -3,7 +3,6 @@ from unittest import mock
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -70,16 +69,6 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 self.organization.slug,
                 self.detector_workflow.id,
             )
-
-        # verify the DetectorWorkflow was scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="DetectorWorkflow",
-            object_id=self.detector_workflow.id,
-        ).exists()
-
-        # delete the DetectorWorkflow
-        with self.tasks():
-            run_scheduled_deletions()
 
         # verify it was deleted
         assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
