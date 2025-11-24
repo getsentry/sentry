@@ -97,7 +97,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         show_all_frames = False
     else:
         # No in_app frames found, return empty tree instead of falling back to system frames
-        return []
+        return [], None
 
     def _get_elapsed_since_start_ns(
         sample: dict[str, Any], all_samples: list[dict[str, Any]]
