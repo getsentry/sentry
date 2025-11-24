@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -14,42 +14,37 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
-import {IconChat, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 interface AssignedEntity {
-  email: string | null;
+  email: string | null; // unused
   id: string;
-  name: string;
+  name: string; // unused
   type: string;
 }
 
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
+  cluster_avg_similarity: number | null; // unused
   cluster_id: number;
-  cluster_min_similarity: number | null;
-  cluster_size: number | null;
+  cluster_min_similarity: number | null; // unused
+  cluster_size: number | null; // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  tags: string[];
+  issue_titles: string[]; // unused
+  project_ids: number[]; // unused
+  tags: string[]; // unused
   title: string;
 }
 
@@ -58,16 +53,6 @@ interface TopIssuesResponse {
 }
 
 function CompactIssuePreview({group}: {group: Group}) {
-  const organization = useOrganization();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
-
-  const showReplayCount =
-    organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, group.project) &&
-    group.issueCategory &&
-    !!getReplayCountForIssue(group.id, group.issueCategory);
-
-  const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {subtitle} = getTitle(group);
 
   const items = [
@@ -80,46 +65,14 @@ function CompactIssuePreview({group}: {group: Group}) {
         {tn('%s event', '%s events', group.count)}
       </Text>
     ) : null,
-    group.lifetime || group.firstSeen || group.lastSeen ? (
-      <TimesTag
-        lastSeen={group.lifetime?.lastSeen || group.lastSeen}
-        firstSeen={group.lifetime?.firstSeen || group.firstSeen}
-      />
+    group.firstSeen || group.lastSeen ? (
+      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
     ) : null,
-    group.numComments > 0 ? (
-      <Link
-        to={{
-          pathname: `${issuesPath}${group.id}/activity/`,
-          query: {filter: 'comments'},
-        }}
-      >
-        <Flex gap="xs" align="center">
-          <IconChat
-            size="xs"
-            color={
-              group.subscriptionDetails?.reason === 'mentioned'
-                ? 'successText'
-                : undefined
-            }
-          />
-          <span>{group.numComments}</span>
-        </Flex>
-      </Link>
-    ) : null,
-    showReplayCount ? <IssueReplayCount group={group} /> : null,
-  ].filter(defined);
+  ].filter(Boolean);
 
   return (
     <Flex direction="column" gap="xs">
       <IssueTitle>
-        {group.isBookmarked && (
-          <IconStar
-            isSolid
-            color="yellow300"
-            size="xs"
-            style={{marginRight: space(0.5)}}
-          />
-        )}
         <EventOrGroupTitle data={group} withStackTracePreview />
       </IssueTitle>
       <IssueMessage
@@ -197,7 +150,7 @@ function ClusterCard({
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
-  const issueCount = cluster.cluster_size ?? cluster.group_ids.length;
+  const issueCount = cluster.group_ids.length;
 
   return (
     <CardContainer>
@@ -252,9 +205,6 @@ function ClusterCard({
         <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
           {t('Resolve')}
         </Button>
-        <Button size="sm" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Ignore')}
-        </Button>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
@@ -281,68 +231,32 @@ function DynamicGrouping() {
     }
   );
 
-  const clusterData = useMemo(
-    () => topIssuesResponse?.data ?? [],
-    [topIssuesResponse?.data]
-  );
+  const clusterData = topIssuesResponse?.data ?? [];
 
   const handleRemoveCluster = (clusterId: number) => {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  const isClusterAssignedToMe = useMemo(() => {
-    const userId = user.id;
-    const teamIds = teams.map(team => team.id);
+  const filteredAndSortedClusters = clusterData
+    .filter(cluster => {
+      if (removedClusterIds.has(cluster.cluster_id)) return false;
 
-    return (cluster: ClusterSummary) => {
-      if (!cluster.assignedTo || cluster.assignedTo.length === 0) {
-        return false;
+      const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
+      if (fixabilityScore < minFixabilityScore) return false;
+
+      if (filterByAssignedToMe) {
+        if (!cluster.assignedTo?.length) return false;
+        return cluster.assignedTo.some(
+          entity =>
+            (entity.type === 'user' && entity.id === user.id) ||
+            (entity.type === 'team' && teams.some(team => team.id === entity.id))
+        );
       }
+      return true;
+    })
+    .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
 
-      return cluster.assignedTo.some(entity => {
-        if (entity.type === 'user' && entity.id === userId) {
-          return true;
-        }
-        if (entity.type === 'team' && teamIds.includes(entity.id)) {
-          return true;
-        }
-        return false;
-      });
-    };
-  }, [user.id, teams]);
-
-  const filteredAndSortedClusters = useMemo(() => {
-    return [...clusterData]
-      .filter(cluster => {
-        if (removedClusterIds.has(cluster.cluster_id)) {
-          return false;
-        }
-
-        const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-        if (fixabilityScore < minFixabilityScore) {
-          return false;
-        }
-
-        if (filterByAssignedToMe) {
-          return isClusterAssignedToMe(cluster);
-        }
-        return true;
-      })
-      .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
-  }, [
-    clusterData,
-    removedClusterIds,
-    filterByAssignedToMe,
-    minFixabilityScore,
-    isClusterAssignedToMe,
-  ]);
-
-  const totalIssues = useMemo(() => {
-    return filteredAndSortedClusters.reduce(
-      (sum, c) => sum + (c.cluster_size ?? c.group_ids.length),
-      0
-    );
-  }, [filteredAndSortedClusters]);
+  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
