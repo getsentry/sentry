@@ -56,13 +56,12 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance:
-          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        instance: [0]
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 22
+      MATRIX_INSTANCE_TOTAL: 12
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -74,13 +73,42 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+      - name: Install sysstat (for sar)
         run: |
-          make test-python-ci
+          sudo apt-get update
+          sudo apt-get install -y sysstat
+          # Enable sysstat logging (required for sar to run)
+          sudo sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+          sudo service sysstat restart
 
-      - name: Inspect failure
-        if: failure()
+      - name: Start SAR system CPU monitor
         run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+          mkdir -p perf_logs
+
+          sar -u 1 > perf_logs/system_cpu.txt &
+          echo $! > perf_logs/sar_cpu.pid
+
+          sar -r 1 > perf_logs/memory.txt &
+          echo $! > perf_logs/sar_mem.pid
+          # assuming no swap
+
+          TOTAL_TEST_GROUPS=50 TEST_GROUP=0 python3 -b -m pytest \
+            tests \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools
+
+          kill $(cat perf_logs/sar_cpu.pid)
+          kill $(cat perf_logs/sar_mem.pid)
+
+      - name: Convert SAR log to JSON + CSV (optional)
+        run: |
+          sadf -j perf_logs/system_cpu.txt -- -u > perf_logs/system_cpu.json
+          sadf -d perf_logs/system_cpu.txt -- -u > perf_logs/system_cpu.csv
+
+      - name: Upload CPU logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-usage-logs
+          path: perf_logs/
