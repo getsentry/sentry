@@ -102,7 +102,6 @@ function CompactIssuePreview({group}: {group: Group}) {
 
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
-
   const previewGroupIds = groupIds.slice(0, 3);
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
@@ -120,11 +119,7 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
     }
   );
 
-  if (isPending) {
-    return <LoadingIndicator size={24} />;
-  }
-
-  if (!groups || groups.length === 0) {
+  if (isPending || !groups || groups.length === 0) {
     return null;
   }
 
@@ -155,13 +150,7 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Flex
-        justify="between"
-        align="start"
-        gap="md"
-        paddingBottom="md"
-        borderBottom="primary"
-      >
+      <Flex justify="between" align="start" gap="md" paddingBottom="md">
         <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
           <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
             {cluster.title}
@@ -384,13 +373,14 @@ const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${space(3)};
+  align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
   }
 `;
 
-// Card with hover effect - needs custom transition/hover styles
+// Card with hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -398,6 +388,7 @@ const CardContainer = styled('div')`
   padding: ${space(3)};
   display: flex;
   flex-direction: column;
+  min-width: 0;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -426,7 +417,7 @@ const IssueCountNumber = styled('div')`
   line-height: 1;
 `;
 
-// Issue preview link with hover transform effect
+// Issue preview link with hover effect
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -435,13 +426,11 @@ const IssuePreviewLink = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
   transition:
     border-color 0.15s ease,
-    background 0.15s ease,
-    transform 0.15s ease;
+    background 0.15s ease;
 
   &:hover {
     border-color: ${p => p.theme.purple300};
     background: ${p => p.theme.backgroundElevated};
-    transform: translateX(2px);
   }
 `;
 
