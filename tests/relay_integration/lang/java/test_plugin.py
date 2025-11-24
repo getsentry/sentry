@@ -897,6 +897,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "__start_thread"
         assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
+    @pytest.mark.skip(reason="flaky: #103904")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_error_on_resolving(self) -> None:
