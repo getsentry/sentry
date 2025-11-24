@@ -14,15 +14,106 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def test_delete_monitor_checkin_with_incidents_and_detections(self) -> None:
-        """
-        Test that deleting MonitorCheckIns properly cascades to:
-        - MonitorIncidents (via starting_checkin_id and resolving_checkin_id)
-        - MonitorEnvBrokenDetection (via MonitorIncident)
 
-        This tests the get_child_relations_bulk() implementation which should:
-        1. Use __in queries for MonitorIncidents pointing to multiple check-ins
-        2. Bulk delete MonitorEnvBrokenDetection via BulkModelDeletionTask
+    def test_delete_checkin_directly(self) -> None:
+        """
+        Test that deleting a MonitorCheckIn directly (not via Monitor deletion)
+        properly handles MonitorIncident children via MonitorCheckInDeletionTask.
+        """
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=env.id,
+        )
+
+        # Create check-ins
+        checkin1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=project.id,
+            status=CheckInStatus.ERROR,
+        )
+        checkin2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=project.id,
+            status=CheckInStatus.OK,
+        )
+        checkin3 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=project.id,
+            status=CheckInStatus.ERROR,
+        )
+
+        # Create incidents referencing checkin1
+        incident1 = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=checkin1,
+            resolving_checkin=checkin2,
+        )
+        incident2 = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=checkin3,
+            resolving_checkin=checkin1,  # checkin1 is also a resolving checkin
+        )
+
+        detection1 = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident1,
+        )
+        detection2 = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident2,
+        )
+
+        # Verify initial state
+        assert MonitorCheckIn.objects.count() == 3
+        assert MonitorIncident.objects.count() == 2
+        assert MonitorEnvBrokenDetection.objects.count() == 2
+
+        # Delete checkin1 directly (not via Monitor)
+        self.ScheduledDeletion.schedule(instance=checkin1, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Verify checkin1 is deleted
+        assert not MonitorCheckIn.objects.filter(id=checkin1.id).exists()
+
+        # Verify both incidents are deleted (incident1 has checkin1 as starting_checkin,
+        # incident2 has checkin1 as resolving_checkin)
+        assert not MonitorIncident.objects.filter(id=incident1.id).exists()
+        assert not MonitorIncident.objects.filter(id=incident2.id).exists()
+
+        # Verify detections are deleted
+        assert not MonitorEnvBrokenDetection.objects.filter(id=detection1.id).exists()
+        assert not MonitorEnvBrokenDetection.objects.filter(id=detection2.id).exists()
+
+        # Verify other check-ins still exist
+        assert MonitorCheckIn.objects.filter(id=checkin2.id).exists()
+        assert MonitorCheckIn.objects.filter(id=checkin3.id).exists()
+        assert MonitorCheckIn.objects.count() == 2
+
+        # Verify monitor and environment still exist
+        assert Monitor.objects.filter(id=monitor.id).exists()
+        assert MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
+
+    def test_delete_monitor_with_incidents_and_detections(self) -> None:
+        """
+        Test that deleting a Monitor properly cascades to:
+        - MonitorIncidents (deleted first via child relations)
+        - MonitorCheckIns (bulk deleted after incidents)
+        - MonitorEnvBrokenDetection (via MonitorIncident deletion)
+
+        This verifies the ordered deletion: MonitorIncident → MonitorCheckIn → MonitorEnvironment
         """
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="prod")
@@ -107,10 +198,10 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         assert Environment.objects.filter(id=env.id).exists()
         assert self.project.__class__.objects.filter(id=self.project.id).exists()
 
-    def test_delete_multiple_checkins_with_shared_incident(self) -> None:
+    def test_delete_monitor_with_shared_incident(self) -> None:
         """
-        Test edge case where one incident references multiple check-ins
-        (starting_checkin != resolving_checkin from the same batch).
+        Test that deleting a Monitor handles edge case where one incident references
+        multiple check-ins (starting_checkin != resolving_checkin).
         """
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="prod")
@@ -162,10 +253,10 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         assert not MonitorIncident.objects.filter(id=incident.id).exists()
         assert not MonitorEnvBrokenDetection.objects.filter(id=detection.id).exists()
 
-    def test_delete_monitor_only_affects_its_own_checkins(self) -> None:
+    def test_delete_monitor_only_affects_its_own_data(self) -> None:
         """
-        Test that deleting one monitor's check-ins doesn't affect another monitor's data.
-        This verifies that the __in queries are properly scoped.
+        Test that deleting one Monitor doesn't affect another Monitor's data.
+        This verifies that deletion queries are properly scoped by monitor_id.
         """
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="prod")
