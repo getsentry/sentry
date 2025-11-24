@@ -1,10 +1,9 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 
 type ChartSelectionState = {
-  chartInfo: ChartInfo;
+  chartIndex: number;
   selection: Selection;
 } | null;
 

@@ -264,6 +264,10 @@ function Chart({
             chartInfo={chartInfo}
             chartRef={chartRef}
             chartXRangeSelection={{
+              initialSelection: {
+                range: [1763941159024.5266, 1763941508324.1692],
+                panelId: 'grid--\u0000series\u00000\u00000',
+              },
               onClearSelection: () => {
                 setChartSelection(null);
               },
@@ -273,7 +277,7 @@ function Chart({
               actionMenuRenderer: (selection, clearSelection) => {
                 return (
                   <FloatingTrigger
-                    chartInfo={chartInfo}
+                    chartIndex={index}
                     selection={selection}
                     clearSelection={clearSelection}
                     setTab={setTab}
