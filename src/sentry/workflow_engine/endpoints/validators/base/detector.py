@@ -134,7 +134,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
             # Handle config field update
-            if "config" in validated_data:
+            if validated_data.get("config"):
                 instance.config = validated_data.get("config", instance.config)
                 try:
                     enforce_config_schema(instance)
