@@ -94,7 +94,7 @@ function useNativeOperatorFilter(
 
   const renderInputField = () => {
     return (
-      <Input
+      <StyledInput
         aria-label="Filter value"
         value={stagedFilterValue}
         onChange={e => {
@@ -287,7 +287,11 @@ function NumericFilterSelector({
         filter.resetValues();
         setStagedIsNativeOperator(isNativeOperator);
       }}
-      menuTitle={t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+      menuTitle={
+        <MenuTitleWrapper>
+          {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+        </MenuTitleWrapper>
+      }
       menuHeaderTrailingItems={() => (
         <StyledButton
           aria-label={t('Remove Filter')}
@@ -350,7 +354,7 @@ function NumericFilterSelector({
 export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
-  margin: 4px;
+  padding: 10px;
 `;
 
 const FooterWrap = styled('div')`
@@ -390,4 +394,14 @@ const StyledButton = styled(Button)`
     p.theme.isChonk
       ? `-${space(0.5)} -${space(0.5)}`
       : `-${space(0.25)} -${space(0.25)}`};
+`;
+
+const StyledInput = styled(Input)`
+  text-align: center;
+`;
+
+const MenuTitleWrapper = styled('span')`
+  display: inline-block;
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
 `;

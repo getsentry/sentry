@@ -178,12 +178,14 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       size="md"
       menuWidth="300px"
       menuTitle={
-        isSelectingFilterKey
-          ? t(
-              'Select %s Tag',
-              selectedDataset ? getDatasetLabel(selectedDataset) : 'Filter'
-            )
-          : t('Select Filter Dataset')
+        <MenuTitleWrapper>
+          {isSelectingFilterKey
+            ? t(
+                'Select %s Tag',
+                selectedDataset ? getDatasetLabel(selectedDataset) : 'Filter'
+              )
+            : t('Select Filter Dataset')}
+        </MenuTitleWrapper>
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
@@ -208,4 +210,10 @@ const FooterWrap = styled('div')`
   &:not(:first-child) {
     margin-top: ${space(1)};
   }
+`;
+
+const MenuTitleWrapper = styled('span')`
+  display: inline-block;
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
 `;

@@ -180,7 +180,7 @@ function FilterSelector({
   };
 
   const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
-    <Flex gap="md">
+    <Flex gap="lg">
       {activeFilterValues.length > 0 && (
         <StyledButton
           aria-label={t('Clear Selections')}
@@ -228,7 +228,9 @@ function FilterSelector({
         onClose={() => {
           setStagedFilterValues([]);
         }}
-        menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+        menuTitle={
+          <MenuTitleWrapper>{t('%s Filter', getDatasetLabel(dataset))}</MenuTitleWrapper>
+        }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
         triggerProps={{
           children: renderFilterSelectorTrigger(),
@@ -261,7 +263,9 @@ function FilterSelector({
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
-      menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+      menuTitle={
+        <MenuTitleWrapper>{t('%s Filter', getDatasetLabel(dataset))}</MenuTitleWrapper>
+      }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
       triggerProps={{
         children: renderFilterSelectorTrigger(),
@@ -281,4 +285,10 @@ const StyledButton = styled(Button)`
     p.theme.isChonk
       ? `-${space(0.5)} -${space(0.5)}`
       : `-${space(0.25)} -${space(0.25)}`};
+`;
+
+const MenuTitleWrapper = styled('span')`
+  display: inline-block;
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
 `;
