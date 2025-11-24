@@ -17,6 +17,7 @@ import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
+import perforce from 'sentry-logos/logo-perforce.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
 import pushover from 'sentry-logos/logo-pushover.svg';
 import redmine from 'sentry-logos/logo-redmine.svg';
@@ -59,6 +60,7 @@ const PLUGIN_ICONS = {
   msteams,
   opsgenie,
   pagerduty,
+  perforce,
   pivotal,
   pushover,
   redmine,
