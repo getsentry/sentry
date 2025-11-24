@@ -510,6 +510,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             data: Updated configuration data from the form (only changed fields)
         """
         from sentry.integrations.services.integration import integration_service
+        from sentry.models.integrations.integration import Integration
 
         # Update integration metadata with new values
         metadata = dict(self.model.metadata)  # Create a mutable copy
