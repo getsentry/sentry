@@ -85,6 +85,7 @@ export {IconNumber} from './iconNumber';
 export {IconOpen} from './iconOpen';
 export {IconPanel} from './iconPanel';
 export {IconPause} from './iconPause';
+export {IconPerforce} from './iconPerforce';
 export {IconPin} from './iconPin';
 export {IconPlay} from './iconPlay';
 export {IconPrevent} from './iconPrevent';

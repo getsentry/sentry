@@ -9,6 +9,7 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
+  IconPerforce,
   IconSentry,
   IconVsts,
 } from 'sentry/icons';
@@ -206,6 +207,8 @@ export const getIntegrationIcon = (
     case 'jira':
     case 'jira_server':
       return <IconJira size={iconSize} />;
+    case 'perforce':
+      return <IconPerforce size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
     case 'codecov':
@@ -230,6 +233,8 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'jira':
     case 'jira_server':
       return 'Jira';
+    case 'perforce':
+      return 'Perforce';
     case 'vsts':
       return 'Azure DevOps';
     case 'codecov':
@@ -279,6 +284,8 @@ export function getCodeOwnerIcon(
       return <IconGithub size={iconSize} />;
     case 'gitlab':
       return <IconGitlab size={iconSize} />;
+    case 'perforce':
+      return <IconPerforce size={iconSize} />;
     default:
       return <IconSentry size={iconSize} />;
   }
