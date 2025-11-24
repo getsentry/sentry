@@ -409,7 +409,7 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options?.flat();
+        if ('options' in item) return item.options;
         return item;
       })
       .filter(item => values.includes(item.value));
@@ -441,12 +441,9 @@ export function Control({
   });
 
   const hasSelection = useMemo(() => {
-    const selectedOptions = Array.isArray(value)
-      ? value
-      : value === undefined
-        ? []
-        : [value];
-    return selectedOptions.flat().length > 0;
+    if (value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
   }, [value]);
 
   const contextValue = useMemo(() => {
