@@ -94,10 +94,10 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             )
 
             if group_id:
-                gop_queryset = gop_queryset.filter(group_open_period__group_id=group_id)
+                gop_queryset = gop_queryset.filter(group_id=group_id)
 
             if open_period_id:
-                gop_queryset = gop_queryset.filter(group_open_period_id=open_period_id)
+                gop_queryset = gop_queryset.filter(id=open_period_id)
 
             group_open_period = gop_queryset.first()
 
