@@ -87,6 +87,7 @@ export function ToolbarVisualizeDropdown({
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => onChangeArgument(0, option)}
           disabled
+          menuWidth="250px"
         />
       )}
       {canDelete ? (
