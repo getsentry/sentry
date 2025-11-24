@@ -4,6 +4,7 @@ from enum import StrEnum
 from typing import TypedDict
 
 import orjson
+import pydantic
 import requests
 from django.conf import settings
 from pydantic import BaseModel
@@ -21,6 +22,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, Autof
 from sentry.seer.models import (
     PreferenceResponse,
     SeerApiError,
+    SeerApiResponseValidationError,
     SeerPermissionError,
     SeerRepoDefinition,
 )
@@ -161,8 +163,11 @@ def get_project_seer_preferences(project_id: int):
     )
 
     if response.status == 200:
-        result = orjson.loads(response.data)
-        return PreferenceResponse.validate(result)
+        try:
+            result = orjson.loads(response.data)
+            return PreferenceResponse.validate(result)
+        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
+            raise SeerApiResponseValidationError(str(e)) from e
 
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
