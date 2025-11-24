@@ -93,7 +93,7 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
 }
 
 export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetector}) {
-  const dataSource = detector.dataSources?.[0];
+  const dataSource = detector.dataSources[0];
 
   if (!dataSource.queryObj) {
     return <Container>{t('Query not found.')}</Container>;

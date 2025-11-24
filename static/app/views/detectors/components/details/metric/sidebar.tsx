@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
@@ -81,7 +82,9 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
   return (
     <Fragment>
       <Section title={t('Detect')}>
-        <MetricDetectorDetailsDetect detector={detector} />
+        <ErrorBoundary mini>
+          <MetricDetectorDetailsDetect detector={detector} />
+        </ErrorBoundary>
       </Section>
       <DetectorDetailsAssignee owner={detector.owner} />
       <Section title={t('Resolve')}>
