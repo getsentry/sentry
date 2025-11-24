@@ -30,10 +30,7 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  */
 type SingleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributiveOmit<
-      SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
-    >;
+    DistributiveOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -43,10 +40,7 @@ type SingleCompositeSelectRegion<Value extends SelectKey> =
  */
 type MultipleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributiveOmit<
-      MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
-    >;
+    DistributiveOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
@@ -68,7 +62,7 @@ type CompositeSelectChild =
   | undefined;
 
 export interface CompositeSelectProps
-  extends Omit<ControlProps, 'triggerProps' | 'trigger'> {
+  extends Omit<ControlProps, 'clearable' | 'triggerProps' | 'trigger'> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)
@@ -94,14 +88,12 @@ function CompositeSelect({
     <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
       <FocusScope>
         <RegionsWrap>
-          {Children.map(children, (child, index) => {
+          {Children.map(children, child => {
             if (!child) {
               return null;
             }
 
-            return (
-              <Region {...child.props} grid={grid} size={size} compositeIndex={index} />
-            );
+            return <Region {...child.props} grid={grid} size={size} />;
           })}
 
           {/* Only displayed when all lists (regions) are empty */}
@@ -129,7 +121,6 @@ CompositeSelect.Region = function <Value extends SelectKey>(
 export {CompositeSelect};
 
 type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
-  compositeIndex: SingleListProps<Value>['compositeIndex'];
   grid: SingleListProps<Value>['grid'];
   size: SingleListProps<Value>['size'];
 };
@@ -138,7 +129,6 @@ function Region<Value extends SelectKey>({
   options,
   isOptionDisabled,
   size,
-  compositeIndex,
   label,
   ...props
 }: RegionProps<Value>) {
@@ -150,7 +140,6 @@ function Region<Value extends SelectKey>({
       items={itemsWithKey}
       isOptionDisabled={isOptionDisabled}
       shouldFocusWrap={false}
-      compositeIndex={compositeIndex}
       size={size}
       label={label}
     >

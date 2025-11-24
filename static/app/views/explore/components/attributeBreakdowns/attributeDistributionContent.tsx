@@ -15,13 +15,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {Chart} from './attributeDistributionChart';
 import {AttributeBreakdownsComponent} from './styles';
@@ -42,6 +44,8 @@ export function AttributeDistribution() {
   const dataset = useSpansDataset();
   const {selection} = usePageFilters();
   const theme = useTheme();
+  const location = useLocation();
+  const organization = useOrganization();
 
   const cohortCountEventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -60,18 +64,28 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     isError: isAttributeBreakdownsError,
   } = useAttributeBreakdowns();
+
   const {
-    data: cohortCountData,
+    data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     isError: isCohortCountError,
-  } = useSpansQuery({
-    eventView: cohortCountEventView,
-    initialData: [],
-    limit: 1,
-    trackResponseAnalytics: false,
-  });
+  } = useApiQuery<{data: Array<{'count()': number}>}>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...cohortCountEventView.getEventsAPIPayload(location),
+          per_page: 1,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+    }
+  );
 
-  const cohortCount: number = cohortCountData?.[0]?.['count()'] ?? 0;
+  const cohortCount: number = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.

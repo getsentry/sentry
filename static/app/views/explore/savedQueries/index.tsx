@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -48,7 +48,7 @@ export default function SavedQueriesView() {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar>
-              <FeedbackWidgetButton />
+              <FeedbackButton />
               {hasLogsFeature ? (
                 <DropdownMenu
                   items={items}

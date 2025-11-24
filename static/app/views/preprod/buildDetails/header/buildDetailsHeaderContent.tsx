@@ -10,7 +10,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -61,12 +62,13 @@ interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
+  projectType: string | null;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId} = props;
+  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
     handleDeleteArtifact,
@@ -128,6 +130,27 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
 
+  const handleCompareClick = () => {
+    trackAnalytics('preprod.builds.details.compare_build_clicked', {
+      organization,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
+      project_type: projectType,
+      project_slug: projectId,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    handleDeleteArtifact();
+    trackAnalytics('preprod.builds.details.delete_build', {
+      organization,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
+      project_slug: projectId,
+      project_type: projectType,
+    });
+  };
+
   return (
     <React.Fragment>
       <Layout.HeaderContent>
@@ -143,8 +166,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
       <Layout.HeaderActions>
         <Flex align="center" gap="sm" flexShrink={0}>
-          <FeedbackWidgetButton
-            optionOverrides={{
+          <FeedbackButton
+            feedbackOptions={{
               tags: {
                 'feedback.source': 'preprod.buildDetails',
               },
@@ -152,6 +175,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           />
           <Link
             to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            onClick={handleCompareClick}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
               {t('Compare Build')}
@@ -162,7 +186,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
             )}
             confirmInput={artifactId}
-            onConfirm={handleDeleteArtifact}
+            onConfirm={handleConfirmDelete}
           >
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [

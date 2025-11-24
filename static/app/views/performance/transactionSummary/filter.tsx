@@ -1,17 +1,18 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
+
+import {Container} from '@sentry/scraps/layout';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
 
@@ -79,13 +80,20 @@ function Filter(props: Props) {
   );
 }
 
-const OperationDot = styled('div')<{backgroundColor: string}>`
-  display: block;
-  width: ${space(1)};
-  height: ${space(1)};
-  border-radius: 100%;
-  background-color: ${p => p.backgroundColor};
-`;
+function OperationDot({backgroundColor}: {backgroundColor: string}) {
+  const theme = useTheme();
+  return (
+    <Container
+      width={theme.space.md}
+      height={theme.space.md}
+      alignSelf="center"
+      style={{
+        borderRadius: isChonkTheme(theme) ? theme.radius.full : '100%',
+        backgroundColor,
+      }}
+    />
+  );
+}
 
 export function filterToField(option: SpanOperationBreakdownFilter) {
   switch (option) {

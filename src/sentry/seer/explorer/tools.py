@@ -25,6 +25,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -459,7 +460,12 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
-def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[str, Any]:
+def rpc_get_profile_flamegraph(
+    profile_id: str,
+    organization_id: int,
+    trace_id: str | None = None,
+    span_description: str | None = None,
+) -> dict[str, Any]:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -473,6 +479,8 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     Args:
         profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
         organization_id: Organization ID to search within
+        trace_id: Optional trace ID to filter profile spans more precisely
+        span_description: Optional span description to filter profile spans more precisely
 
     Returns:
         Dictionary with either:
@@ -521,10 +529,17 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             organization=organization,
         )
 
+        query_string = f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)"
+        if trace_id:
+            query_string += f" trace:{trace_id}"
+        if span_description:
+            escaped_description = UNESCAPED_QUOTE_RE.sub('\\"', span_description)
+            query_string += f' span.description:"*{escaped_description}*"'
+
         # Query with aggregation to get profile metadata
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)",
+            query_string=query_string,
             selected_columns=[
                 "profile.id",
                 "profiler.id",
@@ -548,6 +563,9 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             extra={
                 "profile_id": profile_id,
                 "organization_id": organization_id,
+                "trace_id": trace_id,
+                "span_description": span_description,
+                "query_string": query_string,
                 "data": data,
                 "window_start": window_start.isoformat(),
                 "window_end": window_end.isoformat(),
@@ -624,7 +642,7 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
         return {"error": "Failed to fetch profile data from profiling service"}
 
     # Convert to execution tree (returns dicts, not Pydantic models)
-    execution_tree = _convert_profile_to_execution_tree(profile_data)
+    execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
     if not execution_tree:
         logger.warning(
@@ -637,11 +655,6 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
-    # Extract thread_id from profile data
-    profile = profile_data.get("profile") or profile_data.get("chunk", {}).get("profile")
-    samples = profile.get("samples", []) if profile else []
-    thread_id = str(samples[0]["thread_id"]) if samples else None
-
     return {
         "execution_tree": execution_tree,
         "metadata": {
@@ -650,7 +663,7 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             "is_continuous": is_continuous,
             "start_ts": min_start_ts,
             "end_ts": max_end_ts,
-            "thread_id": thread_id,
+            "thread_id": selected_thread_id,
         },
     }
 
@@ -868,6 +881,184 @@ def get_issue_details(
         "event_trace_id": event.trace_id,
         "project_id": int(serialized_group["project"]["id"]),
         "project_slug": serialized_group["project"]["slug"],
+    }
+
+
+def get_issue_and_event_details(
+    *,
+    organization_id: int,
+    issue_id: str | None,
+    selected_event: str,
+) -> dict[str, Any] | None:
+    """
+    Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
+    is issue is looked up from the event. We assume the event is always associated with an issue, otherwise None is returned.
+
+    Args:
+        organization_id: The ID of the organization to query.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property.
+        selected_event:
+          If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
+          If issue_id is not provided, this must be a UUID.
+
+    Returns:
+        A dict containing:
+            Issue fields: aside from `issue` these are nullable if an error occurred.
+            `issue`: Serialized issue details.
+            `tags_overview`: A summary of all tags in the issue.
+            `event_timeseries`: Event counts over time for the issue.
+            `timeseries_stats_period`: The stats period used for the event timeseries.
+            `timeseries_interval`: The interval used for the event timeseries.
+
+            Event fields:
+            `event`: Serialized event details.
+            `event_id`: The event ID of the selected event.
+            `event_trace_id`: The trace ID of the selected event. Nullable.
+            `project_id`: The event and issue's project ID.
+            `project_slug`: The event and issue's project slug.
+
+        Returns None when the requested event or issue is not found, or an error occurred.
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        return None
+
+    org_project_ids = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
+    if not org_project_ids:
+        return None
+
+    event: Event | GroupEvent | None = None
+    group: Group
+
+    # Fetch the group object.
+    if issue_id is None:
+        # If issue_id is not provided, first find the event. Then use this to fetch the group.
+        uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
+        # We can't use get_event_by_id since we don't know the exact project yet.
+        events_result = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                event_ids=[selected_event],
+                organization_id=organization_id,
+                project_ids=org_project_ids,
+            ),
+            limit=1,
+            tenant_ids={"organization_id": organization_id},
+        )
+        if not events_result:
+            logger.warning(
+                "Could not find the requested event ID",
+                extra={
+                    "organization_id": organization_id,
+                    "issue_id": issue_id,
+                    "selected_event": selected_event,
+                },
+            )
+            return None
+
+        event = events_result[0]
+        assert event is not None
+        if event.group is None:
+            logger.warning(
+                "Event is not associated with a group",
+                extra={"organization_id": organization_id, "event_id": event.event_id},
+            )
+            return None
+
+        group = event.group
+
+    else:
+        # Fetch the group from issue_id.
+        try:
+            if issue_id.isdigit():
+                group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
+            else:
+                group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+
+        except Group.DoesNotExist:
+            logger.warning(
+                "Requested issue does not exist for organization",
+                extra={"organization_id": organization_id, "issue_id": issue_id},
+            )
+            return None
+
+    # Get the issue data, tags overview, and event count timeseries.
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
+
+    try:
+        tags_overview = get_all_tags_overview(group)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        tags_overview = None
+
+    ts_result = _get_issue_event_timeseries(
+        organization=organization,
+        project_id=group.project_id,
+        issue_short_id=group.qualified_short_id,
+        first_seen_delta=datetime.now(UTC) - group.first_seen,
+    )
+    if ts_result:
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
+    else:
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+
+    # Fetch event from group, if not already fetched.
+    if event is None:
+        if selected_event == "oldest":
+            event = group.get_oldest_event()
+        elif selected_event == "latest":
+            event = group.get_latest_event()
+        elif selected_event == "recommended":
+            event = group.get_recommended_event()
+        else:
+            uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
+            event = eventstore.backend.get_event_by_id(
+                project_id=group.project_id,
+                event_id=selected_event,
+                group_id=group.id,
+                tenant_ids={"organization_id": organization_id},
+            )
+
+    if event is None:
+        logger.warning(
+            "Could not find the selected event.",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": issue_id,
+                "selected_event": selected_event,
+            },
+        )
+        return None
+
+    # Serialize event.
+    serialized_event: IssueEventSerializerResponse = serialize(
+        event, user=None, serializer=EventSerializer()
+    )
+
+    return {
+        "issue": serialized_group,
+        "event_timeseries": timeseries,
+        "timeseries_stats_period": timeseries_stats_period,
+        "timeseries_interval": timeseries_interval,
+        "tags_overview": tags_overview,
+        "event": serialized_event,
+        "event_id": event.event_id,
+        "event_trace_id": event.trace_id,
+        "project_id": event.project_id,
+        "project_slug": event.project.slug,
     }
 
 

@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,21 @@ describe('EnvironmentSelector', () => {
 
     const mockOnChange = jest.fn();
 
-    render(<EnvironmentSelector value="" onChange={mockOnChange} />);
+    function Component() {
+      const [environment, setEnvironment] = useState('');
+
+      return (
+        <EnvironmentSelector
+          value={environment}
+          onChange={value => {
+            setEnvironment(value);
+            mockOnChange(value);
+          }}
+        />
+      );
+    }
+
+    render(<Component />);
 
     // Open list
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
