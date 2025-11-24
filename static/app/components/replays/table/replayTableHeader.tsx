@@ -59,7 +59,7 @@ export default function ReplayTableHeader({
       </TableHeader>
 
       {isAnySelected ? (
-        <TableHeader style={{...headerStyle}}>
+        <TableHeader>
           <TableCellFirst>
             <ReplaySelectColumn.Header
               columnIndex={0}
