@@ -739,13 +739,6 @@ def run_bulk_deletes_by_project(
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
-        # Count total projects for progress tracking
-        total_projects = project_deletion_query.count()
-        debug_output(f"Processing {total_projects} project(s)")
-
-        processed_count = 0
-        last_reported_percentage = 0
-
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
             result_value_getter=lambda item: item,
@@ -767,7 +760,7 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    for chunk in q.iterator(chunk_size=100):
+                    for chunk in q.iterator(chunk_size=100, batch_size=30000):
                         task_queue.put((imp, chunk))
                 except Exception:
                     capture_exception(
@@ -779,17 +772,6 @@ def run_bulk_deletes_by_project(
                         tags={"model": model_tp.__name__, "type": "bulk_delete_by_project"},
                         sample_rate=1.0,
                     )
-
-            # Update progress tracking after processing all models for this project
-            processed_count += 1
-            current_percentage = int((processed_count / total_projects) * 100)
-
-            # Report progress every 5% to avoid excessive output
-            if current_percentage >= last_reported_percentage + 5:
-                debug_output(
-                    f"Progress: {current_percentage}% ({processed_count}/{total_projects} projects processed) (last_project_id: {project_id_for_deletion})"
-                )
-                last_reported_percentage = current_percentage
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
