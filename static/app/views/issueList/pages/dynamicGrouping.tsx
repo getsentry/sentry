@@ -151,6 +151,7 @@ function ClusterCard({
 }) {
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
+  const [showDescription, setShowDescription] = useState(false);
 
   return (
     <CardContainer>
@@ -161,23 +162,22 @@ function ClusterCard({
         paddingBottom="md"
         borderBottom="primary"
       >
-        <Disclosure>
-          <Disclosure.Title>
-            <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
-              {cluster.title}
-            </Heading>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <Text as="p" variant="muted" style={{marginBottom: space(1.5)}}>
-              {cluster.description}
-            </Text>
-            {cluster.fixability_score !== null && (
-              <Text size="sm" variant="muted">
-                {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
-              </Text>
-            )}
-          </Disclosure.Content>
-        </Disclosure>
+        <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
+          <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
+            {cluster.title}
+          </Heading>
+          {cluster.description && (
+            <Fragment>
+              {showDescription ? (
+                <DescriptionText>{cluster.description}</DescriptionText>
+              ) : (
+                <ReadMoreButton onClick={() => setShowDescription(true)}>
+                  {t('View summary')}
+                </ReadMoreButton>
+              )}
+            </Fragment>
+          )}
+        </Flex>
         <IssueCountBadge>
           <IssueCountNumber>{issueCount}</IssueCountNumber>
           <Text size="xs" variant="muted" uppercase>
@@ -452,6 +452,28 @@ const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
+`;
+
+const ReadMoreButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+    text-decoration: underline;
+  }
+`;
+
+const DescriptionText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.5;
 `;
 
 export default DynamicGrouping;
