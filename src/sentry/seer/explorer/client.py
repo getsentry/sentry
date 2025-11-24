@@ -101,7 +101,7 @@ class SeerExplorerClient:
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
             custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
-            is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI. 
+            is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
     """
 
     def __init__(
