@@ -665,6 +665,9 @@ export class Results extends Component<Props, State> {
       const exploreUrl = getExploreUrl({
         organization,
         ...savedQuery.exploreQuery?.query?.[0],
+        field: savedQuery.exploreQuery?.query?.[0].fields,
+        sort: savedQuery.exploreQuery?.query?.[0].orderby,
+        groupBy: savedQuery.exploreQuery?.query?.[0].groupby,
         id: savedQuery.exploreQuery.id,
         title: savedQuery.exploreQuery.name,
         selection: {
@@ -677,12 +680,14 @@ export class Results extends Component<Props, State> {
             utc: selection.datetime.utc ?? null,
           },
         },
+        interval: savedQuery.exploreQuery?.interval,
+        referrer: 'discover_v2.transactions_query_migration_banner',
       });
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert type="warning">
             {tct(
-              'This query has been migrated to Explore. Please open it in [explore:Explore].',
+              'This query has been migrated to Explore. Please open it in [explore:Explore] instead.',
               {
                 explore: <Link to={exploreUrl} />,
               }
