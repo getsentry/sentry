@@ -21,12 +21,13 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
+import {AffectSelector} from 'sentry/views/insights/mobile/screenload/components/affectSelector';
 import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {SpanOpSelector} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
   MobileCursors,
@@ -195,6 +196,7 @@ export function ScreenLoadSpansContent() {
               />
             )}
             {sampleType === EVENT && <SubregionSelector />}
+            {sampleType === SPANS && <AffectSelector transaction={transactionName} />}
           </FiltersContainer>
           <SegmentedControl
             onChange={value => {

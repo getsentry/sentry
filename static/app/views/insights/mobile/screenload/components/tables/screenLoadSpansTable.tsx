@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -34,11 +33,7 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {AffectSelector} from 'sentry/views/insights/mobile/screenload/components/affectSelector';
-import {
-  SpanOpSelector,
-  TTID_CONTRIBUTING_SPAN_OPS,
-} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
+import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
@@ -393,14 +388,6 @@ export function ScreenLoadSpansTable({
 
   return (
     <Fragment>
-      <ButtonContainer theme={theme}>
-        <SpanOpSelector
-          primaryRelease={primaryRelease}
-          transaction={transaction}
-          secondaryRelease={secondaryRelease}
-        />
-        <AffectSelector transaction={transaction} />
-      </ButtonContainer>
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
         data={data}
@@ -420,9 +407,4 @@ export function ScreenLoadSpansTable({
 const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
   text-align: right;
-`;
-
-const ButtonContainer = styled('div')<{theme: Theme}>`
-  display: flex;
-  gap: ${p => p.theme.space.md};
 `;
