@@ -334,8 +334,7 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        if debug:
-            log_rpc_request("Running a table query with debug on", rpc_request)
+        log_rpc_request("Running a table query with debug on", rpc_request)
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         except Exception as e:
@@ -545,8 +544,7 @@ class RPCBase:
     def _run_timeseries_rpc(
         self, debug: bool, rpc_request: TimeSeriesRequest
     ) -> TimeSeriesResponse:
-        if debug:
-            log_rpc_request("Running a timeseries query with debug on", rpc_request)
+        log_rpc_request("Running a timeseries query with debug on", rpc_request)
         try:
             return snuba_rpc.timeseries_rpc([rpc_request])[0]
         except Exception as e:
@@ -809,9 +807,8 @@ class RPCBase:
             requests.append(other_request)
 
         """Run the query"""
-        if params.debug:
-            for rpc_request in requests:
-                log_rpc_request("Running a top events query with debug on", rpc_request)
+        for rpc_request in requests:
+            log_rpc_request("Running a top events query with debug on", rpc_request)
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
             rpc_response = timeseries_rpc_response[0]
