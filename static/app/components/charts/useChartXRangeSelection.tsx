@@ -131,20 +131,7 @@ export function useChartXRangeSelection({
   disabled = false,
   deps = [],
 }: ChartXRangeSelectionProps): BoxSelectionOptions {
-  const initialState = useMemo(() => {
-    if (!initialSelection) {
-      return null;
-    }
-
-    return {
-      selection: initialSelection,
-      // Action menu position is not set on load.
-      // It's calculated from the selection selection range once brushing ends.
-      actionMenuPosition: null,
-    };
-  }, [initialSelection]);
-
-  const [state, setState] = useState<State>(initialState);
+  const [state, setState] = useState<State>(null);
 
   const tooltipFrameRef = useRef<number | null>(null);
   const brushStateSyncFrameRef = useRef<number | null>(null);
@@ -273,9 +260,13 @@ export function useChartXRangeSelection({
   // - Populates the rest of the state from the optional `initialSelection` prop on load.
   // - Activates brush mode on load and when we re-draw the box/clear the selection.
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
+
     const chartInstance = chartRef.current?.getEchartsInstance();
 
-    if (disabled || !chartInstance) {
+    if (!chartInstance) {
       return;
     }
 
@@ -301,16 +292,20 @@ export function useChartXRangeSelection({
       }
     }
 
+    if (brushStateSyncFrameRef.current) {
+      cancelAnimationFrame(brushStateSyncFrameRef.current);
+    }
+
     // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
-    // and this ensures ECharts has fully processed the dispatchAction above.
+    // and this ensures ECharts has fully processed all the dispatchActions like the one above.
     brushStateSyncFrameRef.current = requestAnimationFrame(() => {
       // We only propagate the range of the selection box to the consumers,
-      // so we need to calculate the rest of the state from the range on load.
-      if (state && !state.actionMenuPosition) {
+      // so we need to calculate the rest of the state from the `initialSelection` prop on load.
+      if (initialSelection && !state) {
         const newState = calculateNewState({
           chartInstance,
-          newRange: state.selection.range,
-          panelId: state.selection.panelId,
+          newRange: initialSelection.range,
+          panelId: initialSelection.panelId,
         });
 
         if (newState) {
@@ -323,11 +318,23 @@ export function useChartXRangeSelection({
 
     // eslint-disable-next-line consistent-return
     return () => {
-      if (brushStateSyncFrameRef.current)
+      if (brushStateSyncFrameRef.current) {
         cancelAnimationFrame(brushStateSyncFrameRef.current);
-      if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
+      }
+
+      if (tooltipFrameRef.current) {
+        cancelAnimationFrame(tooltipFrameRef.current);
+      }
     };
-  }, [state, disabled, enableBrushMode, chartRef, chartsGroupName, deps]);
+  }, [
+    state,
+    disabled,
+    enableBrushMode,
+    chartRef,
+    chartsGroupName,
+    initialSelection,
+    deps,
+  ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
     return disabled ? undefined : CHART_X_RANGE_BRUSH_OPTION;
