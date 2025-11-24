@@ -109,3 +109,29 @@ class AnomalyDetectionThresholdType(IntEnum):
     ABOVE = 0
     BELOW = 1
     ABOVE_AND_BELOW = 2
+
+
+class AlertThresholdDataPoint(TypedDict):
+    """Single data point with threshold bounds from Seer's alert threshold data endpoint"""
+
+    external_alert_id: int
+    timestamp: float
+    value: float
+    yhat_lower: float | None
+    yhat_upper: float | None
+
+
+class GetAlertThresholdDataRequest(TypedDict):
+    """Request payload for Seer's alert threshold data endpoint"""
+
+    alert: AlertInSeer
+    start: float
+    end: float
+
+
+class GetAlertThresholdDataResponse(TypedDict):
+    """Response from Seer's alert threshold data endpoint"""
+
+    success: bool
+    message: NotRequired[str]
+    data: list[AlertThresholdDataPoint]
