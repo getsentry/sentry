@@ -7,8 +7,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCode, IconDownload, IconLightning, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
@@ -33,6 +35,7 @@ interface BuildDetailsMetricCardsProps {
   sizeInfo: BuildDetailsSizeInfo | undefined;
   totalSize: number;
   platform?: Platform | null;
+  projectType?: string | null;
 }
 
 interface MetricCardConfig {
@@ -57,8 +60,11 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     processedInsights,
     totalSize,
     platform: platformProp,
+    projectType,
     onOpenInsightsSidebar,
   } = props;
+
+  const organization = useOrganization();
 
   if (!isSizeInfoCompleted(sizeInfo)) {
     return null;
@@ -144,7 +150,15 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     icon: <IconSettings size="sm" color="white" />,
                     tooltip: t('View insight details'),
                     ariaLabel: t('View insight details'),
-                    onClick: onOpenInsightsSidebar,
+                    onClick: () => {
+                      trackAnalytics('preprod.builds.details.open_insights_sidebar', {
+                        organization,
+                        platform: platformProp ?? null,
+                        project_type: projectType,
+                        source: 'metric_card',
+                      });
+                      onOpenInsightsSidebar();
+                    },
                   }
                 : undefined
             }
