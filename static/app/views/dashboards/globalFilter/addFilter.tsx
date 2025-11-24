@@ -178,7 +178,12 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       size="md"
       menuWidth="300px"
       menuTitle={
-        isSelectingFilterKey ? t('Select Filter Tag') : t('Select Filter Dataset')
+        isSelectingFilterKey
+          ? t(
+              'Select %s Tag',
+              selectedDataset ? getDatasetLabel(selectedDataset) : 'Filter'
+            )
+          : t('Select Filter Dataset')
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
