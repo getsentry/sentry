@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -59,7 +58,7 @@ import {
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {generateTargetQuery, type PickableDays} from 'sentry/views/explore/utils';
+import {generateTargetQuery} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const {warn, fmt} = Sentry.logger;
@@ -241,29 +240,6 @@ export function getTimeBasedSortBy(sortBys: readonly Sort[]) {
 
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
-}
-
-export function logsPickableDays(): PickableDays {
-  const relativeOptions: Array<[string, ReactNode]> = [
-    ['1h', t('Last hour')],
-    ['24h', t('Last 24 hours')],
-    ['7d', t('Last 7 days')],
-    ['14d', t('Last 14 days')],
-    ['30d', t('Last 30 days')],
-  ];
-
-  return {
-    defaultPeriod: '24h',
-    maxPickableDays: 30,
-    relativeOptions: ({
-      arbitraryOptions,
-    }: {
-      arbitraryOptions: Record<string, ReactNode>;
-    }) => ({
-      ...arbitraryOptions,
-      ...Object.fromEntries(relativeOptions),
-    }),
-  };
 }
 
 export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
