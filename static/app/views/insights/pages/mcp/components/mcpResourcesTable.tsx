@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -99,19 +100,26 @@ export function McpResourcesTable() {
       switch (column.key) {
         case SpanFields.MCP_RESOURCE_URI:
           return <McpResourceCell resource={dataRow[SpanFields.MCP_RESOURCE_URI]} />;
-        case 'failure_rate()':
+        case 'failure_rate()': {
+          const search = new MutableSearch(query);
+          search.addFilterValue(SpanFields.SPAN_STATUS, 'internal_error');
+          search.addFilterValue(
+            SpanFields.MCP_RESOURCE_URI,
+            dataRow[SpanFields.MCP_RESOURCE_URI]
+          );
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error ${SpanFields.MCP_RESOURCE_URI}:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
+                query: search.formatString(),
                 selection,
                 organization,
                 referrer: MCPReferrer.MCP_RESOURCE_TABLE,
               })}
             />
           );
+        }
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case AVG_DURATION:
@@ -145,6 +153,10 @@ function McpResourceCell({resource}: {resource: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const search = new MutableSearch('');
+  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.MCP_RESOURCE_URI, resource);
+
   const link = getExploreUrl({
     organization,
     selection,
@@ -156,7 +168,7 @@ function McpResourceCell({resource}: {resource: string}) {
       },
     ],
     field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
-    query: `span.op:mcp.server ${SpanFields.MCP_RESOURCE_URI}:"${resource}"`,
+    query: search.formatString(),
     sort: `-count(span.duration)`,
   });
   return <Link to={link}>{resource}</Link>;
