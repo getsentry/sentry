@@ -4,7 +4,6 @@ import hmac
 import logging
 import uuid
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -26,10 +25,6 @@ from rest_framework.exceptions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
-from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
-    TraceItemAttributeNamesRequest,
-    TraceItemAttributeValuesRequest,
-)
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
@@ -46,7 +41,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
@@ -66,7 +60,6 @@ from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
@@ -77,6 +70,10 @@ from sentry.seer.assisted_query.issues_tools import (
     get_filter_key_values,
     get_issue_filter_keys,
     get_issues_stats,
+)
+from sentry.seer.assisted_query.traces_tools import (
+    get_attribute_names,
+    get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
@@ -369,181 +366,6 @@ def get_organization_seer_consent_by_org_name(
             continue
 
     return {"consent": False, "consent_url": consent_url}
-
-
-def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    type_mapping = {
-        AttributeKey.Type.TYPE_STRING: "string",
-        AttributeKey.Type.TYPE_DOUBLE: "number",
-    }
-
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    fields: dict[str, list[str]] = {type_str: [] for type_str in type_mapping.values()}
-
-    for attr_type, type_str in type_mapping.items():
-        req = TraceItemAttributeNamesRequest(
-            meta=RequestMeta(
-                organization_id=org_id,
-                cogs_category="events_analytics_platform",
-                referrer=Referrer.SEER_RPC.value,
-                project_ids=project_ids,
-                start_timestamp=start_time_proto,
-                end_timestamp=end_time_proto,
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-            ),
-            type=attr_type,
-            limit=1000,
-        )
-
-        fields_resp = snuba_rpc.attribute_names_rpc(req)
-
-        parsed_fields = [
-            as_attribute_key(
-                attr.name,
-                "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
-                SupportedTraceItemType.SPANS,
-            )["name"]
-            for attr in fields_resp.attributes
-            if attr.name
-            and can_expose_attribute(
-                attr.name, SupportedTraceItemType.SPANS, include_internal=False
-            )
-        ]
-
-        fields[type_str].extend(parsed_fields)
-
-    return {"fields": fields}
-
-
-def get_attribute_values_with_substring(
-    *,
-    org_id: int,
-    project_ids: list[int],
-    fields_with_substrings: list[dict[str, str]],
-    stats_period: str = "48h",
-    limit: int = 100,
-    sampled: bool = True,
-) -> dict:
-    """
-    Get attribute values with substring.
-    Note: The RPC is guaranteed to not return duplicate values for the same field.
-    ie: if span.description is requested with both null and "payment" substrings,
-    the RPC will return the set of values for span.description to avoid duplicates.
-
-    TODO: Replace with batch attribute values RPC once available
-    """
-    values: dict[str, set[str]] = {}
-
-    if not fields_with_substrings:
-        return {"values": values}
-
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    sampling_mode = (
-        DownsampledStorageConfig.MODE_NORMAL
-        if sampled
-        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
-    )
-
-    resolver = SearchResolver(
-        params=SnubaParams(
-            start=start,
-            end=end,
-        ),
-        config=SearchResolverConfig(),
-        definitions=SPAN_DEFINITIONS,
-    )
-
-    def process_field_with_substring(
-        field_with_substring: dict[str, str],
-    ) -> tuple[str, set[str]] | None:
-        """Helper function to process a single field_with_substring request."""
-        field = field_with_substring["field"]
-        substring = field_with_substring["substring"]
-
-        resolved_field, _ = resolver.resolve_attribute(field)
-        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
-            req = TraceItemAttributeValuesRequest(
-                meta=RequestMeta(
-                    organization_id=org_id,
-                    cogs_category="events_analytics_platform",
-                    referrer=Referrer.SEER_RPC.value,
-                    project_ids=project_ids,
-                    start_timestamp=start_time_proto,
-                    end_timestamp=end_time_proto,
-                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-                    downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
-                ),
-                key=resolved_field.proto_definition,
-                limit=limit,
-                value_substring_match=substring,
-            )
-
-            values_response = snuba_rpc.attribute_values_rpc(req)
-            return field, {value for value in values_response.values if value}
-        return None
-
-    timeout_seconds = 1.0
-
-    with ThreadPoolExecutor(max_workers=min(len(fields_with_substrings), 10)) as executor:
-        future_to_field = {
-            executor.submit(
-                process_field_with_substring, field_with_substring
-            ): field_with_substring
-            for field_with_substring in fields_with_substrings
-        }
-
-        try:
-            for future in as_completed(future_to_field, timeout=timeout_seconds):
-                field_with_substring = future_to_field[future]
-
-                try:
-                    result = future.result()
-                    if result is not None:
-                        field, field_values = result
-                        if field in values:
-                            values[field].update(field_values)
-                        else:
-                            values[field] = field_values
-                except TimeoutError:
-                    logger.warning(
-                        "RPC call timed out after %s seconds for field %s, skipping",
-                        timeout_seconds,
-                        field_with_substring.get("field", "unknown"),
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "RPC call failed for field %s: %s",
-                        field_with_substring.get("field", "unknown"),
-                        str(e),
-                    )
-        except TimeoutError:
-            for future in future_to_field:
-                future.cancel()
-            logger.warning("Overall timeout exceeded, cancelled remaining RPC calls")
-
-    return {"values": values}
 
 
 def get_attributes_and_values(
