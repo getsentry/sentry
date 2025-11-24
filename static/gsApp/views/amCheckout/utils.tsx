@@ -400,7 +400,7 @@ function recordAnalytics(
       if (!categories[cat]) {
         categories[cat] = {reserved: undefined, previous_reserved: undefined};
       }
-      categories[cat]!.previous_reserved = metricHistory.reserved;
+      categories[cat].previous_reserved = metricHistory.reserved;
     }
   });
 
@@ -418,7 +418,7 @@ function recordAnalytics(
         if (!categories[targetKey]) {
           categories[targetKey] = {reserved: undefined, previous_reserved: undefined};
         }
-        categories[targetKey]!.reserved = value;
+        categories[targetKey].reserved = value;
       }
     }
     if (key.startsWith('addOn')) {
