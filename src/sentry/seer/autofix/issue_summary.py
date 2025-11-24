@@ -336,9 +336,8 @@ def run_automation(
         if issue_summary.scores.fixability_score is None:
             raise ValueError("Issue summary fixability score is None.")
 
-        # Update database and in-memory
+        # update() performs both database update and in-memory instance update
         group.update(seer_fixability_score=issue_summary.scores.fixability_score)
-        group.seer_fixability_score = issue_summary.scores.fixability_score
 
     if (
         not _is_issue_fixable(group, group.seer_fixability_score)

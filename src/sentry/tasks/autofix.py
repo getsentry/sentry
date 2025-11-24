@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
+
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import get_autofix_state
@@ -54,8 +56,6 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
-    import sentry_sdk
-
     from sentry.seer.autofix.issue_summary import _generate_fixability_score, get_issue_summary
 
     group = Group.objects.get(id=group_id)
