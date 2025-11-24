@@ -1,5 +1,3 @@
-// @ts-check
-
 const TOKEN_PATH = 'utils/theme/scraps';
 const EXCEPT_DIR_NAME = 'static/app/utils/theme';
 
