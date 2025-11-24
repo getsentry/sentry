@@ -1530,6 +1530,13 @@ const SECTIONS: TSection[] = [
         name: 'Image',
         defaultProps: {},
       },
+      {
+        id: 'creditCard',
+        groups: ['device'],
+        keywords: ['creditCard', 'card', 'payment'],
+        name: 'CreditCard',
+        defaultProps: {},
+      },
     ],
   },
 ];

@@ -26,6 +26,7 @@ export {IconCommit} from './iconCommit';
 export {IconCompass} from './iconCompass';
 export {IconContract} from './iconContract';
 export {IconCopy} from './iconCopy';
+export {IconCreditCard} from './iconCreditCard';
 export {IconCursorArrow} from './iconCursorArrow';
 export {IconDashboard} from './iconDashboard';
 export {IconDelete} from './iconDelete';
