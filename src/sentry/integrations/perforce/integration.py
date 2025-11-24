@@ -498,6 +498,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             data: Updated configuration data from the form (only changed fields)
         """
         from sentry.integrations.services.integration import integration_service
+        from sentry.models.integrations.integration import Integration
 
         # Update integration metadata with new values
         metadata = dict(self.model.metadata)  # Create a mutable copy
@@ -508,6 +509,12 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             integration_id=self.model.id,
             metadata=metadata,
         )
+
+        # Refresh self.model from database to get updated metadata
+        self.model = Integration.objects.get(id=self.model.id)
+
+        # Invalidate cached client so it gets recreated with new credentials
+        self._client = None
 
 
 class PerforceIntegrationProvider(IntegrationProvider):
