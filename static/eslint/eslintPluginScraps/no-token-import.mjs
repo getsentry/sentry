@@ -1,12 +1,22 @@
+// @ts-check
+
 const TOKEN_PATH = 'utils/theme/scraps';
 const EXCEPT_DIR_NAME = 'static/app/utils/theme';
 
+/**
+ *
+ * @param {unknown} importPath
+ * @returns {boolean}
+ */
 function isForbiddenImportPath(importPath) {
   if (typeof importPath !== 'string') return false;
 
   return importPath.includes(TOKEN_PATH);
 }
 
+/**
+ * @type {import('eslint').Rule.RuleModule}
+ */
 const noTokenImport = {
   meta: {
     type: 'problem',
@@ -29,8 +39,6 @@ const noTokenImport = {
         if (importerIsInAllowedDir) return;
 
         const value = node.source.value;
-
-        console.log('isForbiddenImportPath', isForbiddenImportPath(value), value);
 
         if (isForbiddenImportPath(value)) {
           context.report({

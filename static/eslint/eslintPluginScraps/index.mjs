@@ -1,3 +1,5 @@
+// @ts-check
+
 import noTokenImport from './no-token-import.mjs';
 
 export const rules = {
