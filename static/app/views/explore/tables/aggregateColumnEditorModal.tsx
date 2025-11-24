@@ -169,7 +169,7 @@ export function AggregateColumnEditorModal({
                   <Button
                     {...triggerProps}
                     aria-label={t('Add a Column')}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                   >
                     {t('Add a Column')}
                   </Button>
