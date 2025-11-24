@@ -112,7 +112,7 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         assert "count_warnings" in replay1_data
         assert "count_dead_clicks" in replay1_data
         assert "count_rage_clicks" in replay1_data
-        assert "is_archived" in replay1_data
+        assert "isArchived" in replay1_data
         assert "started_at" in replay1_data
         assert "finished_at" in replay1_data
 
