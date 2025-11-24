@@ -31,8 +31,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-const REMOVED_CLUSTERS_KEY = 'dynamic-grouping-removed-clusters';
-
 interface AssignedEntity {
   email: string | null;
   id: string;
@@ -272,18 +270,7 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
-  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(() => {
-    // Load removed cluster IDs from localStorage on mount
-    const stored = localStorage.getItem(REMOVED_CLUSTERS_KEY);
-    if (stored) {
-      try {
-        return new Set(JSON.parse(stored));
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
+  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -298,11 +285,6 @@ function DynamicGrouping() {
     [topIssuesResponse?.data]
   );
 
-  const handleClearRemovedClusters = () => {
-    setRemovedClusterIds(new Set());
-    localStorage.removeItem(REMOVED_CLUSTERS_KEY);
-  };
-
   const handleRemoveCluster = (clusterId: number) => {
     // Start animation
     setRemovingClusterId(clusterId);
@@ -313,12 +295,6 @@ function DynamicGrouping() {
       updatedRemovedIds.add(clusterId);
       setRemovedClusterIds(updatedRemovedIds);
       setRemovingClusterId(null);
-
-      // Persist removed cluster IDs to localStorage
-      localStorage.setItem(
-        REMOVED_CLUSTERS_KEY,
-        JSON.stringify(Array.from(updatedRemovedIds))
-      );
     }, 300); // Match the animation duration
   };
 
@@ -406,16 +382,7 @@ function DynamicGrouping() {
       />
 
       <PageHeader>
-        <Flex justify="between" align="start" gap="sm">
-          <div style={{flex: 1}}>
-            <Heading as="h1">{t('Top Issues')}</Heading>
-          </div>
-          {removedClusterIds.size > 0 && (
-            <Button size="sm" onClick={handleClearRemovedClusters}>
-              {t('Show Hidden Clusters')}
-            </Button>
-          )}
-        </Flex>
+        <Heading as="h1">{t('Top Issues')}</Heading>
       </PageHeader>
 
       {isPending ? (
