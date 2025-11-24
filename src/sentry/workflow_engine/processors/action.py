@@ -124,13 +124,13 @@ def update_workflow_action_group_statuses(
         batch_size=1000,
         ignore_conflicts=True,
     )
-    missing_statuses = [
+    missing_status_pairs = [
         (status.workflow_id, status.action_id) for status in all_statuses if status.id is None
     ]
-    if missing_statuses:
+    if missing_status_pairs:
         logger.warning(
             "Failed to create WorkflowActionGroupStatus objects",
-            extra={"missing_statuses": missing_statuses},
+            extra={"missing_status_pairs": missing_status_pairs},
         )
 
 
