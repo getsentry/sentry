@@ -123,6 +123,7 @@ type PiiConfigPattern = {
     method: RulePattern['method'];
   };
   type: RulePattern['type'];
+  replaceGroups?: number[];
 };
 
 type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &

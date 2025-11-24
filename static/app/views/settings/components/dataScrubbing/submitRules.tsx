@@ -12,6 +12,7 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
         method: rule.method,
         text: rule?.placeholder,
       },
+      replaceGroups: rule.replaceCaptured === 'true' ? [1] : undefined,
     };
   }
 
@@ -22,6 +23,7 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
       redaction: {
         method: rule.method,
       },
+      replaceGroups: rule.replaceCaptured === 'true' ? [1] : undefined,
     };
   }
 

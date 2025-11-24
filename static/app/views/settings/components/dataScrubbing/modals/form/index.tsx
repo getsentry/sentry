@@ -400,6 +400,16 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               />
 
               {t('Only replace first capture match')}
+              {/* <Checkbox
+                checked={(values as any).replaceCaptured === 'first_capture'}
+                onChange={e =>
+                  onChange(
+                    'replaceCaptured' as any,
+                    e.target.checked ? 'first_capture' : 'entire'
+                  )
+                }
+              />
+              {t('Only replace first capture match')} */}
             </FieldGroup>
           )}
         </FieldContainer>
