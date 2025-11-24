@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
@@ -81,32 +79,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_validation_error_when_missing_params(self) -> None:
         self.get_error_response(*self.get_url_args(), status_code=400)
 
-    def test_open_periods_new_group_with_last_checked(self) -> None:
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            name="Test Alert Rule",
-        )
-        last_checked = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
-
-        response = self.get_success_response(
-            *self.get_url_args(), qs_params={"groupId": self.group.id}
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        resp = response.data[0]
-        assert resp["id"] == str(self.group_open_period.id)
-        assert resp["start"] == self.group.first_seen
-        assert resp["end"] is None
-        assert resp["isOpen"] is True
-        assert resp["lastChecked"] >= last_checked
-        assert resp["activities"][0] == {
-            "id": str(self.opened_gopa.id),
-            "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
-            "dateCreated": self.opened_gopa.date_added,
-        }
-
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
@@ -138,9 +110,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
         assert resp["isOpen"] is False
-        assert resp["lastChecked"].replace(second=0, microsecond=0) == activity.datetime.replace(
-            second=0, microsecond=0
-        )
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
@@ -223,9 +192,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["isOpen"] is False
-        assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
-            second=0, microsecond=0
-        )
         assert len(resp["activities"]) == 2
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
@@ -244,9 +210,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["start"] == self.group.first_seen
         assert resp2["end"] == resolved_time
         assert resp2["isOpen"] is False
-        assert resp2["lastChecked"].replace(second=0, microsecond=0) == resolved_time.replace(
-            second=0, microsecond=0
-        )
         assert len(resp2["activities"]) == 2
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
@@ -317,6 +280,3 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["isOpen"] is False
-        assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
-            second=0, microsecond=0
-        )
