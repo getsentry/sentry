@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
@@ -30,7 +30,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.detector import get_detectors_for_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
     WorkflowEvaluation,
@@ -380,7 +380,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 @scopedstats.timer()
 def _get_associated_workflows(
-    detector: Detector, environment: Environment | None, event_data: WorkflowEventData
+    detectors: Collection[Detector], environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
@@ -394,7 +394,7 @@ def _get_associated_workflows(
     workflows = set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id=detector.id,
+            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
             enabled=True,
         )
         .select_related("environment")
@@ -421,7 +421,7 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_type": detector.type,
+                "detector_types": [detector.type for detector in detectors],
             },
         )
 
@@ -451,19 +451,18 @@ def process_workflows(
     workflow_evaluation_data = WorkflowEvaluationData(event=event_data.event)
 
     try:
-        if detector is None and isinstance(event_data.event, GroupEvent):
-            detector = get_detector_by_event(event_data)
+        event_detectors = get_detectors_for_event(event_data, detector)
 
-        if detector is None:
-            raise ValueError("Unable to determine the detector for the event")
+        if not event_detectors:
+            raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
-        log_context.add_extras(detector_id=detector.id)
+        log_context.add_extras(detector_id=event_detectors.preferred_detector.id)
         organization = event_data.event.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(
             WorkflowEventContextData(
-                detector=detector,
+                detector=event_detectors.preferred_detector,
                 organization=organization,
             )
         )
@@ -474,7 +473,7 @@ def process_workflows(
             data=workflow_evaluation_data,
         )
 
-    workflow_evaluation_data.associated_detector = detector
+    workflow_evaluation_data.associated_detector = event_detectors.preferred_detector
 
     try:
         environment = get_environment_by_event(event_data)
@@ -482,7 +481,7 @@ def process_workflows(
         # Set the full context now that we've gotten everything.
         WorkflowEventContext.set(
             WorkflowEventContextData(
-                detector=detector,
+                detector=event_detectors.preferred_detector,
                 environment=environment,
                 organization=organization,
             )
@@ -497,7 +496,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(detector, environment, event_data)
+    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:

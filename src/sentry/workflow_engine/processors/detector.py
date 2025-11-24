@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import sentry_sdk
@@ -100,6 +101,77 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
         project, IssueStreamGroupType.slug
     )
+
+
+@dataclass(frozen=True)
+class EventDetectors:
+    issue_stream_detector: Detector | None = None
+    event_detector: Detector | None = None
+
+    def __post_init__(self) -> None:
+        if not self.has_detectors:
+            raise ValueError("At least one detector must be provided")
+
+    @property
+    def has_detectors(self) -> bool:
+        """
+        Returns True if at least one detector exists.
+        """
+        return self.issue_stream_detector is not None or self.event_detector is not None
+
+    @property
+    def preferred_detector(self) -> Detector:
+        """
+        The preferred detector is the one that should be used for the event,
+        if we need to use a singular detector (for example, in logging).
+        The class will not initialize if no detectors are found.
+        """
+        detector = self.event_detector or self.issue_stream_detector
+        assert detector is not None, "At least one detector must exist"
+        return detector
+
+    @property
+    def detectors(self) -> set[Detector]:
+        return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
+
+
+def get_detectors_for_event(
+    event_data: WorkflowEventData, detector: Detector | None = None
+) -> EventDetectors | None:
+    """
+    Returns a list of detectors for the event to process workflows for.
+
+    We always return at least the issue stream detector.
+    If the event has an associated detector, we return it too.
+
+    If the detector is passed in, use that instead of searching for a detector.
+    This is used for Activity updates.
+    """
+    issue_stream_detector: Detector | None = None
+    try:
+        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+            event_data.group.project_id
+        )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        logger.exception(
+            "Issue stream detector not found for event",
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
+        )
+
+    if detector is None:
+        try:
+            detector = get_detector_by_event(event_data)
+        except Detector.DoesNotExist:
+            pass
+
+    try:
+        return EventDetectors(issue_stream_detector=issue_stream_detector, event_detector=detector)
+    except ValueError:
+        return None
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
