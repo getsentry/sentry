@@ -24,7 +24,12 @@ function isTraceMetric(value: unknown): value is TraceMetric {
     return false;
   }
 
-  return 'name' in value && !!value.name && 'type' in value && !!value.type;
+  return (
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'type' in value &&
+    typeof value.type === 'string'
+  );
 }
 
 export interface BaseMetricQuery {
