@@ -607,7 +607,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
             alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
             # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).count()
+            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 raise ValidationError(
