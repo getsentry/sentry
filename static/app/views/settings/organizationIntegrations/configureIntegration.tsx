@@ -251,7 +251,7 @@ function ConfigureIntegration() {
             <Button
               priority="primary"
               size="sm"
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               onClick={() => onClick()}
             >
               {t('Add Services')}

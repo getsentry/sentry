@@ -49,7 +49,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   if (canCreatePullRequests) {
     return (
       <DoneWrapper>
-        <DoneIcon color="success" size="2xl" isCircled />
+        <DoneIcon color="success" size="2xl" />
         <p>{t("You've successfully configured write access!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}

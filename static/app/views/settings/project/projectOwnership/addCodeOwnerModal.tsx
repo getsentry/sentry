@@ -259,7 +259,7 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   return (
     <Panel>
       <SourceFileBody>
-        <IconCheckmark size="md" isCircled color="green200" />
+        <IconCheckmark size="md" color="green200" />
         {codeownersFile.filepath}
         <LinkButton size="sm" href={codeownersFile.html_url} external>
           {t('Preview File')}

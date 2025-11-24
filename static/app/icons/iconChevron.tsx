@@ -6,18 +6,10 @@ import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
-  /**
-   * @deprecated Circled variant will be removed.
-   */
-  isCircled?: boolean;
   isDouble?: boolean;
 }
 
-function getChevronPath({
-  isCircled,
-  isDouble,
-  theme,
-}: Pick<Props, 'isCircled' | 'isDouble'> & {theme: Theme}) {
+function getChevronPath({isDouble, theme}: Pick<Props, 'isDouble'> & {theme: Theme}) {
   if (theme.isChonk) {
     if (isDouble) {
       return (
@@ -26,15 +18,6 @@ function getChevronPath({
     }
     return (
       <path d="M8 5C8.21 5 8.4 5.09 8.54 5.24L12.79 9.74C13.08 10.04 13.07 10.51 12.76 10.79C12.46 11.08 11.99 11.07 11.7 10.76L8 6.84L4.29 10.76C4.01 11.07 3.54 11.08 3.24 10.79C2.93 10.51 2.92 10.04 3.2 9.74L7.45 5.24C7.6 5.09 7.79 5 8 5Z" />
-    );
-  }
-
-  if (isCircled) {
-    return (
-      <Fragment>
-        <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />
-        <path d="M11.12,9.87a.73.73,0,0,1-.53-.22L8,7.07,5.41,9.65a.74.74,0,0,1-1.06,0,.75.75,0,0,1,0-1.06L7.47,5.48a.74.74,0,0,1,1.06,0l3.12,3.11a.75.75,0,0,1,0,1.06A.74.74,0,0,1,11.12,9.87Z" />
-      </Fragment>
     );
   }
 
@@ -56,7 +39,7 @@ function getChevronPath({
   );
 }
 
-export function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
+export function IconChevron({isDouble, direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -70,7 +53,7 @@ export function IconChevron({isDouble, isCircled, direction = 'up', ...props}: P
           : undefined
       }
     >
-      {getChevronPath({isDouble, isCircled, theme})}
+      {getChevronPath({isDouble, theme})}
     </SvgIcon>
   );
 }

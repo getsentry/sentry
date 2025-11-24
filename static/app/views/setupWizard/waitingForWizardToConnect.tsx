@@ -51,7 +51,7 @@ export function WaitingForWizardToConnect({
 
   return finished ? (
     <Flex align="center" gap="2xl">
-      <SuccessCheckmark color="green300" size="xl" isCircled />
+      <SuccessCheckmark color="green300" size="xl" />
       <SuccessHeading>
         {t('Return to your terminal to complete your setup.')}
       </SuccessHeading>

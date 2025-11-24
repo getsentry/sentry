@@ -196,7 +196,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
           ...addDropdown.triggerProps,
           children: (
             <Flex gap="xs">
-              <IconAdd isCircled /> {addButtonText}
+              <IconAdd /> {addButtonText}
             </Flex>
           ),
         }}

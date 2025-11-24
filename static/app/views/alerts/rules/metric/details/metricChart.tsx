@@ -269,7 +269,7 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" isCircled />
+                  <IconCheckmark color="successText" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>

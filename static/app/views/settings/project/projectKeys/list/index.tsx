@@ -196,7 +196,7 @@ export default function ProjectKeys() {
             onClick={() => handleCreateKeyMutation.mutate()}
             size="sm"
             priority="primary"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             disabled={!hasAccess}
           >
             {t('Generate New Key')}

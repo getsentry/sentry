@@ -47,7 +47,7 @@ describe('PolicyStatus', () => {
     render(
       <StatusIconWithTooltip
         tooltip="Test tooltip"
-        icon={<IconCheckmark isCircled size="sm" color="success" />}
+        icon={<IconCheckmark size="sm" color="success" />}
       />
     );
 

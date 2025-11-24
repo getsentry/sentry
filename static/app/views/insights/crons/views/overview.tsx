@@ -113,7 +113,7 @@ function CronsOverview() {
               {t('Manage Monitors')}
             </Button>
             {showAddMonitor && (
-              <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+              <NewMonitorButton size="sm" icon={<IconAdd />}>
                 {t('Add Cron Monitor')}
               </NewMonitorButton>
             )}

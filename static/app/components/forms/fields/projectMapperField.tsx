@@ -131,7 +131,7 @@ export class RenderField extends Component<RenderProps, State> {
     }));
 
     const projectOptions = [
-      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd isCircled />},
+      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd />},
       ...sentryProjectOptions,
     ];
 

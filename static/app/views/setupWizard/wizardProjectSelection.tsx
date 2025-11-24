@@ -366,7 +366,7 @@ export function WizardProjectSelection({
               options={sortedProjectOptions}
               triggerProps={{
                 icon: isCreateProjectSelected ? (
-                  <IconAdd isCircled />
+                  <IconAdd />
                 ) : selectedProject ? (
                   <ProjectBadge avatarSize={16} project={selectedProject} hideName />
                 ) : null,
@@ -390,7 +390,7 @@ export function WizardProjectSelection({
                             setSelectedProjectId(CREATE_PROJECT_VALUE);
                             closeOverlay();
                           }}
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Create Project')}
                         </Button>

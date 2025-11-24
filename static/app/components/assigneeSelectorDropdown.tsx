@@ -549,7 +549,7 @@ export default function AssigneeSelectorDropdown({
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
         }}
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
       >
         {t('Invite Member')}
       </Button>

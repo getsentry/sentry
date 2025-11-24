@@ -239,7 +239,7 @@ const FeatureList = withSubscription(FeatureListBase);
 const HasFeatureIndicator = styled((p: any) => (
   <div {...p}>
     Enabled
-    <IconCheckmark isCircled />
+    <IconCheckmark />
   </div>
 ))`
   display: grid;
