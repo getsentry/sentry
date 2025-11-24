@@ -264,109 +264,130 @@ function DynamicGrouping() {
   }
 
   return (
-    <Container padding="lg" maxWidth="1600px" margin="0 auto">
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: t('Issues'),
-            to: `/organizations/${organization.slug}/issues/`,
-          },
-          {
-            label: t('Top Issues'),
-          },
-        ]}
-      />
+    <PageWrapper>
+      <HeaderSection>
+        <Breadcrumbs
+          crumbs={[
+            {
+              label: t('Issues'),
+              to: `/organizations/${organization.slug}/issues/`,
+            },
+            {
+              label: t('Top Issues'),
+            },
+          ]}
+        />
 
-      <Heading as="h1" style={{marginBottom: space(2)}}>
-        {t('Top Issues')}
-      </Heading>
+        <Heading as="h1" style={{marginBottom: space(2)}}>
+          {t('Top Issues')}
+        </Heading>
 
-      {isPending ? (
-        <LoadingIndicator />
-      ) : (
-        <Fragment>
-          <Text size="sm" variant="muted">
-            {tn(
-              'Viewing %s issue in %s cluster',
-              'Viewing %s issues across %s clusters',
-              totalIssues,
-              filteredAndSortedClusters.length
-            )}
-          </Text>
+        {isPending ? null : (
+          <Fragment>
+            <Text size="sm" variant="muted">
+              {tn(
+                'Viewing %s issue in %s cluster',
+                'Viewing %s issues across %s clusters',
+                totalIssues,
+                filteredAndSortedClusters.length
+              )}
+            </Text>
 
-          <Container
-            padding="sm"
-            border="primary"
-            radius="md"
-            background="primary"
-            marginTop="md"
-            marginBottom="lg"
-          >
-            <Disclosure>
-              <Disclosure.Title>
-                <Text size="sm" bold>
-                  {t('More Filters')}
-                </Text>
-              </Disclosure.Title>
-              <Disclosure.Content>
-                <Flex direction="column" gap="md" paddingTop="md">
-                  <Flex gap="sm" align="center">
-                    <Checkbox
-                      checked={filterByAssignedToMe}
-                      onChange={e => setFilterByAssignedToMe(e.target.checked)}
-                      aria-label={t('Show only issues assigned to me')}
-                      size="sm"
-                    />
-                    <Text size="sm" variant="muted">
-                      {t('Only show issues assigned to me')}
-                    </Text>
+            <Container
+              padding="sm"
+              border="primary"
+              radius="md"
+              background="primary"
+              marginTop="md"
+            >
+              <Disclosure>
+                <Disclosure.Title>
+                  <Text size="sm" bold>
+                    {t('More Filters')}
+                  </Text>
+                </Disclosure.Title>
+                <Disclosure.Content>
+                  <Flex direction="column" gap="md" paddingTop="md">
+                    <Flex gap="sm" align="center">
+                      <Checkbox
+                        checked={filterByAssignedToMe}
+                        onChange={e => setFilterByAssignedToMe(e.target.checked)}
+                        aria-label={t('Show only issues assigned to me')}
+                        size="sm"
+                      />
+                      <Text size="sm" variant="muted">
+                        {t('Only show issues assigned to me')}
+                      </Text>
+                    </Flex>
+                    <Flex gap="sm" align="center">
+                      <Text size="sm" variant="muted">
+                        {t('Minimum fixability score (%)')}
+                      </Text>
+                      <NumberInput
+                        min={0}
+                        max={100}
+                        value={minFixabilityScore}
+                        onChange={value => setMinFixabilityScore(value ?? 0)}
+                        aria-label={t('Minimum fixability score')}
+                        size="sm"
+                      />
+                    </Flex>
                   </Flex>
-                  <Flex gap="sm" align="center">
-                    <Text size="sm" variant="muted">
-                      {t('Minimum fixability score (%)')}
-                    </Text>
-                    <NumberInput
-                      min={0}
-                      max={100}
-                      value={minFixabilityScore}
-                      onChange={value => setMinFixabilityScore(value ?? 0)}
-                      aria-label={t('Minimum fixability score')}
-                      size="sm"
-                    />
-                  </Flex>
-                </Flex>
-              </Disclosure.Content>
-            </Disclosure>
-          </Container>
-
-          {filteredAndSortedClusters.length === 0 ? (
-            <Container padding="lg" border="primary" radius="md" background="primary">
-              <Text variant="muted" align="center" as="div">
-                {t('No clusters match the current filters')}
-              </Text>
+                </Disclosure.Content>
+              </Disclosure>
             </Container>
-          ) : (
-            <CardsGrid>
-              {filteredAndSortedClusters.map(cluster => (
-                <ClusterCard
-                  key={cluster.cluster_id}
-                  cluster={cluster}
-                  onRemove={handleRemoveCluster}
-                />
-              ))}
-            </CardsGrid>
-          )}
-        </Fragment>
-      )}
-    </Container>
+          </Fragment>
+        )}
+      </HeaderSection>
+
+      <CardsSection>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : filteredAndSortedClusters.length === 0 ? (
+          <Container padding="lg" border="primary" radius="md" background="primary">
+            <Text variant="muted" align="center" as="div">
+              {t('No clusters match the current filters')}
+            </Text>
+          </Container>
+        ) : (
+          <CardsGrid>
+            {filteredAndSortedClusters.map(cluster => (
+              <ClusterCard
+                key={cluster.cluster_id}
+                cluster={cluster}
+                onRemove={handleRemoveCluster}
+              />
+            ))}
+          </CardsGrid>
+        )}
+      </CardsSection>
+    </PageWrapper>
   );
 }
 
-// Grid layout for cards - needs CSS grid
+const PageWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+`;
+
+const HeaderSection = styled('div')`
+  padding: ${space(4)} ${space(4)} ${space(3)};
+`;
+
+const CardsSection = styled('div')`
+  flex: 1;
+  padding: ${space(2)} ${space(4)} ${space(4)};
+`;
+
 const CardsGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: ${space(3)};
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 // Card with hover effect - needs custom transition/hover styles
