@@ -69,60 +69,57 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[RuleGroupHistory]:
-        if features.has(
-            "organizations:workflow-engine-single-process-workflows", rule.project.organization
-        ):
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-                workflow = alert_rule_workflow.workflow
+        try:
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+            workflow = alert_rule_workflow.workflow
 
-                # Performs the raw SQL query with pagination
-                def data_fn(offset: int, limit: int) -> list[_Result]:
-                    query = """
-                        WITH combined_data AS (
-                            SELECT group_id, date_added, event_id
-                            FROM sentry_rulefirehistory
-                            WHERE rule_id = %s AND date_added >= %s AND date_added < %s
-                            UNION ALL
-                            SELECT group_id, date_added, event_id
-                            FROM workflow_engine_workflowfirehistory
-                            WHERE workflow_id = %s
-                            AND date_added >= %s AND date_added < %s
+            # Performs the raw SQL query with pagination
+            def data_fn(offset: int, limit: int) -> list[_Result]:
+                query = """
+                    WITH combined_data AS (
+                        SELECT group_id, date_added, event_id
+                        FROM sentry_rulefirehistory
+                        WHERE rule_id = %s AND date_added >= %s AND date_added < %s
+                        UNION ALL
+                        SELECT group_id, date_added, event_id
+                        FROM workflow_engine_workflowfirehistory
+                        WHERE workflow_id = %s
+                        AND date_added >= %s AND date_added < %s
+                    )
+                    SELECT
+                        group_id as group,
+                        COUNT(*) as count,
+                        MAX(date_added) as last_triggered,
+                        (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
+                    FROM combined_data
+                    GROUP BY group_id
+                    ORDER BY count DESC, last_triggered DESC
+                    LIMIT %s OFFSET %s
+                """
+
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        query, [rule.id, start, end, workflow.id, start, end, limit, offset]
+                    )
+                    return [
+                        _Result(
+                            group=row[0],
+                            count=row[1],
+                            last_triggered=row[2],
+                            event_id=row[3],
                         )
-                        SELECT
-                            group_id as group,
-                            COUNT(*) as count,
-                            MAX(date_added) as last_triggered,
-                            (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
-                        FROM combined_data
-                        GROUP BY group_id
-                        ORDER BY count DESC, last_triggered DESC
-                        LIMIT %s OFFSET %s
-                    """
+                        for row in cursor.fetchall()
+                    ]
 
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            query, [rule.id, start, end, workflow.id, start, end, limit, offset]
-                        )
-                        return [
-                            _Result(
-                                group=row[0],
-                                count=row[1],
-                                last_triggered=row[2],
-                                event_id=row[3],
-                            )
-                            for row in cursor.fetchall()
-                        ]
+            result = GenericOffsetPaginator(data_fn=data_fn).get_result(per_page, cursor)
+            result.results = convert_results(result.results)
 
-                result = GenericOffsetPaginator(data_fn=data_fn).get_result(per_page, cursor)
-                result.results = convert_results(result.results)
+            return result
 
-                return result
-
-            except AlertRuleWorkflow.DoesNotExist:
-                # If no workflow is associated with this rule, just use the original behavior
-                logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
-                pass
+        except AlertRuleWorkflow.DoesNotExist:
+            # If no workflow is associated with this rule, just use the original behavior
+            logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
+            pass
 
         rule_filtered_history = RuleFireHistory.objects.filter(
             rule=rule,

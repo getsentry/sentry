@@ -196,7 +196,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
