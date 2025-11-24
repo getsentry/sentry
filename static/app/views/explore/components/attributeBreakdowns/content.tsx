@@ -8,7 +8,7 @@ export function AttributeBreakdownsContent() {
   if (chartSelection) {
     return (
       <CohortComparison
-        boxSelectOptions={chartSelection.boxSelectOptions}
+        selection={chartSelection.selection}
         chartInfo={chartSelection.chartInfo}
       />
     );
