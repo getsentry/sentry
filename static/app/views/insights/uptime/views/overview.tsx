@@ -84,7 +84,7 @@ export default function UptimeOverview() {
               size="sm"
               priority="primary"
               to={makeAlertsPathname({path: `/new/uptime/`, organization})}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               disabled={!canCreateAlert}
               title={canCreateAlert ? undefined : permissionTooltipText}
             >
@@ -131,7 +131,7 @@ export default function UptimeOverview() {
                     size="sm"
                     priority="primary"
                     to={makeAlertsPathname({path: `/new/uptime/`, organization})}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                   >
                     {t('Add Uptime Monitor')}
                   </LinkButton>

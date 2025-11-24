@@ -241,7 +241,7 @@ function Dashboard() {
                 path: '/new/',
                 organization,
               })}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               data-test-id="create-project"
             >
               {t('Create Project')}
