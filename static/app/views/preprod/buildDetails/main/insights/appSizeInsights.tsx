@@ -9,7 +9,9 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
 import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
@@ -18,17 +20,29 @@ import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessin
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
   platform?: Platform;
+  projectType?: string | null;
 }
 
-export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsProps) {
+export function AppSizeInsights({
+  processedInsights,
+  platform,
+  projectType,
+}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
+  const organization = useOrganization();
 
   const openSidebar = useCallback(() => {
+    trackAnalytics('preprod.builds.details.open_insights_sidebar', {
+      organization,
+      platform: platform ?? null,
+      source: 'insight_table',
+      project_type: projectType,
+    });
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
+  }, [organization, platform, projectType, searchParams, setSearchParams]);
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -115,6 +129,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
         platform={platform}
+        projectType={projectType}
       />
     </Container>
   );

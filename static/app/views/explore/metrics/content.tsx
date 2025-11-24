@@ -4,14 +4,16 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {metricsPickableDays} from 'sentry/views/explore/metrics/utils';
 import {
   getIdFromLocation,
   getTitleFromLocation,
@@ -24,18 +26,27 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 export default function MetricsContent() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
-  const {defaultPeriod, maxPickableDays, relativeOptions} = metricsPickableDays();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRACE_METRICS],
+    organization,
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization?.slug}>
       <PageFiltersContainer
-        defaultSelection={{
-          datetime: {
-            period: defaultPeriod,
-            start: null,
-            end: null,
-            utc: null,
-          },
-        }}
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        defaultSelection={
+          datePageFilterProps.defaultPeriod
+            ? {
+                datetime: {
+                  period: datePageFilterProps.defaultPeriod,
+                  start: null,
+                  end: null,
+                  utc: null,
+                },
+              }
+            : undefined
+        }
       >
         <Layout.Page>
           <MetricsHeader />
@@ -43,16 +54,10 @@ export default function MetricsContent() {
             <MetricsTabOnboarding
               organization={organization}
               project={onboardingProject}
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
+              datePageFilterProps={datePageFilterProps}
             />
           ) : (
-            <MetricsTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <MetricsTabContent datePageFilterProps={datePageFilterProps} />
           )}
         </Layout.Page>
       </PageFiltersContainer>
