@@ -396,6 +396,32 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             ],
         )
 
+    def test_latest_release_filter_with_environment(self) -> None:
+        self.login_as(user=self.user)
+
+        project = self.create_project(teams=[self.team], organization=self.organization)
+        environment = self.create_environment(name="production", project=project)
+        older_release = self.create_release(version="1.0.0", project=project)
+        latest_release = self.create_release(version="2.0.0", project=project)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=older_release.id,
+            environment_id=environment.id,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=latest_release.id,
+            environment_id=environment.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_ALIAS}:latest",
+            environment=environment.name,
+        )
+
+        self.assert_expected_versions(response, [latest_release])
+
     def test_query_filter_suffix(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
