@@ -77,7 +77,8 @@ jobs:
           sar -u 1 > perf_logs/system_cpu.txt &
           SAR_CPU_PID=$!
 
-          sleep 1
+          # let sar flush final samples
+          sleep 5
 
           kill $SAR_CPU_PID
           wait $SAR_CPU_PID
