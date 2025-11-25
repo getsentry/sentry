@@ -62,9 +62,33 @@ MAX_RETRIES = 2
 
 # Do not delete or modify existing entries. These enums are required to match ids in the frontend.
 class PrebuiltDashboardId(IntEnum):
+    # FRONTEND ONLY
     FRONTEND_SESSION_HEALTH = 1
+    FRONTEND_OVERVIEW = 4
+    FRONTEND_WEB_VITALS = 5
+    FRONTEND_WEB_VITALS_SUMMARY = 6
+    FRONTEND_ASSETS = 7
+    FRONTEND_ASSETS_SUMMARY = 8
+
+    # BACKEND ONLY
+    BACKEND_OVERVIEW = 9
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    BACKEND_CACHES = 10
+    BACKEND_QUEUES = 11
+    BACKEND_QUEUES_SUMMARY = 12
+
+    # MOBILE ONLY
+    MOBILE_OVERVIEW = 13
+    MOBILE_VITALS = 14
+    MOBILE_APP_START = 15
+    MOBILE_SCREEN_LOAD = 16
+    MOBILE_SCREEN_RENDERING = 17
+    MOBILE_SESSION_HEALTH = 18
+
+    # MULTIPLE PLATFORMS
+    HTTP = 19
+    HTTP_SUMMARY = 20
 
 
 class PrebuiltDashboard(TypedDict):
@@ -81,9 +105,35 @@ class PrebuiltDashboard(TypedDict):
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
+    # FRONTEND ONLY
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         "title": "Frontend Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_WEB_VITALS,
+        "title": "Web Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_WEB_VITALS_SUMMARY,
+        "title": "Web Vitals Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS,
+        "title": "Assets",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+        "title": "Assets Summary",
+    },
+    # BACKEND ONLY
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
+        "title": "Backend Overview",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
@@ -92,6 +142,52 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Summary",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
+        "title": "Caches",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
+        "title": "Queues",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES_SUMMARY,
+        "title": "Queue Summary",
+    },
+    # MOBILE ONLY
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_OVERVIEW,
+        "title": "Mobile Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
+        "title": "Mobile Vitals",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_APP_START,
+        "title": "Mobile App Start",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SCREEN_LOAD,
+        "title": "Mobile Screen Load",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SCREEN_RENDERING,
+        "title": "Mobile Screen Rendering",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
+        "title": "Mobile Session Health",
+    },
+    # MULTIPLE PLATFORMS
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP,
+        "title": "HTTP",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP_SUMMARY,
+        "title": "HTTP Summary",
     },
 ]
 

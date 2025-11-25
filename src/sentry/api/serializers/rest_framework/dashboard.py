@@ -677,6 +677,20 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         help_text="Permissions that restrict users from editing dashboards",
     )
 
+    def validate_title(self, title):
+        """Prevent users from creating dashboards with reserved titles."""
+        # Import from the endpoint file where PREBUILT_DASHBOARDS is defined
+        from sentry.dashboards.endpoints.organization_dashboards import PREBUILT_DASHBOARDS
+
+        reserved_titles = {dashboard["title"] for dashboard in PREBUILT_DASHBOARDS}
+
+        if title in reserved_titles:
+            raise serializers.ValidationError(
+                f"Dashboard title '{title}' is reserved. Please choose a different title."
+            )
+
+        return title
+
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 

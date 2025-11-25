@@ -2003,3 +2003,32 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 200
             assert len(response.data) == 1
             assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
+
+    def test_fails_to_create_dashboard_when_using_prebuilt_title(self) -> None:
+        data = {
+            "title": "Queries Overview",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Spans",
+                    "limit": 5,
+                    "widgetType": "spans",
+                    "queries": [
+                        {
+                            "name": "Spans",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert (
+            response.data["title"][0]
+            == "Dashboard title 'Queries Overview' is reserved. Please choose a different title."
+        )
