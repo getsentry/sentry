@@ -40,4 +40,4 @@ version = {attr = "sentry_scm_client.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sentry_scm_client*"]
+include = ["sentry_integrations_client*"]
