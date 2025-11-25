@@ -1134,7 +1134,7 @@ def _make_get_trace_request(
     Returns:
         A list of dictionaries for each trace item, with the keys:
         - id: The trace item ID.
-        - timestamp: ISO 8601 timestamp.
+        - timestamp: ISO 8601 timestamp, Z suffix.
         - attributes: A dictionary of dictionaries, where the keys are the attribute names.
           - attributes[name].value: The value of the attribute (str, int, float, bool).
           - attributes[name].type: The type of the attribute (str).
@@ -1221,6 +1221,7 @@ def _make_get_trace_request(
             items.append(
                 {
                     "id": item.id,
+                    "timestamp": item.timestamp.ToJsonString(),
                     "attributes": attr_dict,
                 }
             )
