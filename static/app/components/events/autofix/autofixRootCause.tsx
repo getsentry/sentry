@@ -15,6 +15,7 @@ import {
   AutofixStatus,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
+  type CodingAgentState,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -85,6 +86,7 @@ type AutofixRootCauseProps = {
   runId: string;
   status: AutofixStatus;
   agentCommentThread?: CommentThread;
+  codingAgents?: Record<string, CodingAgentState>;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
@@ -254,6 +256,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  codingAgents,
   event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
@@ -336,11 +339,16 @@ function AutofixRootCauseDisplay({
     // Show immediate loading toast
     addLoadingMessage(t('Launching %s...', cursorIntegration.name), {duration: 60000});
 
+    const instruction = solutionText.trim();
+
     launchCodingAgent({
       integrationId: cursorIntegration.id,
       agentName: cursorIntegration.name,
       triggerSource: 'root_cause',
+      instruction: instruction || undefined,
     });
+
+    setSolutionText('');
 
     trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
@@ -352,8 +360,9 @@ function AutofixRootCauseDisplay({
   const isRootCauseAlreadySelected = Boolean(
     rootCauseSelection && 'cause_id' in rootCauseSelection
   );
+  const hasCodingAgents = Boolean(codingAgents && Object.keys(codingAgents).length > 0);
   const primaryButtonPriority: React.ComponentProps<typeof Button>['priority'] =
-    isRootCauseAlreadySelected ? 'default' : 'primary';
+    isRootCauseAlreadySelected || hasCodingAgents ? 'default' : 'primary';
   const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   if (!cause) {
