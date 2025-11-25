@@ -213,16 +213,20 @@ class SentryAppActionValidatorHandler:
         Get the sentry app installation based on whether the target identifier is an installation id or sentry app id
         We do not want to accept SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID long term, this is temporary until we migrate the data over
         """
+        installations = None
         installation = None
 
         if sentry_app_identifier == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID:
-            installation = app_service.get_installation_by_uuid(
-                uuid=target_identifier, organization_id=self.organization.id
+            installations = app_service.get_many(
+                filter=dict(uuids=[target_identifier], organization_ids=[self.organization.id])
             )
         else:
-            installation = app_service.get_installation_by_sentry_app_id(
-                sentry_app_id=int(target_identifier), organization_id=self.organization.id
+            installations = app_service.get_many(
+                filter=dict(app_ids=[target_identifier], organization_ids=[self.organization.id])
             )
+        if installations:
+            installation = installations[0]
+
         return installation
 
     def clean_data(self) -> dict[str, Any]:
