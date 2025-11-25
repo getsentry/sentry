@@ -10,13 +10,13 @@ import {Flex} from '@sentry/scraps/layout';
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
@@ -46,14 +46,16 @@ export function CohortComparison({
     aggregateFunction: yAxis,
     range: selection.range,
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'attributeBreakdownsSearch',
+  });
   const sortingMethod: SortingMethod = 'rrr';
   const [page, setPage] = useState(0);
   const theme = useTheme();
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const filteredRankedAttributes = useMemo(() => {
     const attrs = data?.rankedAttributes;
@@ -126,26 +128,28 @@ export function CohortComparison({
     };
   }, [selection, yAxis]);
 
+  if (isError) {
+    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
+  }
+
   return (
     <Panel data-explore-chart-selection-region>
       <Flex direction="column" gap="xl" padding="xl">
+        <ControlsContainer>
+          <StyledBaseSearchBar
+            placeholder={t('Search keys')}
+            onChange={query => {
+              setSearchQuery(query);
+            }}
+            query={debouncedSearchQuery}
+            size="sm"
+          />
+          <AttributeBreakdownsComponent.FeedbackButton />
+        </ControlsContainer>
         {isLoading ? (
-          <LoadingIndicator />
-        ) : isError ? (
-          <LoadingError message={t('Failed to load attribute breakdowns')} />
+          <AttributeBreakdownsComponent.LoadingCharts />
         ) : (
           <Fragment>
-            <ControlsContainer>
-              <StyledBaseSearchBar
-                placeholder={t('Search keys')}
-                onChange={query => {
-                  setSearchQuery(query);
-                }}
-                query={debouncedSearchQuery}
-                size="sm"
-              />
-              <AttributeBreakdownsComponent.FeedbackButton />
-            </ControlsContainer>
             {selectionHint && (
               <SelectionHintContainer>
                 <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
@@ -211,7 +215,6 @@ const ControlsContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const StyledBaseSearchBar = styled(BaseSearchBar)`
@@ -241,7 +244,6 @@ const SelectionHintContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const SelectionHint = styled(Text)<{color?: string}>`
