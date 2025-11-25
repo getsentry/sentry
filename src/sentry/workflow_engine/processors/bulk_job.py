@@ -437,29 +437,22 @@ def _create_job_records_batch(
     """
     Create BulkJobStatus records for a batch of work chunks.
 
-    Returns the number of new records created.
+    Returns the number of new records actually created (excludes duplicates).
+    Relies on unique constraint on batch_key to prevent duplicates.
     """
-    batch_keys = {job_spec.get_batch_key(chunk) for chunk in work_chunks}
-
-    existing_keys = set(
-        BulkJobStatus.objects.filter(job_type=job_type, batch_key__in=batch_keys).values_list(
-            "batch_key", flat=True
+    records = [
+        BulkJobStatus(
+            job_type=job_type,
+            batch_key=job_spec.get_batch_key(chunk),
+            work_chunk_info=chunk.dict(),
+            status=BulkJobState.NOT_STARTED,
         )
-    )
+        for chunk in work_chunks
+    ]
 
-    new_records = []
-    for chunk in work_chunks:
-        batch_key = job_spec.get_batch_key(chunk)
-        if batch_key not in existing_keys:
-            record = BulkJobStatus(
-                job_type=job_type,
-                batch_key=batch_key,
-                work_chunk_info=chunk.dict(),
-                status=BulkJobState.NOT_STARTED,
-            )
-            new_records.append(record)
-
-    if new_records:
-        BulkJobStatus.objects.bulk_create(new_records, ignore_conflicts=True)
-        return len(new_records)
+    if records:
+        # bulk_create with ignore_conflicts returns all objects (including conflicts)
+        # Count only objects that got a primary key assigned (were actually inserted)
+        created = BulkJobStatus.objects.bulk_create(records, ignore_conflicts=True)
+        return sum(1 for obj in created if obj.pk is not None)
     return 0

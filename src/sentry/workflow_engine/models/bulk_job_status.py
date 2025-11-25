@@ -26,10 +26,23 @@ class BulkJobStatus(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    # Identifies which BulkJobSpec to use (e.g., "error_backfill").
+    # Used to look up the job implementation from bulk_job_registry.
     job_type = models.CharField(max_length=100, db_index=True)
+
+    # Unique identifier for this work chunk (e.g., "error_detector:123").
+    # Prevents duplicate job records. Format is job-specific but typically
+    # includes the resource ID being processed.
     batch_key = models.CharField(max_length=200, unique=True)
+
+    # JSON-serialized work chunk data (Pydantic model).
+    # Contains all information needed to process this specific chunk
+    # (e.g., {"detector_id": 123}). Deserialized using the job's
+    # work_chunk_model when processing.
     work_chunk_info = JSONField()
 
+    # Current execution state (NOT_STARTED, IN_PROGRESS, COMPLETED).
+    # Coordinator uses this to schedule pending jobs and reset stuck ones.
     status = models.CharField(
         max_length=20,
         choices=[(status.value, status.name.replace("_", " ").title()) for status in BulkJobState],

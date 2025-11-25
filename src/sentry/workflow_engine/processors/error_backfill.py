@@ -8,6 +8,7 @@ from typing import Any
 from django.db.models import Exists, OuterRef
 from pydantic import BaseModel
 
+from sentry import options
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.utils import metrics
@@ -34,9 +35,13 @@ class ErrorBackfillJob(BulkJobSpec):
 
     # Configuration for coordination
     max_batch_size = 100
-    target_running_tasks = 50
     in_progress_timeout = timedelta(hours=1)
     completed_cleanup_age = timedelta(days=30)
+
+    @property
+    def target_running_tasks(self) -> int:
+        """Read target_running_tasks from options for gradual rollout control."""
+        return options.get("workflow_engine.error_backfill.target_running_tasks")
 
     def process_work_chunk(self, work_chunk: BaseModel) -> dict[str, Any]:
         return _backfill_detector_groups(work_chunk)  # type: ignore[arg-type]
