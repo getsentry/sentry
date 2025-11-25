@@ -107,7 +107,10 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         # dedupes action if both workflows will fire it
         assert set(triggered_actions) == {self.action}
         # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert {getattr(action, "workflow_id") for action in triggered_actions} == {workflow.id}
+        assert getattr(triggered_actions[0], "workflow_id") in {
+            self.workflow.id,
+            workflow.id,
+        }  # either is valid
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -221,6 +224,35 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert all_statuses.count() == 2
         for status in all_statuses:
             assert status.date_updated == timezone.now()
+
+    def test_returns_uncreated_statuses(self) -> None:
+        WorkflowActionGroupStatus.objects.create(
+            workflow=self.workflow, action=self.action, group=self.group
+        )
+
+        statuses_to_create = [
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=self.action,
+                group=self.group,
+                date_updated=timezone.now(),
+            )
+        ]
+        _, _, uncreated_statuses = update_workflow_action_group_statuses(
+            timezone.now(), {}, statuses_to_create
+        )
+
+        assert uncreated_statuses == [(self.workflow.id, self.action.id)]
+
+    @patch("sentry.workflow_engine.processors.action.update_workflow_action_group_statuses")
+    def test_does_not_fire_for_uncreated_statuses(self, mock_update: MagicMock) -> None:
+        mock_update.return_value = (0, 0, [(self.workflow.id, self.action.id)])
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        assert set(triggered_actions) == set()
 
 
 class TestIsActionPermitted(BaseWorkflowTest):

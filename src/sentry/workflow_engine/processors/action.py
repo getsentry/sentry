@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db import models
+from django.db import connection, models
 from django.db.models import Case, Value, When
 from django.utils import timezone
 
@@ -114,24 +114,43 @@ def process_workflow_action_group_statuses(
 
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
-) -> None:
-    WorkflowActionGroupStatus.objects.filter(
+) -> tuple[int, int, list[tuple[int, int]]]:
+    updated_count = WorkflowActionGroupStatus.objects.filter(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
 
-    all_statuses = WorkflowActionGroupStatus.objects.bulk_create(
-        missing_statuses,
-        batch_size=1000,
-        ignore_conflicts=True,
-    )
-    missing_status_pairs = [
-        (status.workflow_id, status.action_id) for status in all_statuses if status.id is None
+    if not missing_statuses:
+        return updated_count, 0, []
+
+    # Use raw SQL: only returns successfully created rows
+    with connection.cursor() as cursor:
+        # Build values for batch insert
+        values_placeholders = []
+        values_data = []
+        for s in missing_statuses:
+            values_placeholders.append("(%s, %s, %s, %s, %s)")
+            values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
+
+        sql = f"""
+            INSERT INTO workflow_engine_workflowactiongroupstatus
+            (workflow_id, action_id, group_id, date_added, date_updated)
+            VALUES {', '.join(values_placeholders)}
+            ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
+            RETURNING workflow_id, action_id
+        """
+
+        cursor.execute(sql, values_data)
+        created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
+
+    # Figure out which ones conflicted (weren't returned)
+    uncreated_statuses = [
+        (s.workflow_id, s.action_id)
+        for s in missing_statuses
+        if (s.workflow_id, s.action_id) not in created_rows
     ]
-    if missing_status_pairs:
-        logger.warning(
-            "Failed to create WorkflowActionGroupStatus objects",
-            extra={"missing_status_pairs": missing_status_pairs},
-        )
+
+    created_count = len(created_rows)
+    return updated_count, created_count, uncreated_statuses
 
 
 def get_unique_active_actions(
@@ -199,7 +218,13 @@ def filter_recently_fired_workflow_actions(
             now=now,
         )
     )
-    update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
+    _, _, uncreated_statuses = update_workflow_action_group_statuses(
+        now, statuses_to_update, missing_statuses
+    )
+
+    # if statuses were not created for some reason, we should not fire for them
+    for workflow_id, action_id in uncreated_statuses:
+        action_to_workflow_ids.pop(action_id, None)
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
 
