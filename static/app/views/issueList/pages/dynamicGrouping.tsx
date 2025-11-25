@@ -265,6 +265,20 @@ interface SignalRanges {
   recency: {max: number; min: number}; // age in ms, lower = more recent
 }
 
+interface ScoreWeights {
+  events: number;
+  fixability: number;
+  issues: number;
+  recency: number;
+}
+
+const DEFAULT_WEIGHTS: ScoreWeights = {
+  events: 25,
+  fixability: 25,
+  issues: 25,
+  recency: 25,
+};
+
 /**
  * Computes min/max ranges for all scoring signals across clusters.
  * For recency, we compute age (ms from now) so that newer events have smaller values.
@@ -337,18 +351,28 @@ function computeSignalRanges(
 }
 
 /**
- * Computes composite score using min-max normalized signals with equal weights.
+ * Computes composite score using min-max normalized signals with configurable weights.
  *
- * Formula: score = 0.25 * norm(fixability) + 0.25 * norm(events) + 0.25 * norm(recency) + 0.25 * norm(issues)
+ * Formula: score = w_fix * norm(fixability) + w_evt * norm(events) + w_rec * norm(recency) + w_iss * norm(issues)
  *
+ * Weights are provided as percentages (0-100) and normalized to sum to 1.
  * For recency, we invert the normalization so that more recent (smaller age) = higher score.
  */
 function computeCompositeScore(
   cluster: ClusterSummary,
   stats: ClusterStats | undefined,
-  ranges: SignalRanges
+  ranges: SignalRanges,
+  weights: ScoreWeights
 ): number {
   const now = Date.now();
+
+  // Normalize weights to sum to 1
+  const totalWeight =
+    weights.fixability + weights.events + weights.recency + weights.issues;
+  const wFix = totalWeight > 0 ? weights.fixability / totalWeight : 0.25;
+  const wEvt = totalWeight > 0 ? weights.events / totalWeight : 0.25;
+  const wRec = totalWeight > 0 ? weights.recency / totalWeight : 0.25;
+  const wIss = totalWeight > 0 ? weights.issues / totalWeight : 0.25;
 
   // Normalize fixability (higher = better)
   const fixability = cluster.fixability_score ?? 0;
@@ -374,9 +398,8 @@ function computeCompositeScore(
   const issues = cluster.group_ids.length;
   const normIssues = minMaxNormalize(issues, ranges.issues.min, ranges.issues.max);
 
-  // Equal weights (0.25 each)
   return (
-    0.25 * normFixability + 0.25 * normEvents + 0.25 * normRecency + 0.25 * normIssues
+    wFix * normFixability + wEvt * normEvents + wRec * normRecency + wIss * normIssues
   );
 }
 
@@ -545,6 +568,7 @@ function DynamicGrouping() {
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
+  const [scoreWeights, setScoreWeights] = useState<ScoreWeights>(DEFAULT_WEIGHTS);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending: isClustersPending} =
@@ -653,11 +677,21 @@ function DynamicGrouping() {
   // Sort by composite score (descending)
   const filteredAndSortedClusters = useMemo(() => {
     return [...filteredClusters].sort((a, b) => {
-      const scoreA = computeCompositeScore(a, statsMap.get(a.cluster_id), signalRanges);
-      const scoreB = computeCompositeScore(b, statsMap.get(b.cluster_id), signalRanges);
+      const scoreA = computeCompositeScore(
+        a,
+        statsMap.get(a.cluster_id),
+        signalRanges,
+        scoreWeights
+      );
+      const scoreB = computeCompositeScore(
+        b,
+        statsMap.get(b.cluster_id),
+        signalRanges,
+        scoreWeights
+      );
       return scoreB - scoreA;
     });
-  }, [filteredClusters, statsMap, signalRanges]);
+  }, [filteredClusters, statsMap, signalRanges, scoreWeights]);
 
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
@@ -711,6 +745,73 @@ function DynamicGrouping() {
                 </Disclosure.Title>
                 <Disclosure.Content>
                   <Flex direction="column" gap="md" paddingTop="md">
+                    <Flex direction="column" gap="sm">
+                      <Text size="sm" bold>
+                        {t('Sorting Weights')}
+                      </Text>
+                      <Text size="xs" variant="muted">
+                        {t(
+                          'Adjust how much each signal contributes to the priority score. Weights are normalized automatically.'
+                        )}
+                      </Text>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Fixability')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.fixability}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, fixability: value ?? 0}))
+                          }
+                          aria-label={t('Fixability weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Event Count')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.events}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, events: value ?? 0}))
+                          }
+                          aria-label={t('Event count weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Recency')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.recency}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, recency: value ?? 0}))
+                          }
+                          aria-label={t('Recency weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Issue Count')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.issues}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, issues: value ?? 0}))
+                          }
+                          aria-label={t('Issue count weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+                    </Flex>
+
                     <Flex gap="sm" align="center">
                       <Checkbox
                         checked={filterByAssignedToMe}
@@ -956,6 +1057,19 @@ const DescriptionText = styled('p')`
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+// Weight input styles
+const WeightInputRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const WeightLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  min-width: 90px;
 `;
 
 export default DynamicGrouping;
