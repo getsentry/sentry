@@ -105,14 +105,14 @@ function CodingAgentSettings({
   preference,
   handleAutoCreatePrChange,
   canWriteProject,
-  autofixAutomationTuning,
+  isAutomationOn,
 }: {
-  autofixAutomationTuning: boolean;
   canWriteProject: boolean;
   handleAutoCreatePrChange: (value: boolean) => void;
   preference: ProjectSeerPreferences | null | undefined;
+  isAutomationOn?: boolean;
 }) {
-  if (!preference?.automation_handoff || !autofixAutomationTuning) {
+  if (!preference?.automation_handoff || !isAutomationOn) {
     return null;
   }
 
@@ -327,11 +327,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
-  const automationTuning = Boolean(
-    isTriageSignalsFeatureOn
-      ? (project.autofixAutomationTuning ?? 'off') !== 'off'
-      : (project.autofixAutomationTuning ?? 'off')
-  );
+  const automationTuning = isTriageSignalsFeatureOn
+    ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+    : (project.autofixAutomationTuning ?? 'off');
 
   return (
     <Fragment>
@@ -369,7 +367,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       <CodingAgentSettings
         preference={preference}
         handleAutoCreatePrChange={handleAutoCreatePrChange}
-        autofixAutomationTuning={automationTuning}
+        isAutomationOn={automationTuning && automationTuning !== 'off'}
         canWriteProject={canWriteProject}
       />
     </Fragment>
