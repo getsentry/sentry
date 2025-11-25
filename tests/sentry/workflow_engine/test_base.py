@@ -16,6 +16,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.notification_action.types import BaseActionValidatorHandler
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -365,7 +367,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return group, event, group_event
 
-    def create_sentry_app_with_schema(self):
+    def create_sentry_app_with_schema(self) -> tuple[SentryApp, SentryAppInstallation]:
         sentry_app_settings_schema = self.create_alert_rule_action_schema()
         sentry_app = self.create_sentry_app(
             name="Moo Deng's Fire Sentry App",
@@ -377,5 +379,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             },
             is_alertable=True,
         )
-        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
-        return sentry_app
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+        return sentry_app, installation
