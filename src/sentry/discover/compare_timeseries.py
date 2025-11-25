@@ -9,7 +9,6 @@ import sentry_sdk
 from django.urls import reverse
 
 from sentry import features
-from sentry.analytics.events.rule_snooze import RuleSnoozed
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models.alert_rule import (
@@ -20,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.organization import Organization
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
@@ -249,8 +249,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     false_positive_misfire = 0
     false_negative_misfire = 0
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
-    rule_snoozed_object = RuleSnoozed.objects.filter(alert_rule=alert_rule).first()
-    rule_snoozed = rule_snoozed_object.user_id is None
+    rule_snoozed = RuleSnooze.objects.is_snoozed_for_all(alert_rule=alert_rule)
     missing_buckets = 0
     all_zeros = True
     trigger_action_types: dict[str, int] = defaultdict(int)
