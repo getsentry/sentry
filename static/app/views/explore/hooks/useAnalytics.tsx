@@ -11,6 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -40,6 +41,8 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
+import {Tab, type useTab} from './useTab';
+
 const {info, fmt} = Sentry.logger;
 
 interface UseTrackAnalyticsProps {
@@ -54,11 +57,13 @@ interface UseTrackAnalyticsProps {
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
+  attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
 
 function useTrackAnalytics({
+  attributeBreakdownsMode,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -229,6 +234,7 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
+      attribute_breakdowns_mode: attributeBreakdownsMode,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -246,6 +252,7 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
+      attribute_breakdowns_mode: ${attributeBreakdownsMode}
     `);
   }, [
     dataset,
@@ -268,6 +275,7 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
+    attributeBreakdownsMode,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -358,6 +366,7 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
+  tab,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -366,7 +375,9 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
->) {
+> & {
+  tab: ReturnType<typeof useTab>[0];
+}) {
   const dataset = useSpansDataset();
   const title = useQueryParamsTitle();
   const query = useQueryParamsQuery();
@@ -374,6 +385,14 @@ export function useAnalytics({
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
+  const {chartSelection} = useChartSelection();
+
+  const attributeBreakdownsMode =
+    tab === Tab.ATTRIBUTE_BREAKDOWNS
+      ? chartSelection
+        ? 'cohort_comparison'
+        : 'breakdowns'
+      : undefined;
 
   return useTrackAnalytics({
     queryType,
@@ -389,6 +408,7 @@ export function useAnalytics({
     interval,
     page_source: 'explore',
     isTopN,
+    attributeBreakdownsMode,
   });
 }
 
