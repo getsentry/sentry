@@ -19,7 +19,7 @@ jest.mock('sentry/views/insights/common/queries/useReleases', () => ({
     isLoading: false,
   }),
   useReleaseSelection: () => ({
-    primaryRelease: 'v1.0.0',
+    primaryRelease: undefined,
     secondaryRelease: undefined,
     isLoading: false,
   }),
@@ -33,9 +33,7 @@ describe('ReleaseComparisonSelector analytics', () => {
       organization,
     });
 
-    const triggers = screen.getAllByRole('button');
-    expect(triggers.length).toBeGreaterThan(0);
-    const primaryTrigger = triggers[0]!;
+    const primaryTrigger = screen.getByRole('button', {name: 'Filter Release'});
     await userEvent.click(primaryTrigger);
 
     const option = await screen.findByRole('option', {name: 'v2.0.0'});

@@ -111,6 +111,7 @@ function ReleaseSelector({
         title: selectorValue,
         prefix: triggerLabelPrefix,
         children: triggerLabel,
+        'aria-label': t('Filter Release'),
       }}
       menuTitle={t('Filter Release')}
       loading={isLoading}
