@@ -19,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.organization import Organization
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
@@ -248,6 +249,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     false_positive_misfire = 0
     false_negative_misfire = 0
     rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
+    rule_snoozed = RuleSnooze.objects.is_snoozed_for_all(alert_rule=alert_rule)
     missing_buckets = 0
     all_zeros = True
     trigger_action_types: dict[str, int] = defaultdict(int)
@@ -330,6 +332,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("false_positive_misfires", false_positive_misfire)
         scope.set_tag("false_negative_misfires", false_negative_misfire)
+        scope.set_tag("alert_snoozed", rule_snoozed)
         for trigger_action_type, count in trigger_action_types.items():
             scope.set_tag(f"trigger_action_type.{trigger_action_type}", count)
         sentry_sdk.capture_message("False Misfires", level="info")
