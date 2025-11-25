@@ -150,7 +150,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         with (
             assume_test_silo_mode(SiloMode.REGION),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
-            # This batch size is larger than the number of groups to delete, so we should only get 3 chunks.
+            # This batch size is larger than the number of groups to delete (5 groups)
             patch("sentry.db.deletion.ITERATOR_BATCH_SIZE", 4),
         ):
             task_queue = SynchronousTaskQueue()
