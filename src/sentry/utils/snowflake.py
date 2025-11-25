@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, TypeVar
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model
-from redis.client import StrictRedis
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.region import RegionContextError, get_local_region
+from sentry.utils import redis
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as BaseModel
@@ -139,14 +140,16 @@ def generate_snowflake_id(redis_key: str) -> int:
     return snowflake_id
 
 
-def get_redis_cluster(redis_key: str) -> StrictRedis[str]:
-    from sentry.utils import redis
+def get_redis_cluster() -> RedisCluster[str] | StrictRedis[str]:
+    return redis.redis_clusters.get(settings.SENTRY_SNOWFLAKE_REDIS_CLUSTER)
 
-    return redis.clusters.get("default").get_local_client_for_key(redis_key)
+
+def get_timestamp_redis_key(redis_key: str, timestamp: int) -> str:
+    return f"snowflakeid:{redis_key}:{str(timestamp)}"
 
 
 def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tuple[int, int]:
-    cluster = get_redis_cluster(redis_key)
+    cluster = get_redis_cluster()
 
     # this is the amount we want to lookback for previous timestamps
     # the below is more of a safety net if starting_timestamp is ever
@@ -156,14 +159,16 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tu
     for i in range(time_range):
         timestamp = starting_timestamp - i
 
+        timestamp_redis_key = get_timestamp_redis_key(redis_key, timestamp)
+
         # We are decreasing the value by 1 each time since the incr operation in redis
         # initializes the counter at 1. For our region sequences, we want the value to
         # be from 0-15 and not 1-16
-        sequence_value = cluster.incr(str(timestamp))
+        sequence_value = cluster.incr(timestamp_redis_key)
         sequence_value -= 1
 
         if sequence_value == 0:
-            cluster.expire(str(timestamp), int(_TTL.total_seconds()))
+            cluster.expire(timestamp_redis_key, int(_TTL.total_seconds()))
 
         if sequence_value < MAX_AVAILABLE_REGION_SEQUENCES:
             return timestamp, sequence_value
