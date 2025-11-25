@@ -66,9 +66,9 @@ function OptionSelector({
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
-
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       textValue: String(opt.label),
-
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);
