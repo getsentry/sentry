@@ -687,7 +687,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert action.type == Action.Type.SENTRY_APP
         assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID.value,
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             "target_identifier": str(sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP.value,
         }
