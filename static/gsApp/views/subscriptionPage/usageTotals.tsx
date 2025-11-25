@@ -19,7 +19,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {GIGABYTE, UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BillingMetricHistory,
   BillingStatTotal,
@@ -39,13 +39,11 @@ import {
   getPotentialProductTrial,
   isAm2Plan,
   isUnlimitedReserved,
-  MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getChunkCategoryFromDuration,
   getPlanCategoryName,
-  isByteCategory,
-  isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -224,13 +222,9 @@ export function calculateCategoryPrepaidUsage(
     prepaidTotal = prepaid;
   } else {
     // Convert prepaid limits to the appropriate unit based on category
-    prepaidTotal =
-      prepaid *
-      (isByteCategory(category)
-        ? GIGABYTE
-        : isContinuousProfiling(category)
-          ? MILLISECONDS_IN_HOUR
-          : 1);
+    const dataCategoryInfo = getCategoryInfoFromPlural(category);
+    const multiplier = dataCategoryInfo?.formatting.reservedMultiplier ?? 1;
+    prepaidTotal = prepaid * multiplier;
   }
 
   const hasReservedBudget = Boolean(
@@ -500,7 +494,9 @@ export function UsageTotals({
 
   // use dropped profile chunks to estimate dropped continuous profiling
   // for AM3 plans, include profiles category to estimate dropped continuous profile hours
-  const total = isContinuousProfiling(category)
+  const dataCategoryInfo = getCategoryInfoFromPlural(category);
+  const isDurationCategory = dataCategoryInfo?.formatting.unitType === 'durationHours';
+  const total = isDurationCategory
     ? {
         ...addBillingStatTotals(totals, [
           eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
