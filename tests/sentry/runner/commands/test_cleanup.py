@@ -138,9 +138,11 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         self.create_group()
         self.create_group(last_seen=before_now(days=days + 2))
         self.create_group(last_seen=before_now(days=days + 3))
+        self.create_group(last_seen=before_now(days=days + 5))
+        self.create_group(last_seen=before_now(days=days + 1))
 
-        assert Group.objects.count() == 4
-        assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
+        assert Group.objects.count() == 6
+        assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 5
         ids = list(
             Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
         )
@@ -148,6 +150,8 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         with (
             assume_test_silo_mode(SiloMode.REGION),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
+            # This batch size is larger than the number of groups to delete, so we should only get 3 chunks.
+            patch("sentry.db.deletion.ITERATOR_BATCH_SIZE", 4),
         ):
             task_queue = SynchronousTaskQueue()
 
@@ -162,7 +166,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             )
             assert models_attempted == {"group", "projectdebugfile"}
 
-        assert len(task_queue.put_calls) == 2
+        assert len(task_queue.put_calls) == 3
         # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
         all_deleted_ids: set[int] = set()
         for call in task_queue.put_calls:
