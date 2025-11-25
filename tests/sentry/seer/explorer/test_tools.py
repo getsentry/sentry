@@ -1876,7 +1876,13 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert result is not None
         assert len(result["data"]) == 1
 
-        assert result["data"][0]["project"] == self.project.slug
-        assert result["data"][0]["severity"] == "INFO"
-        assert result["data"][0]["message"] == "Request processed successfully"
-        assert result["data"][0]["timestamp_precise"] == self.nine_mins_ago.isoformat()
+        item = result["data"][0]
+        assert bytes(reversed(item["id"])) == logs[1].item_id
+        ts = datetime.fromisoformat(item["timestamp"]).timestamp()
+        assert int(ts) == logs[1].timestamp.seconds
+
+        assert isinstance(item["attributes"].get("timestamp_precise"), int)
+        assert item["attributes"]["project"] == self.project.slug
+        assert item["attributes"]["project_id"] == self.project.id
+        assert item["attributes"]["severity"] == "INFO"
+        assert item["attributes"]["message"] == "Request processed successfully"

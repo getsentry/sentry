@@ -1166,25 +1166,44 @@ def _make_get_trace_request(
         resolved_attrs_by_name = {attributes[i]: resolved_attrs[i] for i in range(len(attributes))}
 
         for item in item_group.items:
-            item_dict: dict[str, Any] = {
-                "id": item.id,
-            }
+            attr_dict = {}
             for attribute in item.attributes:
                 r = resolved_attrs_by_name[attribute.key.name]
                 if r.proto_definition.type == STRING:
-                    item_dict[r.public_alias] = attribute.value.val_str
+                    attr_dict[r.public_alias] = {
+                        "value": attribute.value.val_str,
+                        "type": "string",
+                    }
                 elif r.proto_definition.type == DOUBLE:
-                    item_dict[r.public_alias] = attribute.value.val_double
+                    attr_dict[r.public_alias] = {
+                        "value": attribute.value.val_double,
+                        "type": "double",
+                    }
                 elif r.search_type == "boolean":
-                    item_dict[r.public_alias] = attribute.value.val_int == 1
+                    attr_dict[r.public_alias] = {
+                        "value": attribute.value.val_int == 1,
+                        "type": "boolean",
+                    }
                 elif r.proto_definition.type == INT:
-                    item_dict[r.public_alias] = attribute.value.val_int
+                    attr_dict[r.public_alias] = {
+                        "value": attribute.value.val_int,
+                        "type": "integer",
+                    }
                     if r.public_alias == "project.id":
                         # Enrich with project slug, alias "project"
-                        item_dict["project"] = resolver.params.project_id_map.get(
-                            item_dict[r.public_alias], "Unknown"
-                        )
-            items.append(item_dict)
+                        attr_dict["project"] = {
+                            "value": resolver.params.project_id_map.get(
+                                attribute.value.val_int, "Unknown"
+                            ),
+                            "type": "string",
+                        }
+
+            items.append(
+                {
+                    "id": item.id,
+                    "attributes": attr_dict,
+                }
+            )
 
         # We expect only one item group in the request/response.
         return items
@@ -1251,8 +1270,10 @@ def get_log_attributes_for_trace(
     for item in items:
         if len(filtered_items) >= limit:
             break
-        if (substring_case_sensitive and message_substring in item["message"]) or (
-            not substring_case_sensitive and message_substring.lower() in item["message"].lower()
+
+        message: str = item["attributes"].get("message", {}).get("value", "")
+        if (substring_case_sensitive and message_substring in message) or (
+            not substring_case_sensitive and message_substring.lower() in message.lower()
         ):
             filtered_items.append(item)
 
@@ -1319,7 +1340,9 @@ def get_metric_attributes_for_trace(
     for item in items:
         if len(filtered_items) >= limit:
             break
-        if metric_name.lower() == item["metric.name"].lower():
+
+        item_metric_name: str = item["attributes"].get("metric.name", {}).get("value", "")
+        if metric_name.lower() == item_metric_name.lower():
             filtered_items.append(item)
 
     return {"data": filtered_items}
