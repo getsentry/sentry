@@ -530,6 +530,12 @@ def _assemble_preprod_artifact_size_analysis(
         # Re-raise to trigger further error handling if needed
         raise
     finally:
+        # Ensure the temp file is closed to avoid resource leaks
+        try:
+            assemble_result.bundle_temp_file.close()
+        except Exception:
+            pass
+
         time_now = timezone.now()
         e2e_size_analysis_duration = time_now - preprod_artifact.date_added
         artifact_type_name = "unknown"
