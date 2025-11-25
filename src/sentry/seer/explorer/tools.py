@@ -1017,7 +1017,7 @@ def _make_get_trace_request(
         - timestamp: ISO 8601 timestamp, Z suffix.
         - attributes: A dictionary of dictionaries, where the keys are the attribute names.
           - attributes[name].value: The value of the attribute (str, int, float, bool).
-          - attributes[name].type: The type of the attribute (str).
+          - attributes[name].type: The string type of the attribute ("string", "integer", "double", "boolean").
     """
     organization = cast(Organization, resolver.params.organization)
     projects = list(resolver.params.projects)

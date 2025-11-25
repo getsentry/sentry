@@ -1886,7 +1886,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
 
         for name, value, type in [
             ("project", self.project.slug, "string"),
-            ("project_id", self.project.id, "int"),
+            ("project_id", self.project.id, "integer"),
             ("severity", "INFO", "string"),
             ("message", "Request processed successfully", "string"),
             # todo: boolean and double attributes
