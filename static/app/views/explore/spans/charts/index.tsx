@@ -163,7 +163,7 @@ function Chart({
   setTab,
 }: ChartProps) {
   const organization = useOrganization();
-  const {setChartSelection} = useChartSelection();
+  const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
@@ -254,6 +254,11 @@ function Chart({
     </Fragment>
   );
 
+  const initialChartSelection =
+    chartSelection && chartSelection.chartIndex === index
+      ? chartSelection.selection
+      : undefined;
+
   const widget = (
     <Widget
       Title={Title}
@@ -264,6 +269,7 @@ function Chart({
             chartInfo={chartInfo}
             chartRef={chartRef}
             chartXRangeSelection={{
+              initialSelection: initialChartSelection,
               onClearSelection: () => {
                 setChartSelection(null);
               },
@@ -273,7 +279,7 @@ function Chart({
               actionMenuRenderer: (selection, clearSelection) => {
                 return (
                   <FloatingTrigger
-                    chartInfo={chartInfo}
+                    chartIndex={index}
                     selection={selection}
                     clearSelection={clearSelection}
                     setTab={setTab}

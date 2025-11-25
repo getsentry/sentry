@@ -18,8 +18,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './cohortComparisonChart';
@@ -33,14 +33,18 @@ const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
   selection,
-  chartInfo,
+  chartIndex,
 }: {
-  chartInfo: ChartInfo;
+  chartIndex: number;
   selection: Selection;
 }) {
+  const visualizes = useQueryParamsVisualizes();
+
+  const yAxis = visualizes[chartIndex]?.yAxis ?? '';
+
   const {data, isLoading, isError} = useAttributeBreakdownComparison({
-    selection,
-    chartInfo,
+    aggregateFunction: yAxis,
+    range: selection.range,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const sortingMethod: SortingMethod = 'rrr';
@@ -102,12 +106,12 @@ export function CohortComparison({
     const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
-    const yAxisLower = chartInfo.yAxis.toLowerCase();
+    const yAxisLower = yAxis.toLowerCase();
     const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
       yAxisLower.startsWith(prefix)
     );
 
-    const formattedFunction = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
+    const formattedFunction = prettifyAggregation(yAxis) ?? yAxis;
 
     return {
       selection: isPercentileFunction
@@ -120,7 +124,7 @@ export function CohortComparison({
         : t(`Selection is data between %s - %s`, startDate, endDate),
       baseline: t('Baseline is all other spans from your query'),
     };
-  }, [selection, chartInfo.yAxis]);
+  }, [selection, yAxis]);
 
   return (
     <Panel data-explore-chart-selection-region>
