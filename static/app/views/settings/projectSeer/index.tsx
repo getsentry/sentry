@@ -120,7 +120,7 @@ function CodingAgentSettings({
 
   return (
     <Form
-      key="coding-agent-settings"
+      key={`coding-agent-settings-${initialValue}`}
       apiMethod="POST"
       saveOnBlur
       initialData={{
@@ -136,7 +136,7 @@ function CodingAgentSettings({
                 name: 'auto_create_pr',
                 label: t('Auto-Create Pull Requests'),
                 help: t(
-                  'When enabled, Cursor Cloud Agents will automatically create pull requests after making code changes.'
+                  'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
                 ),
                 saveOnBlur: true,
                 type: 'boolean',
