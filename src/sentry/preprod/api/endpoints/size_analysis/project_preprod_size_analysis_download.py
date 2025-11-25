@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -11,14 +9,15 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.utils import json
-
-logger = logging.getLogger(__name__)
+from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.size_analysis.download import (
+    SizeAnalysisError,
+    get_size_analysis_error_response,
+    get_size_analysis_response,
+)
 
 
 @region_silo_endpoint
@@ -71,69 +70,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                 status=404,
             )
 
-        analysis_file_ids = [
-            size_metrics.analysis_file_id
-            for size_metrics in all_size_metrics
-            if size_metrics.analysis_file_id
-        ]
-        if len(analysis_file_ids) != 1:
-            return Response(
-                {"error": "Multiple analysis files found for this artifact"},
-                status=409,
-            )
-        analysis_file_id = analysis_file_ids[0]
         try:
-            file_obj = File.objects.get(id=analysis_file_id)
-        except File.DoesNotExist:
-            logger.warning(
-                "Analysis file not found for size metrics",
-                extra={
-                    "analysis_file_id": analysis_file_id,
-                },
-            )
-            return Response(
-                {"error": "Analysis file not found"},
-                status=404,
-            )
-        with file_obj.getfile() as fp:
-            analysis_data = json.load(fp)
-
-        all_metrics_data = []
-        for size_metrics in all_size_metrics:
-            metrics_data = {
-                "id": size_metrics.id,
-                "metrics_artifact_type": size_metrics.metrics_artifact_type,
-                "identifier": size_metrics.identifier,
-                "state": PreprodArtifactSizeMetrics.SizeAnalysisState(
-                    size_metrics.state
-                ).name.lower(),
-                "min_install_size": size_metrics.min_install_size,
-                "max_install_size": size_metrics.max_install_size,
-                "min_download_size": size_metrics.min_download_size,
-                "max_download_size": size_metrics.max_download_size,
-                "processing_version": size_metrics.processing_version,
-            }
-
-            if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                metrics_data["error_code"] = size_metrics.error_code
-                metrics_data["error_message"] = size_metrics.error_message or "Size analysis failed"
-
-            all_metrics_data.append(metrics_data)
-
-        # Determine overall state for the frontend
-        states = [m.state for m in all_size_metrics]
-        if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED for s in states):
-            overall_state = "failed"
-        elif any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING for s in states):
-            overall_state = "processing"
-        elif any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING for s in states):
-            overall_state = "pending"
-        else:
-            overall_state = "completed"
-
-        response_data = {"state": overall_state, "size_metrics": all_metrics_data}
-
-        if analysis_data:
-            response_data.update(analysis_data)
-
-        return Response(response_data, status=200)
+            return get_size_analysis_response(all_size_metrics)
+        except SizeAnalysisError as e:
+            return get_size_analysis_error_response(e)

@@ -402,7 +402,6 @@ def _assemble_preprod_artifact_size_analysis(
 
             if not app_components:
                 # No components in results - fall back to top-level sizes for backwards compatibility
-                # (e.g., Android sizes may not use app_components yet)
                 size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
                     preprod_artifact=preprod_artifact,
                     metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
