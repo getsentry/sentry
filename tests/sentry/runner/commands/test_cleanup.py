@@ -133,9 +133,11 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
     def test_run_bulk_query_deletes_by_project(self) -> None:
         """Test that the function runs bulk query deletes by project as expected."""
         days = 30
+        # Creating the groups in out of order to test that the chunks are created in the correct order.
+        self.create_group(last_seen=before_now(days=days + 4))
         self.create_group()
-        for i in range(3):
-            self.create_group(last_seen=before_now(days=days + i))
+        self.create_group(last_seen=before_now(days=days + 2))
+        self.create_group(last_seen=before_now(days=days + 3))
 
         assert Group.objects.count() == 4
         assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
