@@ -18,7 +18,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     get_issue_and_event_details,
-    get_log_attributes,
+    get_log_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
@@ -1834,7 +1834,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             for field in self.default_fields:
                 assert field in log, field
 
-    def test_get_log_attributes(self) -> None:
+    def test_get_log_attributes_for_trace(self) -> None:
         trace_id = uuid.uuid4().hex
         # Create logs with various attributes
         logs = [
@@ -1867,7 +1867,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(logs)
 
-        result = get_log_attributes(
+        result = get_log_attributes_for_trace(
             org_id=self.organization.id,
             trace_id=trace_id,
             message_substring="request",
