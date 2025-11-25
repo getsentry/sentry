@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 from sentry.constants import ObjectStatus
@@ -16,6 +17,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class CustomTaskQueue:
+    """Mock task queue that implements the _WorkQueue protocol."""
+
     def __init__(self) -> None:
         self.put_calls: list[tuple[str, tuple[int, ...]]] = []
 
@@ -24,12 +27,16 @@ class CustomTaskQueue:
         self.put_calls.append(item)
         task_execution(item[0], item[1])
 
-    def join(self) -> None:
-        """Called to wait for queue completion."""
-        pass
+    def get(self, block: bool = True, timeout: float | None = None) -> Any:
+        """Get an item from the queue (required by Queue protocol)."""
+        raise NotImplementedError("get() not needed in tests")
 
     def task_done(self) -> None:
-        """Called when a task is complete."""
+        """Signal that a task is complete (required by JoinableQueue protocol)."""
+        pass
+
+    def join(self) -> None:
+        """Wait for all tasks to complete."""
         pass
 
 
@@ -142,8 +149,11 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
         assert Group.objects.count() == 4
         assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
+        # Fetch IDs in ascending order to match deletion order
         ids = list(
-            Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
+            Group.objects.filter(last_seen__lt=before_now(days=days))
+            .order_by("id")
+            .values_list("id", flat=True)
         )
 
         with (
@@ -154,7 +164,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,
+                task_queue=task_queue,  # type: ignore[arg-type]  # CustomTaskQueue implements the queue protocol
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
@@ -163,9 +173,12 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             )
             assert models_attempted == {"group", "projectdebugfile"}
 
-            # XXX: This should be 1
-            # assert len(task_queue.put_calls) == 2
-            assert task_queue.put_calls[0] == ("sentry.models.group.Group", (ids[2], ids[1]))
-            # assert task_queue.put_calls[1] == ("sentry.models.group.Group", (ids[0],))
+            assert len(task_queue.put_calls) == 2
+            # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
+            all_deleted_ids = set()
+            for call in task_queue.put_calls:
+                assert call[0] == "sentry.models.group.Group"
+                all_deleted_ids.update(call[1])
+            assert all_deleted_ids == set(ids)
 
-        # assert Group.objects.all().count() == 1
+        assert Group.objects.all().count() == 1
