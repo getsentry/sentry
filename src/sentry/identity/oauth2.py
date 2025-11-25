@@ -248,7 +248,18 @@ class OAuth2LoginView:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
             for param in ("code", "error", "state"):
                 if param in request.GET:
-                    return pipeline.next_step()
+                    if pipeline.fetch_state("state"):
+                        return pipeline.next_step()
+                    logger.info(
+                        "identity.oauth2_login.missing_state",
+                        extra={
+                            "provider": pipeline.provider.key,
+                            "callback_params": [
+                                key for key in ("code", "error", "state") if key in request.GET
+                            ],
+                        },
+                    )
+                    break
 
             state = secrets.token_hex()
 
