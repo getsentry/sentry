@@ -225,6 +225,7 @@ class SeerExplorerClient:
             "run_id": run_id,
             "insert_index": insert_index,
             "on_page_context": on_page_context,
+            "is_interactive": self.is_interactive,
         }
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
