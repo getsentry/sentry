@@ -36,6 +36,9 @@ from sentry.workflow_engine.utils import scopedstats
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
+UpdatedStatuses = int
+CreatedStatuses = int
+ConflictedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
 
 
 def get_workflow_action_group_statuses(
@@ -114,7 +117,7 @@ def process_workflow_action_group_statuses(
 
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
-) -> tuple[int, int, list[tuple[int, int]]]:
+) -> tuple[UpdatedStatuses, CreatedStatuses, ConflictedStatuses]:
     updated_count = WorkflowActionGroupStatus.objects.filter(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
@@ -123,6 +126,7 @@ def update_workflow_action_group_statuses(
         return updated_count, 0, []
 
     # Use raw SQL: only returns successfully created rows
+    # XXX: the query does not currently include batch size limit like bulk_create does
     with connection.cursor() as cursor:
         # Build values for batch insert
         values_placeholders = []
@@ -143,14 +147,14 @@ def update_workflow_action_group_statuses(
         created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
 
     # Figure out which ones conflicted (weren't returned)
-    uncreated_statuses = [
+    conflicted_statuses = [
         (s.workflow_id, s.action_id)
         for s in missing_statuses
         if (s.workflow_id, s.action_id) not in created_rows
     ]
 
     created_count = len(created_rows)
-    return updated_count, created_count, uncreated_statuses
+    return updated_count, created_count, conflicted_statuses
 
 
 def get_unique_active_actions(
@@ -226,13 +230,15 @@ def filter_recently_fired_workflow_actions(
     for workflow_id, action_id in uncreated_statuses:
         action_to_workflows_ids[action_id].remove(workflow_id)
         if not action_to_workflows_ids[action_id]:
-            action_to_workflows_ids.pop(action_id, None)
+            action_to_workflows_ids.pop(action_id)
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
-        When(id=action_id, then=Value(list(workflow_ids)[0]))
+        When(
+            id=action_id, then=Value(min(list(workflow_ids)))
+        )  # select 1 workflow to fire for, this is arbitrary but deterministic
         for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
