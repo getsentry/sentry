@@ -760,7 +760,7 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    for chunk in q.iterator(chunk_size=100, batch_size=30000):
+                    for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
                     capture_exception(
