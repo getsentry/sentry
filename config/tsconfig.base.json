@@ -117,6 +117,6 @@
       }
     ]
   },
-  "include": ["../static/app", "../static/gsApp", "../tests/js"],
+  "include": ["../static/app", "../static/gsApp", "../tests/js", "../static/eslint"],
   "exclude": ["../node_modules"]
 }

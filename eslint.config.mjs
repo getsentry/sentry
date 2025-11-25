@@ -33,6 +33,8 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
@@ -418,6 +420,13 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/@sentry/scraps',
+    plugins: {'@sentry/scraps': sentryScrapsPlugin},
+    rules: {
+      '@sentry/scraps/no-token-import': 'error',
+    },
+  },
+  {
     name: 'plugin/no-relative-import-paths',
     // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
     plugins: {'no-relative-import-paths': noRelativeImportPaths},
@@ -768,6 +777,20 @@ export default typescript.config([
     },
   },
   {
+    name: 'eslint',
+    files: ['static/eslint/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+
+    rules: {
+      'no-console': 'off',
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
     name: 'files/scripts',
     files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
     languageOptions: {
@@ -1064,6 +1087,11 @@ export default typescript.config([
         {
           type: 'scripts',
           pattern: 'scripts',
+        },
+        // --- eslint ---
+        {
+          type: 'eslint',
+          pattern: 'static/eslint',
         },
       ],
     },
