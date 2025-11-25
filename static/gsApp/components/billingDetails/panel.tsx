@@ -206,7 +206,10 @@ function BillingDetailsPanel({
               <Button
                 priority="default"
                 size="sm"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setFormError(null);
+                }}
                 aria-label={t('Cancel editing business address')}
               >
                 {t('Cancel')}
