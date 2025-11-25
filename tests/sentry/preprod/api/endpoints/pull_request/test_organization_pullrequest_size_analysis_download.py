@@ -111,7 +111,7 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
                 response.json()["error"] == "Size analysis results not available for this artifact"
             )
 
-    def test_size_analysis_download_multiple_size_metrics(self) -> None:
+    def test_size_analysis_download_multiple_size_metrics_same_file(self) -> None:
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.preprod_artifact,
             analysis_file_id=self.analysis_file.id,
@@ -126,6 +126,28 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpointTest(TestCase):
 
             assert response.status_code == 200
             assert response["Content-Type"] == "application/json"
+
+    def test_size_analysis_download_multiple_different_files(self) -> None:
+        other_file = self.create_file(
+            name="other_analysis.json",
+            type="application/json",
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=self.preprod_artifact,
+            analysis_file_id=other_file.id,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        with self.feature("organizations:pr-page"):
+            url = self._get_url()
+            response = self.client.get(url)
+
+            assert response.status_code == 409
+            assert (
+                response.json()["error"] == "Multiple size analysis results found for this artifact"
+            )
 
     def test_size_analysis_download_no_analysis_file(self) -> None:
         artifact_no_file = PreprodArtifact.objects.create(

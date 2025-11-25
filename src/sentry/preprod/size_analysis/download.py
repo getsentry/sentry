@@ -62,6 +62,7 @@ def get_size_analysis_response(
         - 200 with file content for COMPLETED with valid file
         - 404 if no size metrics exist
         - 404 if COMPLETED but File object doesn't exist
+        - 409 if multiple different analysis files exist
         - 422 with error details for FAILED state
         - 500 if COMPLETED but no analysis_file_id
     """
@@ -105,6 +106,10 @@ def get_size_analysis_response(
             extra={"size_metrics_ids": [m.id for m in all_size_metrics]},
         )
         raise SizeAnalysisResultsUnavailableError()
+
+    unique_file_ids = set(analysis_file_ids)
+    if len(unique_file_ids) > 1:
+        raise SizeAnalysisMultipleResultsError()
 
     analysis_file_id = analysis_file_ids[0]
     try:
