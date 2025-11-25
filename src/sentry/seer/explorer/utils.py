@@ -4,10 +4,13 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceResponse
 
 from sentry.models.project import Project
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.eap.constants import DOUBLE, INT, STRING
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.events.types import SnubaParams
 from sentry.seer.sentry_data_models import ExecutionTreeNode
 
@@ -459,3 +462,41 @@ def fetch_profile_data(
     if response.status == 200:
         return orjson.loads(response.data)
     return None
+
+
+def parse_get_trace_rpc_response(
+    item_group: GetTraceResponse.ItemGroup, resolver: SearchResolver
+) -> list[dict[str, Any]]:
+    # Collect the returned attributes
+    attributes = []
+    for item in item_group.items:
+        for attribute in item.attributes:
+            attributes.append(attribute.key.name)
+
+    # Resolve the attributes to get the types and public aliases
+    items: list[dict[str, Any]] = []
+    resolved_attrs, _ = resolver.resolve_attributes(attributes)
+    resolved_attrs_by_name = {col.internal_name: col for col in resolved_attrs}
+
+    for item in item_group.items:
+        item_dict: dict[str, Any] = {
+            "id": item.id,
+        }
+        for attribute in item.attributes:
+            r = resolved_attrs_by_name[attribute.key.name]
+            if r.proto_definition.type == STRING:
+                item_dict[r.public_alias] = attribute.value.val_str
+            elif r.proto_definition.type == DOUBLE:
+                item_dict[r.public_alias] = attribute.value.val_double
+            elif r.search_type == "boolean":
+                item_dict[r.public_alias] = attribute.value.val_int == 1
+            elif r.proto_definition.type == INT:
+                item_dict[r.public_alias] = attribute.value.val_int
+                if r.public_alias == "project.id":
+                    # Enrich with project slug, alias "project"
+                    item_dict["project"] = resolver.params.project_id_map.get(
+                        item_dict[r.public_alias], "Unknown"
+                    )
+        items.append(item_dict)
+
+    return items

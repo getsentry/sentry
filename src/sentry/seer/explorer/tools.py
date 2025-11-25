@@ -20,19 +20,23 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
-from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.explorer.utils import (
+    _convert_profile_to_execution_tree,
+    fetch_profile_data,
+    parse_get_trace_rpc_response,
+)
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -288,122 +292,6 @@ def execute_timeseries_query(
             return {metric_name: data}
 
     return data
-
-
-def get_log_attributes(
-    *,
-    org_id: int,
-    trace_id: str,
-    message_substring: str | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-    project_ids: list[int] | None = None,
-    sampling_mode: SAMPLING_MODES = "NORMAL",
-    limit: int | None = 50,
-) -> dict[str, Any] | None:
-
-    _validate_date_params(stats_period=stats_period, start=start, end=end)
-
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        logger.warning("Organization not found", extra={"org_id": org_id})
-        return None
-
-    projects = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"id__in": project_ids} if project_ids else {}),
-        )
-    )
-
-    # Look up full trace id if a short id is provided.
-    if len(trace_id) < 32:
-        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
-        if not full_trace_id:
-            logger.warning(
-                "execute_trace_query: No full trace id found for short trace id",
-                extra={"org_id": org_id, "trace_id": trace_id},
-            )
-            return None
-    else:
-        full_trace_id = trace_id
-
-    # Build the GetTraceRequest.
-    snuba_params = SnubaParams(
-        start=datetime.fromisoformat(start) if start else None,
-        end=datetime.fromisoformat(end) if end else None,
-        stats_period=stats_period,
-        projects=projects,
-        organization=organization,
-        sampling_mode=sampling_mode,
-    )
-
-    resolver = OurLogs.get_resolver(params=snuba_params, config=SearchResolverConfig())
-    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
-    request = GetTraceRequest(
-        meta=meta,
-        trace_id=full_trace_id,
-        items=[
-            GetTraceRequest.TraceItem(
-                item_type=meta.trace_item_type,
-                attributes=None,  # Returns all attributes.
-            )
-        ],
-    )
-    if limit and not message_substring:
-        request.limit = limit
-
-    # Query EAP EndpointGetTrace
-    response = get_trace_rpc(request)
-
-    # Collect the returned attributes
-    attributes = []
-    for item_group in response.item_groups:
-        for item in item_group.items:
-            for attribute in item.attributes:
-                attributes.append(attribute.key.name)
-        # There should only be one item group, for the requested item type.
-        break
-
-    # Resolve the attributes to get the types and public aliases
-    items: list[dict[str, Any]] = []
-    resolved_attrs, _ = resolver.resolve_attributes(attributes)
-    resolved_attrs_by_name = {col.internal_name: col for col in resolved_attrs}
-
-    for item_group in response.item_groups:
-        for item in item_group.items:
-            item_dict: dict[str, Any] = {
-                "id": item.id,
-            }
-            for attribute in item.attributes:
-                r = resolved_attrs_by_name[attribute.key.name]
-                if r.proto_definition.type == STRING:
-                    item_dict[r.public_alias] = attribute.value.val_str
-                elif r.proto_definition.type == DOUBLE:
-                    item_dict[r.public_alias] = attribute.value.val_double
-                elif r.search_type == "boolean":
-                    item_dict[r.public_alias] = attribute.value.val_int == 1
-                elif r.proto_definition.type == INT:
-                    item_dict[r.public_alias] = attribute.value.val_int
-                    if r.public_alias == "project.id":
-                        # Enrich with project slug, alias "project"
-                        item_dict["project"] = resolver.params.project_id_map.get(
-                            item_dict[r.public_alias], "Unknown"
-                        )
-            items.append(item_dict)
-
-        break  # Should only be one item group
-
-    if message_substring:
-        items = [item for item in items if message_substring in item["message"].lower()]
-
-    if limit:
-        items = items[:limit]
-
-    return {"data": items}
 
 
 def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
@@ -1224,3 +1112,179 @@ def get_trace_item_attributes(
     )
 
     return {"attributes": resp.data["attributes"]}
+
+
+def get_log_attributes_for_trace(
+    *,
+    org_id: int,
+    trace_id: str,
+    message_substring: str | None = None,
+    substring_case_sensitive: bool = True,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    project_ids: list[int] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    limit: int | None = 50,
+) -> dict[str, Any] | None:
+
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if project_ids else {}),
+        )
+    )
+
+    # Look up full trace id if a short id is provided.
+    if len(trace_id) < 32:
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "execute_trace_query: No full trace id found for short trace id",
+                extra={"org_id": org_id, "trace_id": trace_id},
+            )
+            return None
+    else:
+        full_trace_id = trace_id
+
+    # Build the GetTraceRequest.
+    snuba_params = SnubaParams(
+        start=datetime.fromisoformat(start) if start else None,
+        end=datetime.fromisoformat(end) if end else None,
+        stats_period=stats_period,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+
+    resolver = OurLogs.get_resolver(params=snuba_params, config=SearchResolverConfig())
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=full_trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=meta.trace_item_type,
+                attributes=None,  # Returns all attributes.
+            )
+        ],
+    )
+    if limit and not message_substring:
+        request.limit = limit
+
+    # Query EAP EndpointGetTrace
+    response = get_trace_rpc(request)
+
+    items: list[dict[str, Any]]
+    for item_group in response.item_groups:
+        items = parse_get_trace_rpc_response(item_group, resolver)
+        break  # Should only be one item group, for the requested item type.
+
+    if message_substring:
+        items = (
+            [item for item in items if message_substring in item["message"]]
+            if substring_case_sensitive
+            else [item for item in items if message_substring.lower() in item["message"].lower()]
+        )
+
+    if limit:
+        items = items[:limit]
+
+    return {"data": items}
+
+
+def get_metric_attributes_for_trace(
+    *,
+    org_id: int,
+    trace_id: str,
+    name_substring: str | None = None,
+    substring_case_sensitive: bool = True,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    project_ids: list[int] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    limit: int | None = 50,
+) -> dict[str, Any] | None:
+
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if project_ids else {}),
+        )
+    )
+
+    # Look up full trace id if a short id is provided.
+    if len(trace_id) < 32:
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "execute_trace_query: No full trace id found for short trace id",
+                extra={"org_id": org_id, "trace_id": trace_id},
+            )
+            return None
+    else:
+        full_trace_id = trace_id
+
+    # Build the GetTraceRequest.
+    snuba_params = SnubaParams(
+        start=datetime.fromisoformat(start) if start else None,
+        end=datetime.fromisoformat(end) if end else None,
+        stats_period=stats_period,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+
+    resolver = TraceMetrics.get_resolver(params=snuba_params, config=SearchResolverConfig())
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=full_trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=meta.trace_item_type,
+                attributes=None,  # Returns all attributes.
+            )
+        ],
+    )
+    if limit and not name_substring:
+        request.limit = limit
+
+    # Query EAP EndpointGetTrace
+    response = get_trace_rpc(request)
+
+    items: list[dict[str, Any]]
+    for item_group in response.item_groups:
+        items = parse_get_trace_rpc_response(item_group, resolver)
+        break  # Should only be one item group, for the requested item type.
+
+    if name_substring:
+        items = (
+            [item for item in items if name_substring in item["metric.name"]]
+            if substring_case_sensitive
+            else [item for item in items if name_substring.lower() in item["metric.name"].lower()]
+        )
+
+    if limit:
+        items = items[:limit]
+
+    return {"data": items}
