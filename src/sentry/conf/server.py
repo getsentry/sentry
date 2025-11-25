@@ -195,6 +195,7 @@ SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
+SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -1009,9 +1010,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "delete-pending-groups": {
         "task": "deletions:sentry.tasks.delete_pending_groups",
-        # Runs every 2 hours during 9am-5pm Eastern Time (EST: UTC-5)
-        # 9am, 11am, 1pm, 3pm, 5pm EST = 14:00, 16:00, 18:00, 20:00, 22:00 UTC
-        "schedule": task_crontab("0", "14,16,18,20,22", "*", "*", "*"),
+        # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
