@@ -2,10 +2,12 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.models.organization import Organization
+from sentry.web.frontend.base import region_silo_view
 
 from .mail import MailPreview
 
 
+@region_silo_view
 class DebugMissingMembersNudgeView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         self.organization = Organization(id=1, slug="organization", name="My Company")

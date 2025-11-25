@@ -2,9 +2,11 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.models.apiapplication import ApiApplication
+from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@region_silo_view
 class DebugOAuthAuthorizeView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         application = ApiApplication(

@@ -3,9 +3,11 @@ from django.http.response import HttpResponseBase
 from django.views.generic import View
 
 from sentry.utils.sdk import capture_exception
+from sentry.web.frontend.base import region_silo_view
 from sentry.web.frontend.error_500 import Error500View
 
 
+@region_silo_view
 class DebugTriggerErrorView(View):
     def get(self, request: HttpRequest) -> HttpResponseBase:
         try:

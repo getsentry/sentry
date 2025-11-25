@@ -3,10 +3,12 @@ from django.views.generic import View
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.web.frontend.base import region_silo_view
 
 from .mail import MailPreview
 
 
+@region_silo_view
 class DebugSetup2faEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="sentry corp")

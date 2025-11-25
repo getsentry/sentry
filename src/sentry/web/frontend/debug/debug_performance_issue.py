@@ -9,10 +9,12 @@ from sentry.notifications.utils import (
     get_transaction_data,
 )
 from sentry.utils import json
+from sentry.web.frontend.base import region_silo_view
 
 from .mail import COMMIT_EXAMPLE, MailPreview, get_shared_context, make_performance_event
 
 
+@region_silo_view
 class DebugPerformanceIssueEmailView(View):
     def get(self, request, sample_name="transaction-n-plus-one"):
         project = Project.objects.get(id=1)
