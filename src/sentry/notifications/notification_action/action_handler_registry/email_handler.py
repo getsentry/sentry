@@ -47,12 +47,6 @@ class EmailActionHandler(ActionHandler):
                 "description": "The fallthrough type for issue owners email notifications",
                 "enum": [*FallthroughChoiceType],
             },
-            # XXX(CEO): temporarily support this incorrect camel case
-            "fallthroughType": {
-                "type": "string",
-                "description": "The fallthrough type for issue owners email notifications",
-                "enum": [*FallthroughChoiceType],
-            },
         },
         "additionalProperties": False,
     }
