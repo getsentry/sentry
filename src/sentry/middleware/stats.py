@@ -68,6 +68,16 @@ class RequestTimingMiddleware(MiddlewareMixin):
             getattr(request, "rate_limit_metadata", None), "rate_limit_type", None
         )
 
+        # Extract owner from the Endpoint class if available
+        owner = "unknown"
+        if request.resolver_match is not None:
+            view_func = request.resolver_match.func
+            view_class = getattr(view_func, "cls", None)
+            if view_class is not None:
+                owner_enum = getattr(view_class, "owner", None)
+                if owner_enum is not None:
+                    owner = owner_enum.value
+
         tags = {
             "method": request.method,
             "status_code": status_code,
@@ -76,6 +86,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
                 getattr(rate_limit_type, "value", None) if rate_limit_type else None
             ),
             "url_name": url_name,
+            "owner": owner,
         }
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
