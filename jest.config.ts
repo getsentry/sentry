@@ -253,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color', 'until-async'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -292,6 +292,7 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
+    '<rootDir>/tests/js/setupMsw.ts',
   ],
   testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],

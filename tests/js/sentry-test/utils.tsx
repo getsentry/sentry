@@ -1,5 +1,7 @@
 import MockDate from 'mockdate';
 
+import type {ApiUrl} from 'sentry/utils/api/getApiUrl';
+
 // Taken from https://stackoverflow.com/a/56859650/1015027
 function findTextWithMarkup(contentNode: null | Element, textMatch: string | RegExp) {
   const hasText = (node: Element): boolean => {
@@ -66,4 +68,9 @@ export function mockMatchMedia(matches: boolean) {
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
   }));
+}
+
+export function localUrl(path: ApiUrl) {
+  // first character is always '/', so slice it off
+  return new URL(path.slice(1), 'http://localhost/api/0/').href;
 }

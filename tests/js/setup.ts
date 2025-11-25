@@ -1,13 +1,16 @@
 'use strict';
 
+import 'cross-fetch/polyfill';
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
+import {TransformStream, WritableStream} from 'node:stream/web';
 import {TextDecoder, TextEncoder} from 'node:util';
+import {BroadcastChannel} from 'node:worker_threads';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import {enableFetchMocks} from 'jest-fetch-mock';
+
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
@@ -25,11 +28,6 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
  * Set locale to English
  */
 setLocale(DEFAULT_LOCALE_DATA);
-
-/**
- * Setup fetch mocks (needed to define the `Request` global)
- */
-enableFetchMocks();
 
 // @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
 // framer-motion SVG components fail
@@ -254,6 +252,10 @@ declare global {
    * Used to mock API requests
    */
   var MockApiClient: typeof Client;
+  /**
+   * Flag to use real API client instead of mock for MSW tests
+   */
+  var __USE_REAL_API__: boolean;
 }
 
 // needed by cbor-web for webauthn
@@ -335,3 +337,8 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+(globalThis as any).BroadcastChannel ??= BroadcastChannel;
+
+(globalThis as any).WritableStream ??= WritableStream;
+(globalThis as any).TransformStream ??= TransformStream;
