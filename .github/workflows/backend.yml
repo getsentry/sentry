@@ -65,12 +65,29 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - name: Start SAR system CPU monitor
-        run: |
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - run: |
           vmstat 1 > vmstat.txt &
           VMSTAT_PID=$!
 
-          sleep 1
+          # baseline
+          sleep 5
+
+          TOTAL_TEST_GROUPS=5000 TEST_GROUP=0 python3 -b -m pytest \
+             tests \
+             --ignore tests/acceptance \
+             --ignore tests/apidocs \
+             --ignore tests/js \
+             --ignore tests/tools
+
+          sleep 5
 
           kill $VMSTAT_PID
           wait $VMSTAT_PID || true
