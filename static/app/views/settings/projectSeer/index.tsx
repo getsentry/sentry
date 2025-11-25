@@ -9,6 +9,7 @@ import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
@@ -100,6 +101,58 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
+function CodingAgentSettings({
+  preference,
+  handleAutoCreatePrChange,
+  canWriteProject,
+  isAutomationOn,
+}: {
+  canWriteProject: boolean;
+  handleAutoCreatePrChange: (value: boolean) => void;
+  preference: ProjectSeerPreferences | null | undefined;
+  isAutomationOn?: boolean;
+}) {
+  if (!preference?.automation_handoff || !isAutomationOn) {
+    return null;
+  }
+
+  const initialValue = preference?.automation_handoff?.auto_create_pr ?? false;
+
+  return (
+    <Form
+      key={`coding-agent-settings-${initialValue}`}
+      apiMethod="POST"
+      saveOnBlur
+      initialData={{
+        auto_create_pr: initialValue,
+      }}
+    >
+      <JsonForm
+        forms={[
+          {
+            title: t('Cursor Agent Settings'),
+            fields: [
+              {
+                name: 'auto_create_pr',
+                label: t('Auto-Create Pull Requests'),
+                help: t(
+                  'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+                ),
+                saveOnBlur: true,
+                type: 'boolean',
+                getData: () => ({}),
+                getValue: () => initialValue,
+                disabled: !canWriteProject,
+                onChange: handleAutoCreatePrChange,
+              } satisfies FieldObject,
+            ],
+          },
+        ]}
+      />
+    </Form>
+  );
+}
+
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -146,6 +199,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             handoff_point: 'root_cause',
             target: 'cursor_background_agent',
             integration_id: parseInt(cursorIntegration.id, 10),
+            auto_create_pr: false,
           },
         });
       } else {
@@ -157,6 +211,23 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       }
     },
     [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+  );
+
+  const handleAutoCreatePrChange = useCallback(
+    (value: boolean) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          auto_create_pr: value,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
   );
 
   const automatedRunStoppingPointField = {
@@ -256,6 +327,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
+  const automationTuning = isTriageSignalsFeatureOn
+    ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+    : (project.autofixAutomationTuning ?? 'off');
+
   return (
     <Fragment>
       <Form
@@ -271,9 +346,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           // Same DB field, different UI: toggle (boolean) vs dropdown (string)
-          autofixAutomationTuning: isTriageSignalsFeatureOn
-            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
-            : (project.autofixAutomationTuning ?? 'off'),
+          autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
@@ -291,6 +364,12 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           )}
         />
       </Form>
+      <CodingAgentSettings
+        preference={preference}
+        handleAutoCreatePrChange={handleAutoCreatePrChange}
+        isAutomationOn={automationTuning && automationTuning !== 'off'}
+        canWriteProject={canWriteProject}
+      />
     </Fragment>
   );
 }
