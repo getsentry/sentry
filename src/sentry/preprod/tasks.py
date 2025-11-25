@@ -390,26 +390,70 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
+    size_metrics_updated: list[PreprodArtifactSizeMetrics] = []
     try:
         size_analysis_results = SizeAnalysisResults.parse_raw(
             assemble_result.bundle_temp_file.read()
         )
+        was_created = False
 
+        # Build list inside transaction, only assign to size_metrics_updated after
+        # transaction commits. If the transaction rolls back, we don't want stale
+        # references to objects that don't exist in the database.
+        metrics_in_transaction: list[PreprodArtifactSizeMetrics] = []
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            # TODO(preprod): parse this from the treemap json and handle other artifact types
-            size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
-                preprod_artifact=preprod_artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "analysis_file_id": assemble_result.bundle.id,
-                    "min_install_size": None,  # No min value at this time
-                    "max_install_size": size_analysis_results.install_size,
-                    "min_download_size": None,  # No min value at this time
-                    "max_download_size": size_analysis_results.download_size,
-                    "processing_version": size_analysis_results.analysis_version,
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                },
-            )
+            app_components = size_analysis_results.app_components or []
+
+            if not app_components:
+                # No components in results - fall back to top-level sizes for backwards compatibility
+                # Don't include identifier in lookup to match old behavior and find any existing
+                # MAIN_ARTIFACT regardless of identifier value
+                size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                    preprod_artifact=preprod_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    defaults={
+                        "identifier": None,
+                        "analysis_file_id": assemble_result.bundle.id,
+                        "min_install_size": None,
+                        "max_install_size": size_analysis_results.install_size,
+                        "min_download_size": None,
+                        "max_download_size": size_analysis_results.download_size,
+                        "processing_version": size_analysis_results.analysis_version,
+                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    },
+                )
+                was_created = created
+                metrics_in_transaction.append(size_metrics)
+            else:
+                for app_component in app_components:
+                    # MAIN_ARTIFACT uses NULL identifier for backwards compatibility
+                    # Other types use identifier to differentiate multiple components
+                    identifier = (
+                        None
+                        if app_component.component_type
+                        == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                        else app_component.app_id
+                    )
+
+                    size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=app_component.component_type,
+                        identifier=identifier,
+                        defaults={
+                            "analysis_file_id": assemble_result.bundle.id,
+                            "min_install_size": None,  # No min value at this time
+                            "max_install_size": app_component.install_size,
+                            "min_download_size": None,  # No min value at this time
+                            "max_download_size": app_component.download_size,
+                            "processing_version": size_analysis_results.analysis_version,
+                            "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                        },
+                    )
+                    was_created = created or was_created
+                    metrics_in_transaction.append(size_metrics)
+
+        # Transaction committed successfully, now safe to reference these objects
+        size_metrics_updated = metrics_in_transaction
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -426,9 +470,9 @@ def _assemble_preprod_artifact_size_analysis(
             "Created or updated preprod artifact size metrics with analysis file",
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
-                "size_metrics_id": size_metrics.id,
+                "size_metrics_ids": [size_metrics.id for size_metrics in size_metrics_updated],
                 "analysis_file_id": assemble_result.bundle.id,
-                "was_created": created,
+                "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -446,15 +490,33 @@ def _assemble_preprod_artifact_size_analysis(
 
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             try:
-                PreprodArtifactSizeMetrics.objects.update_or_create(
-                    preprod_artifact=preprod_artifact,
-                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                    defaults={
-                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
-                        "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
-                        "error_message": str(e),
-                    },
-                )
+                if size_metrics_updated:
+                    # Update metrics that were already created/updated
+                    for size_metrics in size_metrics_updated:
+                        PreprodArtifactSizeMetrics.objects.update_or_create(
+                            preprod_artifact=preprod_artifact,
+                            identifier=size_metrics.identifier,
+                            metrics_artifact_type=size_metrics.metrics_artifact_type,
+                            defaults={
+                                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                                "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                                "error_message": str(e),
+                            },
+                        )
+                else:
+                    # No metrics were processed yet - update MAIN_ARTIFACT to FAILED
+                    # to avoid leaving any existing PENDING metrics stuck
+                    # Don't include identifier in lookup to match old behavior
+                    PreprodArtifactSizeMetrics.objects.update_or_create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        defaults={
+                            "identifier": None,
+                            "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                            "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                            "error_message": str(e),
+                        },
+                    )
             except Exception:
                 logger.exception(
                     "Failed to update preprod artifact size metrics",
@@ -468,6 +530,12 @@ def _assemble_preprod_artifact_size_analysis(
         # Re-raise to trigger further error handling if needed
         raise
     finally:
+        # Ensure the temp file is closed to avoid resource leaks
+        try:
+            assemble_result.bundle_temp_file.close()
+        except Exception:
+            pass
+
         time_now = timezone.now()
         e2e_size_analysis_duration = time_now - preprod_artifact.date_added
         artifact_type_name = "unknown"
