@@ -10,15 +10,13 @@ function getMainBinaryExportedSymbolsContent() {
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="md">
           <Text>
-            {tct(
-              '[bold:What it is]: Binaries that act as entrypoints for your app, such as your main app binary or watchOS app binary, are not linked against by other binaries. This means the export trie information is unnecessary and can be removed.',
-              {bold: <strong />}
+            {t(
+              'Binaries that act as entrypoints for your app, such as your main app binary or watchOS app binary, are not linked against by other binaries. This means the export trie information is unnecessary and can be removed.'
             )}
           </Text>
           <Text>
-            {tct(
-              '[bold:How to fix]: Maintain a minimal allowlist so only required entry points stay exported.',
-              {bold: <strong />}
+            {t(
+              'You can maintain a minimal allowlist so only required entry points stay exported:'
             )}
           </Text>
         </Flex>
@@ -58,7 +56,7 @@ function getMainBinaryExportedSymbolsContent() {
               </Text>
             </li>
           </ol>
-          <Text>{t('Xcode now limits the export trie to just that allowlist')}</Text>
+          <Text>{t('Xcode will now limit the export trie to just that allowlist.')}</Text>
         </Flex>
       </Flex>
     </Flex>
