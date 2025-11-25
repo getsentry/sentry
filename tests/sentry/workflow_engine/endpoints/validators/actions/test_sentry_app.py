@@ -4,24 +4,33 @@ from rest_framework.serializers import ErrorDetail
 
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
-from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.typings.notification_action import ActionType, SentryAppIdentifier
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class TestSentryAppActionValidator(TestCase):
+class TestSentryAppActionValidator(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
 
+        self.sentry_app, self.sentry_app_installation = self.create_sentry_app_with_schema()
+        self.sentry_app_settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
+        ]
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": "sentry_app_installation_uuid",
-                "targetType": "sentry_app",
-                "target_identifier": "123",
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID.SENTRY_APP_INSTALLATION_UUID,
+                "targetType": ActionType.SENTRY_APP,
+                "target_identifier": self.sentry_app_installation.uuid,
             },
-            "data": {"settings": []},
+            "data": {"settings": self.sentry_app_settings},
         }
 
         group_event = self.event.for_group(self.group)
@@ -97,8 +106,8 @@ class TestSentryAppActionValidator(TestCase):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": "sentry_app_installation_uuid",
-                "targetType": "sentry_app",
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID.SENTRY_APP_INSTALLATION_UUID,
+                "targetType": ActionType.SENTRY_APP,
                 "target_identifier": install.uuid,
             },
             "data": {
