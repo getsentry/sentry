@@ -100,6 +100,11 @@ export type ChartXRangeSelectionProps = {
   disabled?: boolean;
 
   /**
+   * Initial selection, used to draw the box on load.
+   */
+  initialSelection?: Selection;
+
+  /**
    * The callback that is called when the selection is cleared.
    */
   onClearSelection?: () => void;
@@ -122,12 +127,14 @@ export function useChartXRangeSelection({
   onClearSelection,
   actionMenuRenderer,
   chartsGroupName,
+  initialSelection,
   disabled = false,
   deps = [],
 }: ChartXRangeSelectionProps): BoxSelectionOptions {
-  const [state, setState] = useState<State>();
+  const [state, setState] = useState<State>(null);
+
   const tooltipFrameRef = useRef<number | null>(null);
-  const enableBrushModeFrameRef = useRef<number | null>(null);
+  const brushStateSyncFrameRef = useRef<number | null>(null);
 
   const onBrushStart = useCallback<EChartBrushStartHandler>(
     (_evt, chartInstance) => {
@@ -182,22 +189,6 @@ export function useChartXRangeSelection({
     (evt, chartInstance) => {
       if (!chartInstance) return;
 
-      // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
-      // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
-      const xAxis = chartInstance.getModel().getComponent('xAxis', 0);
-
-      // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
-      // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
-      const yAxis = chartInstance.getModel().getComponent('yAxis', 0);
-
-      // Get the minimum and maximum values of the x axis and y axis
-      const xMin = xAxis.axis.scale.getExtent()[0];
-      const xMax = xAxis.axis.scale.getExtent()[1];
-      const yMin = yAxis.axis.scale.getExtent()[0];
-
-      const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, xMax);
-      const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
-
       const area = evt.areas[0];
 
       if (
@@ -207,43 +198,17 @@ export function useChartXRangeSelection({
         typeof area.coordRange[0] === 'number' &&
         typeof area.coordRange[1] === 'number'
       ) {
-        const [selected_xMin, selected_xMax] = area.coordRange;
-
-        // Since we can keep dragging beyond the visible range,
-        // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
-        const clampedCoordRange: [number, number] = [
-          Math.max(xMin, selected_xMin),
-          Math.min(xMax, selected_xMax),
-        ];
-
-        const clampedXMaxPixel = chartInstance.convertToPixel(
-          {xAxisIndex: 0},
-          clampedCoordRange[1]
-        );
-        const clampedXMinPixel = chartInstance.convertToPixel(
-          {xAxisIndex: 0},
-          clampedCoordRange[0]
-        );
-
-        const newSelection: Selection = {
-          range: clampedCoordRange,
-          panelId: area.panelId,
-        };
-
-        const actionMenuPosition = calculateActionMenuPosition({
+        const newState = calculateNewState({
           chartInstance,
-          clampedXMaxPixel,
-          clampedXMinPixel,
-          xMaxPixel,
-          yMinPixel,
+          newRange: area.coordRange as [number, number],
+          panelId: area.panelId,
         });
 
-        setState({
-          selection: newSelection,
-          actionMenuPosition,
-        });
+        setState(newState);
 
-        onSelectionEnd?.(newSelection, clearSelection);
+        if (newState) {
+          onSelectionEnd?.(newState.selection, clearSelection);
+        }
       }
     },
     [onSelectionEnd, clearSelection]
@@ -268,6 +233,8 @@ export function useChartXRangeSelection({
     [clearSelection]
   );
 
+  // This effect sets up the event listener for clearing of the selection
+  //  when the user clicks outside the declared inbound regions.
   useEffect(() => {
     if (disabled || !state?.selection) return;
 
@@ -288,6 +255,10 @@ export function useChartXRangeSelection({
     });
   }, [chartRef]);
 
+  // This effect fires whenever state changes. It:
+  // - Re-draws the selection box in the chart on state change enforcing persistence.
+  // - Populates the rest of the state from the optional `initialSelection` prop on load.
+  // - Activates brush mode on load and when we re-draw the box/clear the selection.
   useEffect(() => {
     if (disabled) {
       return;
@@ -295,9 +266,14 @@ export function useChartXRangeSelection({
 
     const chartInstance = chartRef.current?.getEchartsInstance();
 
-    // Re-draw the box in the chart when a new selection is made
+    if (!chartInstance) {
+      return;
+    }
+
+    // Re-draw the box in the chart whenever state.selection changes,
+    // enforcing persistence.
     if (state?.selection) {
-      chartInstance?.dispatchAction({
+      chartInstance.dispatchAction({
         type: 'brush',
         areas: [
           {
@@ -316,18 +292,49 @@ export function useChartXRangeSelection({
       }
     }
 
-    // Activate brush mode on load and when we re-draw the box/clear the selection
-    enableBrushModeFrameRef.current = requestAnimationFrame(() => {
+    if (brushStateSyncFrameRef.current) {
+      cancelAnimationFrame(brushStateSyncFrameRef.current);
+    }
+
+    // Everything inside `requestAnimationFrame` is called only after the current render cycle completes,
+    // and this ensures ECharts has fully processed all the dispatchActions like the one above.
+    brushStateSyncFrameRef.current = requestAnimationFrame(() => {
+      // We only propagate the range of the selection box to the consumers,
+      // so we need to calculate the rest of the state from the `initialSelection` prop on load.
+      if (initialSelection && !state) {
+        const newState = calculateNewState({
+          chartInstance,
+          newRange: initialSelection.range,
+          panelId: initialSelection.panelId,
+        });
+
+        if (newState) {
+          setState(newState);
+        }
+      }
+
       enableBrushMode();
     });
 
     // eslint-disable-next-line consistent-return
     return () => {
-      if (enableBrushModeFrameRef.current)
-        cancelAnimationFrame(enableBrushModeFrameRef.current);
-      if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
+      if (brushStateSyncFrameRef.current) {
+        cancelAnimationFrame(brushStateSyncFrameRef.current);
+      }
+
+      if (tooltipFrameRef.current) {
+        cancelAnimationFrame(tooltipFrameRef.current);
+      }
     };
-  }, [state, disabled, enableBrushMode, chartRef, chartsGroupName, deps]);
+  }, [
+    state,
+    disabled,
+    enableBrushMode,
+    chartRef,
+    chartsGroupName,
+    initialSelection,
+    deps,
+  ]);
 
   const brush: BrushComponentOption | undefined = useMemo(() => {
     return disabled ? undefined : CHART_X_RANGE_BRUSH_OPTION;
@@ -390,6 +397,69 @@ export function useChartXRangeSelection({
   return options;
 }
 
+function calculateNewState({
+  chartInstance,
+  newRange,
+  panelId,
+}: {
+  chartInstance: EChartsInstance;
+  newRange: [number, number];
+  panelId: string;
+}): State {
+  // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
+  // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
+  const xAxis = chartInstance.getModel()?.getComponent?.('xAxis', 0);
+
+  // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
+  // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
+  const yAxis = chartInstance.getModel()?.getComponent?.('yAxis', 0);
+
+  if (!xAxis || !yAxis) {
+    return null;
+  }
+
+  // Get the minimum and maximum values of the x axis and y axis
+  const xMin = xAxis.axis.scale.getExtent()[0];
+  const xMax = xAxis.axis.scale.getExtent()[1];
+  const yMin = yAxis.axis.scale.getExtent()[0];
+
+  const xMaxPixel = chartInstance.convertToPixel({xAxisIndex: 0}, xMax);
+  const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
+  const [selected_xMin, selected_xMax] = newRange;
+
+  // Since we can keep dragging beyond the visible range,
+  // clamp the ranges to the minimum and maximum values of the visible x axis and y axis
+  const clampedCoordRange: [number, number] = [
+    Math.max(xMin, selected_xMin),
+    Math.min(xMax, selected_xMax),
+  ];
+
+  const clampedXMaxPixel = chartInstance.convertToPixel(
+    {xAxisIndex: 0},
+    clampedCoordRange[1]
+  );
+  const clampedXMinPixel = chartInstance.convertToPixel(
+    {xAxisIndex: 0},
+    clampedCoordRange[0]
+  );
+
+  const actionMenuPosition = calculateActionMenuPosition({
+    chartInstance,
+    clampedXMaxPixel,
+    clampedXMinPixel,
+    xMaxPixel,
+    yMinPixel,
+  });
+
+  return {
+    actionMenuPosition,
+    selection: {
+      range: clampedCoordRange,
+      panelId,
+    },
+  };
+}
+
 function calculateActionMenuPosition({
   chartInstance,
   clampedXMaxPixel,
@@ -402,7 +472,8 @@ function calculateActionMenuPosition({
   clampedXMinPixel: number;
   xMaxPixel: number;
   yMinPixel: number;
-}) {
+}): {left: number; position: 'left' | 'right'; top: number} {
+  // Calculate the position of the action menu
   let leftOffset: number;
   let position: 'left' | 'right';
   const chartRect = chartInstance.getDom().getBoundingClientRect();
