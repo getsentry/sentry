@@ -10,12 +10,15 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
+import {GIGABYTE} from 'getsentry/constants';
 import {PlanTier, type BillingStats} from 'getsentry/types';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 import ReservedUsageChart, {
   getCategoryOptions,
   mapCostStatsToChart,
   mapReservedBudgetStatsToChart,
+  mapReservedToChart,
   mapStatsToChart,
 } from './reservedUsageChart';
 
@@ -59,6 +62,48 @@ describe('mapStatsToChart', () => {
       onDemand: [],
       reserved: [],
     });
+  });
+});
+
+describe('mapReservedToChart', () => {
+  it('should apply GIGABYTE multiplier for byte categories (attachments)', () => {
+    const reserved = 5; // 5 GB
+    const result = mapReservedToChart(reserved, DataCategory.ATTACHMENTS);
+    expect(result).toBe(reserved * GIGABYTE);
+  });
+
+  it('should apply GIGABYTE multiplier for byte categories (log bytes)', () => {
+    const reserved = 10; // 10 GB
+    const result = mapReservedToChart(reserved, DataCategory.LOG_BYTE);
+    expect(result).toBe(reserved * GIGABYTE);
+  });
+
+  it('should apply MILLISECONDS_IN_HOUR multiplier for duration categories', () => {
+    const reserved = 100; // 100 hours
+    const result = mapReservedToChart(reserved, DataCategory.PROFILE_DURATION);
+    expect(result).toBe(reserved * MILLISECONDS_IN_HOUR);
+  });
+
+  it('should apply multiplier of 1 for count categories (errors)', () => {
+    const reserved = 50000;
+    const result = mapReservedToChart(reserved, DataCategory.ERRORS);
+    expect(result).toBe(reserved);
+  });
+
+  it('should apply multiplier of 1 for count categories (transactions)', () => {
+    const reserved = 100000;
+    const result = mapReservedToChart(reserved, DataCategory.TRANSACTIONS);
+    expect(result).toBe(reserved);
+  });
+
+  it('should return 0 for unlimited reserved (-1)', () => {
+    const result = mapReservedToChart(-1, DataCategory.ERRORS);
+    expect(result).toBe(0);
+  });
+
+  it('should return 0 for null reserved', () => {
+    const result = mapReservedToChart(null, DataCategory.ERRORS);
+    expect(result).toBe(0);
   });
 });
 
