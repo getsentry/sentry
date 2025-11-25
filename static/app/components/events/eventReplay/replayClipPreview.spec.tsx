@@ -123,7 +123,7 @@ describe('ReplayClipPreview', () => {
     fullReplayButtonProps: {},
   };
 
-  it('Should render a placeholder when is fetching the replay data', () => {
+  it('should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
@@ -147,7 +147,7 @@ describe('ReplayClipPreview', () => {
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
 
-  it('Should throw error when there is a fetch error', () => {
+  it('should throw error when there is a fetch error', () => {
     // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
@@ -171,7 +171,7 @@ describe('ReplayClipPreview', () => {
     expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
-  it('Should throw throttled error when fetch returns 429', () => {
+  it('should throw throttled error when fetch returns 429', () => {
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
@@ -194,7 +194,7 @@ describe('ReplayClipPreview', () => {
     expect(screen.getByTestId('replay-throttled')).toBeVisible();
   });
 
-  it('Should throw throttled error when fetching an attachment returns 429', () => {
+  it('should throw throttled error when fetching an attachment returns 429', () => {
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
@@ -217,7 +217,7 @@ describe('ReplayClipPreview', () => {
     expect(screen.getByTestId('replay-throttled')).toBeVisible();
   });
 
-  it('Should have the correct time range', () => {
+  it('should have the correct time range', () => {
     render(<ReplayClipPreview {...defaultProps} />);
 
     // Should be two sliders, one for the scrubber and one for timeline
@@ -229,7 +229,7 @@ describe('ReplayClipPreview', () => {
     expect(sliders[0]).toHaveAttribute('max', '10000');
   });
 
-  it('Should link to the full replay correctly', () => {
+  it('should link to the full replay correctly', () => {
     render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'See Full Replay'})).toHaveAttribute(
@@ -238,13 +238,13 @@ describe('ReplayClipPreview', () => {
     );
   });
 
-  it('Display URL and breadcrumbs in fullscreen mode', async () => {
+  it('should display URL and breadcrumbs in fullscreen mode', async () => {
     mockIsFullscreen.mockReturnValue(true);
 
     render(<ReplayClipPreview {...defaultProps} />);
 
     // Should have URL bar
-    expect(screen.getByRole('textbox', {name: 'Current URL'})).toHaveValue(
+    expect(screen.getByRole('textbox', {name: 'Current Location'})).toHaveValue(
       'http://localhost:3000/'
     );
 

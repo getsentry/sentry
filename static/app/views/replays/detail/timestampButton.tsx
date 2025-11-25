@@ -78,7 +78,7 @@ const StyledButton = styled('button')`
   line-height: 1.2em;
 
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   align-self: baseline;
   gap: ${space(0.25)};
   padding: 0;
