@@ -78,7 +78,7 @@ function ReplaceCapturedCheckbox({
       title={disabled ? t('This rule does not contain capture groups') : undefined}
       disabled={!disabled}
     >
-      <ReplaceCapturedCheckboxContainer gap="xs" align="center" disabled={disabled}>
+      <Flex gap="xs" align="center">
         <Checkbox
           id="replace-captured"
           name="replaceCaptured"
@@ -86,8 +86,10 @@ function ReplaceCapturedCheckbox({
           disabled={disabled}
           onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
         />
-        <label htmlFor="replace-captured">{t('Only replace first capture match')}</label>
-      </ReplaceCapturedCheckboxContainer>
+        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
+          {t('Only replace first capture match')}
+        </ReplaceCapturedLabel>
+      </Flex>
     </Tooltip>
   );
 }
@@ -510,15 +512,13 @@ const Toggle = styled(Button)`
   }
 `;
 
-const ReplaceCapturedCheckboxContainer = styled(Flex)<{disabled: boolean}>`
-  label {
-    font-weight: normal;
-    margin-bottom: 0;
-    line-height: 1rem;
-    ${p =>
-      p.disabled &&
-      css`
-        color: ${p.theme.disabled};
-      `}
-  }
+const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
+  font-weight: normal;
+  margin-bottom: 0;
+  line-height: 1rem;
+  ${p =>
+    p.disabled &&
+    css`
+      color: ${p.theme.disabled};
+    `}
 `;
