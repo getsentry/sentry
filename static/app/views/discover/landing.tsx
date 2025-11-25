@@ -249,7 +249,7 @@ function DiscoverLanding() {
                   {organization.features.includes('expose-migrated-discover-queries') && (
                     <Alert type="info">
                       {tct(
-                        'All transactions queries have been migrated to Explore queries. Please use [exploreLink:Explore queries] instead.',
+                        'All transactions queries have been migrated to Explore queries. Try out your transactions queries in [exploreLink:Explore queries] instead.',
                         {
                           exploreLink: <Link to="/explore/saved-queries/" />,
                         }
