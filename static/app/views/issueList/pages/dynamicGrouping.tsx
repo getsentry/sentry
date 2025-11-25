@@ -178,15 +178,17 @@ function useBatchClusterStats(clusters: ClusterSummary[]): {
 interface ScoreWeights {
   events: number;
   fixability: number;
+  freshness: number;
   issues: number;
   recency: number;
 }
 
 const DEFAULT_WEIGHTS: ScoreWeights = {
-  events: 25,
-  fixability: 75,
-  issues: 25,
-  recency: 25,
+  events: 1,
+  fixability: 5,
+  freshness: 1,
+  issues: 3,
+  recency: 2,
 };
 
 /** Min-max normalization to [0, 1]. Returns 0.5 if max === min. */
@@ -237,6 +239,7 @@ function filterClusters(
 }
 
 const RECENCY_HALF_LIFE_HOURS = 24;
+const FRESHNESS_HALF_LIFE_HOURS = 168; // 1 week
 const MS_PER_HOUR = 1000 * 60 * 60;
 
 function sortClustersByScore(
@@ -272,15 +275,19 @@ function sortClustersByScore(
     maxIssues = Math.max(maxIssues, issues);
   }
 
-  const total = weights.fixability + weights.events + weights.recency + weights.issues;
-  const getWeight = (key: keyof ScoreWeights) =>
-    total > 0 ? weights[key] / total : 0.25;
+  const total =
+    weights.fixability +
+    weights.events +
+    weights.recency +
+    weights.freshness +
+    weights.issues;
+  const getWeight = (key: keyof ScoreWeights) => (total > 0 ? weights[key] / total : 0.2);
 
   const scores = new Map<number, number>();
   for (const cluster of clusters) {
     const stats = statsMap.get(cluster.cluster_id);
 
-    // Exponential decay: score halves every RECENCY_HALF_LIFE_HOURS
+    // Recency: Exponential decay based on lastSeen
     // 0 hours → 1.0, 24 hours → 0.5, 48 hours → 0.25, etc.
     let recency = 0.5;
     if (stats?.lastSeen) {
@@ -288,10 +295,19 @@ function sortClustersByScore(
       recency = Math.exp((-ageHours * Math.LN2) / RECENCY_HALF_LIFE_HOURS);
     }
 
+    // Freshness: Exponential decay based on firstSeen (newer issues score higher)
+    // 0 hours → 1.0, 24 hours → 0.5, 48 hours → 0.25, etc.
+    let freshness = 0.5;
+    if (stats?.firstSeen) {
+      const ageHours = (now - new Date(stats.firstSeen).getTime()) / MS_PER_HOUR;
+      freshness = Math.exp((-ageHours * Math.LN2) / FRESHNESS_HALF_LIFE_HOURS);
+    }
+
     const score =
       getWeight('fixability') * normalize(cluster.fixability_score ?? 0, minFix, maxFix) +
       getWeight('events') * normalize(stats?.totalEvents ?? 0, minEvents, maxEvents) +
       getWeight('recency') * recency +
+      getWeight('freshness') * freshness +
       getWeight('issues') * normalize(cluster.group_ids.length, minIssues, maxIssues);
 
     scores.set(cluster.cluster_id, score);
@@ -635,6 +651,20 @@ function DynamicGrouping() {
                             setScoreWeights(prev => ({...prev, recency: value ?? 0}))
                           }
                           aria-label={t('Recency weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Freshness')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.freshness}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, freshness: value ?? 0}))
+                          }
+                          aria-label={t('Freshness weight')}
                           size="sm"
                         />
                       </WeightInputRow>
