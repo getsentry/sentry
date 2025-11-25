@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -58,6 +60,7 @@ function BillingDetailsPanel({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
+  const [formError, setFormError] = useState<string | null>(null);
   const {
     data: billingDetails,
     isLoading,
@@ -179,6 +182,7 @@ function BillingDetailsPanel({
         <Heading as="h2" size="lg">
           {t('Business address')}
         </Heading>
+        {formError && <Alert type="error">{formError}</Alert>}
         {!isEditing && !!subscription.accountBalance && (
           <Text>
             {tct('Account balance: [balance]', {
@@ -193,6 +197,10 @@ function BillingDetailsPanel({
             onSubmitSuccess={() => {
               fetchBillingDetails();
               setIsEditing(false);
+              setFormError(null);
+            }}
+            onSubmitError={error => {
+              setFormError(Object.values(error.responseJSON).join(' '));
             }}
             extraButton={
               <Button

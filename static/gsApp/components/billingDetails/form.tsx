@@ -198,7 +198,7 @@ function BillingDetailsForm({
   };
 
   useEffect(() => {
-    const requiredFields = ['addressLine1', 'city', 'countryCode'];
+    const requiredFields = ['addressLine1', 'countryCode'];
     requiredFields.forEach(field => {
       form.setFieldDescriptor(field, {
         required: true,
@@ -211,18 +211,6 @@ function BillingDetailsForm({
       });
     };
   }, [form]);
-
-  useEffect(() => {
-    if (countryHasRegionChoices(state.countryCode)) {
-      form.setFieldDescriptor('region', {required: true});
-    } else {
-      form.setFieldDescriptor('region', {required: false});
-    }
-
-    return () => {
-      form.removeField('region');
-    };
-  }, [state.countryCode, form]);
 
   if (!organization.access.includes('org:billing')) {
     return null;
@@ -276,7 +264,7 @@ function BillingDetailsForm({
       submitLabel={submitLabel}
       onPreSubmit={onPreSubmit}
       onSubmitSuccess={handleSubmit}
-      onSubmitError={onSubmitError}
+      onSubmitError={err => onSubmitError?.(err)}
       initialData={transformedInitialData}
       footerStyle={footerStyle}
       extraButton={extraButton}
