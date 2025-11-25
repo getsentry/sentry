@@ -687,7 +687,7 @@ export class Results extends Component<Props, State> {
         <Alert.Container>
           <Alert type="warning">
             {tct(
-              'This query has been migrated to Explore, the new UI that will soon replace Discover transactions. Try it out in [explore:Explore] instead.',
+              'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
               {
                 explore: <Link to={exploreUrl} />,
               }
