@@ -172,10 +172,8 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 

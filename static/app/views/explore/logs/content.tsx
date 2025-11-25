@@ -62,7 +62,6 @@ export default function LogsContent() {
   const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
