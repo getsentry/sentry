@@ -30,7 +30,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 interface AssignedEntity {
-  email: string | null;
   id: string;
   name: string;
   type: string;
@@ -38,22 +37,24 @@ interface AssignedEntity {
 
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null; // unused
+  cluster_avg_similarity: number | null;
   cluster_id: number;
-  cluster_min_similarity: number | null; // unused
-  cluster_size: number | null; // unused
+  cluster_min_similarity: number | null;
+  cluster_size: number | null;
   description: string;
   fixability_score: number | null;
   group_ids: number[];
-  issue_titles: string[]; // unused
-  project_ids: number[]; // unused
-  tags: string[]; // unused
+  issue_titles: string[];
+  project_ids: number[];
+  tags: string[];
   title: string;
 }
 
 interface TopIssuesResponse {
   data: ClusterSummary[];
 }
+
+const EMPTY_CLUSTERS: ClusterSummary[] = [];
 
 function CompactIssuePreview({group}: {group: Group}) {
   const {subtitle} = getTitle(group);
@@ -105,63 +106,39 @@ function CompactIssuePreview({group}: {group: Group}) {
 
 interface ClusterStats {
   firstSeen: string | null;
-  isPending: boolean;
   lastSeen: string | null;
   totalEvents: number;
 }
 
 const BATCH_SIZE = 50;
 
-/**
- * Fetches stats for all clusters in batches, returning a map of cluster_id -> ClusterStats.
- * This allows us to compute composite scores at the parent level before rendering.
- */
+/** Fetches issue stats for clusters in batches to avoid API limits. */
 function useBatchClusterStats(clusters: ClusterSummary[]): {
   isPending: boolean;
   statsMap: Map<number, ClusterStats>;
 } {
   const organization = useOrganization();
 
-  // Build a mapping of groupId -> clusterId for later aggregation
-  const groupToClusterMap = useMemo(() => {
+  const {groupToClusterMap, allGroupIds} = useMemo(() => {
     const map = new Map<number, number>();
     for (const cluster of clusters) {
       for (const groupId of cluster.group_ids) {
         map.set(groupId, cluster.cluster_id);
       }
     }
-    return map;
+    return {groupToClusterMap: map, allGroupIds: Array.from(map.keys())};
   }, [clusters]);
 
-  // Collect all unique group IDs and batch them
-  const allGroupIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const cluster of clusters) {
-      for (const groupId of cluster.group_ids) {
-        ids.add(groupId);
-      }
-    }
-    return Array.from(ids);
-  }, [clusters]);
-
-  // Create batched query keys
-  const batchedQueryKeys = useMemo((): ApiQueryKey[] => {
-    const batches: number[][] = [];
+  const batchedQueryKeys = useMemo(() => {
+    const batches: ApiQueryKey[] = [];
     for (let i = 0; i < allGroupIds.length; i += BATCH_SIZE) {
-      batches.push(allGroupIds.slice(i, i + BATCH_SIZE));
+      const batch = allGroupIds.slice(i, i + BATCH_SIZE);
+      batches.push([
+        `/organizations/${organization.slug}/issues/`,
+        {query: {group: batch, query: `issue.id:[${batch.join(',')}]`}},
+      ]);
     }
-    return batches.map(
-      batch =>
-        [
-          `/organizations/${organization.slug}/issues/`,
-          {
-            query: {
-              group: batch,
-              query: `issue.id:[${batch.join(',')}]`,
-            },
-          },
-        ] as const
-    );
+    return batches;
   }, [allGroupIds, organization.slug]);
 
   const queryResults = useApiQueries<Group[]>(batchedQueryKeys, {
@@ -171,98 +148,31 @@ function useBatchClusterStats(clusters: ClusterSummary[]): {
 
   return useMemo(() => {
     const isPending = queryResults.some(r => r.isPending);
-
     if (isPending || allGroupIds.length === 0) {
       return {statsMap: new Map(), isPending};
     }
 
-    // Flatten all groups from all batch results
-    const allGroups: Group[] = [];
-    for (const result of queryResults) {
-      if (result.data) {
-        allGroups.push(...result.data);
+    const statsMap = new Map<number, ClusterStats>(
+      clusters.map(c => [c.cluster_id, {totalEvents: 0, firstSeen: null, lastSeen: null}])
+    );
+
+    for (const group of queryResults.flatMap(r => r.data ?? [])) {
+      const clusterId = groupToClusterMap.get(Number(group.id));
+      if (clusterId === undefined) continue;
+      const stats = statsMap.get(clusterId);
+      if (!stats) continue;
+
+      stats.totalEvents += Number(group.count) || 0;
+      if (group.firstSeen && (!stats.firstSeen || group.firstSeen < stats.firstSeen)) {
+        stats.firstSeen = group.firstSeen;
       }
-    }
-
-    // Aggregate stats per cluster
-    const clusterStatsAccumulator = new Map<
-      number,
-      {
-        earliestFirstSeen: Date | null;
-        latestLastSeen: Date | null;
-        totalEvents: number;
+      if (group.lastSeen && (!stats.lastSeen || group.lastSeen > stats.lastSeen)) {
+        stats.lastSeen = group.lastSeen;
       }
-    >();
-
-    // Initialize accumulators for each cluster
-    for (const cluster of clusters) {
-      clusterStatsAccumulator.set(cluster.cluster_id, {
-        earliestFirstSeen: null,
-        latestLastSeen: null,
-        totalEvents: 0,
-      });
-    }
-
-    // Process each group and accumulate into its cluster
-    for (const group of allGroups) {
-      const clusterId = groupToClusterMap.get(parseInt(group.id, 10));
-      if (clusterId === undefined) {
-        continue;
-      }
-
-      const acc = clusterStatsAccumulator.get(clusterId);
-      if (!acc) {
-        continue;
-      }
-
-      acc.totalEvents += parseInt(group.count, 10) || 0;
-
-      if (group.firstSeen) {
-        const firstSeenDate = new Date(group.firstSeen);
-        if (!acc.earliestFirstSeen || firstSeenDate < acc.earliestFirstSeen) {
-          acc.earliestFirstSeen = firstSeenDate;
-        }
-      }
-
-      if (group.lastSeen) {
-        const lastSeenDate = new Date(group.lastSeen);
-        if (!acc.latestLastSeen || lastSeenDate > acc.latestLastSeen) {
-          acc.latestLastSeen = lastSeenDate;
-        }
-      }
-    }
-
-    // Convert accumulators to ClusterStats
-    const statsMap = new Map<number, ClusterStats>();
-    for (const [clusterId, acc] of clusterStatsAccumulator) {
-      statsMap.set(clusterId, {
-        totalEvents: acc.totalEvents,
-        firstSeen: acc.earliestFirstSeen?.toISOString() ?? null,
-        lastSeen: acc.latestLastSeen?.toISOString() ?? null,
-        isPending: false,
-      });
     }
 
     return {statsMap, isPending: false};
   }, [queryResults, clusters, groupToClusterMap, allGroupIds.length]);
-}
-
-/**
- * Min-max normalization: maps a value to [0, 1] based on observed range.
- * Returns 0.5 if all values are identical (max === min).
- */
-function minMaxNormalize(value: number, min: number, max: number): number {
-  if (max === min) {
-    return 0.5;
-  }
-  return (value - min) / (max - min);
-}
-
-interface SignalRanges {
-  events: {max: number; min: number};
-  fixability: {max: number; min: number};
-  issues: {max: number; min: number};
-  recency: {max: number; min: number}; // age in ms, lower = more recent
 }
 
 interface ScoreWeights {
@@ -274,132 +184,122 @@ interface ScoreWeights {
 
 const DEFAULT_WEIGHTS: ScoreWeights = {
   events: 25,
-  fixability: 25,
+  fixability: 75,
   issues: 25,
   recency: 25,
 };
 
-/**
- * Computes min/max ranges for all scoring signals across clusters.
- * For recency, we compute age (ms from now) so that newer events have smaller values.
- */
-function computeSignalRanges(
+/** Min-max normalization to [0, 1]. Returns 0.5 if max === min. */
+function normalize(value: number, min: number, max: number) {
+  return max === min ? 0.5 : (value - min) / (max - min);
+}
+
+interface FilterOptions {
+  filterByAssignedToMe: boolean;
+  minFixabilityScore: number;
+  removedClusterIds: Set<number>;
+  selectedTeamIds: Set<string>;
+  userId: string;
+  userTeamIds: Set<string>;
+}
+
+function filterClusters(
   clusters: ClusterSummary[],
-  statsMap: Map<number, ClusterStats>
-): SignalRanges {
+  options: FilterOptions
+): ClusterSummary[] {
+  const {
+    removedClusterIds,
+    minFixabilityScore,
+    filterByAssignedToMe,
+    selectedTeamIds,
+    userId,
+    userTeamIds,
+  } = options;
+
+  return clusters.filter(cluster => {
+    if (removedClusterIds.has(cluster.cluster_id)) return false;
+    if ((cluster.fixability_score ?? 0) * 100 < minFixabilityScore) return false;
+
+    if (filterByAssignedToMe) {
+      return cluster.assignedTo?.some(
+        e =>
+          (e.type === 'user' && e.id === userId) ||
+          (e.type === 'team' && userTeamIds.has(e.id))
+      );
+    }
+    if (selectedTeamIds.size > 0) {
+      return cluster.assignedTo?.some(
+        e => e.type === 'team' && selectedTeamIds.has(e.id)
+      );
+    }
+    return true;
+  });
+}
+
+function sortClustersByScore(
+  clusters: ClusterSummary[],
+  statsMap: Map<number, ClusterStats>,
+  weights: ScoreWeights
+): ClusterSummary[] {
+  if (clusters.length === 0) {
+    return clusters;
+  }
+
   const now = Date.now();
 
-  let minFixability = Infinity;
-  let maxFixability = -Infinity;
-  let minEvents = Infinity;
-  let maxEvents = -Infinity;
-  let minRecency = Infinity; // smallest age = most recent
-  let maxRecency = -Infinity; // largest age = oldest
-  let minIssues = Infinity;
-  let maxIssues = -Infinity;
+  // Compute min/max ranges for normalization
+  let minFix = Infinity,
+    maxFix = -Infinity;
+  let minEvents = Infinity,
+    maxEvents = -Infinity;
+  let minRecency = Infinity,
+    maxRecency = -Infinity;
+  let minIssues = Infinity,
+    maxIssues = -Infinity;
 
   for (const cluster of clusters) {
     const stats = statsMap.get(cluster.cluster_id);
-
-    // Fixability (0-1 scale)
     const fixability = cluster.fixability_score ?? 0;
-    minFixability = Math.min(minFixability, fixability);
-    maxFixability = Math.max(maxFixability, fixability);
-
-    // Events
     const events = stats?.totalEvents ?? 0;
+    const issues = cluster.group_ids.length;
+
+    minFix = Math.min(minFix, fixability);
+    maxFix = Math.max(maxFix, fixability);
     minEvents = Math.min(minEvents, events);
     maxEvents = Math.max(maxEvents, events);
+    minIssues = Math.min(minIssues, issues);
+    maxIssues = Math.max(maxIssues, issues);
 
-    // Recency (age in ms from now, lower = more recent)
     if (stats?.lastSeen) {
       const age = now - new Date(stats.lastSeen).getTime();
       minRecency = Math.min(minRecency, age);
       maxRecency = Math.max(maxRecency, age);
     }
-
-    // Issue count
-    const issues = cluster.group_ids.length;
-    minIssues = Math.min(minIssues, issues);
-    maxIssues = Math.max(maxIssues, issues);
   }
 
-  // Handle edge case where no valid values were found
-  if (minFixability === Infinity) {
-    minFixability = 0;
-    maxFixability = 0;
-  }
-  if (minEvents === Infinity) {
-    minEvents = 0;
-    maxEvents = 0;
-  }
-  if (minRecency === Infinity) {
-    minRecency = 0;
-    maxRecency = 0;
-  }
-  if (minIssues === Infinity) {
-    minIssues = 0;
-    maxIssues = 0;
-  }
+  const total = weights.fixability + weights.events + weights.recency + weights.issues;
+  const getWeight = (key: keyof ScoreWeights) =>
+    total > 0 ? weights[key] / total : 0.25;
 
-  return {
-    fixability: {min: minFixability, max: maxFixability},
-    events: {min: minEvents, max: maxEvents},
-    recency: {min: minRecency, max: maxRecency},
-    issues: {min: minIssues, max: maxIssues},
-  };
-}
+  const scores = new Map<number, number>();
+  for (const cluster of clusters) {
+    const stats = statsMap.get(cluster.cluster_id);
+    const recency =
+      stats?.lastSeen && minRecency !== Infinity
+        ? 1 - normalize(now - new Date(stats.lastSeen).getTime(), minRecency, maxRecency)
+        : 0.5;
 
-/**
- * Computes composite score using min-max normalized signals with configurable weights.
- *
- * Formula: score = w_fix * norm(fixability) + w_evt * norm(events) + w_rec * norm(recency) + w_iss * norm(issues)
- *
- * Weights are provided as percentages (0-100) and normalized to sum to 1.
- * For recency, we invert the normalization so that more recent (smaller age) = higher score.
- */
-function computeCompositeScore(
-  cluster: ClusterSummary,
-  stats: ClusterStats | undefined,
-  ranges: SignalRanges,
-  weights: ScoreWeights
-): number {
-  const now = Date.now();
+    const score =
+      getWeight('fixability') * normalize(cluster.fixability_score ?? 0, minFix, maxFix) +
+      getWeight('events') * normalize(stats?.totalEvents ?? 0, minEvents, maxEvents) +
+      getWeight('recency') * recency +
+      getWeight('issues') * normalize(cluster.group_ids.length, minIssues, maxIssues);
 
-  // Normalize weights to sum to 1
-  const totalWeight =
-    weights.fixability + weights.events + weights.recency + weights.issues;
-  const wFix = totalWeight > 0 ? weights.fixability / totalWeight : 0.25;
-  const wEvt = totalWeight > 0 ? weights.events / totalWeight : 0.25;
-  const wRec = totalWeight > 0 ? weights.recency / totalWeight : 0.25;
-  const wIss = totalWeight > 0 ? weights.issues / totalWeight : 0.25;
-
-  // Normalize fixability (higher = better)
-  const fixability = cluster.fixability_score ?? 0;
-  const normFixability = minMaxNormalize(
-    fixability,
-    ranges.fixability.min,
-    ranges.fixability.max
-  );
-
-  // Normalize events (higher = more important)
-  const events = stats?.totalEvents ?? 0;
-  const normEvents = minMaxNormalize(events, ranges.events.min, ranges.events.max);
-
-  // Normalize recency (invert so newer = higher score)
-  let normRecency = 0.5; // default if no lastSeen
-  if (stats?.lastSeen) {
-    const age = now - new Date(stats.lastSeen).getTime();
-    // Invert: 1 - normalized_age means smaller age (more recent) = higher score
-    normRecency = 1 - minMaxNormalize(age, ranges.recency.min, ranges.recency.max);
+    scores.set(cluster.cluster_id, score);
   }
 
-  // Normalize issue count (higher = more important)
-  const issues = cluster.group_ids.length;
-  const normIssues = minMaxNormalize(issues, ranges.issues.min, ranges.issues.max);
-
-  return (
-    wFix * normFixability + wEvt * normEvents + wRec * normRecency + wIss * normIssues
+  return clusters.toSorted(
+    (a, b) => (scores.get(b.cluster_id) ?? 0) - (scores.get(a.cluster_id) ?? 0)
   );
 }
 
@@ -494,20 +394,14 @@ function ClusterCard({
         )}
         <StatItem>
           <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
-              {tn('event', 'events', clusterStats.totalEvents)}
-            </Text>
-          )}
+          <Text size="xs">
+            <Text size="xs" bold as="span">
+              {clusterStats.totalEvents.toLocaleString()}
+            </Text>{' '}
+            {tn('event', 'events', clusterStats.totalEvents)}
+          </Text>
         </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
+        {clusterStats.lastSeen && (
           <StatItem>
             <IconClock size="xs" color="gray300" />
             <TimeSince
@@ -518,7 +412,7 @@ function ClusterCard({
             />
           </StatItem>
         )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
+        {clusterStats.firstSeen && (
           <StatItem>
             <IconCalendar size="xs" color="gray300" />
             <TimeSince
@@ -565,41 +459,31 @@ function DynamicGrouping() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [selectedTeamIds, setSelectedTeamIds] = useState(new Set<string>());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
-  const [scoreWeights, setScoreWeights] = useState<ScoreWeights>(DEFAULT_WEIGHTS);
+  const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
+  const [scoreWeights, setScoreWeights] = useState(DEFAULT_WEIGHTS);
 
-  // Fetch cluster data from API
   const {data: topIssuesResponse, isPending: isClustersPending} =
     useApiQuery<TopIssuesResponse>([`/organizations/${organization.slug}/top-issues/`], {
       staleTime: 60000,
     });
 
-  const clusterData = useMemo(
-    () => topIssuesResponse?.data ?? [],
-    [topIssuesResponse?.data]
-  );
-
-  // Fetch stats for all clusters in batches for composite scoring
+  const clusterData = topIssuesResponse?.data ?? EMPTY_CLUSTERS;
   const {statsMap, isPending: isStatsPending} = useBatchClusterStats(clusterData);
-
-  // Combined loading state
   const isPending = isClustersPending || isStatsPending;
 
-  // Extract all unique teams from the cluster data
-  const teamsInData = useMemo(() => {
-    const data = topIssuesResponse?.data ?? [];
-    const teamMap = new Map<string, {id: string; name: string}>();
-    for (const cluster of data) {
-      for (const entity of cluster.assignedTo ?? []) {
-        if (entity.type === 'team' && !teamMap.has(entity.id)) {
-          teamMap.set(entity.id, {id: entity.id, name: entity.name});
-        }
+  const teamMap = new Map<string, {id: string; name: string}>();
+  for (const cluster of clusterData) {
+    for (const entity of cluster.assignedTo ?? []) {
+      if (entity.type === 'team' && !teamMap.has(entity.id)) {
+        teamMap.set(entity.id, {id: entity.id, name: entity.name});
       }
     }
-    return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [topIssuesResponse?.data]);
+  }
+  const teamsInData = Array.from(teamMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   const isTeamFilterActive = selectedTeamIds.size > 0;
 
@@ -624,76 +508,35 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  // Filter clusters first, then compute ranges and sort by composite score
-  const filteredClusters = useMemo(() => {
-    return clusterData.filter(cluster => {
-      if (removedClusterIds.has(cluster.cluster_id)) {
-        return false;
-      }
+  const userTeamIds = useMemo(() => new Set(userTeams.map(team => team.id)), [userTeams]);
 
-      const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-      if (fixabilityScore < minFixabilityScore) {
-        return false;
-      }
+  const filteredClusters = useMemo(
+    () =>
+      filterClusters(clusterData, {
+        removedClusterIds,
+        minFixabilityScore,
+        filterByAssignedToMe,
+        selectedTeamIds,
+        userId: user.id,
+        userTeamIds,
+      }),
+    [
+      clusterData,
+      removedClusterIds,
+      minFixabilityScore,
+      filterByAssignedToMe,
+      selectedTeamIds,
+      user.id,
+      userTeamIds,
+    ]
+  );
 
-      if (filterByAssignedToMe) {
-        if (!cluster.assignedTo?.length) {
-          return false;
-        }
-        return cluster.assignedTo.some(
-          entity =>
-            (entity.type === 'user' && entity.id === user.id) ||
-            (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-        );
-      }
+  const sortedClusters = useMemo(
+    () => sortClustersByScore(filteredClusters, statsMap, scoreWeights),
+    [filteredClusters, statsMap, scoreWeights]
+  );
 
-      if (isTeamFilterActive) {
-        if (!cluster.assignedTo?.length) {
-          return false;
-        }
-        return cluster.assignedTo.some(
-          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-        );
-      }
-
-      return true;
-    });
-  }, [
-    clusterData,
-    removedClusterIds,
-    minFixabilityScore,
-    filterByAssignedToMe,
-    isTeamFilterActive,
-    user.id,
-    userTeams,
-    selectedTeamIds,
-  ]);
-
-  // Compute signal ranges across filtered clusters for normalization
-  const signalRanges = useMemo(() => {
-    return computeSignalRanges(filteredClusters, statsMap);
-  }, [filteredClusters, statsMap]);
-
-  // Sort by composite score (descending)
-  const filteredAndSortedClusters = useMemo(() => {
-    return [...filteredClusters].sort((a, b) => {
-      const scoreA = computeCompositeScore(
-        a,
-        statsMap.get(a.cluster_id),
-        signalRanges,
-        scoreWeights
-      );
-      const scoreB = computeCompositeScore(
-        b,
-        statsMap.get(b.cluster_id),
-        signalRanges,
-        scoreWeights
-      );
-      return scoreB - scoreA;
-    });
-  }, [filteredClusters, statsMap, signalRanges, scoreWeights]);
-
-  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
+  const totalIssues = sortedClusters.reduce((sum, c) => sum + c.group_ids.length, 0);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -726,7 +569,7 @@ function DynamicGrouping() {
                 'Viewing %s issue in %s cluster',
                 'Viewing %s issues across %s clusters',
                 totalIssues,
-                filteredAndSortedClusters.length
+                sortedClusters.length
               )}
             </Text>
 
@@ -873,7 +716,7 @@ function DynamicGrouping() {
       <CardsSection>
         {isPending ? (
           <LoadingIndicator />
-        ) : filteredAndSortedClusters.length === 0 ? (
+        ) : sortedClusters.length === 0 ? (
           <Container padding="lg" border="primary" radius="md" background="primary">
             <Text variant="muted" align="center" as="div">
               {t('No clusters match the current filters')}
@@ -881,7 +724,7 @@ function DynamicGrouping() {
           </Container>
         ) : (
           <CardsGrid>
-            {filteredAndSortedClusters.map(cluster => (
+            {sortedClusters.map(cluster => (
               <ClusterCard
                 key={cluster.cluster_id}
                 cluster={cluster}
@@ -890,7 +733,6 @@ function DynamicGrouping() {
                     totalEvents: 0,
                     firstSeen: null,
                     lastSeen: null,
-                    isPending: false,
                   }
                 }
                 onRemove={handleRemoveCluster}
@@ -929,7 +771,6 @@ const CardsGrid = styled('div')`
   }
 `;
 
-// Card with hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -948,7 +789,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Issue count badge - compact version
 const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
@@ -966,7 +806,6 @@ const IssueCountNumber = styled('div')`
   line-height: 1;
 `;
 
-// Horizontal stats bar below header
 const ClusterStatsBar = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -985,7 +824,6 @@ const StatItem = styled('div')`
   gap: ${space(0.5)};
 `;
 
-// Issue preview link with hover effect
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -1002,7 +840,7 @@ const IssuePreviewLink = styled(Link)`
   }
 `;
 
-// Issue title with ellipsis and nested em styling for EventOrGroupTitle
+// EventOrGroupTitle renders emphasized text in <em> tags
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -1018,14 +856,12 @@ const IssueTitle = styled('div')`
   }
 `;
 
-// EventMessage override for compact display
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
-// Meta separator line
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
@@ -1059,7 +895,6 @@ const FilterLabel = styled('span')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
 `;
 
-// Weight input styles
 const WeightInputRow = styled('div')`
   display: flex;
   align-items: center;
