@@ -65,28 +65,18 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - name: Install sysstat (for sar)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sysstat
-
       - name: Start SAR system CPU monitor
         run: |
-          mkdir -p perf_logs
+          vmstat 1 > vmstat.txt &
+          VMSTAT_PID=$!
 
-          sar -u 1 > perf_logs/system_cpu.txt &
-          SAR_CPU_PID=$!
+          sleep 1
 
-          # let sar flush final samples
-          sleep 5
+          kill $VMSTAT_PID
+          wait $VMSTAT_PID
 
-          kill $SAR_CPU_PID
-          wait $SAR_CPU_PID
-
-          sadf -j perf_logs/system_cpu.txt -- -u > perf_logs/system_cpu.json
-
-      - name: Upload CPU logs
+      - name: Upload vmstat logs
         uses: actions/upload-artifact@v4
         with:
-          name: perf-logs
-          path: perf_logs/
+          name: vmstat
+          path: vmstat.txt
