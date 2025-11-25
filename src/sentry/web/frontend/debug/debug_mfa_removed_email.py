@@ -6,12 +6,12 @@ from django.views.generic import View
 
 from sentry.security.emails import generate_security_email
 from sentry.users.models.authenticator import Authenticator
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreview
 
 
-@region_silo_view
+@internal_region_silo_view
 class DebugMfaRemovedEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         if isinstance(request.user, AnonymousUser):

@@ -5,12 +5,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import create_sample_event
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreview
 
 
-@region_silo_view
+@internal_region_silo_view
 class DebugNewUserFeedbackEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
