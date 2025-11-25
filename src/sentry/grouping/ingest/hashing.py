@@ -20,6 +20,10 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest.caching import (
+    get_grouphash_existence_cache_key,
+    get_grouphash_object_cache_key,
+)
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
@@ -29,6 +33,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -219,7 +224,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
         metrics_tags.update({"cache_get": False, "cache_set": False})
 
         if use_caching:
-            cache_key = f"secondary_grouphash_existence:{project.id}:{hash_value}"
+            cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
             cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
             grouphash_exists = cache.get(cache_key)
@@ -249,7 +254,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
 
 
 def _get_or_create_single_grouphash(
-    hash_value: str, project: Project, use_caching: bool
+    hash_value: str, project: Project, use_caching: bool, is_reprocessed_event: bool
 ) -> tuple[GroupHash, bool]:
     """
     Create or retrieve a `GroupHash` record for the given hash.
@@ -266,7 +271,7 @@ def _get_or_create_single_grouphash(
         metrics_tags.update({"cache_get": False, "cache_set": False})
 
         if use_caching:
-            cache_key = f"grouphash_with_assigned_group:{project.id}:{hash_value}"
+            cache_key = get_grouphash_object_cache_key(hash_value, project.id)
             cache_expiry_seconds = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
             grouphash = cache.get(cache_key)
@@ -283,7 +288,12 @@ def _get_or_create_single_grouphash(
             )
 
             if got_cache_hit:
-                return (grouphash, False)
+                # If we're reprocessing we want to invalidate the cache entry rather than use it,
+                # because the group id will have changed
+                if is_reprocessed_event:
+                    cache.delete(cache_key)
+                else:
+                    return (grouphash, False)
 
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
         metrics_tags["created"] = created
@@ -306,7 +316,10 @@ def get_or_create_grouphashes(
     grouping_config_id: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
-    use_caching = options.get("grouping.use_ingest_grouphash_caching")
+    is_reprocessed = is_reprocessed_event(event.data)
+    # use_caching = options.get("grouping.use_ingest_grouphash_caching")
+    # use_caching = False
+    use_caching = True
     grouphashes: list[GroupHash] = []
 
     if is_secondary:
@@ -320,7 +333,9 @@ def get_or_create_grouphashes(
         ]
 
     for hash_value in hashes:
-        grouphash, created = _get_or_create_single_grouphash(hash_value, project, use_caching)
+        grouphash, created = _get_or_create_single_grouphash(
+            hash_value, project, use_caching, is_reprocessed
+        )
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:

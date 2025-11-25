@@ -19,11 +19,7 @@
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver"],
       "cwd": "${workspaceRoot}",
-      "debugOptions": [
-        "WaitOnAbnormalExit",
-        "WaitOnNormalExit",
-        "RedirectOutput"
-      ]
+      "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
     },
     {
       "name": "sentry backend debug",
@@ -59,7 +55,7 @@
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--verbosity", "2", "${file}", "--reuse-db"],
+      "args": ["--verbosity", "2", "--reuse-db", "--last-failed", "${file}"],
       "django": true,
       "env": {
         "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"

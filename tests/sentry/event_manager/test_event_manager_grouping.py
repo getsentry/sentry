@@ -15,6 +15,10 @@ from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_T
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.grouping.ingest.caching import (
+    get_grouphash_existence_cache_key,
+    get_grouphash_object_cache_key,
+)
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import get_or_create_grouphashes
 from sentry.models.auditlogentry import AuditLogEntry
@@ -395,13 +399,13 @@ class GroupHashCachingTest(TestCase):
         if is_secondary:
             grouping_config_id = "old_config"
             grouping_config_option = "sentry:secondary_grouping_config"
-            cache_key = f"secondary_grouphash_existence:{self.project.id}:{hash_value}"
+            cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
             cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
             cached_value: Any = grouphash_exists
         else:
             grouping_config_id = "new_config"
             grouping_config_option = "sentry:grouping_config"
-            cache_key = f"grouphash_with_assigned_group:{self.project.id}:{hash_value}"
+            cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
             cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
             cached_value = grouphash
 

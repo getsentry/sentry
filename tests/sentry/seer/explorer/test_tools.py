@@ -1140,16 +1140,19 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
                 # Skip the 90d test as the retention for testutils is 30d.
                 continue
 
+            # Ensure each iteration makes a fresh group.
+            fingerprint = [f"{stats_period}_{interval}"]
+
             # Set a first_seen date slightly newer than the stats period we're testing.
             first_seen = datetime.now(UTC) - delta + timedelta(minutes=6, seconds=7)
-            data = load_data("python", timestamp=first_seen)
+            data = load_data("python", timestamp=first_seen, fingerprint=fingerprint)
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             event = self.store_event(data=data, project_id=self.project.id)
             mock_get_recommended_event.return_value = event
 
             # Second newer event
             new_timestamp = first_seen + timedelta(minutes=6, seconds=7)
-            data = load_data("python", timestamp=new_timestamp)
+            data = load_data("python", timestamp=new_timestamp, fingerprint=fingerprint)
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             self.store_event(data=data, project_id=self.project.id)
 
@@ -1176,7 +1179,7 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             assert result["timeseries_interval"] == interval
 
             # Ensure next iteration makes a fresh group.
-            group.delete()
+            # group.delete()
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):

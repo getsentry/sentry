@@ -40,6 +40,10 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
+S015_msg = (
+    "S015 Remember to remove all instances of `pytest.mark.only` before pushing to production."
+)
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -157,6 +161,18 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa N802
+        for decorator in node.decorator_list:
+            if (
+                isinstance(decorator, ast.Attribute)
+                and decorator.attr == "only"
+                and isinstance(decorator.value, ast.Attribute)
+                and decorator.value.attr == "mark"
+                and isinstance(decorator.value.value, ast.Name)
+                and decorator.value.value.id == "pytest"
+            ):
+                self.errors.append((node.lineno, node.col_offset, S015_msg))
 
         self.generic_visit(node)
 
