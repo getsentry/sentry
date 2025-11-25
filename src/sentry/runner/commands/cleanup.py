@@ -703,6 +703,10 @@ def run_bulk_deletes_in_deletes(
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
+                debug_output(
+                    f"Finished Deleting model {model_tp.__name__} for days={days} project={project or '*'}"
+                )
+
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})
                 metrics.incr(
