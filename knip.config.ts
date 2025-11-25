@@ -49,6 +49,7 @@ const config: KnipConfig = {
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
+    'static/eslint/**/index.mjs',
   ],
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
@@ -61,6 +62,8 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // ignore eslint plugins in production
+    '!static/eslint/**/*.mjs!',
     // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
     '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
   ],
