@@ -144,19 +144,21 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 
   return (
     <Fragment>
-      <ExploreBodySearch>
-        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
-      </ExploreBodySearch>
-      <ExploreBodyContent>
-        <SpanTabControlSection
-          organization={organization}
-          controlSectionExpanded={controlSectionExpanded}
-        />
-        <SpanTabContentSection
-          setControlSectionExpanded={setControlSectionExpanded}
-          controlSectionExpanded={controlSectionExpanded}
-        />
-      </ExploreBodyContent>
+      <ChartSelectionProvider>
+        <ExploreBodySearch>
+          <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
+        </ExploreBodySearch>
+        <ExploreBodyContent>
+          <SpanTabControlSection
+            organization={organization}
+            controlSectionExpanded={controlSectionExpanded}
+          />
+          <SpanTabContentSection
+            setControlSectionExpanded={setControlSectionExpanded}
+            controlSectionExpanded={controlSectionExpanded}
+          />
+        </ExploreBodyContent>
+      </ChartSelectionProvider>
     </Fragment>
   );
 }
@@ -425,6 +427,7 @@ function SpanTabContentSection({
   const [interval] = useChartInterval();
 
   useAnalytics({
+    tab,
     queryType,
     aggregatesTableResult,
     spansTableResult,
@@ -491,32 +494,30 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ChartSelectionProvider>
-          <ExploreCharts
-            confidences={confidences}
-            query={query}
-            extrapolate={extrapolate}
-            timeseriesResult={timeseriesResult}
-            visualizes={visualizes}
-            setVisualizes={setVisualizes}
-            samplingMode={timeseriesSamplingMode}
-            setTab={setTab}
-            rawSpanCounts={rawSpanCounts}
-          />
-          <ExploreTables
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-            tracesTableResult={tracesTableResult}
-            confidences={confidences}
-            tab={tab}
-            setTab={(newTab: Mode | Tab) => {
-              if (newTab === Mode.AGGREGATE) {
-                setControlSectionExpanded(true);
-              }
-              setTab(newTab);
-            }}
-          />
-        </ChartSelectionProvider>
+        <ExploreCharts
+          confidences={confidences}
+          query={query}
+          extrapolate={extrapolate}
+          timeseriesResult={timeseriesResult}
+          visualizes={visualizes}
+          setVisualizes={setVisualizes}
+          samplingMode={timeseriesSamplingMode}
+          setTab={setTab}
+          rawSpanCounts={rawSpanCounts}
+        />
+        <ExploreTables
+          aggregatesTableResult={aggregatesTableResult}
+          spansTableResult={spansTableResult}
+          tracesTableResult={tracesTableResult}
+          confidences={confidences}
+          tab={tab}
+          setTab={(newTab: Mode | Tab) => {
+            if (newTab === Mode.AGGREGATE) {
+              setControlSectionExpanded(true);
+            }
+            setTab(newTab);
+          }}
+        />
       </TourElement>
     </ExploreContentSection>
   );
