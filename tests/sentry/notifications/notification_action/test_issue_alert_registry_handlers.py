@@ -543,55 +543,55 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
         self.HEALED_EMAIL_ACTION_DATA_BLOBS = [
             # IssueOwners (targetIdentifier is "None")
             {
-                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "target_type": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
             },
             # NoOne Fallthrough (targetIdentifier is "")
             {
-                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "target_type": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "fallthrough_type": FallthroughChoiceType.NO_ONE,
             },
             # AllMembers Fallthrough (targetIdentifier is None)
             {
-                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "target_type": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "fallthrough_type": "AllMembers",
             },
             # NoOne Fallthrough (targetIdentifier is "None")
             {
-                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "target_type": ActionTargetType.ISSUE_OWNERS.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "fallthrough_type": FallthroughChoiceType.NO_ONE,
             },
             # ActiveMembers Fallthrough
             {
-                "targetType": ActionTargetType.MEMBER.value,
+                "target_type": ActionTargetType.MEMBER.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "3234013",
+                "target_identifier": "3234013",
             },
             # Member Email
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "2160509",
-                "targetType": ActionTargetType.MEMBER.value,
+                "target_identifier": "2160509",
+                "target_type": ActionTargetType.MEMBER.value,
             },
             # Team Email
             {
-                "targetType": ActionTargetType.TEAM.value,
+                "target_type": ActionTargetType.TEAM.value,
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "188022",
+                "target_identifier": "188022",
             },
         ]
 
     def test_build_rule_action_blob(self) -> None:
         for expected, healed in zip(EMAIL_ACTION_DATA_BLOBS, self.HEALED_EMAIL_ACTION_DATA_BLOBS):
             action_data = pop_keys_from_data_blob(expected, Action.Type.EMAIL)
-            # pop the targetType from the action_data
-            target_type = EmailActionHelper.get_target_type_object(action_data.pop("targetType"))
+            # pop the target_type from the action_data
+            target_type = EmailActionHelper.get_target_type_object(action_data.pop("target_type"))
             # Handle all possible targetIdentifier formats
-            target_identifier: str | None = str(expected["targetIdentifier"])
+            target_identifier: str | None = str(expected["target_identifier"])
             if target_identifier in ("None", "", None):
                 target_identifier = None
 
@@ -623,7 +623,7 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
         assert blob == {
             "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
+            "target_type": "IssueOwners",
         }
 
 
