@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 
@@ -31,10 +31,8 @@ from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
-from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -292,18 +290,17 @@ def execute_timeseries_query(
     return data
 
 
-def execute_trace_query(
+def get_log_attributes(
     *,
     org_id: int,
     trace_id: str,
-    dataset: Literal["spans", "logs", "tracemetrics"],
-    attributes: list[str],
-    project_ids: list[int] | None = None,
+    message_substring: str | None = None,
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    project_ids: list[int] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-    limit: int | None = None,
+    limit: int | None = 50,
 ) -> dict[str, Any] | None:
 
     _validate_date_params(stats_period=stats_period, start=start, end=end)
@@ -335,28 +332,16 @@ def execute_trace_query(
         full_trace_id = trace_id
 
     # Build the GetTraceRequest.
-    rpc_cls: type[RPCBase]
-    if dataset == "spans":
-        rpc_cls = Spans
-    elif dataset == "logs":
-        rpc_cls = OurLogs
-    else:
-        rpc_cls = TraceMetrics
-
-    start_dt = datetime.fromisoformat(start) if start else None
-    end_dt = datetime.fromisoformat(end) if end else None
-
     snuba_params = SnubaParams(
-        start=start_dt,
-        end=end_dt,
+        start=datetime.fromisoformat(start) if start else None,
+        end=datetime.fromisoformat(end) if end else None,
         stats_period=stats_period,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
     )
 
-    resolver = rpc_cls.get_resolver(params=snuba_params, config=SearchResolverConfig())
-    columns, _ = resolver.resolve_attributes(attributes)
+    resolver = OurLogs.get_resolver(params=snuba_params, config=SearchResolverConfig())
     meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
     request = GetTraceRequest(
         meta=meta,
@@ -364,42 +349,59 @@ def execute_trace_query(
         items=[
             GetTraceRequest.TraceItem(
                 item_type=meta.trace_item_type,
-                attributes=[col.proto_definition for col in columns],
+                attributes=None,  # Returns all attributes.
             )
         ],
     )
-    if limit:
+    if limit and not message_substring:
         request.limit = limit
 
-    # Query EAP EndpointGetTrace and format the response.
+    # Query EAP EndpointGetTrace
     response = get_trace_rpc(request)
 
+    # Collect the returned attributes
+    attributes = []
+    for item_group in response.item_groups:
+        for item in item_group.items:
+            for attribute in item.attributes:
+                attributes.append(attribute.key.name)
+        # There should only be one item group, for the requested item type.
+        break
+
+    # Resolve the attributes to get the types and public aliases
     items: list[dict[str, Any]] = []
-    columns_by_name = {col.proto_definition.name: col for col in columns}
+    resolved_attrs, _ = resolver.resolve_attributes(attributes)
+    resolved_attrs_by_name = {col.internal_name: col for col in resolved_attrs}
+
     for item_group in response.item_groups:
         for item in item_group.items:
             item_dict: dict[str, Any] = {
                 "id": item.id,
             }
             for attribute in item.attributes:
-                resolved_column = columns_by_name[attribute.key.name]
-                if resolved_column.proto_definition.type == STRING:
-                    item_dict[resolved_column.public_alias] = attribute.value.val_str
-                elif resolved_column.proto_definition.type == DOUBLE:
-                    item_dict[resolved_column.public_alias] = attribute.value.val_double
-                elif resolved_column.search_type == "boolean":
-                    item_dict[resolved_column.public_alias] = attribute.value.val_int == 1
-                elif resolved_column.proto_definition.type == INT:
-                    item_dict[resolved_column.public_alias] = attribute.value.val_int
-                    if resolved_column.public_alias == "project.id":
-                        item_dict["project.slug"] = resolver.params.project_id_map.get(
-                            item_dict[resolved_column.public_alias], "Unknown"
+                r = resolved_attrs_by_name[attribute.key.name]
+                if r.proto_definition.type == STRING:
+                    item_dict[r.public_alias] = attribute.value.val_str
+                elif r.proto_definition.type == DOUBLE:
+                    item_dict[r.public_alias] = attribute.value.val_double
+                elif r.search_type == "boolean":
+                    item_dict[r.public_alias] = attribute.value.val_int == 1
+                elif r.proto_definition.type == INT:
+                    item_dict[r.public_alias] = attribute.value.val_int
+                    if r.public_alias == "project.id":
+                        # Enrich with project slug, alias "project"
+                        item_dict["project"] = resolver.params.project_id_map.get(
+                            item_dict[r.public_alias], "Unknown"
                         )
             items.append(item_dict)
 
-        break  # There should only be one item group, for the requested item type.
+        break  # Should only be one item group
 
-    # TODO: support filter on results by attribute(s)?
+    if message_substring:
+        items = [item for item in items if message_substring in item["message"].lower()]
+
+    if limit:
+        items = items[:limit]
 
     return {"data": items}
 

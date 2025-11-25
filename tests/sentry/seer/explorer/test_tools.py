@@ -17,8 +17,8 @@ from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_table_query,
     execute_timeseries_query,
-    execute_trace_query,
     get_issue_and_event_details,
+    get_log_attributes,
     get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
@@ -1834,8 +1834,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             for field in self.default_fields:
                 assert field in log, field
 
-    def test_logs_trace_query(self) -> None:
-
+    def test_get_log_attributes(self) -> None:
         trace_id = uuid.uuid4().hex
         # Create logs with various attributes
         logs = [
@@ -1868,30 +1867,16 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(logs)
 
-        result = execute_trace_query(
+        result = get_log_attributes(
             org_id=self.organization.id,
             trace_id=trace_id,
-            dataset="logs",
-            attributes=[
-                "timestamp_precise",
-                "project",  # project slug
-                "severity",
-                "trace.parent_span_id",
-                "message",
-            ],
+            message_substring="request",
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 2
+        assert len(result["data"]) == 1
 
         assert result["data"][0]["project"] == self.project.slug
-        assert result["data"][0]["severity"] == "ERROR"
-        # TODO: assert result["data"][0]["trace.parent_span_id"] is None
-        assert result["data"][0]["message"] == "User authentication failed"
-        assert result["data"][0]["timestamp_precise"] == self.ten_mins_ago.isoformat()
-
-        assert result["data"][1]["project"] == self.project.slug
-        assert result["data"][1]["severity"] == "INFO"
-        # assert result["data"][1]["trace.parent_span_id"] is None
-        assert result["data"][1]["message"] == "Request processed successfully"
-        assert result["data"][1]["timestamp_precise"] == self.nine_mins_ago.isoformat()
+        assert result["data"][0]["severity"] == "INFO"
+        assert result["data"][0]["message"] == "Request processed successfully"
+        assert result["data"][0]["timestamp_precise"] == self.nine_mins_ago.isoformat()
