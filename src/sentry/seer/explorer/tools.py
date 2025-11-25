@@ -1115,13 +1115,33 @@ def get_trace_item_attributes(
 
 def _make_get_trace_request(
     trace_id: str,
-    organization: Organization,
-    projects: list[Project],
     trace_item_type: TraceItemType,
     resolver: SearchResolver,
     limit: int | None,
     sampling_mode: SAMPLING_MODES,
 ) -> list[dict[str, Any]]:
+    """
+    Make a request to the EAP GetTrace endpoint to get all attributes for a given trace and item type.
+    Includes a short ID translation if one is provided.
+
+    Args:
+        trace_id: The trace ID to query.
+        trace_item_type: The type of trace item to query.
+        resolver: The EAP search resolver, with SnubaParams set.
+        limit: The limit to apply to the request. Passing None will use a Snuba server default.
+        sampling_mode: The sampling mode to use for the request.
+
+    Returns:
+        A list of dictionaries for each trace item, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp.
+        - attributes: A dictionary of dictionaries, where the keys are the attribute names.
+          - attributes[name].value: The value of the attribute (str, int, float, bool).
+          - attributes[name].type: The type of the attribute (str).
+    """
+    organization = cast(Organization, resolver.params.organization)
+    projects = list(resolver.params.projects)
+
     # Look up full trace id if a short id is provided.
     if len(trace_id) < 32:
         full_trace_id = _get_full_trace_id(trace_id, organization, projects)
@@ -1218,11 +1238,19 @@ def get_log_attributes_for_trace(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-    project_id: int | None = None,
-    project_slug: str | None = None,
+    project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-    limit: int | None = 50,  # None will default to a Snuba server default.
+    limit: int | None = 50,
 ) -> dict[str, Any] | None:
+    """
+    Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
+
+    Returns:
+        A list of dictionaries for each log, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp.
+        - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
+    """
 
     _validate_date_params(stats_period=stats_period, start=start, end=end)
 
@@ -1236,8 +1264,7 @@ def get_log_attributes_for_trace(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
-            **({"id": project_id} if project_id else {}),
-            **({"slug": project_slug} if project_slug else {}),
+            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
         )
     )
 
@@ -1253,15 +1280,13 @@ def get_log_attributes_for_trace(
 
     items = _make_get_trace_request(
         trace_id=trace_id,
-        organization=organization,
-        projects=projects,
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
         resolver=resolver,
         limit=(limit if not message_substring else None),  # Return all results if we're filtering.
         sampling_mode=sampling_mode,
     )
 
-    if not message_substring:
+    if not message_substring or not limit:
         # Limit is already applied by the EAP request
         return {"data": items}
 
@@ -1288,11 +1313,20 @@ def get_metric_attributes_for_trace(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-    project_id: int | None = None,
-    project_slug: str | None = None,
+    project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-    limit: int | None = 50,  # None will default to a Snuba server default.
+    limit: int | None = 50,
 ) -> dict[str, Any] | None:
+    """
+    Get all attributes for all metrics in a trace. You can optionally filter by metric name and/or project slugs.
+    The metric name is a case-insensitive exact match.
+
+    Returns:
+        A list of dictionaries for each metric event, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp.
+        - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
+    """
 
     _validate_date_params(stats_period=stats_period, start=start, end=end)
 
@@ -1306,8 +1340,7 @@ def get_metric_attributes_for_trace(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
-            **({"id": project_id} if project_id else {}),
-            **({"slug": project_slug} if project_slug else {}),
+            **({"slug__in": project_slugs} if project_slugs else {}),
         )
     )
 
@@ -1323,15 +1356,13 @@ def get_metric_attributes_for_trace(
 
     items = _make_get_trace_request(
         trace_id=trace_id,
-        organization=organization,
-        projects=projects,
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
         resolver=resolver,
         limit=(limit if not metric_name else None),  # Return all results if we're filtering.
         sampling_mode=sampling_mode,
     )
 
-    if not metric_name:
+    if not metric_name or not limit:
         # Limit is already applied by the EAP request
         return {"data": items}
 
