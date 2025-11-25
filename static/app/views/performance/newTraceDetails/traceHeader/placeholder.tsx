@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -40,7 +42,16 @@ export function PlaceHolder({
             })}
           />
           <ButtonBar>
-            <TraceHeaderComponents.FeedbackButton />
+            <FeedbackButton
+              size="xs"
+              feedbackOptions={{
+                messagePlaceholder: t('How can we make the trace view better for you?'),
+                tags: {
+                  ['feedback.source']: 'trace-view',
+                  ['feedback.owner']: 'performance',
+                },
+              }}
+            />
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
