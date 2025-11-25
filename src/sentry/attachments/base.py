@@ -126,7 +126,6 @@ class BaseAttachmentCache:
         key: str,
         attachments: list[CachedAttachment],
         timeout=None,
-        set_metadata=True,
         project: Project | None = None,
     ) -> list[dict]:
         for id, attachment in enumerate(attachments):
@@ -167,9 +166,6 @@ class BaseAttachmentCache:
         for attachment in attachments:
             attachment._cache = self
             meta.append(attachment.meta())
-
-        if set_metadata:
-            self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
 
         return meta
 

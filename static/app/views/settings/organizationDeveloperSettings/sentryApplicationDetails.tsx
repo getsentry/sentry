@@ -441,7 +441,7 @@ export default function SentryApplicationDetails() {
                 <AddTokenHeader key="token-add">
                   <Button
                     size="xs"
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                     onClick={evt => onAddToken(evt)}
                     data-test-id="token-add"
                   >

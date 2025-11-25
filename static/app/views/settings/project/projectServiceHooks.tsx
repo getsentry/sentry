@@ -170,7 +170,7 @@ export default function ProjectServiceHooks() {
               to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
               size="sm"
               priority="primary"
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
             >
               {t('Create New Hook')}
             </LinkButton>

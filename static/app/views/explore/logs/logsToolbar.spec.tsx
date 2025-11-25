@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -200,7 +200,8 @@ describe('LogsToolbar', () => {
 
       expect(mode).toEqual(Mode.SAMPLES);
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'message'}, {yAxes: ['count(message)']}].map(aggregateField =>
@@ -210,7 +211,7 @@ describe('LogsToolbar', () => {
 
       expect(mode).toEqual(Mode.AGGREGATE);
 
-      await userEvent.click(screen.getByRole('button', {name: 'message'}));
+      await userEvent.click(within(editorColumn).getByRole('button', {name: 'message'}));
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'severity'}, {yAxes: ['count(message)']}].map(aggregateField =>
@@ -233,7 +234,8 @@ describe('LogsToolbar', () => {
         </Wrapper>
       );
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));

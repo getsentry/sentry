@@ -41,7 +41,7 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
                   setIsAddingDashboardTemplate(false);
                 });
               }}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
               busy={isAddingDashboardTemplate}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
               title={limitMessage}

@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useId,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
+import {createContext, Fragment, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -59,10 +52,6 @@ interface BaseListProps<Value extends SelectKey>
       | 'shouldUseVirtualFocus'
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
-  /**
-   * This list's index number inside composite select menus.
-   */
-  compositeIndex?: number;
   /**
    * Whether to render a grid list rather than a list box.
    *
@@ -161,7 +150,7 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
  * In composite selectors, there may be multiple self-contained lists, each
  * representing a select "region".
  */
-function List<Value extends SelectKey>({
+export function List<Value extends SelectKey>({
   items,
   value,
   onChange,
@@ -171,14 +160,12 @@ function List<Value extends SelectKey>({
   isOptionDisabled,
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
-  compositeIndex = 0,
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, saveSelectedOptions, search, overlayIsOpen} =
-    useContext(SelectContext);
+  const {overlayState, search, overlayIsOpen} = useContext(SelectContext);
 
   const hiddenOptions = useMemo(
     () => getHiddenOptions(items, search, sizeLimit),
@@ -203,8 +190,6 @@ function List<Value extends SelectKey>({
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
           const selectedOptions = getSelectedOptions<Value>(items, selection);
-          // Save selected options in SelectContext, to update the trigger label
-          saveSelectedOptions(compositeIndex, selectedOptions);
           onChange?.(selectedOptions);
 
           if (shouldCloseOnSelect({multiple, closeOnSelect, selectedOptions})) {
@@ -225,8 +210,6 @@ function List<Value extends SelectKey>({
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
         const selectedOption = getSelectedOptions(items, selection)[0]!;
-        // Save selected options in SelectContext, to update the trigger label
-        saveSelectedOptions(compositeIndex, selectedOption);
         onChange?.(selectedOption);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
@@ -250,8 +233,6 @@ function List<Value extends SelectKey>({
     hiddenOptions,
     multiple,
     clearable,
-    compositeIndex,
-    saveSelectedOptions,
     closeOnSelect,
     overlayState,
   ]);
@@ -261,15 +242,6 @@ function List<Value extends SelectKey>({
     ...listStateProps,
     items,
   });
-
-  // Register the initialized list state once on mount
-  useLayoutEffect(() => {
-    saveSelectedOptions(
-      compositeIndex,
-      getSelectedOptions(items, listState.selectionManager.selectedKeys)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listState.collection]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
@@ -406,5 +378,3 @@ function List<Value extends SelectKey>({
     </Fragment>
   );
 }
-
-export {List};
