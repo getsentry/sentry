@@ -214,6 +214,7 @@ def get_trace_for_transaction(
             span_exclusive_time = row.get("span.self_time")
             span_duration = row.get("span.duration")
             span_status = row.get("span.status")
+            span_timestamp = row.get("precise.start_ts")
 
             if span_id:
                 evidence_spans.append(
@@ -223,6 +224,7 @@ def get_trace_for_transaction(
                         op=span_op,
                         description=span_description or "",
                         exclusive_time=span_exclusive_time,
+                        timestamp=span_timestamp,
                         data={
                             "duration": span_duration,
                             "status": span_status,
