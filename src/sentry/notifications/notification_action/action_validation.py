@@ -231,6 +231,8 @@ class SentryAppActionValidatorHandler:
         )
         target_identifier = self.validated_data["config"]["target_identifier"]
         installation = self._get_sentry_app_installation(sentry_app_identifier, target_identifier)
+        if not installation:
+            raise ValidationError("Sentry app installation not found.")
         settings = self.validated_data["data"].get("settings", [])
         action = {
             "settings": settings,
