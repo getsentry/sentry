@@ -76,6 +76,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -330,6 +331,11 @@ export function EventDetailsContent({
             </InterimSection>
           </ErrorBoundary>
         </Fragment>
+      )}
+      {issueTypeConfig.metricDetectorTriggered.enabled && (
+        <ErrorBoundary mini>
+          <MetricDetectorTriggeredSection event={event} />
+        </ErrorBoundary>
       )}
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
