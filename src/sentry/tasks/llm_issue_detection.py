@@ -199,7 +199,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         try:
-            trace = get_trace_for_transaction(
+            trace: EvidenceTraceData | None = get_trace_for_transaction(
                 transaction.name, transaction.project_id, llm_issue_detection=True
             )
 

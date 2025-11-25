@@ -204,59 +204,63 @@ def get_trace_for_transaction(
     )
 
     # Step 3: Build span objects
-    spans = []
-    for row in spans_result.get("data", []):
-        span_id = row.get("span_id")
-        parent_span_id = row.get("parent_span")
-        span_op = row.get("span.op")
-        span_description = row.get("span.description")
-        span_exclusive_time = row.get("span.self_time")
-        span_duration = row.get("span.duration")
-        span_status = row.get("span.status")
-
-        if not span_id:
-            continue
-
-        if llm_issue_detection:
-            spans.append(
-                EvidenceSpan(
-                    span_id=span_id,
-                    parent_span_id=parent_span_id,
-                    op=span_op,
-                    description=span_description or "",
-                    exclusive_time=span_exclusive_time,
-                    data={
-                        "duration": span_duration,
-                        "status": span_status,
-                    },
-                )
-            )
-        else:
-            spans.append(
-                Span(
-                    span_id=span_id,
-                    parent_span_id=parent_span_id,
-                    span_op=span_op,
-                    span_description=span_description or "",
-                )
-            )
-        result_spans = spans
-
     if llm_issue_detection:
+        evidence_spans: list[EvidenceSpan] = []
+        for row in spans_result.get("data", []):
+            span_id = row.get("span_id")
+            parent_span_id = row.get("parent_span")
+            span_op = row.get("span.op")
+            span_description = row.get("span.description")
+            span_exclusive_time = row.get("span.self_time")
+            span_duration = row.get("span.duration")
+            span_status = row.get("span.status")
+
+            if span_id:
+                evidence_spans.append(
+                    EvidenceSpan(
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
+                        op=span_op,
+                        description=span_description or "",
+                        exclusive_time=span_exclusive_time,
+                        data={
+                            "duration": span_duration,
+                            "status": span_status,
+                        },
+                    )
+                )
+
         return EvidenceTraceData(
             trace_id=trace_id,
             project_id=project_id,
             transaction_name=transaction_name,
-            total_spans=len(result_spans),
-            spans=result_spans,
+            total_spans=len(evidence_spans),
+            spans=evidence_spans,
         )
     else:
+        spans: list[Span] = []
+        for row in spans_result.get("data", []):
+            span_id = row.get("span_id")
+            parent_span_id = row.get("parent_span")
+            span_op = row.get("span.op")
+            span_description = row.get("span.description")
+
+            if span_id:
+                spans.append(
+                    Span(
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
+                        span_op=span_op,
+                        span_description=span_description or "",
+                    )
+                )
+
         return TraceData(
             trace_id=trace_id,
             project_id=project_id,
             transaction_name=transaction_name,
-            total_spans=len(result_spans),
-            spans=result_spans,
+            total_spans=len(spans),
+            spans=spans,
         )
 
 

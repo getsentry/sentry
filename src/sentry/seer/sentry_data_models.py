@@ -36,7 +36,7 @@ class TraceData(BaseModel):
     trace_id: str
     project_id: int
     transaction_name: str
-    total_spans: list[Span]
+    total_spans: int
     spans: list[Span]
 
 
