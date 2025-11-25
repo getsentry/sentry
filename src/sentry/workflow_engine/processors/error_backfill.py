@@ -40,17 +40,18 @@ class ErrorBackfillJob(BulkJobSpec):
 
     @property
     def target_running_tasks(self) -> int:
-        """Read target_running_tasks from options for gradual rollout control."""
         return options.get("workflow_engine.error_backfill.target_running_tasks")
 
     def process_work_chunk(self, work_chunk: BaseModel) -> dict[str, Any]:
-        return _backfill_detector_groups(work_chunk)  # type: ignore[arg-type]
+        assert isinstance(work_chunk, ErrorDetectorWorkChunk)
+        return _backfill_detector_groups(work_chunk)
 
     def generate_work_chunks(self, start_from: str | None) -> Iterable[BaseModel]:
         return _generate_error_detector_work_chunks(start_from)
 
     def get_batch_key(self, work_chunk: BaseModel) -> str:
-        return _get_error_detector_batch_key(work_chunk)  # type: ignore[arg-type]
+        assert isinstance(work_chunk, ErrorDetectorWorkChunk)
+        return _get_error_detector_batch_key(work_chunk)
 
 
 def _backfill_detector_groups(work_chunk: ErrorDetectorWorkChunk) -> dict[str, Any]:
@@ -61,7 +62,20 @@ def _backfill_detector_groups(work_chunk: ErrorDetectorWorkChunk) -> dict[str, A
     Returns a dict with backfill results to be included in logging extra data.
     """
     detector_id = work_chunk.detector_id
-    detector = Detector.objects.get(id=detector_id)
+
+    try:
+        detector = Detector.objects.get(id=detector_id)
+    except Detector.DoesNotExist:
+        logger.info(
+            "error_backfill.detector_not_found",
+            extra={"detector_id": detector_id},
+        )
+        return {
+            "detector_id": detector_id,
+            "groups_created": 0,
+            "skipped": "detector_deleted",
+        }
+
     project_id = detector.project_id
 
     all_unresolved_groups = Group.objects.filter(
@@ -91,7 +105,7 @@ def _backfill_detector_groups(work_chunk: ErrorDetectorWorkChunk) -> dict[str, A
             detector_group.save(update_fields=["date_added"])
             created_count += 1
 
-    metrics.incr("error_backfill.groups_created", amount=created_count)
+    metrics.incr("workflow_engine.error_backfill.groups_created", amount=created_count)
 
     return {
         "detector_id": detector_id,

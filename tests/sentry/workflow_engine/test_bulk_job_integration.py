@@ -40,7 +40,7 @@ class WorkflowNameReverseJob(BulkJobSpec):
     # Configuration optimized for testing
     max_batch_size = 10
     target_running_tasks = 3
-    in_progress_timeout = timedelta(minutes=5)
+    in_progress_timeout = timedelta(minutes=15)
     completed_cleanup_age = timedelta(days=1)
 
     def process_work_chunk(self, work_chunk: BaseModel) -> dict[str, Any]:

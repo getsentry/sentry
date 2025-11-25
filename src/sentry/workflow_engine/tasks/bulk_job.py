@@ -1,10 +1,16 @@
 """Generic tasks for bulk job processing."""
 
+import logging
 from typing import Any
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
+
+logger = logging.getLogger(__name__)
+
+# Maximum number of times populate task can reschedule itself
+MAX_POPULATE_ITERATIONS = 1000
 
 
 @instrumented_task(
@@ -71,24 +77,35 @@ def coordinate_bulk_jobs_task(job_type: str, **kwargs: dict[str, Any]) -> None:
     silo_mode=SiloMode.REGION,
 )
 def populate_bulk_job_records_task(
-    job_type: str, start_from: str | None = None, **kwargs: dict[str, Any]
+    job_type: str, start_from: str | None = None, iteration: int = 0, **kwargs: dict[str, Any]
 ) -> None:
     """
     Generic task to populate BulkJobStatus records for a job type.
 
     If the task hits its processing deadline, it reschedules itself to continue from
-    where it left off.
+    where it left off. Includes a max iteration limit to prevent infinite loops.
     """
     from datetime import UTC, datetime, timedelta
 
     from sentry.workflow_engine.processors.bulk_job import create_bulk_job_records
+
+    if iteration >= MAX_POPULATE_ITERATIONS:
+        logger.error(
+            "bulk_job.populate_max_iterations_reached",
+            extra={
+                "job_type": job_type,
+                "iteration": iteration,
+                "start_from": start_from,
+            },
+        )
+        return
 
     deadline = datetime.now(UTC) + timedelta(seconds=540)
     resume_from = create_bulk_job_records(job_type, start_from=start_from, deadline=deadline)
 
     if resume_from is not None:
         populate_bulk_job_records_task.apply_async(
-            kwargs={"job_type": job_type, "start_from": resume_from}
+            kwargs={"job_type": job_type, "start_from": resume_from, "iteration": iteration + 1}
         )
 
 
@@ -130,9 +147,13 @@ def coordinate_error_backfill(**kwargs: dict[str, Any]) -> None:
     processing_deadline_duration=600,
     silo_mode=SiloMode.REGION,
 )
-def populate_error_backfill_status(start_from: str | None = None, **kwargs: dict[str, Any]) -> None:
+def populate_error_backfill_status(
+    start_from: str | None = None, iteration: int = 0, **kwargs: dict[str, Any]
+) -> None:
     """
     Backward compatibility wrapper for populate_bulk_job_records_task.
     Prefer using populate_bulk_job_records_task with job_type parameter.
     """
-    return populate_bulk_job_records_task("error_backfill", start_from=start_from, **kwargs)
+    return populate_bulk_job_records_task(
+        "error_backfill", start_from=start_from, iteration=iteration, **kwargs
+    )

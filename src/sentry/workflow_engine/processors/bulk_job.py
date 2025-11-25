@@ -127,8 +127,11 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from django.db import router, transaction
+from django.db.models import Count
 from pydantic import BaseModel
 
+from sentry.locks import locks
 from sentry.utils import metrics
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models import BulkJobState, BulkJobStatus
@@ -178,36 +181,33 @@ def process_bulk_job(job_status_id: int) -> None:
     Generic processor for any bulk job type.
 
     Looks up the job spec from the registry and executes the job-specific processing logic.
+    Uses select_for_update to prevent concurrent processing of the same job.
     """
-    try:
-        job_status = BulkJobStatus.objects.select_for_update().get(id=job_status_id)
-    except BulkJobStatus.DoesNotExist:
-        logger.warning(
-            "bulk_job.status_not_found",
-            extra={"job_status_id": job_status_id},
-        )
-        return
+    # Atomically claim the job and mark as in progress
+    with transaction.atomic(using=router.db_for_write(BulkJobStatus)):
+        try:
+            job_status = BulkJobStatus.objects.select_for_update().get(id=job_status_id)
+        except BulkJobStatus.DoesNotExist:
+            logger.warning(
+                "bulk_job.status_not_found",
+                extra={"job_status_id": job_status_id},
+            )
+            return
 
-    try:
         job_spec = bulk_job_registry.get(job_status.job_type)
-    except Exception:
-        logger.exception(
-            "bulk_job.unknown_job_type",
-            extra={"job_status_id": job_status_id, "job_type": job_status.job_type},
-        )
-        return
 
-    if job_status.status != BulkJobState.IN_PROGRESS:
+        # Mark as in progress and update date_updated to prevent false stuck detection
         job_status.status = BulkJobState.IN_PROGRESS
         job_status.save(update_fields=["status", "date_updated"])
 
-    try:
         # Deserialize work chunk using job-specific model
         work_chunk = job_spec.work_chunk_model(**job_status.work_chunk_info)
 
-        # Execute job-specific processing
+    # Execute job-specific processing outside transaction
+    try:
         result = job_spec.process_work_chunk(work_chunk)
 
+        # Mark as completed
         job_status.status = BulkJobState.COMPLETED
         job_status.save(update_fields=["status", "date_updated"])
 
@@ -287,66 +287,71 @@ def coordinate_bulk_jobs(
             "workflow_engine.bulk_job.cleaned_up", amount=deleted_count, tags={"job_type": job_type}
         )
 
-    # Count current in-progress tasks
-    current_in_progress = BulkJobStatus.objects.filter(
-        job_type=job_type, status=BulkJobState.IN_PROGRESS
-    ).count()
+    # Acquire lock to prevent race conditions with concurrent coordinators
+    lock = locks.get(f"bulk_job_coordinate:{job_type}", duration=60, name="bulk_job")
+    with lock.acquire():
+        # Count current in-progress tasks and schedule up to target concurrency
+        current_in_progress = BulkJobStatus.objects.filter(
+            job_type=job_type, status=BulkJobState.IN_PROGRESS
+        ).count()
 
-    # Calculate how many tasks to schedule to reach target
-    tasks_to_schedule = max(0, target_running_tasks - current_in_progress)
-    # Cap at max_batch_size for safety
-    tasks_to_schedule = min(tasks_to_schedule, max_batch_size)
+        # Calculate how many tasks to schedule to reach target
+        tasks_to_schedule = max(0, target_running_tasks - current_in_progress)
+        # Cap at max_batch_size for safety
+        tasks_to_schedule = min(tasks_to_schedule, max_batch_size)
 
-    scheduled_count = 0
-    if tasks_to_schedule == 0:
-        logger.info(
-            "bulk_job.target_reached",
-            extra={
-                "job_type": job_type,
-                "current_in_progress": current_in_progress,
-                "target_running_tasks": target_running_tasks,
-            },
-        )
-    else:
-        pending_items = BulkJobStatus.objects.filter(
-            job_type=job_type,
-            status=BulkJobState.NOT_STARTED,
-        ).order_by("date_added")[:tasks_to_schedule]
+        scheduled_count = 0
+        if tasks_to_schedule == 0:
+            logger.info(
+                "bulk_job.target_reached",
+                extra={
+                    "job_type": job_type,
+                    "current_in_progress": current_in_progress,
+                    "target_running_tasks": target_running_tasks,
+                },
+            )
+        else:
+            pending_items = BulkJobStatus.objects.filter(
+                job_type=job_type,
+                status=BulkJobState.NOT_STARTED,
+            ).order_by("date_added")[:tasks_to_schedule]
 
-        for item in pending_items:
-            try:
-                schedule_task_fn(item.id)
-                scheduled_count += 1
-            except Exception as e:
-                logger.exception(
-                    "bulk_job.schedule_failed",
-                    extra={
-                        "job_status_id": item.id,
-                        "job_type": job_type,
-                        "error": str(e),
-                    },
+            for item in pending_items:
+                try:
+                    schedule_task_fn(item.id)
+                    scheduled_count += 1
+                except Exception as e:
+                    logger.exception(
+                        "bulk_job.schedule_failed",
+                        extra={
+                            "job_status_id": item.id,
+                            "job_type": job_type,
+                            "error": str(e),
+                        },
+                    )
+
+            if scheduled_count > 0:
+                logger.info(
+                    "bulk_job.scheduled",
+                    extra={"count": scheduled_count, "job_type": job_type},
+                )
+                metrics.incr(
+                    "workflow_engine.bulk_job.scheduled",
+                    amount=scheduled_count,
+                    tags={"job_type": job_type},
                 )
 
-        if scheduled_count > 0:
-            logger.info(
-                "bulk_job.scheduled",
-                extra={"count": scheduled_count, "job_type": job_type},
-            )
-            metrics.incr(
-                "workflow_engine.bulk_job.scheduled",
-                amount=scheduled_count,
-                tags={"job_type": job_type},
-            )
+    # Single aggregation query for all status counts
+    status_counts = dict(
+        BulkJobStatus.objects.filter(job_type=job_type)
+        .values("status")
+        .annotate(count=Count("id"))
+        .values_list("status", "count")
+    )
 
-    total_pending = BulkJobStatus.objects.filter(
-        job_type=job_type, status=BulkJobState.NOT_STARTED
-    ).count()
-    total_in_progress = BulkJobStatus.objects.filter(
-        job_type=job_type, status=BulkJobState.IN_PROGRESS
-    ).count()
-    total_completed = BulkJobStatus.objects.filter(
-        job_type=job_type, status=BulkJobState.COMPLETED
-    ).count()
+    total_pending = status_counts.get(BulkJobState.NOT_STARTED, 0)
+    total_in_progress = status_counts.get(BulkJobState.IN_PROGRESS, 0)
+    total_completed = status_counts.get(BulkJobState.COMPLETED, 0)
 
     logger.info(
         "bulk_job.coordinator_run",
@@ -381,22 +386,19 @@ def create_bulk_job_records(
 
     Returns a resume key if the deadline is reached, or None if complete.
     """
-    try:
-        job_spec = bulk_job_registry.get(job_type)
-    except Exception:
-        logger.exception(
-            "bulk_job.unknown_job_type",
-            extra={"job_type": job_type},
-        )
-        return None
+    job_spec = bulk_job_registry.get(job_type)
 
     created_count = 0
     work_chunk_batch: list[BaseModel] = []
 
     for work_chunk in job_spec.generate_work_chunks(start_from):
-        work_chunk_batch.append(work_chunk)
-
+        # Check deadline before adding to batch to avoid reprocessing
         if deadline and datetime.now(UTC) >= deadline:
+            # Flush remaining batch before stopping
+            if work_chunk_batch:
+                created_count += _create_job_records_batch(job_type, job_spec, work_chunk_batch)
+
+            # Return current item as resume point (will be processed on resume)
             resume_key = job_spec.get_batch_key(work_chunk)
             logger.info(
                 "bulk_job.populate_deadline_reached",
@@ -412,6 +414,8 @@ def create_bulk_job_records(
                 tags={"job_type": job_type},
             )
             return resume_key
+
+        work_chunk_batch.append(work_chunk)
 
         if len(work_chunk_batch) >= batch_size:
             created_count += _create_job_records_batch(job_type, job_spec, work_chunk_batch)
