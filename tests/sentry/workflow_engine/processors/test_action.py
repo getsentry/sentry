@@ -239,7 +239,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             )
         ]
         _, _, uncreated_statuses = update_workflow_action_group_statuses(
-            timezone.now(), {}, statuses_to_create
+            timezone.now(), set(), statuses_to_create
         )
 
         assert uncreated_statuses == [(self.workflow.id, self.action.id)]

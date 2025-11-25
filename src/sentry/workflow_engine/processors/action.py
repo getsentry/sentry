@@ -71,7 +71,7 @@ def process_workflow_action_group_statuses(
     workflows: BaseQuerySet[Workflow],
     group: Group,
     now: datetime,
-) -> tuple[dict[int, int], set[int], list[WorkflowActionGroupStatus]]:
+) -> tuple[dict[int, set[int]], set[int], list[WorkflowActionGroupStatus]]:
     """
     Determine which workflow actions should be fired based on their statuses.
     Prepare the statuses to update and create.
