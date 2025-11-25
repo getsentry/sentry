@@ -467,6 +467,8 @@ def fetch_profile_data(
 def parse_get_trace_rpc_response(
     item_group: GetTraceResponse.ItemGroup, resolver: SearchResolver
 ) -> list[dict[str, Any]]:
+    # Based on spans_rpc.Spans.run_trace_query
+
     # Collect the returned attributes
     attributes = []
     for item in item_group.items:
@@ -476,7 +478,7 @@ def parse_get_trace_rpc_response(
     # Resolve the attributes to get the types and public aliases
     items: list[dict[str, Any]] = []
     resolved_attrs, _ = resolver.resolve_attributes(attributes)
-    resolved_attrs_by_name = {col.internal_name: col for col in resolved_attrs}
+    resolved_attrs_by_name = {a.proto_definition.name: a for a in resolved_attrs}
 
     for item in item_group.items:
         item_dict: dict[str, Any] = {

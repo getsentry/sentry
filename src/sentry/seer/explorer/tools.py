@@ -1187,7 +1187,7 @@ def get_log_attributes_for_trace(
     items: list[dict[str, Any]]
     for item_group in response.item_groups:
         items = parse_get_trace_rpc_response(item_group, resolver)
-        break  # Should only be one item group, for the requested item type.
+        break  # Should only be one item group for logs
 
     if message_substring:
         items = (
@@ -1275,7 +1275,7 @@ def get_metric_attributes_for_trace(
     items: list[dict[str, Any]]
     for item_group in response.item_groups:
         items = parse_get_trace_rpc_response(item_group, resolver)
-        break  # Should only be one item group, for the requested item type.
+        break  # Should only be one item group for metrics
 
     if name_substring:
         items = (
