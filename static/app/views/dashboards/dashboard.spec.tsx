@@ -289,6 +289,45 @@ describe('Dashboards > Dashboard', () => {
     expect(mockOnUpdate).toHaveBeenCalledWith(expectedWidgets);
   });
 
+  it('hides widget context menu when dashboard is embedded', async () => {
+    const dashboardWithOneWidget = {
+      ...mockDashboard,
+      widgets: [
+        WidgetFixture({
+          id: '1',
+          title: 'Test Widget',
+          layout: {
+            h: 1,
+            w: 1,
+            x: 0,
+            y: 0,
+            minH: 1,
+          },
+        }),
+      ],
+    };
+
+    render(
+      <OrganizationContext value={initialData.organization}>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            dashboard={dashboardWithOneWidget}
+            isEditingDashboard={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            isEmbedded
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
+      </OrganizationContext>
+    );
+
+    await screen.findByText('Test Widget');
+    expect(screen.queryByLabelText('Widget actions')).not.toBeInTheDocument();
+  });
+
   describe('Issue Widgets', () => {
     beforeEach(() => {
       MemberListStore.init();
