@@ -58,7 +58,8 @@ function UsageCharts({
     [category]: stats,
   };
 
-  const adjustedTotals = isContinuousProfiling(category)
+  const dataCategoryInfo = getCategoryInfoFromPlural(category);
+  const adjustedTotals = isContinuousProfiling(dataCategoryInfo)
     ? {
         ...addBillingStatTotals(totals, [
           eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,

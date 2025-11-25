@@ -21,6 +21,7 @@ import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
 import {formatReservedWithUnits, getAmPlanTier} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
@@ -225,13 +226,14 @@ function MonitoringAndDataFeatures({
         orderedKeys.push(category as DataCategory);
       }
       const minimumReserved = eventBuckets.find(bucket => bucket.events >= 0)?.events;
+      const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
 
       if (
         minimumReserved &&
         minimumReserved !== previousIncluded[category as DataCategory]
       ) {
         const displayUnits =
-          minimumReserved > 1 || isByteCategory(category)
+          minimumReserved > 1 || isByteCategory(categoryInfo)
             ? getPlanCategoryName({
                 plan,
                 category: category as DataCategory,

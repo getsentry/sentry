@@ -199,7 +199,7 @@ function VolumeSliders({
                           formData.reserved[category] ?? null,
                           category,
                           {
-                            isAbbreviated: !isByteCategory(category),
+                            isAbbreviated: !isByteCategory(categoryInfo),
                           }
                         )}
                       </VolumeAmount>
@@ -217,7 +217,7 @@ function VolumeSliders({
                       name={category}
                       id={sliderId}
                       aria-label={
-                        isByteCategory(category)
+                        isByteCategory(categoryInfo)
                           ? t(
                               'Reserved volume for %s (in gigabytes)',
                               getPlanCategoryName({plan: activePlan, category})
@@ -245,7 +245,7 @@ function VolumeSliders({
                       </div>
                       <div>
                         {formatReservedWithUnits(max, category, {
-                          isAbbreviated: !isByteCategory(category),
+                          isAbbreviated: !isByteCategory(categoryInfo),
                         })}
                       </div>
                     </MinMax>
@@ -286,7 +286,7 @@ function VolumeSliders({
                       <div>
                         {eventBucket.price !== 0 &&
                           tct('[unitPrice] per [category]', {
-                            category: isByteCategory(category)
+                            category: isByteCategory(categoryInfo)
                               ? 'GB'
                               : category ===
                                     DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural ||
@@ -316,12 +316,12 @@ function VolumeSliders({
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>
                         {formatReservedWithUnits(min, category, {
-                          isAbbreviated: !isByteCategory(category),
+                          isAbbreviated: !isByteCategory(categoryInfo),
                         })}
                       </div>
                       <div>
                         {formatReservedWithUnits(max, category, {
-                          isAbbreviated: !isByteCategory(category),
+                          isAbbreviated: !isByteCategory(categoryInfo),
                         })}
                       </div>
                     </MinMax>

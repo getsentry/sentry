@@ -14,7 +14,6 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-import {GIGABYTE} from 'getsentry/constants';
 import type {
   Charge,
   Invoice,
@@ -35,9 +34,9 @@ import {
   getProductIcon,
 } from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
-  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -152,8 +151,10 @@ function ScheduledChanges({
             if (!defined(category)) {
               return null;
             }
+            const categoryInfo = getCategoryInfoFromPlural(category);
             const quantity = item.data.quantity ?? 0;
-            const reserved = isByteCategory(category) ? quantity / GIGABYTE : quantity;
+            const reserved =
+              quantity / (categoryInfo?.formatting.reservedMultiplier ?? 1);
             if (reserved <= 0) {
               return null;
             }
@@ -349,10 +350,10 @@ function Receipt({
                     if (!defined(category)) {
                       return null;
                     }
+                    const categoryInfo = getCategoryInfoFromPlural(category);
                     const quantity = item.data.quantity ?? 0;
-                    const reserved = isByteCategory(category)
-                      ? quantity / GIGABYTE
-                      : quantity;
+                    const reserved =
+                      quantity / (categoryInfo?.formatting.reservedMultiplier ?? 1);
                     if (reserved <= 0) {
                       return null;
                     }

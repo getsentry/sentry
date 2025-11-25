@@ -303,7 +303,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
       </StyledTable>
     );
   }
-  const totalDropped = isContinuousProfiling(category)
+  const totalDropped = isContinuousProfiling(categoryInfo)
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
 

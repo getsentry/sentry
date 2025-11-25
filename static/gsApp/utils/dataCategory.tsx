@@ -37,6 +37,24 @@ export function getCategoryInfoFromPlural(
 }
 
 /**
+ * Check if a category info represents a byte-based category (attachments, logs).
+ * These categories measure data in bytes/GB rather than event counts.
+ */
+export function isByteCategory(categoryInfo: BilledDataCategoryInfo | null): boolean {
+  return categoryInfo?.formatting.unitType === 'bytes';
+}
+
+/**
+ * Check if a category info represents a continuous profiling category.
+ * These categories measure duration in hours rather than event counts.
+ */
+export function isContinuousProfiling(
+  categoryInfo: BilledDataCategoryInfo | null
+): boolean {
+  return categoryInfo?.formatting.unitType === 'durationHours';
+}
+
+/**
  *
  * Get the data category for a recurring credit type
  */
@@ -269,17 +287,6 @@ export function hasCategoryFeature(
     return false;
   }
   return feature ? organization.features.includes(feature) : true;
-}
-
-export function isContinuousProfiling(category: DataCategory | string) {
-  return (
-    category === DataCategory.PROFILE_DURATION ||
-    category === DataCategory.PROFILE_DURATION_UI
-  );
-}
-
-export function isByteCategory(category: DataCategory | string) {
-  return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
 }
 
 export function getChunkCategoryFromDuration(category: DataCategory) {

@@ -44,6 +44,7 @@ import {
   getCategoryInfoFromPlural,
   getChunkCategoryFromDuration,
   getPlanCategoryName,
+  isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -495,7 +496,7 @@ export function UsageTotals({
   // use dropped profile chunks to estimate dropped continuous profiling
   // for AM3 plans, include profiles category to estimate dropped continuous profile hours
   const dataCategoryInfo = getCategoryInfoFromPlural(category);
-  const isDurationCategory = dataCategoryInfo?.formatting.unitType === 'durationHours';
+  const isDurationCategory = isContinuousProfiling(dataCategoryInfo);
   const total = isDurationCategory
     ? {
         ...addBillingStatTotals(totals, [
