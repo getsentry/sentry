@@ -200,8 +200,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert action.type == Action.Type.SENTRY_APP
         assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            "target_identifier": self.sentry_app_installation.uuid,
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            "target_identifier": str(self.sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP.value,
         }
         assert action.data["settings"] == updated_sentry_app_settings
