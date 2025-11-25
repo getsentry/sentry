@@ -31,6 +31,7 @@ describe('Discover > Homepage', () => {
     organization = OrganizationFixture({
       features,
     });
+    // TODO: delete this?
     initialData = initializeOrg({
       organization,
       router: {
@@ -102,20 +103,15 @@ describe('Discover > Homepage', () => {
   });
 
   it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     expect(mockHomepage).toHaveBeenCalled();
     await screen.findByText('environment');
@@ -128,33 +124,19 @@ describe('Discover > Homepage', () => {
   });
 
   it('renders event view from URL params over homepage query', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
+    render(<Homepage />, {
+      initialRouterConfig: {
         location: {
-          ...LocationFixture(),
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
           },
         },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
       },
+      organization: initialData.organization,
     });
-
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(mockHomepage).toHaveBeenCalled();
     await screen.findByText('project');
@@ -164,21 +146,16 @@ describe('Discover > Homepage', () => {
   });
 
   it('applies URL changes with the homepage pathname', async () => {
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
-    renderGlobalModal({router: initialData.router, deprecatedRouterMocks: true});
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
+    renderGlobalModal();
 
     await userEvent.click(await screen.findByText('Columns'));
 
@@ -188,31 +165,26 @@ describe('Discover > Homepage', () => {
     await userEvent.click(within(modal).getByText('event.type'));
     await userEvent.click(within(modal).getByText('Apply'));
 
-    expect(initialData.router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/explore/discover/homepage/',
-        query: expect.objectContaining({
-          field: 'event.type',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          query: expect.objectContaining({query: 'event.type:error'}),
+        })
+      );
+    });
   });
 
   it('does not show an editable header or author information', async () => {
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
     });
@@ -225,7 +197,7 @@ describe('Discover > Homepage', () => {
 
   it('shows the Remove Default button on initial load', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/homepage/',
+      url: `/organizations/${organization.slug}/discover/homepage/`,
       method: 'GET',
       statusCode: 200,
       body: {
@@ -251,57 +223,40 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
   it('Disables the Set as Default button when no saved homepage', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: {
-          ...LocationFixture(),
-          query: {
-            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-          },
-        },
-      },
-    });
     mockHomepage = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/homepage/',
+      url: `/organizations/${organization.slug}/discover/homepage/`,
       method: 'GET',
       statusCode: 200,
     });
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['project'], // TODO: should field be passed here? if so, what should it be passed as?
+          },
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
@@ -311,37 +266,25 @@ describe('Discover > Homepage', () => {
   });
 
   it('follows absolute date selection', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: {
-          ...LocationFixture(),
-          query: {
-            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-          },
-        },
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
       statusCode: 200,
     });
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['project'],
+          },
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     await userEvent.click(await screen.findByText('24H'));
     await userEvent.click(await screen.findByText('Absolute date'));
@@ -351,18 +294,6 @@ describe('Discover > Homepage', () => {
   });
 
   it('renders changes to the discover query when no homepage', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: {
-          ...LocationFixture(),
-          query: {
-            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-            field: ['title'],
-          },
-        },
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -370,45 +301,37 @@ describe('Discover > Homepage', () => {
       body: '',
     });
 
-    const {rerender} = render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
-    renderGlobalModal();
-
-    // Simulate an update to the columns by changing the URL params
-    const rerenderData = initializeOrg({
-      organization,
-      router: {
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
         location: {
-          ...LocationFixture(),
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-            field: ['event.type'],
+            field: ['title'],
           },
         },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
       },
+      organization: initialData.organization,
+    });
+    renderGlobalModal();
+
+    await waitFor(() => {
+      expect(screen.getByText('title')).toBeInTheDocument();
     });
 
-    rerender(
-      <Homepage
-        organization={organization}
-        location={rerenderData.router.location}
-        router={rerenderData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />
+    // Simulate an update to the columns by changing the URL params
+    const queryParams = new URLSearchParams({
+      field: 'event.type',
+      sort: '-timestamp',
+      statsPeriod: '24h',
+      query: '',
+      yAxis: 'count()',
+    });
+    router.navigate(
+      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
+
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
     });
@@ -417,58 +340,37 @@ describe('Discover > Homepage', () => {
   });
 
   it('renders changes to the discover query when loaded with valid event view in url params', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
         location: {
-          ...LocationFixture(),
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
       },
+      organization: initialData.organization,
     });
-
-    const {rerender} = render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
     renderGlobalModal();
 
-    // Simulate an update to the columns by changing the URL params
-    const rerenderData = initializeOrg({
-      organization,
-      router: {
-        location: {
-          ...LocationFixture(),
-          query: {
-            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-            field: ['event.type'],
-          },
-        },
-      },
+    await waitFor(() => {
+      expect(screen.getByText('title')).toBeInTheDocument();
     });
 
-    rerender(
-      <Homepage
-        organization={organization}
-        location={rerenderData.router.location}
-        router={rerenderData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />
+    // Simulate an update to the columns by changing the URL params
+    const queryParams = new URLSearchParams({
+      field: 'event.type',
+      sort: '-timestamp',
+      statsPeriod: '24h',
+      query: '',
+      yAxis: 'count()',
+    });
+    router.navigate(
+      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
+
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
     });
@@ -491,20 +393,15 @@ describe('Discover > Homepage', () => {
       .spyOn(pageFilterUtils, 'getPageFilterStorage')
       .mockReturnValueOnce(PageFiltersStorageFixture({state}));
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
     });
@@ -513,37 +410,25 @@ describe('Discover > Homepage', () => {
   });
 
   it('allows users to set the All Events query as default', async () => {
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: {
-          ...LocationFixture(),
-          query: {
-            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-          },
-        },
-      },
-    });
     mockHomepage = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
       statusCode: 200,
     });
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['title'],
+          },
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
   });
@@ -570,7 +455,7 @@ describe('Discover > Homepage', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/homepage/',
+      url: `/organizations/${organization.slug}/discover/homepage/`,
       method: 'GET',
       statusCode: 200,
       body: {
@@ -596,37 +481,36 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {
-        router: initialData.router,
-        organization: initialData.organization,
-        deprecatedRouterMocks: true,
-      }
-    );
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+        },
+        route: `/organizations/:orgId/explore/discover/homepage/`,
+      },
+      organization: initialData.organization,
+    });
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
+    // Wait for the Transactions tab to be available
+    const transactionsTab = await screen.findByRole('tab', {name: 'Transactions'});
+    await userEvent.click(transactionsTab);
 
-    expect(initialData.router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           dataset: 'transactions',
           name: 'homepage query',
-          project: undefined,
           query: '',
           field: 'environment',
           queryDataset: 'transaction-like',
-        }),
-      })
-    );
+        })
+      );
+    });
+
+    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+    expect(screen.queryByText('Remove Default')).not.toBeInTheDocument();
   });
 });
