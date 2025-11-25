@@ -324,6 +324,7 @@ export function useCodingAgentIntegrations() {
 interface LaunchCodingAgentParams {
   agentName: string;
   integrationId: string;
+  instruction?: string;
   triggerSource?: 'root_cause' | 'solution';
 }
 
@@ -360,6 +361,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
           integration_id: parseInt(params.integrationId, 10),
           run_id: parseInt(runId, 10),
           trigger_source: params.triggerSource,
+          instruction: params.instruction,
         },
       });
     },
