@@ -16,7 +16,6 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.objectstore import get_attachments_session
-from sentry.options.rollout import in_random_rollout
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
 
@@ -37,23 +36,18 @@ def store_attachments_for_event(
     """
     Stores the given list of `attachments` belonging to `event` for processing.
 
-    Depending on feature flags:
-    - the attachments themselves are stored in either `attachment_cache` or `objectstore` (still TODO)
-    - the attachment metadata is stored in `attachment_cache` or the `event` (mutating the parameter)
+    The attachment metadata is stored within the `event`, and attachment payloads
+    are stored either in the attachment cache, or in `objectstore` depending on feature flags.
     """
 
-    put_metadata_into_event = in_random_rollout("objectstore.processing_store.attachments")
     cache_key = cache_key_for_event(event)
     attachments_metadata = attachment_cache.set(
         cache_key,
         attachments,
         timeout=timeout,
-        set_metadata=not put_metadata_into_event,
         project=project,
     )
-    event.pop("_attachments", None)
-    if put_metadata_into_event:
-        event["_attachments"] = attachments_metadata
+    event["_attachments"] = attachments_metadata
 
 
 def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:

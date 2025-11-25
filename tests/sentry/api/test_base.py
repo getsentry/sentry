@@ -563,6 +563,19 @@ class EndpointSiloLimitTest(APITestCase):
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
+    def test_internal_option(self) -> None:
+        decorator = EndpointSiloLimit(SiloMode.REGION)
+        assert decorator.modes == frozenset([SiloMode.REGION])
+        assert not decorator.internal
+
+        decorator = EndpointSiloLimit(SiloMode.REGION, internal=True)
+        assert decorator.modes == frozenset([SiloMode.REGION])
+        assert decorator.internal
+
+        decorator = EndpointSiloLimit([SiloMode.REGION, SiloMode.CONTROL], internal=True)
+        assert decorator.modes == frozenset([SiloMode.REGION, SiloMode.CONTROL])
+        assert decorator.internal
+
 
 class FunctionSiloLimitTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):

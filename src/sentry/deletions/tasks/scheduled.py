@@ -105,7 +105,7 @@ def _run_scheduled_deletions(
     ),
     silo_mode=SiloMode.CONTROL,
 )
-@retry(exclude=(DeleteAborted,))
+@retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
@@ -126,7 +126,7 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
     ),
     silo_mode=SiloMode.REGION,
 )
-@retry(exclude=(DeleteAborted,))
+@retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,

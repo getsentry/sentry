@@ -368,7 +368,7 @@ def do_process_event(
         has_changed = True
         data = new_data
 
-    attachments = data.pop("_attachments", None)
+    attachments = data.get("_attachments", None)
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
