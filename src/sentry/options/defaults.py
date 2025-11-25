@@ -390,8 +390,9 @@ register(
 )
 # Replacement for the host part of URLs to Objectstore
 # This replacement is carried out by the `maybe_rewrite_url` function in `src/sentry/objectstore/__init__.py`
-# This should be used for local development and testing, where services can be ran either locally or in containers
-# By default, assumes that Sentry runs as a local process while other services run in containers, as in `sentry`'s CI
+# This should be used for local development and testing, where services can run either locally or in containers
+# By default, assumes that Sentry runs as a local process while other services run in containers
+# This is compatible with `sentry`'s CI and generally development workflows using `devservices`
 register(
     "objectstore.host_replacement",
     default=os.environ.get("SENTRY_OBJECTSTORE_HOST_REPLACEMENT") or "objectstore",
