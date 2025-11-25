@@ -46,6 +46,11 @@ class SizeAnalysisResultsUnavailableError(SizeAnalysisError):
         super().__init__(message, 500)
 
 
+class SizeAnalysisNotAvailableError(SizeAnalysisError):
+    def __init__(self, message: str = "Size analysis results not available for this artifact"):
+        super().__init__(message, 404)
+
+
 def get_size_analysis_response(
     all_size_metrics: Sequence[PreprodArtifactSizeMetrics],
 ) -> HttpResponseBase:
@@ -55,10 +60,14 @@ def get_size_analysis_response(
     Returns:
         - 200 with message for PENDING/PROCESSING states
         - 200 with file content for COMPLETED with valid file
+        - 404 if no size metrics exist
         - 404 if COMPLETED but File object doesn't exist
         - 422 with error details for FAILED state
         - 500 if COMPLETED but no analysis_file_id
     """
+    if not all_size_metrics:
+        raise SizeAnalysisNotAvailableError()
+
     states = [m.state for m in all_size_metrics]
 
     if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING for s in states):

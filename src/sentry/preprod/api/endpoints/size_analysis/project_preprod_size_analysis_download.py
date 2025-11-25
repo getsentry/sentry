@@ -64,12 +64,6 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
 
         all_size_metrics = list(head_artifact.get_size_metrics())
 
-        if not all_size_metrics:
-            return Response(
-                {"error": "Size analysis results not available for this artifact"},
-                status=404,
-            )
-
         try:
             return get_size_analysis_response(all_size_metrics)
         except SizeAnalysisError as e:
