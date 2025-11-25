@@ -10,7 +10,6 @@ import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 function FeedbackButton() {
@@ -135,7 +134,7 @@ const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 200px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0 ${p => p.theme.space.lg};
   border: 1px solid ${p => p.theme.border};
   overflow: hidden;
   min-width: 0;
@@ -166,11 +165,11 @@ const LoadingChartWrapper = styled(ChartWrapper)`
 const ChartsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ChartHeaderWrapper = styled(Flex)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   max-width: 100%;
 `;
 
