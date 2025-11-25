@@ -50,6 +50,7 @@ import OwnedDashboardsTable, {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -155,7 +156,7 @@ function ManageDashboards() {
   });
 
   const {
-    data: dashboards,
+    data: dashboardsWithoutPrebuiltConfigs,
     isLoading,
     isError,
     error,
@@ -182,6 +183,23 @@ function ManageDashboards() {
       ),
     }
   );
+
+  const dashboards = dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
+    if (dashboard.prebuiltId) {
+      return {
+        ...dashboard,
+        widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+          widget => widget.displayType
+        ),
+        widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(widget => ({
+          displayType: widget.displayType,
+          layout: widget.layout ?? null,
+        })),
+        projects: [],
+      };
+    }
+    return dashboard;
+  });
 
   const ownedDashboards = useOwnedDashboards({
     query: decodeScalar(location.query.query, ''),
