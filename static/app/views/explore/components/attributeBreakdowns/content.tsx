@@ -9,7 +9,7 @@ export function AttributeBreakdownsContent() {
     return (
       <CohortComparison
         selection={chartSelection.selection}
-        chartInfo={chartSelection.chartInfo}
+        chartIndex={chartSelection.chartIndex}
       />
     );
   }

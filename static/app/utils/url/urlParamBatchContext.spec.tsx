@@ -1,18 +1,16 @@
 import debounce from 'lodash/debounce';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {
   UrlParamBatchProvider,
   useUrlBatchContext,
 } from 'sentry/utils/url/urlParamBatchContext';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {testableDebounce} from './testUtils';
 
-jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 jest.mock('lodash/debounce');
 
@@ -33,7 +31,8 @@ describe('UrlParamBatchProvider', () => {
   });
 
   it('should batch updates to the URL query params', () => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    setWindowLocation('http://localhost/');
+
     const {result} = renderHook(() => useUrlBatchContext(), {
       wrapper: UrlParamBatchProvider,
     });
@@ -46,9 +45,10 @@ describe('UrlParamBatchProvider', () => {
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
+      {
+        pathname: '/',
         query: {foo: 'bar', potato: 'test'},
-      }),
+      },
       {replace: true, preventScrollReset: true}
     );
   });

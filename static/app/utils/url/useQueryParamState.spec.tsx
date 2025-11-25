@@ -55,7 +55,7 @@ describe('useQueryParamState', () => {
     // The query param should not be updated yet
     expect(mockedNavigate).not.toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'initial state'},
       },
       {replace: true, preventScrollReset: true}
@@ -67,7 +67,7 @@ describe('useQueryParamState', () => {
     // The query param should be updated
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'newValue'},
       },
       {replace: true, preventScrollReset: true}
@@ -120,7 +120,7 @@ describe('useQueryParamState', () => {
 
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {testField: 'newValue - 2 - true'},
       },
       {replace: true, preventScrollReset: true}
@@ -153,7 +153,7 @@ describe('useQueryParamState', () => {
 
     expect(mockedNavigate).toHaveBeenCalledWith(
       {
-        ...LocationFixture(),
+        pathname: '/',
         query: {sort: ['testField']},
       },
       {replace: true, preventScrollReset: true}
