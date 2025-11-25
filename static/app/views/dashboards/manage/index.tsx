@@ -185,7 +185,7 @@ function ManageDashboards() {
   );
 
   const dashboards = dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
-    if (dashboard.prebuiltId) {
+    if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
       return {
         ...dashboard,
         widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
