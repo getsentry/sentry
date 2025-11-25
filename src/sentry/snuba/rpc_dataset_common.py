@@ -108,9 +108,9 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
     return False
 
 
-def log_rpc_request(message: str, rpc_request):
+def log_rpc_request(message: str, rpc_request, rpc_logger: logging.Logger = logger):
     rpc_debug_json = json.loads(MessageToJson(rpc_request))
-    logger.info(
+    rpc_logger.info(
         message,
         extra={
             "rpc_query": rpc_debug_json,

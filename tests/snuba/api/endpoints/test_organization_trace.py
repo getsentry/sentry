@@ -281,6 +281,20 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
+    @mock.patch("sentry.snuba.spans_rpc.TRACE_QUERY_LIMIT_OVERRIDE", return_value=5)
+    def test_pagination(self, mock_override) -> None:
+        """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
+        all of the trace"""
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+
     def test_ignore_project_param(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
