@@ -199,12 +199,13 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         try:
-            trace: EvidenceTraceData | None = get_trace_for_transaction(
+            trace = get_trace_for_transaction(
                 transaction.name, transaction.project_id, llm_issue_detection=True
             )
 
             if (
                 not trace
+                or not isinstance(trace, EvidenceTraceData)
                 or trace.total_spans < LOWER_SPAN_LIMIT
                 or trace.total_spans > UPPER_SPAN_LIMIT
             ):
