@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -129,36 +128,40 @@ export function CohortComparison({
     };
   }, [selection, yAxis]);
 
+  if (isError) {
+    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
+  }
+
   return (
     <Panel data-explore-chart-selection-region>
       <Flex direction="column" gap="xl" padding="xl">
+        <ControlsContainer>
+          <StyledBaseSearchBar
+            placeholder={t('Search keys')}
+            onChange={query => {
+              setSearchQuery(query);
+            }}
+            query={debouncedSearchQuery}
+            size="sm"
+          />
+          <AttributeBreakdownsComponent.FeedbackButton />
+        </ControlsContainer>
         {isLoading ? (
-          <LoadingIndicator />
-        ) : isError ? (
-          <LoadingError message={t('Failed to load attribute breakdowns')} />
+          <AttributeBreakdownsComponent.LoadingCharts />
         ) : (
           <Fragment>
-            <ControlsContainer>
-              <StyledBaseSearchBar
-                placeholder={t('Search keys')}
-                onChange={query => {
-                  setSearchQuery(query);
-                }}
-                query={debouncedSearchQuery}
-                size="sm"
-              />
-              <AttributeBreakdownsComponent.FeedbackButton />
-            </ControlsContainer>
-            {selectionHint && (
-              <SelectionHintContainer>
-                <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
-                  {selectionHint.selection}
-                </SelectionHint>
-                <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
-              </SelectionHintContainer>
-            )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
+                {selectionHint && (
+                  <SelectionHintContainer>
+                    <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
+                      {selectionHint.selection}
+                    </SelectionHint>
+                    <SelectionHint color="#A29FAA">
+                      {selectionHint.baseline}
+                    </SelectionHint>
+                  </SelectionHintContainer>
+                )}
                 <ChartsGrid>
                   {filteredRankedAttributes
                     .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
@@ -214,7 +217,6 @@ const ControlsContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const StyledBaseSearchBar = styled(BaseSearchBar)`
@@ -244,7 +246,6 @@ const SelectionHintContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const SelectionHint = styled(Text)<{color?: string}>`
