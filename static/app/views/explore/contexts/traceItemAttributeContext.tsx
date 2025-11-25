@@ -36,7 +36,9 @@ const TraceItemAttributeContext = createContext<
 type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
+  disableDefaultAttributes?: boolean;
   projects?: Project[];
+  search?: string;
 };
 
 type TraceItemAttributeProviderProps = {
@@ -48,11 +50,15 @@ export function TraceItemAttributeProvider({
   traceItemType,
   enabled,
   projects,
+  search,
+  disableDefaultAttributes,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
     traceItemType,
     enabled,
     projects,
+    search,
+    disableDefaultAttributes,
   });
 
   return (
@@ -66,6 +72,8 @@ function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
   projects,
+  search,
+  disableDefaultAttributes,
 }: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
@@ -73,6 +81,7 @@ function useTraceItemAttributeConfig({
       type: 'number',
       traceItemType,
       projects,
+      search,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -81,13 +90,16 @@ function useTraceItemAttributeConfig({
       type: 'string',
       traceItemType,
       projects,
+      search,
     });
 
   const allNumberAttributes = useMemo(() => {
-    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
-      measurement,
-      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
-    ]);
+    const measurements = disableDefaultAttributes
+      ? []
+      : getDefaultNumberAttributes(traceItemType).map(measurement => [
+          measurement,
+          {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
+        ]);
 
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(numberAttributes ?? {})
@@ -99,13 +111,15 @@ function useTraceItemAttributeConfig({
       attributes: {...numberAttributes, ...Object.fromEntries(measurements)},
       secondaryAliases,
     };
-  }, [numberAttributes, traceItemType]);
+  }, [disableDefaultAttributes, numberAttributes, traceItemType]);
 
   const allStringAttributes = useMemo(() => {
-    const tags = getDefaultStringAttributes(traceItemType).map(tag => [
-      tag,
-      {key: tag, name: tag, kind: FieldKind.TAG},
-    ]);
+    const tags = disableDefaultAttributes
+      ? []
+      : getDefaultStringAttributes(traceItemType).map(tag => [
+          tag,
+          {key: tag, name: tag, kind: FieldKind.TAG},
+        ]);
 
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(stringAttributes ?? {})
@@ -117,7 +131,7 @@ function useTraceItemAttributeConfig({
       attributes: {...stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [traceItemType, stringAttributes]);
+  }, [disableDefaultAttributes, stringAttributes, traceItemType]);
 
   return {
     number: allNumberAttributes.attributes,
