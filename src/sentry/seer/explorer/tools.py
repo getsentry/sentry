@@ -1206,8 +1206,8 @@ def get_metric_attributes_for_trace(
     *,
     org_id: int,
     trace_id: str,
-    name_substring: str = "",
-    substring_case_sensitive: bool = True,
+    metric_name: str,
+    metric_name_case_sensitive: bool = True,
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
@@ -1266,7 +1266,7 @@ def get_metric_attributes_for_trace(
             )
         ],
     )
-    if limit and not name_substring:
+    if limit and not metric_name:
         request.limit = limit
 
     # Query EAP EndpointGetTrace
@@ -1277,11 +1277,11 @@ def get_metric_attributes_for_trace(
         items = parse_get_trace_rpc_response(item_group, resolver)
         break  # Should only be one item group for metrics
 
-    if name_substring:
+    if metric_name:
         items = (
-            [item for item in items if name_substring in item["metric.name"]]
-            if substring_case_sensitive
-            else [item for item in items if name_substring.lower() in item["metric.name"].lower()]
+            [item for item in items if metric_name == item["metric.name"]]
+            if metric_name_case_sensitive
+            else [item for item in items if metric_name.lower() == item["metric.name"].lower()]
         )
 
     if limit:
