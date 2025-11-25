@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -27,9 +27,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 interface AssignedEntity {
-  email: string | null; // unused
+  email: string | null;
   id: string;
-  name: string; // unused
+  name: string;
   type: string;
 }
 
@@ -207,8 +207,9 @@ function ClusterCard({
 function DynamicGrouping() {
   const organization = useOrganization();
   const user = useUser();
-  const {teams} = useUserTeams();
+  const {teams: userTeams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
@@ -221,6 +222,39 @@ function DynamicGrouping() {
   );
 
   const clusterData = topIssuesResponse?.data ?? [];
+
+  // Extract all unique teams from the cluster data
+  const teamsInData = useMemo(() => {
+    const data = topIssuesResponse?.data ?? [];
+    const teamMap = new Map<string, {id: string; name: string}>();
+    for (const cluster of data) {
+      for (const entity of cluster.assignedTo ?? []) {
+        if (entity.type === 'team' && !teamMap.has(entity.id)) {
+          teamMap.set(entity.id, {id: entity.id, name: entity.name});
+        }
+      }
+    }
+    return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [topIssuesResponse?.data]);
+
+  const isTeamFilterActive = selectedTeamIds.size > 0;
+
+  const handleAssignedToMeChange = (checked: boolean) => {
+    setFilterByAssignedToMe(checked);
+    if (checked) {
+      setSelectedTeamIds(new Set());
+    }
+  };
+
+  const handleTeamToggle = (teamId: string) => {
+    const next = new Set(selectedTeamIds);
+    next.has(teamId) ? next.delete(teamId) : next.add(teamId);
+
+    setSelectedTeamIds(next);
+    if (next.size > 0) {
+      setFilterByAssignedToMe(false);
+    }
+  };
 
   const handleRemoveCluster = (clusterId: number) => {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
@@ -238,9 +272,17 @@ function DynamicGrouping() {
         return cluster.assignedTo.some(
           entity =>
             (entity.type === 'user' && entity.id === user.id) ||
-            (entity.type === 'team' && teams.some(team => team.id === entity.id))
+            (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
         );
       }
+
+      if (isTeamFilterActive) {
+        if (!cluster.assignedTo?.length) return false;
+        return cluster.assignedTo.some(
+          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+        );
+      }
+
       return true;
     })
     .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
@@ -300,14 +342,40 @@ function DynamicGrouping() {
                     <Flex gap="sm" align="center">
                       <Checkbox
                         checked={filterByAssignedToMe}
-                        onChange={e => setFilterByAssignedToMe(e.target.checked)}
+                        onChange={e => handleAssignedToMeChange(e.target.checked)}
                         aria-label={t('Show only issues assigned to me')}
                         size="sm"
+                        disabled={isTeamFilterActive}
                       />
-                      <Text size="sm" variant="muted">
+                      <FilterLabel disabled={isTeamFilterActive}>
                         {t('Only show issues assigned to me')}
-                      </Text>
+                      </FilterLabel>
                     </Flex>
+
+                    {teamsInData.length > 0 && (
+                      <Flex direction="column" gap="sm">
+                        <FilterLabel disabled={filterByAssignedToMe}>
+                          {t('Filter by teams')}
+                        </FilterLabel>
+                        <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                          {teamsInData.map(team => (
+                            <Flex key={team.id} gap="sm" align="center">
+                              <Checkbox
+                                checked={selectedTeamIds.has(team.id)}
+                                onChange={() => handleTeamToggle(team.id)}
+                                aria-label={t('Filter by team %s', team.name)}
+                                size="sm"
+                                disabled={filterByAssignedToMe}
+                              />
+                              <FilterLabel disabled={filterByAssignedToMe}>
+                                #{team.name}
+                              </FilterLabel>
+                            </Flex>
+                          ))}
+                        </Flex>
+                      </Flex>
+                    )}
+
                     <Flex gap="sm" align="center">
                       <Text size="sm" variant="muted">
                         {t('Minimum fixability score (%)')}
@@ -484,6 +552,11 @@ const DescriptionText = styled('p')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   line-height: 1.5;
+`;
+
+const FilterLabel = styled('span')<{disabled?: boolean}>`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
 `;
 
 export default DynamicGrouping;
