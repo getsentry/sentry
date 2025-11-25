@@ -39,7 +39,7 @@ def query_replay_instance_eap(
     select = [
         Column("replay_id"),
         Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
-        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
+        Function("min", parameters=[Column("timestamp")], alias="started_at"),
         Function("max", parameters=[Column("timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
