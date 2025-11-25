@@ -1883,7 +1883,13 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert int(ts) == logs[1].timestamp.seconds
 
         assert isinstance(item["attributes"].get("timestamp_precise"), int)
-        assert item["attributes"]["project"] == self.project.slug
-        assert item["attributes"]["project_id"] == self.project.id
-        assert item["attributes"]["severity"] == "INFO"
-        assert item["attributes"]["message"] == "Request processed successfully"
+
+        for name, value, type in [
+            ("project", self.project.slug, "string"),
+            ("project_id", self.project.id, "int"),
+            ("severity", "INFO", "string"),
+            ("message", "Request processed successfully", "string"),
+            # todo: boolean and double attributes
+        ]:
+            assert item["attributes"][name]["value"] == value
+            assert item["attributes"][name]["type"] == type
