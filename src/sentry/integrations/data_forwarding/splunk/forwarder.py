@@ -6,7 +6,7 @@ from typing import Any
 from sentry import tagstore
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.utils.hashlib import md5_text
 from sentry_plugins.anonymizeip import anonymize_ip
@@ -24,7 +24,7 @@ class SplunkForwarder(BaseDataForwarder):
     host: str | None = None
     project_source: str | None = None
 
-    def get_host_for_splunk(self, event: Event) -> str | None:
+    def get_host_for_splunk(self, event: Event | GroupEvent) -> str | None:
         host = event.get_tag("server_name")
         if host:
             return host
@@ -37,21 +37,21 @@ class SplunkForwarder(BaseDataForwarder):
 
         return None
 
-    def initialize_variables(self, event):
-        self.project_token = self.get_option("token", event.project)
-        self.project_index = self.get_option("index", event.project)
-        self.project_instance = self.get_option("instance", event.project)
+    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]):
+        self.project_token = config.get("token")
+        self.project_index = config.get("index")
+        self.project_instance = config.get("instance")
         self.host = self.get_host_for_splunk(event)
 
         if self.project_instance and not self.project_instance.endswith("/services/collector"):
             self.project_instance = self.project_instance.rstrip("/") + "/services/collector"
 
-        self.project_source = self.get_option("source", event.project) or "sentry"
+        self.project_source = config.get("source", "sentry")
 
-    def get_rl_key(self, event) -> str:
+    def get_rl_key(self, event: Event | GroupEvent) -> str:
         return f"{self.provider.value}:{md5_text(self.project_token).hexdigest()}"
 
-    def get_event_payload_properties(self, event: Event) -> dict[str, Any]:
+    def get_event_payload_properties(self, event: Event | GroupEvent) -> dict[str, Any]:
         props = {
             "event_id": event.event_id,
             "issue_id": event.group_id,
@@ -101,7 +101,9 @@ class SplunkForwarder(BaseDataForwarder):
                     props.update(user_payload)
         return props
 
-    def get_event_payload(self, event: Event, config: dict[str, Any]) -> dict[str, Any]:
+    def get_event_payload(
+        self, event: Event | GroupEvent, config: dict[str, Any]
+    ) -> dict[str, Any]:
         return {
             "time": int(event.datetime.strftime("%s")),
             "source": config.get("source", "sentry"),
@@ -111,9 +113,9 @@ class SplunkForwarder(BaseDataForwarder):
 
     def forward_event(
         self,
+        event: Event | GroupEvent,
         payload: dict[str, Any],
         config: dict[str, Any],
-        event: Event,
     ) -> bool:
         if not self.project_token or not self.project_index or not self.project_instance:
             return False

@@ -6,7 +6,7 @@ from sentry.integrations.data_forwarding.segment.forwarder import SegmentForward
 from sentry.integrations.data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 
-FORWARDER_REGISTRY: Mapping[DataForwarderProviderSlug, type[BaseDataForwarder]] = {
+FORWARDER_REGISTRY: Mapping[str, type[BaseDataForwarder]] = {
     DataForwarderProviderSlug.SEGMENT.value: SegmentForwarder,
     DataForwarderProviderSlug.SQS.value: AmazonSQSForwarder,
     DataForwarderProviderSlug.SPLUNK.value: SplunkForwarder,

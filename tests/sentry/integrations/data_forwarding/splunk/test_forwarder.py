@@ -29,6 +29,7 @@ class SplunkDataForwarderTest(TestCase):
             project=self.project,
             is_enabled=True,
         )
+        self.forwarder = SplunkForwarder()
 
     @responses.activate
     def test_simple_notification(self):
@@ -38,9 +39,7 @@ class SplunkDataForwarderTest(TestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
 
-        result = SplunkForwarder.forward_event(event, self.data_forwarder_project)
-
-        assert result is True
+        self.forwarder.post_process(event, self.data_forwarder_project)
         assert len(responses.calls) == 1
 
         request = responses.calls[0].request
@@ -62,8 +61,7 @@ class SplunkDataForwarderTest(TestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
 
-        result = SplunkForwarder.forward_event(event, self.data_forwarder_project)
-        assert result is False
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
     @responses.activate
     def test_reraise_error(self):
@@ -76,7 +74,7 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         with pytest.raises(ApiError):
-            SplunkForwarder.forward_event(event, self.data_forwarder_project)
+            self.forwarder.post_process(event, self.data_forwarder_project)
 
     def test_http_payload(self):
         event = self.store_event(
@@ -91,7 +89,7 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         config = self.data_forwarder_project.get_config()
-        result = SplunkForwarder.get_event_payload(event, config)
+        result = self.forwarder.get_event_payload(event, config)
         assert result["event"]["request_url"] == "http://example.com/"
         assert result["event"]["request_method"] == "POST"
         assert result["event"]["request_referer"] == "http://example.com/foo"
@@ -106,7 +104,7 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         config = self.data_forwarder_project.get_config()
-        result = SplunkForwarder.get_event_payload(event, config)
+        result = self.forwarder.get_event_payload(event, config)
         assert result["event"]["type"] == "error"
         assert result["event"]["exception_type"] == "ValueError"
         assert result["event"]["exception_value"] == "foo bar"
@@ -126,7 +124,7 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         config = self.data_forwarder_project.get_config()
-        result = SplunkForwarder.get_event_payload(event, config)
+        result = self.forwarder.get_event_payload(event, config)
         assert result["event"]["type"] == "csp"
         assert result["event"]["csp_document_uri"] == "http://example.com/"
         assert result["event"]["csp_violated_directive"] == "style-src cdn.example.com"
@@ -140,7 +138,7 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         config = self.data_forwarder_project.get_config()
-        result = SplunkForwarder.get_event_payload(event, config)
+        result = self.forwarder.get_event_payload(event, config)
         assert result["event"]["user_id"] == "1"
         assert result["event"]["user_email_hash"] == "b48def645758b95537d4424c84d1a9ff"
         assert result["event"]["user_ip_trunc"] == "127.0.0.0"

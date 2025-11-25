@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 from sentry import VERSION, http
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,9 @@ class SegmentForwarder(BaseDataForwarder):
     rate_limit = (200, 1)
     endpoint: ClassVar[str] = "https://api.segment.io/v1/track"
 
-    def get_event_payload(self, event: Event, config: dict[str, Any]) -> dict[str, Any]:
+    def get_event_payload(
+        self, event: Event | GroupEvent, config: dict[str, Any]
+    ) -> dict[str, Any]:
         context = {"library": {"name": "sentry", "version": VERSION}}
 
         props = {
@@ -68,9 +70,9 @@ class SegmentForwarder(BaseDataForwarder):
 
     def forward_event(
         self,
+        event: Event | GroupEvent,
         payload: dict[str, Any],
         config: dict[str, Any],
-        event: Event,
     ) -> bool:
         # we currently only support errors
         if event.get_event_type() != "error":

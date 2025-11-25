@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 from sentry.api.serializers import serialize
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,9 @@ class AmazonSQSForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SQS
     rate_limit = (0, 0)
 
-    def get_event_payload(self, event: Event, config: dict[str, Any]) -> dict[str, Any]:
+    def get_event_payload(
+        self, event: Event | GroupEvent, config: dict[str, Any]
+    ) -> dict[str, Any]:
         return serialize(event)
 
     def is_unrecoverable_client_error(self, error: ClientError) -> bool:
@@ -61,9 +63,9 @@ class AmazonSQSForwarder(BaseDataForwarder):
 
     def forward_event(
         self,
+        event: Event | GroupEvent,
         payload: dict[str, Any],
         config: dict[str, Any],
-        event: Event,
     ) -> bool:
         queue_url = config["queue_url"]
         region = config["region"]

@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 from sentry import ratelimits
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +22,10 @@ class BaseDataForwarder(ABC):
     Tuple of (Number of Requests, Window in Seconds)
     """
 
-    def get_rl_key(self, event) -> str:
+    def get_rl_key(self, event: Event | GroupEvent) -> str:
         return f"{self.provider.value}:{event.project.organization_id}"
 
-    def is_ratelimited(self, event: Event) -> bool:
+    def is_ratelimited(self, event: Event | GroupEvent) -> bool:
         rl_key = self.get_rl_key(event)
         limit, window = self.rate_limit
         if limit and window and ratelimits.backend.is_limited(rl_key, limit=limit, window=window):
@@ -41,19 +41,25 @@ class BaseDataForwarder(ABC):
             return True
         return False
 
-    def initialize_variables(self, event: Event, config: dict[str, Any]) -> None:
+    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]) -> None:
         """This is only necessary for migrating Splunk plugin, needed for rate limiting"""
         return
 
     @abstractmethod
-    def forward_event(self, event: Event, payload: dict[str, Any], config: dict[str, Any]) -> bool:
+    def forward_event(
+        self, event: Event | GroupEvent, payload: dict[str, Any], config: dict[str, Any]
+    ) -> bool:
         raise NotImplementedError
 
     @abstractmethod
-    def get_event_payload(self, event: Event, config: dict[str, Any]) -> dict[str, Any]:
+    def get_event_payload(
+        self, event: Event | GroupEvent, config: dict[str, Any]
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
-    def post_process(self, event: Event, data_forwarder_project: DataForwarderProject) -> None:
+    def post_process(
+        self, event: Event | GroupEvent, data_forwarder_project: DataForwarderProject
+    ) -> None:
         config = data_forwarder_project.get_config()
         if self.is_ratelimited(event):
             return

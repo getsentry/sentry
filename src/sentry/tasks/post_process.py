@@ -16,7 +16,6 @@ from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1288,6 +1287,7 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         return
 
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
@@ -1300,8 +1300,8 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         provider = data_forwarder_project.data_forwarder.provider
         try:
             # GroupEvent is compatible with Event for all operations forwarders need
-            forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]()
-            forwarder.post_process(event, data_forwarder_project)
+            forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]
+            forwarder().post_process(event, data_forwarder_project)
             metrics.incr(
                 "data_forwarding.post_process",
                 tags={"provider": provider},
