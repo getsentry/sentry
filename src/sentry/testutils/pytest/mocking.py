@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
+from unittest.mock import MagicMock
+from unittest.mock import call as MockCall
 
 # TODO: Once we're on python 3.12, we can get rid of these and change the first line of the
 # signature of `capture_results` to
@@ -122,3 +124,14 @@ def capture_results(
         return returned_value
 
     return wrapped_fn
+
+
+def count_matching_calls(mock_fn: MagicMock, *args: Any, **kwargs: Any) -> int:
+    """
+    Given a mock function, count the calls which match the given args and kwargs.
+
+    Note: As is the case with the built-in mock methods `assert_called_with` and friends, the given
+    args and kwargs must match the full list of what was passed to the given mock.
+    """
+    matching_calls = [call for call in mock_fn.call_args_list if call == MockCall(*args, **kwargs)]
+    return len(matching_calls)
