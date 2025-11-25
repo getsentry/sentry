@@ -175,10 +175,10 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             assert len(task_queue.put_calls) == 2
             # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
-            all_deleted_ids = set()
+            all_deleted_ids: set[tuple[int, ...]] = set()
             for call in task_queue.put_calls:
                 assert call[0] == "sentry.models.group.Group"
-                all_deleted_ids.update(call[1])
-            assert all_deleted_ids == set(ids)
+                all_deleted_ids.add(call[1])
+            assert all_deleted_ids == set(tuple(ids))
 
         assert Group.objects.all().count() == 1
