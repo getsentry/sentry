@@ -32,8 +32,6 @@ export function transformEventsStatsToSeries(
         value: counts.reduce((acc, {count}) => acc + count, 0),
       };
     }),
-    // Disable mouse hover emphasis effect on series points
-    emphasis: {disabled: true},
   };
 }
 

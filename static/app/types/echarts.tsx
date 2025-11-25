@@ -28,8 +28,6 @@ export type Series = {
   };
   color?: string;
   confidence?: Confidence;
-  // https://echarts.apache.org/en/option.html#series-line.emphasis
-  emphasis?: LineSeriesOption['emphasis'];
   id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
