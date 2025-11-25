@@ -87,7 +87,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         required=False,
         allow_empty=False,
     )
-    extrapolation_mode = serializers.IntegerField(required=False, allow_null=True)
+    extrapolation_mode = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = QuerySubscription
@@ -408,7 +408,15 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def create_source(self, validated_data) -> QuerySubscription:
         extrapolation_mode = validated_data.get("extrapolation_mode")
         if extrapolation_mode is not None:
-            extrapolation_mode = ExtrapolationMode(extrapolation_mode)
+            extrapolation_mode_options = ExtrapolationMode.as_text_choices()
+            for name, value in extrapolation_mode_options:
+                if name == extrapolation_mode:
+                    extrapolation_mode = ExtrapolationMode(value)
+                    break
+            if type(extrapolation_mode) is not ExtrapolationMode:
+                raise serializers.ValidationError(
+                    f"Invalid extrapolation mode: {extrapolation_mode}"
+                )
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],

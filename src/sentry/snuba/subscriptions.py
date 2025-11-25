@@ -133,7 +133,7 @@ def update_snuba_query(
             extrapolation_mode=(
                 extrapolation_mode
                 if extrapolation_mode is not None
-                else ExtrapolationMode.UNKNOWN.value
+                else snuba_query.extrapolation_mode
             ),
         )
         if new_event_types:
