@@ -18,6 +18,7 @@ from sentry.seer.autofix.issue_summary import (
     _fetch_user_preference,
     _get_event,
     _get_stopping_point_from_fixability,
+    get_and_update_group_fixability_score,
     get_issue_summary,
     run_automation,
 )
@@ -1143,3 +1144,65 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
 
         # Should trigger automation
         mock_trigger.delay.assert_called_once()
+
+
+@with_feature("organizations:gen-ai-features")
+class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_returns_existing_score_without_regenerating(self, mock_generate):
+        """Test that existing fixability score is returned without calling Seer."""
+        # Set an existing fixability score
+        self.group.update(seer_fixability_score=0.75)
+
+        result = get_and_update_group_fixability_score(self.group)
+
+        assert result == 0.75
+        # Seer should not be called when score exists
+        mock_generate.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_generates_and_updates_score_when_missing(self, mock_generate):
+        """Test that fixability score is generated and saved when missing."""
+        mock_generate.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            whats_wrong="Something",
+            trace="Trace",
+            possible_cause="Cause",
+            scores=SummarizeIssueScores(fixability_score=0.85),
+        )
+
+        result = get_and_update_group_fixability_score(self.group)
+
+        assert result == 0.85
+        # Verify group was updated with the new score
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.85
+        mock_generate.assert_called_once_with(self.group)
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_force_generate_regenerates_existing_score(self, mock_generate):
+        """Test that force_generate=True regenerates score even if one exists."""
+        # Set an existing score
+        self.group.update(seer_fixability_score=0.50)
+
+        mock_generate.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test",
+            whats_wrong="Something",
+            trace="Trace",
+            possible_cause="Cause",
+            scores=SummarizeIssueScores(fixability_score=0.90),
+        )
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result == 0.90
+        # Verify the score was updated
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.90
+        mock_generate.assert_called_once_with(self.group)
