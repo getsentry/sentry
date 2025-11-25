@@ -397,6 +397,10 @@ def _assemble_preprod_artifact_size_analysis(
         )
         was_created = False
 
+        # Build list inside transaction, only assign to size_metrics_updated after
+        # transaction commits. If the transaction rolls back, we don't want stale
+        # references to objects that don't exist in the database.
+        metrics_in_transaction: list[PreprodArtifactSizeMetrics] = []
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             app_components = size_analysis_results.app_components or []
 
@@ -419,7 +423,7 @@ def _assemble_preprod_artifact_size_analysis(
                     },
                 )
                 was_created = created
-                size_metrics_updated.append(size_metrics)
+                metrics_in_transaction.append(size_metrics)
             else:
                 for app_component in app_components:
                     # MAIN_ARTIFACT uses NULL identifier for backwards compatibility
@@ -446,7 +450,10 @@ def _assemble_preprod_artifact_size_analysis(
                         },
                     )
                     was_created = created or was_created
-                    size_metrics_updated.append(size_metrics)
+                    metrics_in_transaction.append(size_metrics)
+
+        # Transaction committed successfully, now safe to reference these objects
+        size_metrics_updated = metrics_in_transaction
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
