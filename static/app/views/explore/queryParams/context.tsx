@@ -474,8 +474,28 @@ export function useSetQueryParamsCrossEvents() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    ({query, type}: CrossEvent) => {
-      setQueryParams({crossEvents: [...(queryParams.crossEvents ?? []), {query, type}]});
+    ({
+      query,
+      type,
+      index,
+    }: CrossEvent & {
+      index?: number;
+    }) => {
+      if (!defined(queryParams.crossEvents)) {
+        setQueryParams({crossEvents: [{query, type}]});
+        return;
+      }
+
+      if (defined(index)) {
+        setQueryParams({
+          crossEvents: queryParams.crossEvents.map((crossEvent, i) =>
+            i === index ? {query, type} : crossEvent
+          ),
+        });
+        return;
+      }
+
+      setQueryParams({crossEvents: [...queryParams.crossEvents, {query, type}]});
     },
     [queryParams, setQueryParams]
   );
