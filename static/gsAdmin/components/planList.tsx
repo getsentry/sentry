@@ -20,7 +20,11 @@ import {
   type Plan,
   type Subscription,
 } from 'getsentry/types';
-import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  isByteCategory,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -50,6 +54,7 @@ function PlanList({
    * Helper to get current value display for a category
    */
   const getCurrentValueDisplay = (category: DataCategory) => {
+    const categoryInfo = getCategoryInfoFromPlural(category);
     // Check if categories exist
     if (subscription.categories) {
       // Get the category data using type assertion to allow string indexing
@@ -61,7 +66,7 @@ function PlanList({
         return (
           <CurrentValueText>
             Current: {reservedValue.toLocaleString()}{' '}
-            {isByteCategory(category) ? 'GB' : ''}
+            {isByteCategory(categoryInfo) ? 'GB' : ''}
           </CurrentValueText>
         );
       }
@@ -152,6 +157,7 @@ function PlanList({
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
             {activePlan.checkoutCategories.map(category => {
+              const categoryInfo = getCategoryInfoFromPlural(category);
               const titleCategory = getPlanCategoryName({
                 plan: activePlan,
                 category,
@@ -159,7 +165,7 @@ function PlanList({
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
               })}`;
-              const label = isByteCategory(category)
+              const label = isByteCategory(categoryInfo)
                 ? `${titleCategory} (GB)`
                 : titleCategory;
               const fieldValue = formModel.getValue(reservedKey);

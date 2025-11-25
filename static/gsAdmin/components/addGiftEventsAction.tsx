@@ -10,6 +10,7 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   isByteCategory,
   isContinuousProfiling,
@@ -93,16 +94,17 @@ class AddGiftEventsAction extends Component<Props, State> {
     const {freeEvents} = this.state;
 
     function getlabel() {
+      const categoryInfo = getCategoryInfoFromPlural(dataCategory);
       const categoryName = getPlanCategoryName({
         plan: subscription.planDetails,
         category: dataCategory,
         capitalize: false,
       });
 
-      if (isByteCategory(dataCategory)) {
+      if (isByteCategory(categoryInfo)) {
         return `How many ${categoryName} in GB?`;
       }
-      if (isContinuousProfiling(dataCategory)) {
+      if (isContinuousProfiling(categoryInfo)) {
         return 'How many profile hours?';
       }
 
@@ -116,15 +118,16 @@ class AddGiftEventsAction extends Component<Props, State> {
 
     const total = this.calculatedTotal.toLocaleString();
     function getHelp() {
+      const categoryInfo = getCategoryInfoFromPlural(dataCategory);
       let postFix = '';
-      if (isContinuousProfiling(dataCategory)) {
+      if (isContinuousProfiling(categoryInfo)) {
         if (total === '1') {
           postFix = ' hour';
         } else {
           postFix = ' hours';
         }
       }
-      if (isByteCategory(dataCategory)) {
+      if (isByteCategory(categoryInfo)) {
         postFix = ' GB';
       }
       return `Total: ${total}${postFix}`;

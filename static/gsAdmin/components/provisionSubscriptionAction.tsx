@@ -836,7 +836,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         title: true,
                         hadCustomDynamicSampling: isAm3Ds,
                       });
-                      const suffix = isByteCategory(category) ? ' (in GB)' : '';
+                      const suffix = isByteCategory(categoryInfo) ? ' (in GB)' : '';
                       const capitalizedApiName = this.capitalizeForApiName(
                         categoryInfo.plural
                       );
