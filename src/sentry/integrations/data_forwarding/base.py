@@ -61,6 +61,7 @@ class BaseDataForwarder(ABC):
         self, event: Event | GroupEvent, data_forwarder_project: DataForwarderProject
     ) -> None:
         config = data_forwarder_project.get_config()
+        self.initialize_variables(event, config)
         if self.is_ratelimited(event):
             return
 

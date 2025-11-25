@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 from botocore.exceptions import ClientError
 
+from sentry.api.serializers import serialize
 from sentry.integrations.data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -53,7 +54,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         )
         mock_client.return_value.send_message.assert_called_once_with(
             QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=orjson.dumps(event.as_dict(), option=orjson.OPT_UTC_Z).decode(),
+            MessageBody=orjson.dumps(serialize(event), option=orjson.OPT_UTC_Z).decode(),
         )
 
     @patch("boto3.client")

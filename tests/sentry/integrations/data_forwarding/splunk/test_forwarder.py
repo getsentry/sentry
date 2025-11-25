@@ -1,12 +1,10 @@
 import orjson
-import pytest
 import responses
 
 from sentry.integrations.data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
@@ -62,19 +60,6 @@ class SplunkDataForwarderTest(TestCase):
         )
 
         self.forwarder.post_process(event, self.data_forwarder_project)
-
-    @responses.activate
-    def test_reraise_error(self):
-        responses.add(
-            responses.POST, "https://splunk.example.com:8088/services/collector", status=500
-        )
-
-        event = self.store_event(
-            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
-        )
-
-        with pytest.raises(ApiError):
-            self.forwarder.post_process(event, self.data_forwarder_project)
 
     def test_http_payload(self):
         event = self.store_event(

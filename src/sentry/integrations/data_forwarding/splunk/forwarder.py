@@ -40,7 +40,7 @@ class SplunkForwarder(BaseDataForwarder):
     def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]):
         self.project_token = config.get("token")
         self.project_index = config.get("index")
-        self.project_instance = config.get("instance")
+        self.project_instance = config.get("instance_url")
         self.host = self.get_host_for_splunk(event)
 
         if self.project_instance and not self.project_instance.endswith("/services/collector"):
