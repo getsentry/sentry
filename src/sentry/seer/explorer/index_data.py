@@ -20,8 +20,6 @@ from sentry.seer.explorer.utils import (
     normalize_description,
 )
 from sentry.seer.sentry_data_models import (
-    EvidenceSpan,
-    EvidenceTraceData,
     IssueDetails,
     ProfileData,
     Span,
@@ -115,9 +113,7 @@ def get_transactions_for_project(
     return transactions
 
 
-def get_trace_for_transaction(
-    transaction_name: str, project_id: int, llm_issue_detection: bool = False
-) -> TraceData | EvidenceTraceData | None:
+def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceData | None:
     """
     Get a sample trace for a given transaction, choosing the one with median span count.
 
@@ -150,7 +146,7 @@ def get_trace_for_transaction(
         auto_fields=True,
     )
 
-    # Step 1: Get a random trace ID for the transaction
+    # Step 1: Get a trace ID for the transaction
     escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
@@ -181,20 +177,16 @@ def get_trace_for_transaction(
         return None
 
     # Step 2: Get all spans in the chosen trace
-    selected_columns = [
-        "span_id",
-        "parent_span",
-        "span.op",
-        "span.description",
-        "precise.start_ts",
-    ]
-    if llm_issue_detection:
-        selected_columns.extend(["span.self_time", "span.duration", "span.status"])
-
     spans_result = Spans.run_table_query(
         params=snuba_params,
         query_string=f"trace:{trace_id}",
-        selected_columns=selected_columns,
+        selected_columns=[
+            "span_id",
+            "parent_span",
+            "span.op",
+            "span.description",
+            "precise.start_ts",
+        ],
         orderby=["precise.start_ts"],
         offset=0,
         limit=1000,
@@ -204,66 +196,30 @@ def get_trace_for_transaction(
     )
 
     # Step 3: Build span objects
-    if llm_issue_detection:
-        evidence_spans: list[EvidenceSpan] = []
-        for row in spans_result.get("data", []):
-            span_id = row.get("span_id")
-            parent_span_id = row.get("parent_span")
-            span_op = row.get("span.op")
-            span_description = row.get("span.description")
-            span_exclusive_time = row.get("span.self_time")
-            span_duration = row.get("span.duration")
-            span_status = row.get("span.status")
-            span_timestamp = row.get("precise.start_ts")
+    spans: list[Span] = []
+    for row in spans_result.get("data", []):
+        span_id = row.get("span_id")
+        parent_span_id = row.get("parent_span")
+        span_op = row.get("span.op")
+        span_description = row.get("span.description")
 
-            if span_id:
-                evidence_spans.append(
-                    EvidenceSpan(
-                        span_id=span_id,
-                        parent_span_id=parent_span_id,
-                        op=span_op,
-                        description=span_description or "",
-                        exclusive_time=span_exclusive_time,
-                        timestamp=span_timestamp,
-                        data={
-                            "duration": span_duration,
-                            "status": span_status,
-                        },
-                    )
+        if span_id:
+            spans.append(
+                Span(
+                    span_id=span_id,
+                    parent_span_id=parent_span_id,
+                    span_op=span_op,
+                    span_description=span_description or "",
                 )
+            )
 
-        return EvidenceTraceData(
-            trace_id=trace_id,
-            project_id=project_id,
-            transaction_name=transaction_name,
-            total_spans=len(evidence_spans),
-            spans=evidence_spans,
-        )
-    else:
-        spans: list[Span] = []
-        for row in spans_result.get("data", []):
-            span_id = row.get("span_id")
-            parent_span_id = row.get("parent_span")
-            span_op = row.get("span.op")
-            span_description = row.get("span.description")
-
-            if span_id:
-                spans.append(
-                    Span(
-                        span_id=span_id,
-                        parent_span_id=parent_span_id,
-                        span_op=span_op,
-                        span_description=span_description or "",
-                    )
-                )
-
-        return TraceData(
-            trace_id=trace_id,
-            project_id=project_id,
-            transaction_name=transaction_name,
-            total_spans=len(spans),
-            spans=spans,
-        )
+    return TraceData(
+        trace_id=trace_id,
+        project_id=project_id,
+        transaction_name=transaction_name,
+        total_spans=len(spans),
+        spans=spans,
+    )
 
 
 def _fetch_and_process_profile(

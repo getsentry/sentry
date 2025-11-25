@@ -1,3 +1,5 @@
+import uuid
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
@@ -8,12 +10,14 @@ from sentry.tasks.llm_issue_detection import (
     detect_llm_issues_for_project,
     run_llm_issue_detection,
 )
-from sentry.testutils.cases import TestCase
+from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_llm_detection
+from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
-    @patch("sentry.tasks.llm_issue_detection.detect_llm_issues_for_project.delay")
+    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.delay")
     def test_run_detection_dispatches_sub_tasks(self, mock_delay):
         """Test run_detection spawns sub-tasks for each project."""
         project = self.create_project()
@@ -29,15 +33,15 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
 
-    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
     def test_detect_llm_issues_no_transactions(self, mock_get_transactions):
         mock_get_transactions.return_value = []
 
         detect_llm_issues_for_project(self.project.id)
 
-    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
-    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.random.sample")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.detection.random.sample")
     def test_detect_llm_issues_no_traces(self, mock_sample, mock_get_transactions, mock_get_trace):
         mock_transaction = Mock()
         mock_transaction.name = "test_tx"
@@ -48,7 +52,7 @@ class LLMIssueDetectionTest(TestCase):
 
         detect_llm_issues_for_project(self.project.id)
 
-    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
         detected_issue = DetectedIssue(
             title="Database Connection Pool Exhaustion",
@@ -115,7 +119,7 @@ class LLMIssueDetectionTest(TestCase):
         assert "received" in event_data
         assert "timestamp" in event_data
 
-    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_without_missing_telemetry(self, mock_produce_occurrence):
         detected_issue = DetectedIssue(
             title="Slow API Response",
@@ -141,11 +145,11 @@ class LLMIssueDetectionTest(TestCase):
         evidence_names = {e.name for e in occurrence.evidence_display}
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
 
-    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
-    @patch("sentry.tasks.llm_issue_detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
-    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.random.sample")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.detection.random.sample")
     def test_detect_llm_issues_full_flow(
         self,
         mock_sample,
@@ -231,3 +235,75 @@ class LLMIssueDetectionTest(TestCase):
         second_occurrence = mock_produce_occurrence.call_args_list[1].kwargs["occurrence"]
         assert second_occurrence.issue_title == "Memory Leak Risk"
         assert len(second_occurrence.evidence_display) == 3
+
+
+class TestGetEvidenceTraceForLLMDetection(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.ten_mins_ago = before_now(minutes=10)
+
+    def test_get_evidence_trace_for_llm_detection(self) -> None:
+        transaction_name = "api/users/profile"
+
+        # Create multiple traces with different span counts
+        traces_data = [
+            (5, "trace-medium", 0),
+            (2, "trace-small", 10),
+            (8, "trace-large", 20),
+        ]
+
+        spans = []
+        trace_ids = []
+        expected_trace_id = None
+
+        for span_count, trace_suffix, start_offset_minutes in traces_data:
+            trace_id = uuid.uuid4().hex
+            trace_ids.append(trace_id)
+            if trace_suffix == "trace-medium":
+                expected_trace_id = trace_id
+
+            for i in range(span_count):
+                span = self.create_span(
+                    {
+                        "description": f"span-{i}-{trace_suffix}",
+                        "sentry_tags": {"transaction": transaction_name},
+                        "trace_id": trace_id,
+                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                        "is_segment": i == 0,
+                    },
+                    start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
+                )
+                spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Call the LLM detection function
+        result = get_evidence_trace_for_llm_detection(transaction_name, self.project.id)
+
+        # Verify basic structure
+        assert result is not None
+        assert result.transaction_name == transaction_name
+        assert result.project_id == self.project.id
+        assert result.trace_id in trace_ids
+        assert result.trace_id == expected_trace_id
+        assert result.total_spans == 5
+        assert len(result.spans) == 5
+
+        # Verify it's EvidenceTraceData with EvidenceSpan objects
+        assert isinstance(result, EvidenceTraceData)
+        for result_span in result.spans:
+            assert isinstance(result_span, EvidenceSpan)
+            assert result_span.span_id is not None
+            assert result_span.description is not None
+            assert result_span.description.startswith("span-")
+            assert "trace-medium" in result_span.description
+            assert hasattr(result_span, "op")
+            assert hasattr(result_span, "exclusive_time")
+            assert hasattr(result_span, "data")
+            assert result_span.data is not None
+            assert "duration" in result_span.data
+            assert "status" in result_span.data
+
+        # Verify parent-child relationships are preserved
+        root_spans = [s for s in result.spans if s.parent_span_id is None]
+        assert len(root_spans) == 1

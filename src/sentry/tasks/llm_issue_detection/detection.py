@@ -20,7 +20,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.sentry_data_models import EvidenceTraceData
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.llm_detection_helpers import get_evidence_trace_for_llm_detection
+from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_llm_detection
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
 
