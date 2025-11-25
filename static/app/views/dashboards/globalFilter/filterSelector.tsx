@@ -2,27 +2,43 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {
+  modifyFilterOperatorQuery,
+  modifyFilterValue,
+} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {
+  escapeTagValue,
+  getFilterValueType,
+  OP_LABELS,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getInitialInputValue,
   getPredefinedValues,
+  getSelectedValuesFromText,
+  prepareInputValueForSaving,
   tokenSupportsMultipleValues,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
+  parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -39,12 +55,41 @@ function FilterSelector({
   onRemoveFilter,
   onUpdateFilter,
 }: FilterSelectorProps) {
-  // Parse global filter condition to retrieve initial state
-  const initialValues = useMemo(() => {
-    const mutableSearch = new MutableSearch(globalFilter.value);
-    return mutableSearch.getFilterValues(globalFilter.tag.key);
-  }, [globalFilter]);
+  const {dataset, tag} = globalFilter;
+  const {selection} = usePageFilters();
 
+  const fieldDefinition = getFieldDefinitionForDataset(tag, dataset);
+  const filterToken = useMemo(
+    () => getFilterToken(globalFilter, fieldDefinition),
+    [globalFilter, fieldDefinition]
+  );
+
+  // Get initial selected values from the filter token
+  const initialValues = useMemo(() => {
+    if (!filterToken) {
+      return [];
+    }
+    const iniitalValue = getInitialInputValue(filterToken, true);
+    const selectedValues = getSelectedValuesFromText(iniitalValue, {escaped: false});
+    return selectedValues.map(item => item.value);
+  }, [filterToken]);
+
+  // Get operator info from the filter token
+  const operatorInfo = useMemo(() => {
+    if (!filterToken) {
+      return null;
+    }
+    return getOperatorInfo({
+      filterToken,
+      hasWildcardOperators: true,
+      fieldDefinition,
+    });
+  }, [filterToken, fieldDefinition]);
+
+  const operatorOptions = operatorInfo?.options ?? [];
+  const initialOperator = operatorInfo?.operator ?? TermOperator.DEFAULT;
+
+  const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
   const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
   const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,20 +97,12 @@ function FilterSelector({
   useEffect(() => {
     setActiveFilterValues(initialValues);
     setStagedFilterValues([]);
-  }, [initialValues]);
-
-  const {dataset, tag} = globalFilter;
-  const {selection} = usePageFilters();
+    setStagedOperator(initialOperator);
+  }, [initialValues, initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
   const datasetFilterKeys = searchBarData.getFilterKeys();
   const fullTag = datasetFilterKeys[tag.key];
-  const fieldDefinition = getFieldDefinitionForDataset(tag, dataset);
-
-  const filterToken = useMemo(
-    () => getFilterToken(globalFilter, fieldDefinition),
-    [globalFilter, fieldDefinition]
-  );
 
   const canSelectMultipleValues = filterToken
     ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
@@ -159,83 +196,35 @@ function FilterSelector({
   ]);
 
   const handleChange = (opts: string[]) => {
-    if (isEqual(opts, activeFilterValues)) {
+    if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
+      return;
+    }
+    if (!filterToken) {
       return;
     }
     setActiveFilterValues(opts);
 
-    // Build filter condition string
-    const mutableSearch = new MutableSearch('');
-
-    let filterValue = '';
-    if (opts.length === 1) {
-      filterValue = mutableSearch.addFilterValue(tag.key, opts[0]!).toString();
-    } else if (opts.length > 1) {
-      filterValue = mutableSearch.addFilterValueList(tag.key, opts).toString();
+    let newValue = '';
+    if (opts.length !== 0) {
+      const cleanedValue = prepareInputValueForSaving(
+        getFilterValueType(filterToken, fieldDefinition),
+        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+      );
+      newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }
+
+    if (stagedOperator !== initialOperator) {
+      const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
+      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator, true);
+    }
+
     onUpdateFilter({
       ...globalFilter,
-      value: filterValue,
+      value: newValue,
     });
   };
 
-  const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
-    <Flex gap="md">
-      {activeFilterValues.length > 0 && (
-        <StyledButton
-          aria-label={t('Clear Selections')}
-          size="zero"
-          borderless
-          onClick={() => {
-            setSearchQuery('');
-            handleChange([]);
-            closeOverlay();
-          }}
-        >
-          {t('Clear')}
-        </StyledButton>
-      )}
-      <StyledButton
-        aria-label={t('Remove Filter')}
-        size="zero"
-        onClick={() => onRemoveFilter(globalFilter)}
-      >
-        {t('Remove Filter')}
-      </StyledButton>
-    </Flex>
-  );
-
-  const renderFilterSelectorTrigger = () => (
-    <FilterSelectorTrigger
-      globalFilter={globalFilter}
-      activeFilterValues={initialValues}
-      options={options}
-      queryResult={queryResult}
-    />
-  );
-
-  if (!canSelectMultipleValues) {
-    return (
-      <CompactSelect
-        multiple={false}
-        disabled={false}
-        options={options}
-        value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
-        onChange={option => {
-          const newValue = option?.value;
-          handleChange(newValue ? [newValue] : []);
-        }}
-        onClose={() => {
-          setStagedFilterValues([]);
-        }}
-        menuTitle={t('%s Filter', getDatasetLabel(dataset))}
-        menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-        triggerProps={{
-          children: renderFilterSelectorTrigger(),
-        }}
-      />
-    );
-  }
+  const hasChanges = stagedFilterValues.length > 0 && stagedOperator !== initialOperator;
 
   return (
     <HybridFilter
@@ -248,23 +237,84 @@ function FilterSelector({
       onSearch={setSearchQuery}
       defaultValue={[]}
       onChange={handleChange}
+      hasExternalChanges={hasChanges}
       onStagedValueChange={value => {
         setStagedFilterValues(value);
       }}
+      maxMenuWidth={400}
       sizeLimit={30}
-      maxMenuWidth={500}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
+        setStagedOperator(initialOperator);
       }}
       sizeLimitMessage={t('Use search to find more filter values…')}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
-      menuTitle={t('%s Filter', getDatasetLabel(dataset))}
-      menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
+      menuTitle={
+        <OperatorFlex>
+          <DropdownMenu
+            usePortal
+            trigger={(triggerProps, isOpen) => (
+              <WildcardButton gap="xs" align="center">
+                <span>{prettifyTagKey(globalFilter.tag.key)}</span>
+                <Button {...triggerProps} size="zero" borderless>
+                  <Flex gap="xs" align="center">
+                    <SubText>{OP_LABELS[stagedOperator]}</SubText>
+                    <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                  </Flex>
+                </Button>
+              </WildcardButton>
+            )}
+            items={operatorOptions.map(option => ({
+              ...option,
+              key: option.value,
+              label: option.label,
+              textValue: option.textValue,
+              onClick: () => {
+                setStagedOperator(option.value);
+              },
+            }))}
+          />
+        </OperatorFlex>
+      }
+      menuHeaderTrailingItems={({closeOverlay}: any) => (
+        <Flex gap="md">
+          {activeFilterValues.length > 0 && (
+            <StyledButton
+              aria-label={t('Clear Selections')}
+              size="zero"
+              borderless
+              onClick={() => {
+                setSearchQuery('');
+                handleChange([]);
+                closeOverlay();
+                setStagedOperator(TermOperator.DEFAULT);
+              }}
+            >
+              {t('Clear')}
+            </StyledButton>
+          )}
+          <StyledButton
+            aria-label={t('Remove Filter')}
+            size="zero"
+            onClick={() => onRemoveFilter(globalFilter)}
+          >
+            {t('Remove Filter')}
+          </StyledButton>
+        </Flex>
+      )}
       triggerProps={{
-        children: renderFilterSelectorTrigger(),
+        children: (
+          <FilterSelectorTrigger
+            globalFilter={globalFilter}
+            activeFilterValues={initialValues}
+            operator={initialOperator}
+            options={options}
+            queryResult={queryResult}
+          />
+        ),
       }}
     />
   );
@@ -281,4 +331,18 @@ const StyledButton = styled(Button)`
     p.theme.isChonk
       ? `-${space(0.5)} -${space(0.5)}`
       : `-${space(0.25)} -${space(0.25)}`};
+`;
+
+const OperatorFlex = styled(Flex)`
+  margin-left: -${space(0.75)};
+`;
+
+const WildcardButton = styled(Flex)`
+  align-items: center;
+  padding: 0 ${space(1)};
+`;
+
+const SubText = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

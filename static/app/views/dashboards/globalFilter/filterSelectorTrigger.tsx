@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {Badge} from 'sentry/components/core/badge';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +15,7 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 type FilterSelectorTriggerProps = {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;
+  operator: TermOperator;
   options: Array<SelectOption<string>>;
   queryResult: UseQueryResult<string[], Error>;
 };
@@ -20,11 +23,13 @@ type FilterSelectorTriggerProps = {
 function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
+  operator,
   options,
   queryResult,
 }: FilterSelectorTriggerProps) {
   const {isFetching} = queryResult;
   const {tag} = globalFilter;
+  const label = operator === TermOperator.DEFAULT ? ': ' : ` ${OP_LABELS[operator]} `;
 
   const shouldShowBadge =
     !isFetching &&
@@ -36,7 +41,8 @@ function FilterSelectorTrigger({
   return (
     <ButtonLabelWrapper>
       <TextOverflow>
-        {prettifyTagKey(tag.key)}:{' '}
+        {prettifyTagKey(tag.key)}
+        {label}
         {!isFetching && (
           <span style={{fontWeight: 'normal'}}>
             {isAllSelected ? t('All') : activeFilterValues[0]}
