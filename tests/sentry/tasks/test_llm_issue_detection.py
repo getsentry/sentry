@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
-from sentry.seer.sentry_data_models import EvidenceSpan, TraceData
+from sentry.seer.sentry_data_models import EvidenceSpan, EvidenceTraceData
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -173,7 +173,7 @@ class LLMIssueDetectionTest(TestCase):
             },
         )
 
-        mock_trace = TraceData(
+        mock_trace = EvidenceTraceData(
             trace_id="trace-abc-123",
             project_id=self.project.id,
             transaction_name="api/users/list",
