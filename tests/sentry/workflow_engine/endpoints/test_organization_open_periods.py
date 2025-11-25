@@ -130,8 +130,11 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
     def test_open_periods_unresolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
+        self.group.first_seen = timezone.now() - timedelta(minutes=10)
         self.group.save()
-        resolved_time = timezone.now()
+        self.group_open_period.date_started = timezone.now() - timedelta(minutes=10)
+        self.group_open_period.save()
+        resolved_time = timezone.now() - timedelta(minutes=9)
         resolve_activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
@@ -149,7 +152,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
         )
 
-        unresolved_time = timezone.now()
+        unresolved_time = timezone.now() - timedelta(minutes=8)
         self.group.status = GroupStatus.UNRESOLVED
         self.group.save()
         regression_activity = Activity.objects.create(
@@ -162,7 +165,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
-        second_resolved_time = timezone.now()
+        second_resolved_time = timezone.now() - timedelta(minutes=7)
         second_resolve_activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
@@ -230,8 +233,11 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
     def test_open_periods_limit(self) -> None:
         self.group.status = GroupStatus.RESOLVED
+        self.group.first_seen = timezone.now() - timedelta(minutes=10)
         self.group.save()
-        resolved_time = timezone.now()
+        self.group_open_period.date_started = timezone.now() - timedelta(minutes=10)
+        self.group_open_period.save()
+        resolved_time = timezone.now() - timedelta(minutes=5)
         resolve_activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
