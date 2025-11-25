@@ -40,6 +40,11 @@ class EvidenceData(Generic[DataPacketEvaluationType]):
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class DetectorOccurrence:
+    """
+    Represents a detector observation at any priority level (issue detection or resolution).
+    Created by detector handlers for both problem states (HIGH/MEDIUM/LOW) and resolved states (OK).
+    """
+
     issue_title: str
     subtitle: str
     evidence_data: Mapping[str, Any] = dataclasses.field(default_factory=dict)
@@ -145,11 +150,14 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         """
+        Creates a DetectorOccurrence for the current detector state at any priority level.
+        Called for both issue detection (HIGH/MEDIUM/LOW) and resolution (OK).
+
         This method provides the value that was evaluated against, the data packet that was
-        used to get the data, and the condition(s) that are failing.
+        used to get the data, and the condition evaluation results.
 
         To implement this, you will need to create a new `DetectorOccurrence` object,
-        to represent the issue that was detected. Additionally, you can return any
+        to represent the detector's observation. Additionally, you can return any
         event_data to associate with the occurrence.
         """
         pass

@@ -486,11 +486,18 @@ class StatefulDetectorHandler(
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
     ) -> StatusChangeMessage:
+        # Call create_occurrence to get a DetectorOccurrence with OK priority
+        # This allows detector handlers to customize resolution data (e.g., detection_time)
+        detector_occurrence, _ = self.create_occurrence(
+            condition_results, data_packet, DetectorPriorityLevel.OK
+        )
+
         fingerprint = [
             *self.build_issue_fingerprint(),
             self.state_manager.build_key(group_key),
         ]
 
+        # Merge evidence data from workflow engine, detector handler, and detector occurrence
         evidence_data = {
             **self._build_workflow_engine_evidence_data(
                 evaluation_result=condition_results,
@@ -502,6 +509,7 @@ class StatefulDetectorHandler(
                 data_packet,
                 DetectorPriorityLevel.OK,
             ),
+            **detector_occurrence.evidence_data,
         }
 
         return StatusChangeMessage(
@@ -511,6 +519,7 @@ class StatefulDetectorHandler(
             new_substatus=None,
             detector_id=self.detector.id,
             activity_data=evidence_data,
+            update_date=detector_occurrence.detection_time,
         )
 
     def _extract_value_from_packet(
@@ -549,7 +558,6 @@ class StatefulDetectorHandler(
         event_data: EventData | None = None
 
         if new_priority == DetectorPriorityLevel.OK:
-            # Call the `create_resolve_message` method to create the status change.
             detector_result = self._create_resolve_message(
                 condition_results,
                 data_packet,
