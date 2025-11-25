@@ -50,9 +50,6 @@ function KeyRow({
   const showOtlpTraces =
     useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
-  const showVercelLogDrainEndpoint = organization.features.includes(
-    'relay-vercel-log-drain-endpoint'
-  );
 
   return (
     <Panel>
@@ -107,12 +104,10 @@ function KeyRow({
             data={data}
             showOtlpTraces={showOtlpTraces}
             showOtlpLogs={showOtlpLogs}
-            showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}
           />
-
           {isBrowserJavaScript && (
             <LoaderScript
               projectKey={data}

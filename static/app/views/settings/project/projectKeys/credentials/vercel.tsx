@@ -9,12 +9,10 @@ interface VercelTabProps {
   integrationEndpoint: string;
   publicKey: string;
   showOtlpTraces: boolean;
-  showVercelLogDrainEndpoint: boolean;
   tracesEndpoint: string;
 }
 
 export function VercelTab({
-  showVercelLogDrainEndpoint,
   integrationEndpoint,
   publicKey,
   showOtlpTraces,
@@ -22,40 +20,33 @@ export function VercelTab({
 }: VercelTabProps) {
   return (
     <Fragment>
-      {showVercelLogDrainEndpoint && (
-        <Fragment>
-          <FieldGroup
-            label={t('Vercel Log Drain Endpoint')}
-            help={tct(
-              'Use this endpoint to configure Vercel Log Drains. [link:Learn more]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#log-drains" />
-                ),
-              }
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('Vercel Log Drain Endpoint')}>
-              {`${integrationEndpoint}vercel/logs`}
-            </TextCopyInput>
-          </FieldGroup>
+      <FieldGroup
+        label={t('Vercel Log Drain Endpoint')}
+        help={tct('Use this endpoint to configure Vercel Log Drains. [link:Learn more]', {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#log-drains" />
+          ),
+        })}
+        inline={false}
+        flexibleControlStateSize
+      >
+        <TextCopyInput aria-label={t('Vercel Log Drain Endpoint')}>
+          {`${integrationEndpoint}vercel/logs`}
+        </TextCopyInput>
+      </FieldGroup>
 
-          <FieldGroup
-            label={t('Log Drain Authentication Headers')}
-            help={t(
-              'Set these authentication headers when configuring your Vercel Log Drain.'
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('Log Drain Authentication Header')}>
-              {`x-sentry-auth: sentry sentry_key=${publicKey}`}
-            </TextCopyInput>
-          </FieldGroup>
-        </Fragment>
-      )}
+      <FieldGroup
+        label={t('Log Drain Authentication Headers')}
+        help={t(
+          'Set these authentication headers when configuring your Vercel Log Drain.'
+        )}
+        inline={false}
+        flexibleControlStateSize
+      >
+        <TextCopyInput aria-label={t('Log Drain Authentication Header')}>
+          {`x-sentry-auth: sentry sentry_key=${publicKey}`}
+        </TextCopyInput>
+      </FieldGroup>
       {showOtlpTraces && (
         <Fragment>
           <FieldGroup
