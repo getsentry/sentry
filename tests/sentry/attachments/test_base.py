@@ -70,16 +70,13 @@ def test_basic_chunked() -> None:
     cache.set_chunk("c:foo", 123, 2, b"Bye.")
 
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 123
     assert att2.load_data() == att.load_data() == b"Hello World! Bye."
     assert att2.rate_limited is None
-
-    cache.delete("c:foo")
-    assert not list(cache.get("c:foo"))
 
 
 @django_db_all
@@ -88,16 +85,13 @@ def test_basic_unchunked() -> None:
     cache = BaseAttachmentCache(data)
 
     att = CachedAttachment(name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.")
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
     assert att2.load_data() == att.load_data() == b"Hello World! Bye."
     assert att2.rate_limited is None
-
-    cache.delete("c:foo")
-    assert not list(cache.get("c:foo"))
 
 
 @django_db_all
@@ -113,9 +107,9 @@ def test_zstd_chunks() -> None:
     assert mixed_chunks.load_data() == b"Hello World! Just visiting. Bye."
 
     att = CachedAttachment(key="not_chunked", id=456, data=b"Hello World! Bye.")
-    cache.set("not_chunked", [att])
+    (meta,) = cache.set("not_chunked", [att])
+    not_chunked = CachedAttachment(cache=cache, **meta)
 
-    (not_chunked,) = cache.get("not_chunked")
     assert not_chunked.load_data() == b"Hello World! Bye."
 
 
@@ -127,9 +121,9 @@ def test_basic_rate_limited() -> None:
     att = CachedAttachment(
         name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.", rate_limited=True
     )
-    cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att])
+    att2 = CachedAttachment(cache=cache, **meta)
 
-    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
     assert att2.load_data() == att.load_data() == b"Hello World! Bye."
