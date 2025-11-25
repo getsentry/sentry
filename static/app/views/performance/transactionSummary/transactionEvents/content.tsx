@@ -48,7 +48,9 @@ type Props = {
   eventsDisplayFilterName: EventsDisplayFilterName;
   location: Location;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
-  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeSpanOperationBreakdownFilter: (
+    newFilter: SpanOperationBreakdownFilter | undefined
+  ) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];

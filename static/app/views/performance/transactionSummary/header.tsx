@@ -8,7 +8,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
@@ -382,7 +382,7 @@ function TransactionHeader({
               onChangeThreshold={onChangeThreshold}
             />
           </GuideAnchor>
-          <FeedbackWidgetButton />
+          <FeedbackButton />
         </ButtonBar>
       </Layout.HeaderActions>
       <HasMeasurementsQuery

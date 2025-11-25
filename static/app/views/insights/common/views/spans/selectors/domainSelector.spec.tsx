@@ -1,13 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -55,8 +49,6 @@ describe('DomainSelector', () => {
   it('allows selecting a domain', async () => {
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
     await selectEvent.openMenu(screen.getByText('All'));
 
     expect(screen.getByText('sentry_user')).toBeInTheDocument();
@@ -84,8 +76,6 @@ describe('DomainSelector', () => {
 
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
     expect(fetchMoreResponse).not.toHaveBeenCalled();
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await selectEvent.openMenu(screen.getByText('All'));
 

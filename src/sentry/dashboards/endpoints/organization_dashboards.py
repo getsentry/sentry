@@ -63,6 +63,8 @@ MAX_RETRIES = 2
 # Do not delete or modify existing entries. These enums are required to match ids in the frontend.
 class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
+    BACKEND_QUERIES = 2
+    BACKEND_QUERIES_SUMMARY = 3
 
 
 class PrebuiltDashboard(TypedDict):
@@ -82,6 +84,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
         "title": "Frontend Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
+        "title": "Queries Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+        "title": "Query Summary",
     },
 ]
 
@@ -236,8 +246,23 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
         query = request.GET.get("query")
+        prebuilt_ids = request.GET.getlist("prebuiltId")
+
+        should_filter_by_prebuilt_ids = (
+            features.has(
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                organization,
+                actor=request.user,
+            )
+            and prebuilt_ids
+            and len(prebuilt_ids) > 0
+        )
+
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+        if should_filter_by_prebuilt_ids:
+            dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
+
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
@@ -384,7 +409,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by in {"onlyFavorites", "owned"}:
+        if filter_by and filter_by in {"onlyFavorites", "owned"} or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show

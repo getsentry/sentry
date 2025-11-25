@@ -12,7 +12,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-export function DetectorBaseFields() {
+interface DetectorBaseFieldsProps {
+  noEnvironment?: boolean;
+}
+
+export function DetectorBaseFields({noEnvironment}: DetectorBaseFieldsProps) {
   const {setHasSetDetectorName} = useDetectorFormContext();
 
   return (
@@ -21,7 +25,7 @@ export function DetectorBaseFields() {
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
             <EditableText
-              isDisabled={false}
+              allowEmpty
               value={value || ''}
               onChange={newValue => {
                 onChange(newValue, {
@@ -31,7 +35,6 @@ export function DetectorBaseFields() {
                 });
                 setHasSetDetectorName(true);
               }}
-              errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
               aria-label={t('Monitor Name')}
             />
@@ -40,7 +43,7 @@ export function DetectorBaseFields() {
       </Layout.Title>
       <Flex gap="md">
         <ProjectField />
-        <EnvironmentField />
+        {!noEnvironment && <EnvironmentField />}
       </Flex>
     </Flex>
   );

@@ -645,7 +645,7 @@ class ColumnEditCollection extends Component<Props, State> {
               onClick={this.handleAddColumn}
               title={title}
               disabled={!canAdd}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
             >
               {t('Add a Column')}
             </Button>
@@ -656,7 +656,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 onClick={this.handleAddEquation}
                 title={title}
                 disabled={!canAdd}
-                icon={<IconAdd isCircled />}
+                icon={<IconAdd />}
               >
                 {t('Add an Equation')}
               </Button>

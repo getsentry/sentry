@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -39,9 +39,8 @@ export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   const organization = useOrganization();
-  const datePageFilterProps = limitMaxPickableDays(organization);
-
   const onboardingProject = useOnboardingProject();
+  const datePageFilterProps = limitMaxPickableDays(organization);
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
@@ -119,11 +118,21 @@ function ExploreTagsProvider({children}: SpansTabContextProps) {
 function SpansTabHeader() {
   const id = useQueryParamsId();
   const title = useQueryParamsTitle();
+  const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
+
+  const hasSavedQueryTitle =
+    defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Traces')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
         {title && defined(id) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
         ) : null}
@@ -142,7 +151,7 @@ function SpansTabHeader() {
         <ButtonBar>
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          <FeedbackWidgetButton />
+          <FeedbackButton />
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

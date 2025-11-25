@@ -1,4 +1,9 @@
-from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.base import (
+    BaseRelation,
+    BulkModelDeletionTask,
+    ModelDeletionTask,
+    ModelRelation,
+)
 from sentry.monitors.models import MonitorEnvironment
 
 
@@ -8,8 +13,13 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask[MonitorEnvironment]):
 
         return [
             ModelRelation(
+                models.MonitorIncident,
+                {"monitor_environment_id": instance.id},
+            ),
+            # Use BulkModelDeletionTask here since MonitorIncidents are already handled above
+            ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
-                ModelDeletionTask,
+                BulkModelDeletionTask,
             ),
         ]

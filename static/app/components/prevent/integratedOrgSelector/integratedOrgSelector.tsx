@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -14,11 +14,12 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
@@ -26,7 +27,7 @@ const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 function OrgFooterMessage() {
   const organization = useOrganization();
 
-  const handleAddIntegration = useCallback((_integration: IntegrationWithConfig) => {
+  const handleAddIntegration = useCallback((_integration: Integration) => {
     window.location.reload();
   }, []);
 
@@ -46,7 +47,10 @@ function OrgFooterMessage() {
       }
     );
 
+  const {data: installedIntegrations = []} = useGetActiveIntegratedOrgs({organization});
+
   const provider = integrationInfo?.providers[0];
+  const hasInstalledIntegration = installedIntegrations.length > 0;
 
   return (
     <Flex gap="sm" direction="column" align="start">
@@ -70,22 +74,31 @@ function OrgFooterMessage() {
       {isIntegrationInfoPending ? (
         <LoadingIndicator />
       ) : provider ? (
-        <AddIntegration
-          provider={provider}
-          onInstall={handleAddIntegration}
-          organization={organization}
+        <IntegrationContext
+          value={{
+            provider,
+            type: 'first_party',
+            installStatus: hasInstalledIntegration ? 'Installed' : 'Not Installed',
+            analyticsParams: {
+              view: 'test_analytics_org_selector',
+              already_installed: hasInstalledIntegration,
+            },
+          }}
         >
-          {openDialog => (
-            <Button
-              size="xs"
-              icon={<IconAdd />}
-              priority="default"
-              onClick={() => openDialog()}
-            >
-              {t('GitHub Organization')}
-            </Button>
-          )}
-        </AddIntegration>
+          <Access access={['org:integrations']} organization={organization}>
+            {({hasAccess}) => (
+              <IntegrationButton
+                userHasAccess={hasAccess}
+                onAddIntegration={handleAddIntegration}
+                onExternalClick={() => {}}
+                buttonProps={{
+                  size: 'sm',
+                  priority: 'primary',
+                }}
+              />
+            )}
+          </Access>
+        </IntegrationContext>
       ) : (
         <LinkButton
           href="https://github.com/apps/sentry/installations/select_target"
