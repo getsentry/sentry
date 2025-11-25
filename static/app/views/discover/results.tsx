@@ -76,6 +76,7 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import Table from 'sentry/views/discover/table';
 import {generateTitle} from 'sentry/views/discover/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -653,12 +654,49 @@ export class Results extends Component<Props, State> {
   }
 
   renderTransactionsDatasetDeprecationBanner() {
-    const {savedQueryDataset} = this.state;
-    const {location, organization} = this.props;
+    const {savedQueryDataset, savedQuery} = this.state;
+    const {location, organization, selection} = this.props;
     const dataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
       savedQueryDataset
     );
+
+    if (dataset === DiscoverDatasets.TRANSACTIONS && savedQuery?.exploreQuery) {
+      const exploreUrl = getExploreUrl({
+        organization,
+        ...savedQuery.exploreQuery?.query?.[0],
+        field: savedQuery.exploreQuery?.query?.[0].fields,
+        sort: savedQuery.exploreQuery?.query?.[0].orderby,
+        groupBy: savedQuery.exploreQuery?.query?.[0].groupby,
+        id: savedQuery.exploreQuery.id,
+        title: savedQuery.exploreQuery.name,
+        selection: {
+          projects: savedQuery.exploreQuery.projects ?? selection.projects,
+          environments: savedQuery.exploreQuery.environment ?? selection.environments,
+          datetime: {
+            start: savedQuery.exploreQuery.start ?? null,
+            end: savedQuery.exploreQuery.end ?? null,
+            period: savedQuery.exploreQuery.range ?? null,
+            utc: selection.datetime.utc ?? null,
+          },
+        },
+        interval: savedQuery.exploreQuery?.interval,
+        referrer: 'discover_v2.transactions_query_migration_banner',
+      });
+      return (
+        <Alert.Container>
+          <Alert type="warning">
+            {tct(
+              'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
+              {
+                explore: <Link to={exploreUrl} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+
     if (
       this.state.showTransactionsDeprecationAlert &&
       organization.features.includes('performance-transaction-deprecation-banner') &&
