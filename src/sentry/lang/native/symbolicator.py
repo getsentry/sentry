@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 import time
 import uuid
 from collections.abc import Callable
@@ -547,8 +548,10 @@ def maybe_rewrite_objectstore_url(url: str) -> str:
     This is needed during development/testing to make Symbolicator reach Objectstore.
     This is because Sentry can reach Objectstore on 127.0.0.1 but Symbolicator cannot, as it's running in its own container.
 
-    Note: if you are using a local (not containerized) instance of Symbolicator, you need to disable this logic.
+    Set USE_LOCAL_SYMBOLICATOR=1 if you are using a local (not containerized) instance of Symbolicator to disable this rewriting.
     """
+    if os.environ.get("USE_LOCAL_SYMBOLICATOR"):
+        return url
     if settings.IS_DEV or in_test_environment():
         url = url.replace("127.0.0.1", "objectstore")
     return url
