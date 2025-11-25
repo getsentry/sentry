@@ -142,7 +142,7 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
 
     def is_404() -> bool:
         tags = event_data.get("tags") or {}
-        return bool(tags and HTTP_404_TAG in tags)
+        return HTTP_404_TAG in tags
 
     return _should_store_segment_name_inner(transaction_name, source, is_404)
 
