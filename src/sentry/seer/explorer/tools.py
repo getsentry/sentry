@@ -1123,6 +1123,7 @@ def get_log_attributes_for_trace(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    project_id: int | None = None,
     project_slug: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
@@ -1140,6 +1141,7 @@ def get_log_attributes_for_trace(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
+            **({"id": project_id} if project_id else {}),
             **({"slug": project_slug} if project_slug else {}),
         )
     )
@@ -1206,11 +1208,12 @@ def get_metric_attributes_for_trace(
     *,
     org_id: int,
     trace_id: str,
-    metric_name: str,
+    metric_name: str = "",
     metric_name_case_sensitive: bool = True,
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    project_id: int | None = None,
     project_slug: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
@@ -1228,6 +1231,7 @@ def get_metric_attributes_for_trace(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
+            **({"id": project_id} if project_id else {}),
             **({"slug": project_slug} if project_slug else {}),
         )
     )
