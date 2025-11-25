@@ -41,12 +41,20 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 @register(GroupOpenPeriod)
 class GroupOpenPeriodSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        query_start = kwargs.get("query_start")
+        query_end = kwargs.get("query_end")
         result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
             defaultdict(dict)
         )
         activities = GroupOpenPeriodActivity.objects.filter(
             group_open_period__in=item_list
-        ).order_by("id")
+        ).order_by("date_added")
+
+        if query_start:
+            activities = activities.filter(date_added__gte=query_start)
+
+        if query_end:
+            activities = activities.filter(date_added__lte=query_end)
 
         gopas = defaultdict(list)
         for activity, serialized_activity in zip(
