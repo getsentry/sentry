@@ -1,10 +1,11 @@
+import type {Simplify} from 'type-fest';
+
 import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import type {Flatten} from 'sentry/utils/types/flatten';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 import type {SpanResponse} from 'sentry/views/insights/types';
@@ -15,7 +16,7 @@ interface Props {
   segmentName: string;
 }
 
-type TableRow = Flatten<
+type TableRow = Simplify<
   Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
 >;
 
