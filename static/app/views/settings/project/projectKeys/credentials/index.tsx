@@ -25,7 +25,6 @@ type Props = {
   showSecretKey?: boolean;
   showSecurityEndpoint?: boolean;
   showUnreal?: boolean;
-  showVercelLogDrainEndpoint?: boolean;
 };
 
 type TabValue = 'otlp' | 'security' | 'minidump' | 'unreal' | 'vercel' | 'credentials';
@@ -174,7 +173,6 @@ function ProjectKeyCredentials({
   showSecretKey = false,
   showOtlpTraces = false,
   showOtlpLogs = false,
-  showVercelLogDrainEndpoint = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
@@ -210,7 +208,7 @@ function ProjectKeyCredentials({
       {
         key: 'vercel',
         label: t('Vercel Drains'),
-        visible: showVercelLogDrainEndpoint || showOtlpTraces,
+        visible: true,
       },
     ];
     return tabs.filter(tab => tab.visible);
@@ -218,7 +216,6 @@ function ProjectKeyCredentials({
     showOtlpTraces,
     showOtlpLogs,
     showSecurityEndpoint,
-    showVercelLogDrainEndpoint,
     showMinidump,
     showUnreal,
     showPublicKey,
@@ -271,7 +268,6 @@ function ProjectKeyCredentials({
       case 'vercel':
         return (
           <VercelTab
-            showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
             integrationEndpoint={data.dsn.integration}
             publicKey={data.public}
             showOtlpTraces={showOtlpTraces}
