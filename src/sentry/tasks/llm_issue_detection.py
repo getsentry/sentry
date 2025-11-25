@@ -48,7 +48,6 @@ class DetectedIssue(BaseModel):
     evidence: str
     missing_telemetry: str | None = None
     title: str
-    confidence_score: float | None = None
 
 
 class IssueDetectionResponse(BaseModel):
@@ -95,7 +94,6 @@ def create_issue_occurrence_from_detection(
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
         "missing_telemetry": detected_issue.missing_telemetry,
-        "confidence_score": detected_issue.confidence_score,
     }
 
     evidence_display = [
