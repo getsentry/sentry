@@ -85,7 +85,7 @@ def test_build_integration_fallback_on_metadata_fetch_failure(provider):
         ) as mock_get_metadata,
     ):
         # Simulate API call failure
-        mock_get_metadata.side_effect = ApiError("API Error", {})
+        mock_get_metadata.side_effect = ApiError("API Error", 500)
         integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
 
     # Verify integration was still created with fallback name
