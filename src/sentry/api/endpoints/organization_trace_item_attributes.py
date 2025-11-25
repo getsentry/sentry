@@ -275,69 +275,74 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):
-            rpc_request = TraceItemAttributeNamesRequest(
-                meta=meta,
-                limit=limit,
-                page_token=PageToken(offset=offset),
-                type=attr_type,
-                value_substring_match=value_substring_match,
-                intersecting_attributes_filter=query_filter,
-            )
+            with sentry_sdk.start_span(op="query", name="attribute_names") as span:
+                rpc_request = TraceItemAttributeNamesRequest(
+                    meta=meta,
+                    limit=limit,
+                    page_token=PageToken(offset=offset),
+                    type=attr_type,
+                    value_substring_match=value_substring_match,
+                    intersecting_attributes_filter=query_filter,
+                )
 
-            with handle_query_errors():
-                rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                with handle_query_errors():
+                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
-            if use_sentry_conventions:
-                attribute_keys = {}
-                for attribute in rpc_response.attributes:
-                    if attribute.name and can_expose_attribute(
-                        attribute.name,
-                        trace_item_type,
-                        include_internal=include_internal,
-                    ):
-                        attr_key = as_attribute_key(
-                            attribute.name,
-                            serialized["attribute_type"],
-                            trace_item_type,
-                        )
-                        public_alias = attr_key["name"]
-                        replacement = translate_to_sentry_conventions(public_alias, trace_item_type)
-                        if public_alias != replacement:
-                            attr_key = as_attribute_key(
-                                replacement,
-                                serialized["attribute_type"],
-                                trace_item_type,
-                            )
-
-                        attribute_keys[attr_key["name"]] = attr_key
-
-                attributes = list(attribute_keys.values())
-                sentry_sdk.set_context("api_response", {"attributes": attributes})
-                return attributes
-
-            attributes = list(
-                filter(
-                    lambda x: not is_sentry_convention_replacement_attribute(
-                        x["name"], trace_item_type
-                    ),
-                    [
-                        as_attribute_key(
-                            attribute.name,
-                            serialized["attribute_type"],
-                            trace_item_type,
-                        )
-                        for attribute in rpc_response.attributes
-                        if attribute.name
-                        and can_expose_attribute(
+                if use_sentry_conventions:
+                    attribute_keys = {}
+                    for attribute in rpc_response.attributes:
+                        if attribute.name and can_expose_attribute(
                             attribute.name,
                             trace_item_type,
                             include_internal=include_internal,
-                        )
-                    ],
+                        ):
+                            attr_key = as_attribute_key(
+                                attribute.name,
+                                serialized["attribute_type"],
+                                trace_item_type,
+                            )
+                            public_alias = attr_key["name"]
+                            replacement = translate_to_sentry_conventions(
+                                public_alias, trace_item_type
+                            )
+                            if public_alias != replacement:
+                                attr_key = as_attribute_key(
+                                    replacement,
+                                    serialized["attribute_type"],
+                                    trace_item_type,
+                                )
+
+                            attribute_keys[attr_key["name"]] = attr_key
+
+                    attributes = list(attribute_keys.values())
+                    sentry_sdk.set_context("api_response", {"attributes": attributes})
+                    return attributes
+
+                attributes = list(
+                    filter(
+                        lambda x: not is_sentry_convention_replacement_attribute(
+                            x["name"], trace_item_type
+                        ),
+                        [
+                            as_attribute_key(
+                                attribute.name,
+                                serialized["attribute_type"],
+                                trace_item_type,
+                            )
+                            for attribute in rpc_response.attributes
+                            if attribute.name
+                            and can_expose_attribute(
+                                attribute.name,
+                                trace_item_type,
+                                include_internal=include_internal,
+                            )
+                        ],
+                    )
                 )
-            )
-            sentry_sdk.set_context("api_response", {"attributes": attributes})
-            return attributes
+                sentry_sdk.set_context("api_response", {"attributes": attributes})
+                span.set_data("attribute_count", len(attributes))
+                span.set_data("attribute_type", attribute_type)
+                return attributes
 
         return self.paginate(
             request=request,
