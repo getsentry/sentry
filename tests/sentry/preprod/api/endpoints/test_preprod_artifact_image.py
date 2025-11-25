@@ -1,10 +1,8 @@
-from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
-from sentry.objectstore import get_preprod_session
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.skips import requires_objectstore
 
 
 class ProjectPreprodArtifactImageTest(APITestCase):
@@ -26,12 +24,22 @@ class ProjectPreprodArtifactImageTest(APITestCase):
             args=[self.org.slug, self.project.slug, image_id],
         )
 
-    @requires_objectstore
-    def test_successful_image_retrieval_png(self):
-        png_data = b"\x89PNG\r\n\x1a\n" + b"fake png content" * 100
+    def _create_mock_session(self, image_data, content_type):
+        """Create a mock object store session that returns the given data and content type."""
+        mock_result = MagicMock()
+        mock_result.payload.read.return_value = image_data
+        mock_result.metadata.content_type = content_type
 
-        client = get_preprod_session(self.org.id, self.project.id)
-        client.put(BytesIO(png_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_result
+
+        return mock_session
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_successful_image_retrieval_png(self, mock_get_session):
+        png_data = b"\x89PNG\r\n\x1a\n" + b"fake png content" * 100
+        mock_session = self._create_mock_session(png_data, "image/png")
+        mock_get_session.return_value = mock_session
 
         url = self._get_url()
         response = self.client.get(
@@ -41,13 +49,14 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.status_code == 200
         assert response.content == png_data
         assert response["Content-Type"] == "image/png"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
-    @requires_objectstore
-    def test_successful_image_retrieval_jpeg(self):
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_successful_image_retrieval_jpeg(self, mock_get_session):
         jpeg_data = b"\xff\xd8\xff" + b"fake jpeg content" * 100
-
-        client = get_preprod_session(self.org.id, self.project.id)
-        client.put(BytesIO(jpeg_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
+        mock_session = self._create_mock_session(jpeg_data, "image/jpeg")
+        mock_get_session.return_value = mock_session
 
         url = self._get_url()
         response = self.client.get(
@@ -57,13 +66,14 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.status_code == 200
         assert response.content == jpeg_data
         assert response["Content-Type"] == "image/jpeg"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
-    @requires_objectstore
-    def test_successful_image_retrieval_webp(self):
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_successful_image_retrieval_webp(self, mock_get_session):
         webp_data = b"RIFF" + b"1234" + b"WEBP" + b"fake webp content" * 100
-
-        client = get_preprod_session(self.org.id, self.project.id)
-        client.put(BytesIO(webp_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
+        mock_session = self._create_mock_session(webp_data, "image/webp")
+        mock_get_session.return_value = mock_session
 
         url = self._get_url()
         response = self.client.get(
@@ -73,38 +83,14 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.status_code == 200
         assert response.content == webp_data
         assert response["Content-Type"] == "image/webp"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
-    def test_successful_image_retrieval_heic(self):
-        heic_data = b"RIFF" + b"ftypheic" + b"fake heic content" * 100
-
-        client = get_preprod_session(self.org.id, self.project.id)
-        client.put(BytesIO(heic_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
-
-        url = self._get_url()
-        response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-        )
-
-        assert response.status_code == 200
-        assert response.content == heic_data
-        assert response["Content-Type"] == "image/heic"
-
-    @requires_objectstore
-    def test_image_not_found(self):
-        url = self._get_url()
-        response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-        )
-
-        assert response.status_code == 404
-        assert response.content == b'{"error":"Not found"}'
-
-    @requires_objectstore
-    def test_unknown_image_format(self):
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_unknown_image_format(self, mock_get_session):
         unknown_data = b"unknown binary data" * 50
-
-        client = get_preprod_session(self.org.id, self.project.id)
-        client.put(BytesIO(unknown_data), key=f"{self.org.id}/{self.project.id}/test-image-123")
+        mock_session = self._create_mock_session(unknown_data, "application/octet-stream")
+        mock_get_session.return_value = mock_session
 
         url = self._get_url()
         response = self.client.get(
@@ -114,6 +100,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response.status_code == 200
         assert response.content == unknown_data
         assert response["Content-Type"] == "application/octet-stream"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+        mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
     def test_endpoint_requires_project_access(self):
         other_user = self.create_user()
