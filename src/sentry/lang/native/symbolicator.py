@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import os
 import time
 import uuid
 from collections.abc import Callable
@@ -27,10 +26,9 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import get_attachments_session, maybe_rewrite_url
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
-from sentry.utils.env import in_test_environment
 
 MAX_ATTEMPTS = 3
 
@@ -200,7 +198,7 @@ class Symbolicator:
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(minidump.stored_id)
-            storage_url = maybe_rewrite_objectstore_url(storage_url)
+            storage_url = maybe_rewrite_url(storage_url)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -246,7 +244,7 @@ class Symbolicator:
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = session.object_url(report.stored_id)
-            storage_url = maybe_rewrite_objectstore_url(storage_url)
+            storage_url = maybe_rewrite_url(storage_url)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -541,17 +539,3 @@ class SymbolicatorSession:
 
     def reset_worker_id(self):
         self.worker_id = uuid.uuid4().hex
-
-
-def maybe_rewrite_objectstore_url(url: str) -> str:
-    """
-    This is needed during development/testing to make Symbolicator reach Objectstore.
-    This is because Sentry can reach Objectstore on 127.0.0.1 but Symbolicator cannot, as it's running in its own container.
-
-    Set USE_LOCAL_SYMBOLICATOR=1 if you are using a local (not containerized) instance of Symbolicator to disable this rewriting.
-    """
-    if os.environ.get("USE_LOCAL_SYMBOLICATOR"):
-        return url
-    if settings.IS_DEV or in_test_environment():
-        url = url.replace("127.0.0.1", "objectstore")
-    return url

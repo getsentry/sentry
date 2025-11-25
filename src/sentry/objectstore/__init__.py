@@ -1,4 +1,5 @@
 from datetime import timedelta
+from urllib.parse import urlparse, urlunparse
 
 from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
 from objectstore_client.metrics import Tags
@@ -49,3 +50,16 @@ def get_attachments_session(org: int, project: int) -> Session:
         )
 
     return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
+
+
+def maybe_rewrite_url(url: str) -> str:
+    from sentry import options
+
+    replacement = options.get("objectstore.host_replacement")
+    if not replacement:
+        return url
+    parsed = urlparse(url)
+    if parsed.port:
+        replacement += f":{parsed.port}"
+    updated = parsed._replace(netloc=replacement)
+    return urlunparse(updated)
