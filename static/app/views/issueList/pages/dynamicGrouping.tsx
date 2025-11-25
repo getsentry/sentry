@@ -23,7 +23,8 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -109,64 +110,274 @@ interface ClusterStats {
   totalEvents: number;
 }
 
-function useClusterStats(groupIds: number[]): ClusterStats {
+const BATCH_SIZE = 50;
+
+/**
+ * Fetches stats for all clusters in batches, returning a map of cluster_id -> ClusterStats.
+ * This allows us to compute composite scores at the parent level before rendering.
+ */
+function useBatchClusterStats(clusters: ClusterSummary[]): {
+  isPending: boolean;
+  statsMap: Map<number, ClusterStats>;
+} {
   const organization = useOrganization();
 
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: groupIds,
-          query: `issue.id:[${groupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-      enabled: groupIds.length > 0,
+  // Build a mapping of groupId -> clusterId for later aggregation
+  const groupToClusterMap = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const cluster of clusters) {
+      for (const groupId of cluster.group_ids) {
+        map.set(groupId, cluster.cluster_id);
+      }
     }
-  );
+    return map;
+  }, [clusters]);
+
+  // Collect all unique group IDs and batch them
+  const allGroupIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const cluster of clusters) {
+      for (const groupId of cluster.group_ids) {
+        ids.add(groupId);
+      }
+    }
+    return Array.from(ids);
+  }, [clusters]);
+
+  // Create batched query keys
+  const batchedQueryKeys = useMemo((): ApiQueryKey[] => {
+    const batches: number[][] = [];
+    for (let i = 0; i < allGroupIds.length; i += BATCH_SIZE) {
+      batches.push(allGroupIds.slice(i, i + BATCH_SIZE));
+    }
+    return batches.map(
+      batch =>
+        [
+          `/organizations/${organization.slug}/issues/`,
+          {
+            query: {
+              group: batch,
+              query: `issue.id:[${batch.join(',')}]`,
+            },
+          },
+        ] as const
+    );
+  }, [allGroupIds, organization.slug]);
+
+  const queryResults = useApiQueries<Group[]>(batchedQueryKeys, {
+    staleTime: 60000,
+    enabled: allGroupIds.length > 0,
+  });
 
   return useMemo(() => {
-    if (isPending || !groups || groups.length === 0) {
-      return {
-        totalEvents: 0,
-        firstSeen: null,
-        lastSeen: null,
-        isPending,
-      };
+    const isPending = queryResults.some(r => r.isPending);
+
+    if (isPending || allGroupIds.length === 0) {
+      return {statsMap: new Map(), isPending};
     }
 
-    let totalEvents = 0;
-    let earliestFirstSeen: Date | null = null;
-    let latestLastSeen: Date | null = null;
+    // Flatten all groups from all batch results
+    const allGroups: Group[] = [];
+    for (const result of queryResults) {
+      if (result.data) {
+        allGroups.push(...result.data);
+      }
+    }
 
-    for (const group of groups) {
-      totalEvents += parseInt(group.count, 10) || 0;
+    // Aggregate stats per cluster
+    const clusterStatsAccumulator = new Map<
+      number,
+      {
+        earliestFirstSeen: Date | null;
+        latestLastSeen: Date | null;
+        totalEvents: number;
+      }
+    >();
+
+    // Initialize accumulators for each cluster
+    for (const cluster of clusters) {
+      clusterStatsAccumulator.set(cluster.cluster_id, {
+        earliestFirstSeen: null,
+        latestLastSeen: null,
+        totalEvents: 0,
+      });
+    }
+
+    // Process each group and accumulate into its cluster
+    for (const group of allGroups) {
+      const clusterId = groupToClusterMap.get(parseInt(group.id, 10));
+      if (clusterId === undefined) {
+        continue;
+      }
+
+      const acc = clusterStatsAccumulator.get(clusterId);
+      if (!acc) {
+        continue;
+      }
+
+      acc.totalEvents += parseInt(group.count, 10) || 0;
 
       if (group.firstSeen) {
         const firstSeenDate = new Date(group.firstSeen);
-        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
-          earliestFirstSeen = firstSeenDate;
+        if (!acc.earliestFirstSeen || firstSeenDate < acc.earliestFirstSeen) {
+          acc.earliestFirstSeen = firstSeenDate;
         }
       }
 
       if (group.lastSeen) {
         const lastSeenDate = new Date(group.lastSeen);
-        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
-          latestLastSeen = lastSeenDate;
+        if (!acc.latestLastSeen || lastSeenDate > acc.latestLastSeen) {
+          acc.latestLastSeen = lastSeenDate;
         }
       }
     }
 
-    return {
-      totalEvents,
-      firstSeen: earliestFirstSeen?.toISOString() ?? null,
-      lastSeen: latestLastSeen?.toISOString() ?? null,
-      isPending,
-    };
-  }, [groups, isPending]);
+    // Convert accumulators to ClusterStats
+    const statsMap = new Map<number, ClusterStats>();
+    for (const [clusterId, acc] of clusterStatsAccumulator) {
+      statsMap.set(clusterId, {
+        totalEvents: acc.totalEvents,
+        firstSeen: acc.earliestFirstSeen?.toISOString() ?? null,
+        lastSeen: acc.latestLastSeen?.toISOString() ?? null,
+        isPending: false,
+      });
+    }
+
+    return {statsMap, isPending: false};
+  }, [queryResults, clusters, groupToClusterMap, allGroupIds.length]);
+}
+
+/**
+ * Min-max normalization: maps a value to [0, 1] based on observed range.
+ * Returns 0.5 if all values are identical (max === min).
+ */
+function minMaxNormalize(value: number, min: number, max: number): number {
+  if (max === min) {
+    return 0.5;
+  }
+  return (value - min) / (max - min);
+}
+
+interface SignalRanges {
+  events: {max: number; min: number};
+  fixability: {max: number; min: number};
+  issues: {max: number; min: number};
+  recency: {max: number; min: number}; // age in ms, lower = more recent
+}
+
+/**
+ * Computes min/max ranges for all scoring signals across clusters.
+ * For recency, we compute age (ms from now) so that newer events have smaller values.
+ */
+function computeSignalRanges(
+  clusters: ClusterSummary[],
+  statsMap: Map<number, ClusterStats>
+): SignalRanges {
+  const now = Date.now();
+
+  let minFixability = Infinity;
+  let maxFixability = -Infinity;
+  let minEvents = Infinity;
+  let maxEvents = -Infinity;
+  let minRecency = Infinity; // smallest age = most recent
+  let maxRecency = -Infinity; // largest age = oldest
+  let minIssues = Infinity;
+  let maxIssues = -Infinity;
+
+  for (const cluster of clusters) {
+    const stats = statsMap.get(cluster.cluster_id);
+
+    // Fixability (0-1 scale)
+    const fixability = cluster.fixability_score ?? 0;
+    minFixability = Math.min(minFixability, fixability);
+    maxFixability = Math.max(maxFixability, fixability);
+
+    // Events
+    const events = stats?.totalEvents ?? 0;
+    minEvents = Math.min(minEvents, events);
+    maxEvents = Math.max(maxEvents, events);
+
+    // Recency (age in ms from now, lower = more recent)
+    if (stats?.lastSeen) {
+      const age = now - new Date(stats.lastSeen).getTime();
+      minRecency = Math.min(minRecency, age);
+      maxRecency = Math.max(maxRecency, age);
+    }
+
+    // Issue count
+    const issues = cluster.group_ids.length;
+    minIssues = Math.min(minIssues, issues);
+    maxIssues = Math.max(maxIssues, issues);
+  }
+
+  // Handle edge case where no valid values were found
+  if (minFixability === Infinity) {
+    minFixability = 0;
+    maxFixability = 0;
+  }
+  if (minEvents === Infinity) {
+    minEvents = 0;
+    maxEvents = 0;
+  }
+  if (minRecency === Infinity) {
+    minRecency = 0;
+    maxRecency = 0;
+  }
+  if (minIssues === Infinity) {
+    minIssues = 0;
+    maxIssues = 0;
+  }
+
+  return {
+    fixability: {min: minFixability, max: maxFixability},
+    events: {min: minEvents, max: maxEvents},
+    recency: {min: minRecency, max: maxRecency},
+    issues: {min: minIssues, max: maxIssues},
+  };
+}
+
+/**
+ * Computes composite score using min-max normalized signals with equal weights.
+ *
+ * Formula: score = 0.25 * norm(fixability) + 0.25 * norm(events) + 0.25 * norm(recency) + 0.25 * norm(issues)
+ *
+ * For recency, we invert the normalization so that more recent (smaller age) = higher score.
+ */
+function computeCompositeScore(
+  cluster: ClusterSummary,
+  stats: ClusterStats | undefined,
+  ranges: SignalRanges
+): number {
+  const now = Date.now();
+
+  // Normalize fixability (higher = better)
+  const fixability = cluster.fixability_score ?? 0;
+  const normFixability = minMaxNormalize(
+    fixability,
+    ranges.fixability.min,
+    ranges.fixability.max
+  );
+
+  // Normalize events (higher = more important)
+  const events = stats?.totalEvents ?? 0;
+  const normEvents = minMaxNormalize(events, ranges.events.min, ranges.events.max);
+
+  // Normalize recency (invert so newer = higher score)
+  let normRecency = 0.5; // default if no lastSeen
+  if (stats?.lastSeen) {
+    const age = now - new Date(stats.lastSeen).getTime();
+    // Invert: 1 - normalized_age means smaller age (more recent) = higher score
+    normRecency = 1 - minMaxNormalize(age, ranges.recency.min, ranges.recency.max);
+  }
+
+  // Normalize issue count (higher = more important)
+  const issues = cluster.group_ids.length;
+  const normIssues = minMaxNormalize(issues, ranges.issues.min, ranges.issues.max);
+
+  // Equal weights (0.25 each)
+  return (
+    0.25 * normFixability + 0.25 * normEvents + 0.25 * normRecency + 0.25 * normIssues
+  );
 }
 
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
@@ -208,15 +419,16 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 function ClusterCard({
   cluster,
+  clusterStats,
   onRemove,
 }: {
   cluster: ClusterSummary;
+  clusterStats: ClusterStats;
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
-  const clusterStats = useClusterStats(cluster.group_ids);
 
   return (
     <CardContainer>
@@ -335,14 +547,21 @@ function DynamicGrouping() {
   const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
   // Fetch cluster data from API
-  const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
-    [`/organizations/${organization.slug}/top-issues/`],
-    {
+  const {data: topIssuesResponse, isPending: isClustersPending} =
+    useApiQuery<TopIssuesResponse>([`/organizations/${organization.slug}/top-issues/`], {
       staleTime: 60000,
-    }
+    });
+
+  const clusterData = useMemo(
+    () => topIssuesResponse?.data ?? [],
+    [topIssuesResponse?.data]
   );
 
-  const clusterData = topIssuesResponse?.data ?? [];
+  // Fetch stats for all clusters in batches for composite scoring
+  const {statsMap, isPending: isStatsPending} = useBatchClusterStats(clusterData);
+
+  // Combined loading state
+  const isPending = isClustersPending || isStatsPending;
 
   // Extract all unique teams from the cluster data
   const teamsInData = useMemo(() => {
@@ -381,15 +600,22 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  const filteredAndSortedClusters = clusterData
-    .filter(cluster => {
-      if (removedClusterIds.has(cluster.cluster_id)) return false;
+  // Filter clusters first, then compute ranges and sort by composite score
+  const filteredClusters = useMemo(() => {
+    return clusterData.filter(cluster => {
+      if (removedClusterIds.has(cluster.cluster_id)) {
+        return false;
+      }
 
       const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-      if (fixabilityScore < minFixabilityScore) return false;
+      if (fixabilityScore < minFixabilityScore) {
+        return false;
+      }
 
       if (filterByAssignedToMe) {
-        if (!cluster.assignedTo?.length) return false;
+        if (!cluster.assignedTo?.length) {
+          return false;
+        }
         return cluster.assignedTo.some(
           entity =>
             (entity.type === 'user' && entity.id === user.id) ||
@@ -398,15 +624,40 @@ function DynamicGrouping() {
       }
 
       if (isTeamFilterActive) {
-        if (!cluster.assignedTo?.length) return false;
+        if (!cluster.assignedTo?.length) {
+          return false;
+        }
         return cluster.assignedTo.some(
           entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
         );
       }
 
       return true;
-    })
-    .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+    });
+  }, [
+    clusterData,
+    removedClusterIds,
+    minFixabilityScore,
+    filterByAssignedToMe,
+    isTeamFilterActive,
+    user.id,
+    userTeams,
+    selectedTeamIds,
+  ]);
+
+  // Compute signal ranges across filtered clusters for normalization
+  const signalRanges = useMemo(() => {
+    return computeSignalRanges(filteredClusters, statsMap);
+  }, [filteredClusters, statsMap]);
+
+  // Sort by composite score (descending)
+  const filteredAndSortedClusters = useMemo(() => {
+    return [...filteredClusters].sort((a, b) => {
+      const scoreA = computeCompositeScore(a, statsMap.get(a.cluster_id), signalRanges);
+      const scoreB = computeCompositeScore(b, statsMap.get(b.cluster_id), signalRanges);
+      return scoreB - scoreA;
+    });
+  }, [filteredClusters, statsMap, signalRanges]);
 
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
@@ -533,6 +784,14 @@ function DynamicGrouping() {
               <ClusterCard
                 key={cluster.cluster_id}
                 cluster={cluster}
+                clusterStats={
+                  statsMap.get(cluster.cluster_id) ?? {
+                    totalEvents: 0,
+                    firstSeen: null,
+                    lastSeen: null,
+                    isPending: false,
+                  }
+                }
                 onRemove={handleRemoveCluster}
               />
             ))}
