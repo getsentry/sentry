@@ -16,6 +16,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -40,7 +41,6 @@ import {
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -378,16 +378,15 @@ const OnboardingContainer = styled('div')`
 `;
 
 type LogsTabOnboardingProps = {
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-} & PickableDays;
+};
 
 export function LogsTabOnboarding({
   organization,
   project,
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
+  datePageFilterProps,
 }: LogsTabOnboardingProps) {
   return (
     <ExploreBodySearch>
@@ -396,11 +395,7 @@ export function LogsTabOnboarding({
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
         </ExploreFilterSection>
         <OnboardingContainer>
