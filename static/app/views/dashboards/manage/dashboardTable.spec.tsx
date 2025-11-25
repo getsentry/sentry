@@ -294,7 +294,7 @@ describe('Dashboards - DashboardTable', () => {
 
     expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
+    await userEvent.click(screen.getByText('All'));
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
   });
 

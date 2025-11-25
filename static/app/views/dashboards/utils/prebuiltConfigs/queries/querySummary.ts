@@ -2,6 +2,10 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  AVERAGE_DURATION_TEXT,
+  QUERIES_PER_MINUTE_TEXT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -33,14 +37,14 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   widgets: [
     {
       id: 'metrics-throughput',
-      title: t('Queries Per Minute'),
+      title: QUERIES_PER_MINUTE_TEXT,
       description: '',
       displayType: DisplayType.BIG_NUMBER,
       thresholds: null,
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: QUERIES_PER_MINUTE_TEXT,
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
@@ -60,14 +64,14 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-duration',
-      title: 'Avg Duration',
+      title: AVERAGE_DURATION_TEXT,
       description: '',
       displayType: DisplayType.BIG_NUMBER,
       thresholds: null,
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: AVERAGE_DURATION_TEXT,
           fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],

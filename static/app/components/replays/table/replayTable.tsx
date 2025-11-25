@@ -1,4 +1,4 @@
-import type {RefObject} from 'react';
+import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -27,8 +27,10 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  highlightedRowIndex?: number;
   query?: Query;
   ref?: RefObject<HTMLDivElement | null>;
+  stickyHeader?: boolean;
 };
 
 export default function ReplayTable({
@@ -40,7 +42,10 @@ export default function ReplayTable({
   ref,
   replays,
   showDropdownFilters,
+  highlightedRowIndex = -1,
   sort,
+  // stickyHeader only works if the table is inside a scrollable container
+  stickyHeader = false,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
@@ -57,6 +62,7 @@ export default function ReplayTable({
           replays={replays}
           onSortClick={onSortClick}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
         <SimpleTable.Empty>
           <LoadingIndicator />
@@ -77,6 +83,7 @@ export default function ReplayTable({
           onSortClick={onSortClick}
           replays={replays}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
 
         <SimpleTable.Empty>
@@ -100,16 +107,22 @@ export default function ReplayTable({
         onSortClick={onSortClick}
         replays={replays}
         sort={sort}
+        stickyHeader={stickyHeader}
       />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
       {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row
+        <RowWithScrollIntoView
+          scrollIntoView={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
-          {hasInteractiveColumn ? <InteractionStateLayer /> : null}
+          {hasInteractiveColumn ? (
+            <InteractionStateLayer
+              isHovered={highlightedRowIndex === rowIndex ? true : undefined}
+            />
+          ) : null}
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
@@ -121,14 +134,36 @@ export default function ReplayTable({
               />
             </RowCell>
           ))}
-        </SimpleTable.Row>
+        </RowWithScrollIntoView>
       ))}
     </StyledSimpleTable>
   );
 }
 
+function RowWithScrollIntoView({
+  children,
+  scrollIntoView,
+  ...props
+}: {
+  children: React.ReactNode;
+  scrollIntoView: boolean;
+} & React.ComponentProps<typeof SimpleTable.Row>) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollIntoView) {
+      rowRef.current?.scrollIntoView();
+    }
+  }, [scrollIntoView]);
+  return (
+    <SimpleTable.Row {...props} ref={rowRef}>
+      {children}
+    </SimpleTable.Row>
+  );
+}
+
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
+  grid-auto-rows: min-content;
 
   [data-clickable='true'] {
     cursor: pointer;

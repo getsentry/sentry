@@ -186,7 +186,7 @@ class EventAttachment(Model):
                 content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
             )
 
-        data = attachment.data
+        data = attachment.load_data()
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 

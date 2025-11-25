@@ -211,10 +211,9 @@ export function DataScrubbing({
             disabled={disabled}
           />
         ) : (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
+          <EmptyMessage icon={<IconWarning />}>
+            {t('You have no data scrubbing rules')}
+          </EmptyMessage>
         )}
         <PanelAction>
           <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>

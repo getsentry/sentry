@@ -10,8 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
 import {useRecurringCredits} from 'getsentry/hooks/useRecurringCredits';
-import type {Plan, RecurringCredit} from 'getsentry/types';
-import {CreditType} from 'getsentry/types';
+import type {CreditType, Plan, RecurringCredit} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getCreditDataCategory, getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
@@ -25,7 +24,7 @@ const isExpired = (date: moment.MomentInput) => {
 const getActiveDiscounts = (recurringCredits: RecurringCredit[]) =>
   recurringCredits.filter(
     credit =>
-      (credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT) &&
+      (credit.type === 'discount' || credit.type === 'percent') &&
       credit.totalAmountRemaining > 0 &&
       !isExpired(credit.periodEnd)
   );
@@ -58,7 +57,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
   }
 
   const getTooltipTitle = (credit: RecurringCredit) => {
-    return credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT
+    return credit.type === 'discount' || credit.type === 'percent'
       ? tct('[amount] per month or [annualAmount] remaining towards an annual plan.', {
           amount: displayPrice({cents: credit.amount}),
           annualAmount: displayPrice({
@@ -69,7 +68,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
   };
 
   const getAmount = (credit: RecurringCredit, category: DataCategory | CreditType) => {
-    if (credit.type === CreditType.DISCOUNT || credit.type === CreditType.PERCENT) {
+    if (credit.type === 'discount' || credit.type === 'percent') {
       return (
         <Fragment>
           {tct('[amount]/mo', {

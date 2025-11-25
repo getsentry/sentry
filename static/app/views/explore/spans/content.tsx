@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -128,7 +128,10 @@ function SpansTabHeader() {
     <Layout.Header unified>
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
-          <SentryDocumentTitle title={savedQuery.name} orgSlug={organization?.slug} />
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Traces')}`}
+            orgSlug={organization?.slug}
+          />
         ) : null}
         {title && defined(id) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
@@ -148,7 +151,7 @@ function SpansTabHeader() {
         <ButtonBar>
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          <FeedbackWidgetButton />
+          <FeedbackButton />
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

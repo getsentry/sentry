@@ -19,6 +19,7 @@ import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/bu
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymModal';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
@@ -39,6 +40,7 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
+  projectType?: string | null;
 }
 
 export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
@@ -48,6 +50,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     appSizeQuery,
     buildDetailsData,
     isBuildDetailsPending = false,
+    projectType,
   } = props;
   const {
     data: appSizeData,
@@ -234,13 +237,14 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     if (missingDsymBinaries && missingDsymBinaries.length > 0) {
       if (missingDsymBinaries?.length === 1) {
         return t(
-          'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+          'Missing debug symbols for %s. This binary will not have a detailed breakdown.',
           missingDsymBinaries[0]
         );
       }
       return t(
-        'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
-        missingDsymBinaries[0]
+        'Missing debug symbols for some binaries (%s and %s others). Those binaries will not have a detailed breakdown. Click to view details.',
+        missingDsymBinaries[0],
+        missingDsymBinaries.length - 1
       );
     }
 
@@ -249,6 +253,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     }
 
     return undefined;
+  };
+
+  const handleAlertClick = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      openMissingDsymModal(missingDsymBinaries);
+    }
   };
 
   // Filter data based on search query and categories
@@ -275,6 +285,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
             alertMessage={getAlertMessage()}
+            onAlertClick={
+              missingDsymBinaries && missingDsymBinaries.length > 1
+                ? handleAlertClick
+                : undefined
+            }
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -290,6 +305,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
         alertMessage={getAlertMessage()}
+        onAlertClick={
+          missingDsymBinaries && missingDsymBinaries.length > 1
+            ? handleAlertClick
+            : undefined
+        }
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
@@ -304,6 +324,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         processedInsights={processedInsights}
         totalSize={totalSize}
         platform={buildDetailsData?.app_info?.platform ?? null}
+        projectType={projectType}
         onOpenInsightsSidebar={openInsightsSidebar}
       />
 
@@ -352,7 +373,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
       <AppSizeInsights
         processedInsights={processedInsights}
-        platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform ?? undefined)}
+        projectType={projectType}
       />
     </Stack>
   );

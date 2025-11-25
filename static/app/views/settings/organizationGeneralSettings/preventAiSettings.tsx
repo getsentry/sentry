@@ -7,18 +7,12 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
-export const makePreventAiField = (organization: Organization): FieldObject => {
-  const regionData = getRegionDataFromOrganization(organization);
-  const isUSOrg = regionData?.name?.toLowerCase() === 'us';
+export const makePreventAiField = (): FieldObject => {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  const isDisabled = isSelfHosted || !isUSOrg;
-  const disabledReason = isSelfHosted
-    ? t('This feature is not available for self-hosted instances')
-    : t('This feature is only available in the US region');
+  const isDisabled = isSelfHosted;
+  const disabledReason = t('This feature is not available for self-hosted instances');
 
   return {
     name: 'enablePrReviewTestGeneration',
