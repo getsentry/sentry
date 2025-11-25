@@ -1,11 +1,11 @@
 from time import time
 from unittest.mock import MagicMock, patch
 
-from sentry.models.grouphash import GroupHash
-from sentry.tasks.delete_seer_grouping_records import (
+from sentry.deletions.tasks.delete_seer_grouping_records import (
     delete_seer_grouping_records_by_hash,
     may_schedule_task_to_delete_hashes_from_seer,
 )
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 

@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.models.group import Group, GroupStatus
-from sentry.tasks.delete_pending_groups import (
+from sentry.deletions.tasks.delete_pending_groups import (
     MAX_LAST_SEEN_DAYS,
     MIN_LAST_SEEN_HOURS,
     delete_pending_groups,
 )
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.group import GroupSubStatus
 
