@@ -77,7 +77,7 @@ def process_workflow_action_group_statuses(
     Prepare the statuses to update and create.
     """
 
-    action_to_workflow_ids: dict[int, int] = {}  # will dedupe because there can be only 1
+    updated_action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
     workflow_frequencies: dict[int, timedelta] = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
         for workflow in workflows
@@ -91,7 +91,7 @@ def process_workflow_action_group_statuses(
                 status.workflow_id, zero_timedelta
             ):
                 # we should fire the workflow for this action
-                action_to_workflow_ids[action_id] = status.workflow_id
+                updated_action_to_workflows_ids[action_id].add(status.workflow_id)
                 statuses_to_update.add(status.id)
 
     missing_statuses: list[WorkflowActionGroupStatus] = []
@@ -107,9 +107,9 @@ def process_workflow_action_group_statuses(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
             )
-            action_to_workflow_ids[action_id] = workflow_id
+            updated_action_to_workflows_ids[action_id].add(workflow_id)
 
-    return action_to_workflow_ids, statuses_to_update, missing_statuses
+    return updated_action_to_workflows_ids, statuses_to_update, missing_statuses
 
 
 def update_workflow_action_group_statuses(
@@ -209,7 +209,7 @@ def filter_recently_fired_workflow_actions(
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
-    action_to_workflow_ids, statuses_to_update, missing_statuses = (
+    action_to_workflows_ids, statuses_to_update, missing_statuses = (
         process_workflow_action_group_statuses(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
@@ -224,14 +224,16 @@ def filter_recently_fired_workflow_actions(
 
     # if statuses were not created for some reason, we should not fire for them
     for workflow_id, action_id in uncreated_statuses:
-        action_to_workflow_ids.pop(action_id, None)
+        action_to_workflows_ids[action_id].remove(workflow_id)
+        if not action_to_workflows_ids[action_id]:
+            action_to_workflows_ids.pop(action_id, None)
 
-    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
-        When(id=action_id, then=Value(workflow_id))
-        for action_id, workflow_id in action_to_workflow_ids.items()
+        When(id=action_id, then=Value(list(workflow_ids)[0]))
+        for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
     return actions_queryset.annotate(

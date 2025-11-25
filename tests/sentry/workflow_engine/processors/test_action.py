@@ -194,8 +194,8 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
 
         assert action_to_workflow_ids == {
-            self.action.id: self.workflow.id,
-            action.id: workflow.id,
+            self.action.id: {self.workflow.id},
+            action.id: {workflow.id},
         }
         assert statuses_to_update == {status_2.id}
 
@@ -253,6 +253,25 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
 
         assert set(triggered_actions) == set()
+
+    @patch("sentry.workflow_engine.processors.action.update_workflow_action_group_statuses")
+    def test_fires_for_non_conflicting_workflow(self, mock_update: MagicMock) -> None:
+        workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
+        action_group = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=self.action,
+        )  # shared action
+        self.create_workflow_data_condition_group(workflow, action_group)
+
+        mock_update.return_value = (0, 0, [(self.workflow.id, self.action.id)])
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        assert set(triggered_actions) == {self.action}
+        assert getattr(triggered_actions[0], "workflow_id") == workflow.id
 
 
 class TestIsActionPermitted(BaseWorkflowTest):
