@@ -65,6 +65,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = TSDBModel.project_total_rejected
         elif stat == "blacklisted":
             stat_model = TSDBModel.project_total_blacklisted
+        elif stat == "forwarded":
+            stat_model = TSDBModel.project_total_forwarded
         elif stat == "generated":
             stat_model = TSDBModel.project
             try:
