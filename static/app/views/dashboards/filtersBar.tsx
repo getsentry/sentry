@@ -24,7 +24,10 @@ import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/uti
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {
+  getCombinedDashboardFilters,
+  getDashboardFiltersFromURL,
+} from 'sentry/views/dashboards/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
@@ -89,11 +92,11 @@ export default function FiltersBar({
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       [];
 
-    if (hasDrillDownFlowsFeature) {
-      return [
-        ...globalFilters,
-        ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
-      ];
+    if (hasDrillDownFlowsFeature && dashboardFiltersFromURL) {
+      return getCombinedDashboardFilters(
+        globalFilters,
+        dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+      );
     }
 
     return globalFilters;

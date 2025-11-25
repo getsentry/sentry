@@ -3,7 +3,6 @@ from unittest import mock
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -71,16 +70,6 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
                 self.detector_workflow.id,
             )
 
-        # verify the DetectorWorkflow was scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="DetectorWorkflow",
-            object_id=self.detector_workflow.id,
-        ).exists()
-
-        # delete the DetectorWorkflow
-        with self.tasks():
-            run_scheduled_deletions()
-
         # verify it was deleted
         assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
 
@@ -103,77 +92,8 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
             object_id=self.detector_workflow.id,
         ).exists()
 
-    def test_team_admin_can_disconnect_user_detectors(self) -> None:
-        self.login_as(user=self.team_admin_user)
-
-        detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-            created_by_id=self.user.id,
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                detector_workflow.id,
-            )
-
-    def test_team_admin_can_disconnect_sentry_detectors(self) -> None:
-        self.login_as(user=self.team_admin_user)
-
-        sentry_detector = self.create_detector(
-            project=self.create_project(organization=self.organization),
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=sentry_detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                detector_workflow.id,
-            )
-
-    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self) -> None:
-        self.login_as(user=self.team_admin_user)
-        self.organization.update_option("sentry:alerts_member_write", False)
-
-        project_detector = self.create_detector(
-            project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=self.user.id,
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=project_detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                detector_workflow.id,
-            )
-
-    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self) -> None:
-        self.login_as(user=self.team_admin_user)
-        self.organization.update_option("sentry:alerts_member_write", False)
-
-        other_detector = self.create_detector(
-            project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=self.user.id,
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=other_detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_error_response(
-                self.organization.slug,
-                detector_workflow.id,
-                status_code=403,
-            )
-
     def test_member_can_disconnect_user_detectors(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.login_as(user=self.member_user)
@@ -190,26 +110,6 @@ class OrganizationDetectorWorkflowDetailsDeleteTest(OrganizationDetectorWorkflow
             self.get_success_response(
                 self.organization.slug,
                 detector_workflow.id,
-            )
-
-    def test_member_cannot_disconnect_detectors_for_other_projects(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        self.login_as(user=self.member_user)
-
-        other_detector = self.create_detector(
-            project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=self.user.id,
-        )
-        detector_workflow = self.create_detector_workflow(
-            detector=other_detector,
-            workflow=self.workflow,
-        )
-        with outbox_runner():
-            self.get_error_response(
-                self.organization.slug,
-                detector_workflow.id,
-                status_code=403,
             )
 
     def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self) -> None:

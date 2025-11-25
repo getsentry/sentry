@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button/button';
 import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,9 +18,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
+import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './cohortComparisonChart';
@@ -32,15 +32,19 @@ const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
-  boxSelectOptions,
-  chartInfo,
+  selection,
+  chartIndex,
 }: {
-  boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  chartIndex: number;
+  selection: Selection;
 }) {
+  const visualizes = useQueryParamsVisualizes();
+
+  const yAxis = visualizes[chartIndex]?.yAxis ?? '';
+
   const {data, isLoading, isError} = useAttributeBreakdownComparison({
-    boxSelectOptions,
-    chartInfo,
+    aggregateFunction: yAxis,
+    range: selection.range,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const sortingMethod: SortingMethod = 'rrr';
@@ -85,11 +89,11 @@ export function CohortComparison({
   }, [filteredRankedAttributes]);
 
   const selectionHint = useMemo(() => {
-    if (!boxSelectOptions.xRange) {
+    if (!selection) {
       return null;
     }
 
-    const [x1, x2] = boxSelectOptions.xRange;
+    const [x1, x2] = selection.range;
 
     let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
     const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
@@ -102,12 +106,12 @@ export function CohortComparison({
     const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
-    const yAxisLower = chartInfo.yAxis.toLowerCase();
+    const yAxisLower = yAxis.toLowerCase();
     const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
       yAxisLower.startsWith(prefix)
     );
 
-    const formattedFunction = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
+    const formattedFunction = prettifyAggregation(yAxis) ?? yAxis;
 
     return {
       selection: isPercentileFunction
@@ -120,10 +124,10 @@ export function CohortComparison({
         : t(`Selection is data between %s - %s`, startDate, endDate),
       baseline: t('Baseline is all other spans from your query'),
     };
-  }, [boxSelectOptions.xRange, chartInfo.yAxis]);
+  }, [selection, yAxis]);
 
   return (
-    <Panel>
+    <Panel data-explore-chart-selection-region>
       <Flex direction="column" gap="xl" padding="xl">
         {isLoading ? (
           <LoadingIndicator />

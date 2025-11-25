@@ -195,6 +195,7 @@ SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
+SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -2152,6 +2153,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
 
@@ -2809,6 +2811,10 @@ SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
 
 SEER_ALERT_DELETION_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
+)
+
+SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/alert-data"
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
