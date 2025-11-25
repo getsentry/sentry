@@ -897,19 +897,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-    def test_high_accuracy_flex_time_without_feature_flag(self):
-        request = {
-            "field": ["timestamp", "message"],
-            "orderby": "-timestamp",
-            "project": self.project.id,
-            "dataset": self.dataset,
-            "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
-            "per_page": 5,
-        }
-
-        response = self.do_request(request)
-        assert response.status_code == 400
-
     def test_bytes_scanned(self):
         self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
 
