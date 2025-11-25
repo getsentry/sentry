@@ -21,13 +21,12 @@ from django.core.handlers.wsgi import WSGIHandler
 application = WSGIHandler()
 
 # Add gRPC-Web support using grpcWSGI
-from grpcWSGI.server import grpcWSGI
-
 from sentry.integrations.grpc.generated import scm_pb2_grpc
+from sentry.integrations.grpc.server import SentryGrpcWSGI
 from sentry.integrations.grpc.services.scm_service import ScmServicer
 
 # Wrap Django application with gRPC-Web middleware and Register gRPC services
-application = grpcWSGI(application)
+application = SentryGrpcWSGI(application)
 scm_pb2_grpc.add_ScmServiceServicer_to_server(ScmServicer(), application)
 
 # trigger a warmup of the application

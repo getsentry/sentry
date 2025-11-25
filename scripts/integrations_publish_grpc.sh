@@ -29,27 +29,24 @@ cat > ${BUILD_DIR}/sentry_grpc_protos/__init__.py << 'EOF'
 """
 Sentry gRPC Protocol Buffer definitions.
 
-This package contains only the generated protobuf code for Sentry's gRPC services.
-Use the Sonora library to create clients that can communicate with these services.
+This package contains the generated protobuf code for Sentry's gRPC services and includes
+a client helper function (`grpc_channel`) for easy client creation with authentication support.
 
 Example usage:
-    from sonora.client import Client, RequestsTransport
-    from sentry_grpc_protos import scm_pb2, scm_pb2_grpc
+    from sentry_integrations_client import grpc_channel, scm_pb2, scm_pb2_grpc
 
-    # Create Sonora transport and client
-    transport = RequestsTransport(
+    # Create gRPC channel with authentication
+    channel = grpc_channel(
         base_url="http://localhost:8000",
-        headers={"X-Grpc-Auth-Token": "your-token"}
+        auth_token="your-token"
     )
 
-    client = Client(
-        service_stub=scm_pb2_grpc.ScmServiceStub,
-        transport=transport
-    )
+    # Create service stub
+    stub = scm_pb2_grpc.ScmServiceStub(channel)
 
     # Make a request
     request = scm_pb2.GetRepositoriesRequest(organization_id=1)
-    response = client.GetRepositories(request)
+    response = stub.GetRepositories(request)
 """
 
 __version__ = "VERSION_PLACEHOLDER"
@@ -131,36 +128,30 @@ This package contains **only** the generated protobuf code:
 - `scm_pb2_grpc.py` - Service stubs
 - Type hints (`.pyi` files) for better IDE support
 
-## Creating a Client with Sonora
+## Creating a Client
 
-This package does not include a client implementation. Instead, use the [Sonora](https://github.com/public/sonora) library to create gRPC-Web clients.
+This package includes a client helper function `grpc_channel` that simplifies creating gRPC-Web clients with authentication support.
 
 ### Basic Usage
 
 ```python
-from sonora.client import Client, RequestsTransport
-from sentry_grpc_protos import scm_pb2, scm_pb2_grpc
+from sentry_integrations_client import grpc_channel, scm_pb2, scm_pb2_grpc
 
-# Create the transport with authentication
-transport = RequestsTransport(
+# Create gRPC channel with authentication
+channel = grpc_channel(
     base_url="http://localhost:8000",
-    headers={
-        "X-Grpc-Auth-Token": "your-auth-token"
-    }
+    auth_token="your-auth-token"
 )
 
-# Create the client
-client = Client(
-    service_stub=scm_pb2_grpc.ScmServiceStub,
-    transport=transport
-)
+# Create service stub
+stub = scm_pb2_grpc.ScmServiceStub(channel)
 
 # Make requests
 request = scm_pb2.GetRepositoriesRequest(
     organization_id=123,
     page_size=10
 )
-response = client.GetRepositories(request)
+response = stub.GetRepositories(request)
 
 for repo in response.repositories:
     print(f"Repository: {repo.name}")
@@ -172,50 +163,37 @@ The Sentry gRPC service supports two authentication methods:
 
 1. **Token Authentication**
    ```python
-   headers={"X-Grpc-Auth-Token": "your-token"}
+   channel = grpc_channel(
+       base_url="http://localhost:8000",
+       auth_token="your-token"
+   )
    ```
 
 2. **HMAC Signature** (for service-to-service)
    ```python
-   # Generate HMAC signature
-   import hmac
-   import hashlib
-
-   body_hex = request.SerializeToString().hex()
-   method = "/sentry.integrations.scm.v1.ScmService/GetRepositories"
-   signing_payload = f"{method}:{body_hex}".encode('utf-8')
-
-   signature = hmac.new(
-       b"your-secret",
-       signing_payload,
-       hashlib.sha256
-   ).hexdigest()
-
-   headers={
-       "X-Signature": signature,
-       "X-Body": body_hex,
-       "X-Method": method
-   }
+   channel = grpc_channel(
+       base_url="http://localhost:8000",
+       hmac_secret="your-secret"
+   )
    ```
+
+   The HMAC signature is automatically generated and included in each request.
 
 ### Advanced Example with Error Handling
 
 ```python
-from sonora.client import Client, RequestsTransport
-from sentry_grpc_protos import scm_pb2, scm_pb2_grpc
+from sentry_integrations_client import grpc_channel, scm_pb2, scm_pb2_grpc
 import grpc
 
-# Configure transport
-transport = RequestsTransport(
+# Create gRPC channel with authentication
+channel = grpc_channel(
     base_url="http://sentry.example.com",
-    headers={"X-Grpc-Auth-Token": "token"},
-    timeout=30  # 30 second timeout
+    auth_token="token",
+    verify_ssl=False  # Set to True in production
 )
 
-client = Client(
-    service_stub=scm_pb2_grpc.ScmServiceStub,
-    transport=transport
-)
+# Create service stub
+stub = scm_pb2_grpc.ScmServiceStub(channel)
 
 try:
     # List repositories
@@ -224,7 +202,7 @@ try:
         provider=scm_pb2.PROVIDER_GITHUB,
         query="django"
     )
-    response = client.GetRepositories(request)
+    response = stub.GetRepositories(request, timeout=30)
 
     for repo in response.repositories:
         print(f"Found: {repo.name} ({repo.url})")
@@ -235,12 +213,13 @@ except Exception as e:
     print(f"Unexpected error: {e}")
 ```
 
-### Using with Async (httpx)
+### Using with Async (Advanced)
 
-Sonora also supports async operations:
+For async operations, you can use Sonora's async transport directly:
 
 ```python
 from sonora.client import Client, HttpxTransport
+from sentry_integrations_client import scm_pb2, scm_pb2_grpc
 import httpx
 import asyncio
 
@@ -318,9 +297,9 @@ python -m grpc_tools.protoc \
     protos/scm.proto
 ```
 
-## Why Sonora?
+## Client Implementation
 
-[Sonora](https://github.com/public/sonora) is a Python library that provides gRPC-Web client functionality. It offers:
+This package includes a `grpc_channel` helper function built on top of [Sonora](https://github.com/public/sonora), a Python library that provides gRPC-Web client functionality. Sonora offers:
 
 - Simple, Pythonic API
 - Support for both sync (requests) and async (httpx) transports
@@ -343,7 +322,7 @@ Apache License 2.0
 
 For issues related to:
 - Protocol buffer definitions: [Create an issue](https://github.com/getsentry/sentry/issues)
-- Sonora client library: [Sonora repository](https://github.com/public/sonora)
+- Client implementation: The `grpc_channel` helper is included in this package. For advanced usage, see [Sonora documentation](https://github.com/public/sonora)
 EOF
 
 # Create pyproject.toml for modern Python packaging

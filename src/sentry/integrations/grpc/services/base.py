@@ -5,8 +5,8 @@ from functools import wraps
 from typing import TypeVar
 
 import grpc
-from django.conf import settings
 
+from sentry import options
 from sentry.integrations.grpc.interceptors.auth import check_grpc_authentication
 
 T = TypeVar("T")
@@ -18,14 +18,45 @@ class BaseGrpcServicer:
     def _check_auth(self, context: grpc.ServicerContext) -> bool:
         """Check authentication and return True if authenticated."""
         # For development: allow unauthenticated requests by default
-        # In production, set GRPC_REQUIRE_AUTH = True in settings
-        require_auth = getattr(settings, "GRPC_REQUIRE_AUTH", False)
+        # In production, set grpc.require_auth = True in settings
+        require_auth = options.get("grpc.require_auth", False)
+
         if not require_auth:
             return True
 
-        # Try to extract headers from the request if available
-        request_headers = None
-        # TODO: Extract headers from WSGI environ when grpcWSGI provides access
+        # Try to extract headers from the context
+        # grpcWSGI stores headers in the context
+        request_headers = {}
+        try:
+            # Check for environ first (our custom context)
+            if hasattr(context, "environ") and context.environ:
+                # If we have access to WSGI environ
+                environ = context.environ
+                # Extract HTTP headers from environ
+                for key, value in environ.items():
+                    if key.startswith("HTTP_"):
+                        # Convert HTTP_X_GRPC_AUTH_TOKEN to x-grpc-auth-token
+                        header_name = key[5:].replace("_", "-").lower()
+                        request_headers[header_name] = value
+            elif hasattr(context, "_request_headers"):
+                # Some implementations store headers directly
+                request_headers = context._request_headers
+            elif hasattr(context, "invocation_metadata"):
+                # Standard gRPC method - but grpcWSGI doesn't implement it
+                try:
+                    metadata = context.invocation_metadata()
+                    if metadata:
+                        request_headers = dict(metadata)
+                except NotImplementedError:
+                    # grpcWSGI doesn't implement this
+                    pass
+        except Exception as e:
+            # If we can't get headers, authentication will fail
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Failed to extract headers: {e}")
+            pass
 
         return check_grpc_authentication(context, request_headers)
 
@@ -48,10 +79,7 @@ class BaseGrpcServicer:
                 # The type is inferred from the method's return annotation
                 return_type = method.__annotations__.get("return")
                 if return_type:
-                    try:
-                        return return_type()
-                    except Exception:
-                        pass
+                    return return_type()
                 return None
 
             # Call the actual method
@@ -81,10 +109,8 @@ def authenticated_method(func: Callable[..., T]) -> Callable[..., T]:
             # Try to return empty response of expected type
             return_type = func.__annotations__.get("return")
             if return_type:
-                try:
-                    return return_type()
-                except Exception:
-                    pass
+                return return_type()
+
             return None
 
         return func(self, request, context, *args, **kwargs)

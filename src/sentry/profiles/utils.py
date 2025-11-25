@@ -31,7 +31,7 @@ class RetrySkipTimeout(urllib3.Retry):
         self,
         method: str | None = None,
         url: str | None = None,
-        response: urllib3.BaseHTTPResponse | None = None,
+        response: urllib3.response.HTTPResponse | None = None,
         error: Exception | None = None,
         _pool: ConnectionPool | None = None,
         _stacktrace: TracebackType | None = None,

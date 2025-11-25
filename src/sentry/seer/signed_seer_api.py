@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3 import HTTPConnectionPool, Retry
+from urllib3.response import HTTPResponse as BaseHTTPResponse
 
 from sentry import options
 from sentry.utils import metrics

@@ -42,7 +42,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableResponse,
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
-from urllib3.response import BaseHTTPResponse
+from urllib3.response import HTTPResponse as BaseHTTPResponse
 
 from sentry.utils.snuba import SnubaError, _snuba_pool
 

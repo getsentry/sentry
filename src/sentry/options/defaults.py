@@ -3706,3 +3706,23 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# GRPC configuration for integrations
+register(
+    "grpc.auth_tokens",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY,
+)
+register(
+    "grpc.hmac_secrets",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY,
+)
+register(
+    "grpc.require_auth",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL,
+)

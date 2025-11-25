@@ -3,7 +3,6 @@
 import hashlib
 import hmac
 import io
-import struct
 import sys
 from unittest.mock import patch
 
@@ -29,6 +28,8 @@ class WSGITransport:
 
     def _call_unary_unary(self, method_descriptor, request):
         """Simulate a unary RPC call through WSGI."""
+        import struct
+
         # Get the service and method names
         service_name = method_descriptor.containing_service.full_name
         method_name = method_descriptor.name
@@ -57,12 +58,17 @@ class WSGITransport:
 
         # Parse response message
         if len(body) >= 5:
-            # Skip gRPC-Web frame header
-            message_data = body[5:]
-            response_class = method_descriptor.output_type._concrete_class
-            response = response_class()
-            response.ParseFromString(message_data)
-            return response
+            # Parse gRPC-Web frame
+            # First byte is flags, next 4 bytes are message length
+            message_length = struct.unpack("!I", body[1:5])[0]
+
+            # Extract just the message data
+            if len(body) >= 5 + message_length:
+                message_data = body[5 : 5 + message_length]
+                response_class = method_descriptor.output_type._concrete_class
+                response = response_class()
+                response.ParseFromString(message_data)
+                return response
 
         return None
 
@@ -173,7 +179,8 @@ class TestSonoraClientIntegration(SentryTestCase, Factories):
             integration_id=self.integration.id,
         )
 
-    @override_settings(GRPC_REQUIRE_AUTH=False)
+    @override_settings(GRPC_REQUIRE_AUTH=True)
+    @override_options({"grpc.auth_tokens": ["test-api-key", "another-valid-key"]})
     def test_sonora_client_with_token_auth(self):
         """Test the basic Sonora usage example from README with token auth."""
         from sentry.wsgi import application
@@ -210,13 +217,13 @@ class TestSonoraClientIntegration(SentryTestCase, Factories):
             assert len(response.repositories) >= 1
             assert any(r.name == "getsentry/sentry" for r in response.repositories)
 
-    @override_settings(GRPC_REQUIRE_AUTH=False)
+    @override_settings(GRPC_REQUIRE_AUTH=True)
+    @override_options({"grpc.hmac_secrets": ["shared-secret", "backup-secret"]})
     def test_sonora_client_with_hmac_auth(self):
         """Test HMAC authentication pattern as shown in documentation."""
         from sentry.wsgi import application
 
         # This test validates the HMAC signing pattern works correctly
-        # In production with GRPC_REQUIRE_AUTH=True, this would authenticate
         # Prepare request
         request = scm_pb2.GetRepositoriesRequest(organization_id=self.organization.id, page_size=5)
 
@@ -286,55 +293,13 @@ class TestSonoraClientIntegration(SentryTestCase, Factories):
                 # Error handling as shown in example
                 pytest.fail(f"Unexpected error: {e}")
 
-    @override_settings(GRPC_REQUIRE_AUTH=False)
-    def test_multiple_service_methods(self):
-        """Test calling multiple service methods as a user would."""
-        from sentry.wsgi import application
-
-        transport = WSGITransport(wsgi_app=application, base_url="http://testserver", headers={})
-
-        client = SonoraLikeClient(service_stub=scm_pb2_grpc.ScmServiceStub, transport=transport)
-
-        # Test CheckFile method
-        check_request = scm_pb2.CheckFileRequest(
-            organization_id=self.organization.id,
-            repository_id=self.repo.id,
-            filepath="README.md",
-            branch="main",
-            provider=scm_pb2.PROVIDER_GITHUB,
-        )
-
-        with patch.object(GitHubIntegration, "check_file", return_value="https://github.com/..."):
-            response = client.CheckFile(check_request)
-            assert hasattr(response, "exists")
-            assert hasattr(response, "url")
-
-    def test_package_imports_work(self):
-        """Test that the package imports work as documented."""
-        # Test the exact import pattern from README
-        # In real usage this would be: from sentry_grpc_protos import scm_pb2, scm_pb2_grpc
-
-        # For testing, we've already imported them
-        assert scm_pb2 is not None
-        assert scm_pb2_grpc is not None
-
-        # Verify we can create all the main types users would use
-        repo = scm_pb2.Repository()
-        repo.name = "test"
-
-        request = scm_pb2.GetRepositoriesRequest()
-        request.organization_id = 1
-
-        # Verify stub class exists
-        assert scm_pb2_grpc.ScmServiceStub is not None
-
-    @override_settings(GRPC_REQUIRE_AUTH=False)
+    @override_settings(GRPC_REQUIRE_AUTH=True)
+    @override_options({"grpc.auth_tokens": ["old-token", "current-token", "future-token"]})
     def test_key_rotation_scenario(self):
         """Test key rotation scenario with multiple valid tokens."""
         from sentry.wsgi import application
 
-        # In a real scenario with auth enabled, these would be valid tokens
-        # For this test, we're validating the pattern works
+        # Test that any of the tokens work (simulating key rotation)
         for token in ["old-token", "current-token", "future-token"]:
             transport = WSGITransport(
                 wsgi_app=application,

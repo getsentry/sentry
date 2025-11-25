@@ -5,6 +5,17 @@ PROTO_DIR="src/sentry/integrations/grpc/protos"
 OUTPUT_DIR="src/sentry/integrations/grpc/generated"
 CLIENT_DIR="packages/sentry-scm-client"
 
+# Check if grpc_tools is available
+if ! python -m grpc_tools.protoc --version > /dev/null 2>&1; then
+    echo "Error: grpc_tools.protoc is not available."
+    echo "Please install grpcio-tools:"
+    echo "  pip install grpcio-tools"
+    echo ""
+    echo "Note: grpcio-tools may not be available in the custom PyPI index."
+    echo "You may need to install it directly from PyPI."
+    exit 1
+fi
+
 # Create output directories
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${CLIENT_DIR}/sentry_integrations_client"

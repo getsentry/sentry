@@ -11,7 +11,7 @@ from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
-from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
+from urllib3.util.timeout import _GLOBAL_DEFAULT_TIMEOUT
 
 from sentry.exceptions import RestrictedIPAddress
 
@@ -107,7 +107,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 # Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
     address: tuple[str, int],
-    timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
+    timeout: object | float | None = _GLOBAL_DEFAULT_TIMEOUT,
     source_address: str | None = None,
     socket_options: Sequence[tuple[int, int, int | bytes]] | None = None,
     is_ipaddress_permitted: IsIpAddressPermitted = None,
@@ -158,7 +158,7 @@ def safe_create_connection(
             # If provided, set socket level options before connecting.
             _set_socket_options(sock, socket_options)
 
-            if timeout is not _DEFAULT_TIMEOUT:
+            if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
                 sock.settimeout(timeout)
             if source_address:
                 sock.bind(source_address)
