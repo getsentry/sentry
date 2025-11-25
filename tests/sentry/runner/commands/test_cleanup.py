@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import patch
 
 from sentry.constants import ObjectStatus
@@ -16,27 +15,18 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-class CustomTaskQueue:
-    """Mock task queue that implements the _WorkQueue protocol."""
+class SynchronousTaskQueue:
+    """Mock task queue that partially implements the _WorkQueue protocol but executes tasks synchronously."""
 
     def __init__(self) -> None:
+        # You can use this to inspect the calls to the queue.
         self.put_calls: list[tuple[str, tuple[int, ...]]] = []
 
     def put(self, item: tuple[str, tuple[int, ...]]) -> None:
-        """Called when items are added to the queue."""
         self.put_calls.append(item)
         task_execution(item[0], item[1])
 
-    def get(self, block: bool = True, timeout: float | None = None) -> Any:
-        """Get an item from the queue (required by Queue protocol)."""
-        raise NotImplementedError("get() not needed in tests")
-
-    def task_done(self) -> None:
-        """Signal that a task is complete (required by JoinableQueue protocol)."""
-        pass
-
     def join(self) -> None:
-        """Wait for all tasks to complete."""
         pass
 
 
@@ -157,11 +147,11 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             assume_test_silo_mode(SiloMode.REGION),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
         ):
-            task_queue = CustomTaskQueue()
+            task_queue = SynchronousTaskQueue()
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,  # type: ignore[arg-type]  # CustomTaskQueue implements the queue protocol
+                task_queue=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
