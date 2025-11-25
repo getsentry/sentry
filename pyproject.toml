@@ -40,8 +40,8 @@ dependencies = [
     # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
     # See https://github.com/grpc/grpc/issues/23796 and
     # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-    "grpcio>=1.67.0",
-    "grpcio-tools>=1.67.0",  # For protobuf compilation
+    "grpcio>=1.76.1",
+    "grpcio-tools>=1.76.1",  # For protobuf compilation
     "grpcWSGI>=1.0.0",  # Sonora's WSGI middleware for gRPC-Web
     # not directly used, but provides a speedup for redis
     "hiredis>=2.3.2",

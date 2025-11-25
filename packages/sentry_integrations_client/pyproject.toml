@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentry_integrations_client"
+dynamic = ["version"]
+description = "gRPC-Web client for Sentry SCM integration service"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Sentry", email = "engineering@sentry.io"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "grpcio>=1.76.1",
+    "protobuf>=5.27.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "mypy>=1.0",
+    "types-protobuf",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "sentry_scm_client.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sentry_scm_client*"]

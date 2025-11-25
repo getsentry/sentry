@@ -3,7 +3,7 @@ set -e
 
 PROTO_DIR="src/sentry/integrations/grpc/protos"
 OUTPUT_DIR="src/sentry/integrations/grpc/generated"
-CLIENT_DIR="packages/sentry-scm-client"
+CLIENT_DIR="packages/sentry_integrations_client"
 
 # Check if grpc_tools is available
 if ! python -m grpc_tools.protoc --version > /dev/null 2>&1; then
