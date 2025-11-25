@@ -239,7 +239,8 @@ def incident_attachment_info(
             if alert_rule_id is None:
                 raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
         except AlertRuleDetector.DoesNotExist:
-            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+            # the corresponding metric detector was not dual written
+            alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
 
         workflow_engine_params = title_link_params.copy()
 
