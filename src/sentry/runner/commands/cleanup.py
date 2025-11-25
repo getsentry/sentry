@@ -128,11 +128,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
 
 
-def task_execution(
-    model_name: str,
-    chunk: tuple[int, ...],
-    skip_child_relations_models: Sequence[type[BaseModel]],
-) -> None:
+def task_execution(model_name: str, chunk: tuple[int, ...]) -> None:
     from sentry import deletions, models, similarity
     from sentry.utils import metrics
     from sentry.utils.imports import import_string
