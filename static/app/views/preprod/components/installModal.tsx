@@ -88,7 +88,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
           <br />
           <Text size="sm" variant="muted">
             {tct(
-              'App was signed for the App Store using the [profileName] profile and cannot be installed directly. Re-upload with an enterprise, ad-hoc, or development proifle to install this app.',
+              'App was signed for the App Store using the [profileName] profile and cannot be installed directly. Re-upload with an enterprise, ad-hoc, or development profile to install this app.',
               {
                 profileName: <strong>{installDetails.profile_name}</strong>,
               }
