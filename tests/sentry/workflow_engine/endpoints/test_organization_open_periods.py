@@ -13,11 +13,13 @@ from sentry.models.groupopenperiod import (
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
+@freeze_time()
 class OrganizationOpenPeriodsTest(APITestCase):
     @property
     def endpoint(self) -> str:
@@ -406,3 +408,31 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
 
         assert len(response.data) == 0
+
+    def test_open_period_activities_time_period(self) -> None:
+        curr_time = self.group_open_period.date_added
+
+        self.group_open_period.date_added = curr_time - timedelta(minutes=10)
+        self.group_open_period.date_started = curr_time - timedelta(minutes=10)
+        self.group_open_period.save()
+
+        self.opened_gopa.date_added = self.group_open_period.date_added
+        self.opened_gopa.save()
+
+        response = self.get_success_response(
+            *self.get_url_args(),
+            qs_params={
+                "detectorId": self.detector.id,
+                "start": curr_time - timedelta(minutes=5),
+                "end": timezone.now(),
+            },
+        )
+
+        assert len(response.data) == 1
+        open_period = response.data[0]
+        assert open_period["start"] == self.group_open_period.date_started
+        assert open_period["end"] is None
+        assert open_period["isOpen"] is True
+        assert (
+            len(open_period["activities"]) == 0
+        )  # don't include this GOPA, whose date_added doesn't overlap
