@@ -38,7 +38,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {}),
+      to: makeReleasesUrl(project?.id, {
+        appId: buildDetails.app_info.app_id ?? undefined,
+      }),
       label: t('Releases'),
     },
   ];

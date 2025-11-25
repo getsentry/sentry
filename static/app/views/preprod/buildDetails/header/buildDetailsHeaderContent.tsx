@@ -82,7 +82,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {}),
+      to: makeReleasesUrl(project?.id, {
+        appId: buildDetailsData.app_info.app_id ?? undefined,
+      }),
       label: 'Releases',
     },
   ];
