@@ -5,7 +5,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import SeerAutomationRoot from './index';
+import SeerAutomationRoot from 'getsentry/views/seerAutomation';
 
 describe('SeerAutomation', () => {
   beforeEach(() => {
