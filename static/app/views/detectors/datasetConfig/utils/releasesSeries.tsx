@@ -30,10 +30,12 @@ export function transformMetricsResponseToSeries(
     data: data.intervals.map((interval: string, index: number) => {
       return {
         name: new Date(interval).getTime(),
-        value: data.groups.reduce((acc: number, group) => {
-          const value = group.series?.[field]?.[index] ?? 0;
-          return acc + value;
-        }, 0),
+        // Releases metrics API returns rate values between 0-1, multiply by 100 for percentage display
+        value:
+          data.groups.reduce((acc: number, group) => {
+            const value = group.series?.[field]?.[index] ?? 0;
+            return acc + value;
+          }, 0) * 100,
       };
     }),
   };
