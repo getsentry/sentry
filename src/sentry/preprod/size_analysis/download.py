@@ -54,28 +54,25 @@ def get_size_analysis_response(
 
     Returns:
         - 200 with message for PENDING/PROCESSING states
+        - 200 with file content for COMPLETED with valid file
+        - 404 if COMPLETED but File object doesn't exist
         - 422 with error details for FAILED state
         - 500 if COMPLETED but no analysis_file_id
-        - 404 if COMPLETED but File object doesn't exist
-        - 200 with file content for COMPLETED with valid file
     """
     states = [m.state for m in all_size_metrics]
 
-    # Handle PENDING state
     if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING for s in states):
         return Response(
             {"state": "pending", "message": "Size analysis is still processing"},
             status=200,
         )
 
-    # Handle PROCESSING state
     if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING for s in states):
         return Response(
             {"state": "processing", "message": "Size analysis is still processing"},
             status=200,
         )
 
-    # Handle FAILED state
     if any(s == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED for s in states):
         failed_metric = next(
             m
@@ -91,10 +88,13 @@ def get_size_analysis_response(
             status=422,
         )
 
-    # All metrics are COMPLETED - need to return file content
     analysis_file_ids = [m.analysis_file_id for m in all_size_metrics if m.analysis_file_id]
 
     if not analysis_file_ids:
+        logger.info(
+            "preprod.size_analysis.download.no_analysis_file",
+            extra={"size_metrics_ids": [m.id for m in all_size_metrics]},
+        )
         raise SizeAnalysisResultsUnavailableError()
 
     analysis_file_id = analysis_file_ids[0]
@@ -106,30 +106,6 @@ def get_size_analysis_response(
             extra={"analysis_file_id": analysis_file_id},
         )
         raise SizeAnalysisFileNotFoundError()
-
-    try:
-        fp = file_obj.getfile()
-    except Exception as e:
-        logger.exception("Uncaught error getting size analysis file", extra={"error": e})
-        raise SizeAnalysisInternalError()
-
-    response = FileResponse(
-        fp,
-        content_type="application/json",
-    )
-    response["Content-Length"] = file_obj.size
-    return response
-
-
-def get_size_analysis_file_response(size_metrics: PreprodArtifactSizeMetrics) -> FileResponse:
-    """
-    Get the file response for a single size metrics record.
-    This is a legacy function for backwards compatibility.
-    """
-    try:
-        file_obj = File.objects.get(id=size_metrics.analysis_file_id)
-    except File.DoesNotExist:
-        raise SizeAnalysisNotFoundError()
 
     try:
         fp = file_obj.getfile()

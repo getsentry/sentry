@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,9 +17,12 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactRe
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.size_analysis.download import (
     SizeAnalysisError,
+    SizeAnalysisResultsUnavailableError,
     get_size_analysis_error_response,
     get_size_analysis_response,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -72,5 +77,11 @@ class OrganizationPullRequestSizeAnalysisDownloadEndpoint(OrganizationEndpoint):
 
         try:
             return get_size_analysis_response(all_size_metrics)
+        except SizeAnalysisResultsUnavailableError as e:
+            logger.info(
+                "preprod.size_analysis.download.no_size_metrics",
+                extra={"artifact_id": artifact_id},
+            )
+            return get_size_analysis_error_response(e)
         except SizeAnalysisError as e:
             return get_size_analysis_error_response(e)
