@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -14,42 +14,37 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
-import {IconChat, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 interface AssignedEntity {
-  email: string | null;
+  email: string | null; // unused
   id: string;
-  name: string;
+  name: string; // unused
   type: string;
 }
 
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
+  cluster_avg_similarity: number | null; // unused
   cluster_id: number;
-  cluster_min_similarity: number | null;
-  cluster_size: number | null;
+  cluster_min_similarity: number | null; // unused
+  cluster_size: number | null; // unused
   description: string;
   fixability_score: number | null;
   group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  tags: string[];
+  issue_titles: string[]; // unused
+  project_ids: number[]; // unused
+  tags: string[]; // unused
   title: string;
 }
 
@@ -57,89 +52,57 @@ interface TopIssuesResponse {
   data: ClusterSummary[];
 }
 
-// Compact issue preview for dynamic grouping - no short ID or quick fix icon
 function CompactIssuePreview({group}: {group: Group}) {
-  const organization = useOrganization();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
-
-  const showReplayCount =
-    organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, group.project) &&
-    group.issueCategory &&
-    !!getReplayCountForIssue(group.id, group.issueCategory);
-
-  const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {subtitle} = getTitle(group);
 
   const items = [
     group.project ? (
-      <ShadowlessProjectBadge project={group.project} avatarSize={12} hideName />
+      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
     ) : null,
     group.isUnhandled ? <UnhandledTag /> : null,
     group.count ? (
-      <EventCount>{tn('%s event', '%s events', group.count)}</EventCount>
+      <Text size="xs" bold>
+        {tn('%s event', '%s events', group.count)}
+      </Text>
     ) : null,
-    group.lifetime || group.firstSeen || group.lastSeen ? (
-      <TimesTag
-        lastSeen={group.lifetime?.lastSeen || group.lastSeen}
-        firstSeen={group.lifetime?.firstSeen || group.firstSeen}
-      />
+    group.firstSeen || group.lastSeen ? (
+      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
     ) : null,
-    group.numComments > 0 ? (
-      <CommentsLink
-        to={{
-          pathname: `${issuesPath}${group.id}/activity/`,
-          query: {filter: 'comments'},
-        }}
-      >
-        <IconChat
-          size="xs"
-          color={
-            group.subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
-          }
-        />
-        <span>{group.numComments}</span>
-      </CommentsLink>
-    ) : null,
-    showReplayCount ? <IssueReplayCount group={group} /> : null,
-  ].filter(defined);
+  ].filter(Boolean);
 
   return (
-    <CompactIssueWrapper>
-      <CompactTitle>
-        {group.isBookmarked && (
-          <IconWrapper>
-            <IconStar isSolid color="yellow300" size="xs" />
-          </IconWrapper>
-        )}
+    <Flex direction="column" gap="xs">
+      <IssueTitle>
         <EventOrGroupTitle data={group} withStackTracePreview />
-      </CompactTitle>
-      <CompactMessage
+      </IssueTitle>
+      <IssueMessage
         data={group}
         level={group.level}
         message={getMessage(group)}
         type={group.type}
       />
-      {subtitle && <CompactLocation>{subtitle}</CompactLocation>}
+      {subtitle && (
+        <Text size="sm" variant="muted" ellipsis>
+          {subtitle}
+        </Text>
+      )}
       {items.length > 0 && (
-        <CompactExtra>
+        <Flex wrap="wrap" gap="sm" align="center">
           {items.map((item, i) => (
             <Fragment key={i}>
               {item}
-              {i < items.length - 1 ? <CompactSeparator /> : null}
+              {i < items.length - 1 ? <MetaSeparator /> : null}
             </Fragment>
           ))}
-        </CompactExtra>
+        </Flex>
       )}
-    </CompactIssueWrapper>
+    </Flex>
   );
 }
 
-// Fetch and display actual issues from the group_ids
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
 
-  // Only fetch first 3 issues for preview
   const previewGroupIds = groupIds.slice(0, 3);
 
   const {data: groups, isPending} = useApiQuery<Group[]>(
@@ -153,18 +116,12 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
       },
     ],
     {
-      staleTime: 60000, // Cache for 1 minute
+      staleTime: 60000,
     }
   );
 
   if (isPending) {
-    return (
-      <Flex direction="column" gap="sm">
-        {[0, 1, 2].map(i => (
-          <Placeholder key={i} height="70px" />
-        ))}
-      </Flex>
-    );
+    return <LoadingIndicator size={24} />;
   }
 
   if (!groups || groups.length === 0) {
@@ -174,72 +131,70 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
   return (
     <Flex direction="column" gap="sm">
       {groups.map(group => (
-        <IssuePreviewContainer
+        <IssuePreviewLink
           key={group.id}
           to={`/organizations/${organization.slug}/issues/${group.id}/`}
         >
           <CompactIssuePreview group={group} />
-        </IssuePreviewContainer>
+        </IssuePreviewLink>
       ))}
     </Flex>
   );
 }
 
-// Individual cluster card
 function ClusterCard({
   cluster,
   onRemove,
-  isRemoving,
 }: {
   cluster: ClusterSummary;
-  isRemoving: boolean;
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
+  const issueCount = cluster.group_ids.length;
 
   return (
-    <CardContainer isRemoving={isRemoving}>
+    <CardContainer>
       <Flex
         justify="between"
         align="start"
-        gap="sm"
+        gap="md"
         paddingBottom="md"
-        marginBottom="md"
         borderBottom="primary"
       >
-        <TitleContainer direction="column" gap="xs">
-          <StyledDisclosure>
-            <Disclosure.Title>
-              <TitleHeading as="h3" size="md">
-                {cluster.title}
-              </TitleHeading>
-            </Disclosure.Title>
-            <Disclosure.Content>
-              <SummaryText variant="muted">{cluster.description}</SummaryText>
-              {cluster.fixability_score !== null && (
-                <ConfidenceText size="sm" variant="muted">
-                  {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
-                </ConfidenceText>
-              )}
-            </Disclosure.Content>
-          </StyledDisclosure>
-        </TitleContainer>
-        <IssueCount>
-          <CountNumber>{cluster.cluster_size ?? cluster.group_ids.length}</CountNumber>
-          <CountLabel size="xs" variant="muted">
-            {tn('issue', 'issues', cluster.cluster_size ?? cluster.group_ids.length)}
-          </CountLabel>
-        </IssueCount>
+        <Disclosure>
+          <Disclosure.Title>
+            <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
+              {cluster.title}
+            </Heading>
+          </Disclosure.Title>
+          <Disclosure.Content>
+            <Text as="p" variant="muted" style={{marginBottom: space(1.5)}}>
+              {cluster.description}
+            </Text>
+            {cluster.fixability_score !== null && (
+              <Text size="sm" variant="muted">
+                {t('%s%% confidence', Math.round(cluster.fixability_score * 100))}
+              </Text>
+            )}
+          </Disclosure.Content>
+        </Disclosure>
+        <IssueCountBadge>
+          <IssueCountNumber>{issueCount}</IssueCountNumber>
+          <Text size="xs" variant="muted" uppercase>
+            {tn('issue', 'issues', issueCount)}
+          </Text>
+        </IssueCountBadge>
       </Flex>
 
-      <Flex direction="column" flex="1">
+      <Flex direction="column" flex="1" paddingTop="md">
         <ClusterIssues groupIds={cluster.group_ids} />
 
         {cluster.group_ids.length > 3 && (
           <Text
             size="sm"
             variant="muted"
-            style={{marginTop: space(1), fontStyle: 'italic', textAlign: 'center'}}
+            align="center"
+            style={{marginTop: space(1), fontStyle: 'italic'}}
           >
             {t('+ %s more similar issues', cluster.group_ids.length - 3)}
           </Text>
@@ -249,9 +204,6 @@ function ClusterCard({
       <Flex justify="end" align="center" gap="xs" paddingTop="md">
         <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
           {t('Resolve')}
-        </Button>
-        <Button size="sm" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Ignore')}
         </Button>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
@@ -269,98 +221,42 @@ function DynamicGrouping() {
   const {teams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removingClusterId, setRemovingClusterId] = useState<number | null>(null);
   const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
-      staleTime: 60000, // Cache for 1 minute
+      staleTime: 60000,
     }
   );
 
-  const clusterData = useMemo(
-    () => topIssuesResponse?.data ?? [],
-    [topIssuesResponse?.data]
-  );
+  const clusterData = topIssuesResponse?.data ?? [];
 
   const handleRemoveCluster = (clusterId: number) => {
-    // Start animation
-    setRemovingClusterId(clusterId);
-
-    // Wait for animation to complete before removing
-    setTimeout(() => {
-      const updatedRemovedIds = new Set(removedClusterIds);
-      updatedRemovedIds.add(clusterId);
-      setRemovedClusterIds(updatedRemovedIds);
-      setRemovingClusterId(null);
-    }, 300); // Match the animation duration
+    setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  // Check if a cluster has at least one issue assigned to the current user or their teams
-  const isClusterAssignedToMe = useMemo(() => {
-    const userId = user.id;
-    const teamIds = teams.map(team => team.id);
+  const filteredAndSortedClusters = clusterData
+    .filter(cluster => {
+      if (removedClusterIds.has(cluster.cluster_id)) return false;
 
-    return (cluster: ClusterSummary) => {
-      // If no assignedTo data, include the cluster
-      if (!cluster.assignedTo || cluster.assignedTo.length === 0) {
-        return false;
+      const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
+      if (fixabilityScore < minFixabilityScore) return false;
+
+      if (filterByAssignedToMe) {
+        if (!cluster.assignedTo?.length) return false;
+        return cluster.assignedTo.some(
+          entity =>
+            (entity.type === 'user' && entity.id === user.id) ||
+            (entity.type === 'team' && teams.some(team => team.id === entity.id))
+        );
       }
+      return true;
+    })
+    .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
 
-      // Check if any assigned entity matches the user or their teams
-      return cluster.assignedTo.some(entity => {
-        if (entity.type === 'user' && entity.id === userId) {
-          return true;
-        }
-        if (entity.type === 'team' && teamIds.includes(entity.id)) {
-          return true;
-        }
-        return false;
-      });
-    };
-  }, [user.id, teams]);
-
-  // Filter and sort clusters by fixability score (descending)
-  const filteredAndSortedClusters = useMemo(() => {
-    return [...clusterData]
-      .filter((cluster: ClusterSummary) => {
-        // Filter out removed clusters
-        if (removedClusterIds.has(cluster.cluster_id)) {
-          return false;
-        }
-
-        // Filter by fixability score - hide clusters below threshold
-        const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-        if (fixabilityScore < minFixabilityScore) {
-          return false;
-        }
-
-        // If "Assigned to Me" filter is enabled, only show clusters assigned to the user
-        if (filterByAssignedToMe) {
-          return isClusterAssignedToMe(cluster);
-        }
-        return true;
-      })
-      .sort(
-        (a: ClusterSummary, b: ClusterSummary) =>
-          (b.fixability_score ?? 0) - (a.fixability_score ?? 0)
-      );
-  }, [
-    clusterData,
-    removedClusterIds,
-    filterByAssignedToMe,
-    minFixabilityScore,
-    isClusterAssignedToMe,
-  ]);
-
-  const totalIssues = useMemo(() => {
-    return filteredAndSortedClusters.reduce(
-      (sum: number, c: ClusterSummary) => sum + (c.cluster_size ?? c.group_ids.length),
-      0
-    );
-  }, [filteredAndSortedClusters]);
+  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -368,7 +264,7 @@ function DynamicGrouping() {
   }
 
   return (
-    <PageContainer>
+    <Container padding="lg" maxWidth="1600px" margin="0 auto">
       <Breadcrumbs
         crumbs={[
           {
@@ -381,35 +277,30 @@ function DynamicGrouping() {
         ]}
       />
 
-      <PageHeader>
-        <Heading as="h1">{t('Top Issues')}</Heading>
-      </PageHeader>
+      <Heading as="h1" style={{marginBottom: space(2)}}>
+        {t('Top Issues')}
+      </Heading>
 
       {isPending ? (
-        <Flex direction="column" gap="md" marginTop="lg">
-          {[0, 1, 2].map(i => (
-            <Placeholder key={i} height="200px" />
-          ))}
-        </Flex>
+        <LoadingIndicator />
       ) : (
         <Fragment>
-          <Flex marginBottom="lg">
-            <Text size="sm" variant="muted">
-              {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
-              )}
-            </Text>
-          </Flex>
+          <Text size="sm" variant="muted">
+            {tn(
+              'Viewing %s issue in %s cluster',
+              'Viewing %s issues across %s clusters',
+              totalIssues,
+              filteredAndSortedClusters.length
+            )}
+          </Text>
 
           <Container
-            padding="md"
+            padding="sm"
             border="primary"
             radius="md"
-            marginBottom="lg"
             background="primary"
+            marginTop="md"
+            marginBottom="lg"
           >
             <Disclosure>
               <Disclosure.Title>
@@ -418,7 +309,7 @@ function DynamicGrouping() {
                 </Text>
               </Disclosure.Title>
               <Disclosure.Content>
-                <AdvancedFilterContent>
+                <Flex direction="column" gap="md" paddingTop="md">
                   <Flex gap="sm" align="center">
                     <Checkbox
                       checked={filterByAssignedToMe}
@@ -443,65 +334,50 @@ function DynamicGrouping() {
                       size="sm"
                     />
                   </Flex>
-                </AdvancedFilterContent>
+                </Flex>
               </Disclosure.Content>
             </Disclosure>
           </Container>
 
           {filteredAndSortedClusters.length === 0 ? (
             <Container padding="lg" border="primary" radius="md" background="primary">
-              <Text variant="muted" style={{textAlign: 'center'}}>
+              <Text variant="muted" align="center" as="div">
                 {t('No clusters match the current filters')}
               </Text>
             </Container>
           ) : (
             <CardsGrid>
-              {filteredAndSortedClusters.map((cluster: ClusterSummary) => (
+              {filteredAndSortedClusters.map(cluster => (
                 <ClusterCard
                   key={cluster.cluster_id}
                   cluster={cluster}
                   onRemove={handleRemoveCluster}
-                  isRemoving={removingClusterId === cluster.cluster_id}
                 />
               ))}
             </CardsGrid>
           )}
         </Fragment>
       )}
-    </PageContainer>
+    </Container>
   );
 }
 
-// Styled Components
-const PageContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
-  max-width: 1600px;
-  margin: 0 auto;
-`;
-
-const PageHeader = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
+// Grid layout for cards - needs CSS grid
 const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: ${space(3)};
 `;
 
-const CardContainer = styled('div')<{isRemoving: boolean}>`
+// Card with hover effect - needs custom transition/hover styles
+const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(3)};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  opacity: ${p => (p.isRemoving ? 0 : 1)};
-  transform: ${p => (p.isRemoving ? 'scale(0.95)' : 'scale(1)')};
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
@@ -511,57 +387,8 @@ const CardContainer = styled('div')<{isRemoving: boolean}>`
   }
 `;
 
-const SummaryText = styled(Text)`
-  line-height: 1.6;
-  display: block;
-  margin-bottom: ${space(1.5)};
-`;
-
-const ConfidenceText = styled(Text)`
-  display: block;
-  margin-top: ${space(1.5)};
-`;
-
-const TitleContainer = styled(Flex)`
-  flex: 1;
-  min-width: 0;
-`;
-
-const StyledDisclosure = styled(Disclosure)`
-  /* Target the button inside Disclosure.Title */
-  button {
-    width: 100%;
-    display: flex !important;
-    text-align: left !important;
-    white-space: normal;
-    word-break: break-word;
-    padding: 0;
-    margin: 0;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-  }
-
-  /* Ensure inner content is left-aligned */
-  button > *,
-  button span {
-    text-align: left !important;
-    justify-content: flex-start !important;
-  }
-
-  /* Adjust content padding */
-  & > div:last-child {
-    padding-top: ${space(1)};
-  }
-`;
-
-const TitleHeading = styled(Heading)`
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-  text-align: left;
-`;
-
-const IssueCount = styled('div')`
+// Issue count badge with custom background color
+const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -571,54 +398,41 @@ const IssueCount = styled('div')`
   flex-shrink: 0;
 `;
 
-const CountNumber = styled('div')`
+const IssueCountNumber = styled('div')`
   font-size: 24px;
   font-weight: 600;
   color: ${p => p.theme.purple400};
   line-height: 1;
 `;
 
-const CountLabel = styled(Text)`
-  margin-top: ${space(0.25)};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  display: inline-block;
-  width: 6ch;
-  text-align: center;
-`;
-
-const IssuePreviewContainer = styled(Link)`
+// Issue preview link with hover transform effect
+const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  transition: all 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
 
   &:hover {
     border-color: ${p => p.theme.purple300};
     background: ${p => p.theme.backgroundElevated};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transform: translateX(2px);
   }
 `;
 
-const CompactIssueWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.75)};
-`;
-
-const CompactTitle = styled('div')`
+// Issue title with ellipsis and nested em styling for EventOrGroupTitle
+const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   line-height: 1.4;
-  text-align: left;
   ${p => p.theme.overflowEllipsis};
 
-  & em {
+  em {
     font-size: ${p => p.theme.fontSize.sm};
     font-style: normal;
     font-weight: ${p => p.theme.fontWeight.normal};
@@ -626,71 +440,18 @@ const CompactTitle = styled('div')`
   }
 `;
 
-const CompactMessage = styled(EventMessage)`
+// EventMessage override for compact display
+const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  line-height: 1.4;
 `;
 
-const CompactLocation = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.3;
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const CompactExtra = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column dense;
-  gap: ${space(0.75)};
-  justify-content: start;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
-  line-height: 1.2;
-
-  & > a {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const CompactSeparator = styled('div')`
+// Meta separator line
+const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
-  border-radius: 1px;
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
-`;
-
-const CommentsLink = styled(Link)`
-  display: inline-grid;
-  gap: ${space(0.5)};
-  align-items: center;
-  grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
-`;
-
-const IconWrapper = styled('span')`
-  display: inline-flex;
-  margin-right: ${space(0.5)};
-`;
-
-const EventCount = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const AdvancedFilterContent = styled('div')`
-  padding: ${space(2)} 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 export default DynamicGrouping;
