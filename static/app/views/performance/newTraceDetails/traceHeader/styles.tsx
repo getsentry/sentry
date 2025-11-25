@@ -1,34 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import Placeholder from 'sentry/components/placeholder';
-import {IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  return openForm ? (
-    <Button
-      size="xs"
-      aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make the trace view better for you?'),
-          tags: {
-            ['feedback.source']: 'trace-view',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
-}
 
 const HeaderLayout = styled('div')`
   background-color: ${p => p.theme.background};
@@ -70,7 +43,6 @@ const TraceHeaderComponents = {
   HeaderRow,
   HeaderContent,
   StyledBreak,
-  FeedbackButton,
   StyledPlaceholder,
 };
 

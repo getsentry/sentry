@@ -22,19 +22,19 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
 import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,26 +63,19 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const theme = useTheme();
   const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
-  const openForm = useFeedbackForm();
-  const feedbackButton =
-    openForm && !isXsScreen ? (
-      <Button
-        aria-label={t('Give feedback on the feature flag section')}
-        icon={<IconMegaphone />}
-        size="xs"
-        onClick={() =>
-          openForm({
-            messagePlaceholder: t('How can we make feature flags work better for you?'),
-            tags: {
-              ['feedback.source']: 'issue_details_feature_flags',
-              ['feedback.owner']: 'replay',
-            },
-          })
-        }
-      >
-        {t('Give Feedback')}
-      </Button>
-    ) : null;
+  const feedbackButton = isXsScreen ? null : (
+    <FeedbackButton
+      aria-label={t('Give feedback on the feature flag section')}
+      size="xs"
+      feedbackOptions={{
+        messagePlaceholder: t('How can we make feature flags work better for you?'),
+        tags: {
+          ['feedback.source']: 'issue_details_feature_flags',
+          ['feedback.owner']: 'replay',
+        },
+      }}
+    />
+  );
 
   // If we're showing the suspect section at all
   const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');

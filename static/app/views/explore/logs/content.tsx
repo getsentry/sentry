@@ -1,19 +1,18 @@
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
-import {IconMegaphone, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,32 +30,6 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-  return (
-    <Button
-      size="xs"
-      aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm?.({
-          messagePlaceholder: t('How can we make logs work better for you?'),
-          tags: {
-            ['feedback.source']: 'logs-listing',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  );
-}
 
 export default function LogsContent() {
   const organization = useOrganization();
@@ -137,7 +110,16 @@ function LogsHeader() {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar>
-          <FeedbackButton />
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make logs work better for you?'),
+              tags: {
+                ['feedback.source']: 'logs-listing',
+                ['feedback.owner']: 'performance',
+              },
+            }}
+          />
           <SetupLogsButton />
         </ButtonBar>
       </Layout.HeaderActions>

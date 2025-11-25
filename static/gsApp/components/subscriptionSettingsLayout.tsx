@@ -1,11 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-
 import {Flex} from 'sentry/components/core/layout';
-import {IconMegaphone} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -26,7 +23,6 @@ type Props = {
 function SubscriptionSettingsLayout(props: Props) {
   const organization = useOrganization();
   const isNewBillingUI = hasNewBillingUI(organization);
-  const openFeedbackForm = useFeedbackForm();
 
   const location = useLocation();
   const params = useParams();
@@ -61,27 +57,19 @@ function SubscriptionSettingsLayout(props: Props) {
         <Flex align="center" justify="between" gap="xl">
           <StyledSettingsBreadcrumb params={params} routes={routes} />
           <Flex align="center" gap="xl">
-            {openFeedbackForm ? (
-              <Button
-                size="sm"
-                icon={<IconMegaphone />}
-                onClick={() => {
-                  openFeedbackForm({
-                    formTitle: t('Give feedback'),
-                    messagePlaceholder: t(
-                      'How can we make the %s page better for you?',
-                      feedbackSource
-                    ),
-                    tags: {
-                      ['feedback.source']: feedbackSource,
-                      ['feedback.owner']: 'billing',
-                    },
-                  });
-                }}
-              >
-                {t('Give feedback')}
-              </Button>
-            ) : null}
+            <FeedbackButton
+              feedbackOptions={{
+                formTitle: t('Give feedback'),
+                messagePlaceholder: t(
+                  'How can we make the %s page better for you?',
+                  feedbackSource
+                ),
+                tags: {
+                  ['feedback.source']: feedbackSource,
+                  ['feedback.owner']: 'billing',
+                },
+              }}
+            />
             <SettingsSearch />
           </Flex>
         </Flex>
