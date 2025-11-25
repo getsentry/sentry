@@ -155,7 +155,7 @@ export function SnubaQueryDataSourceFixture(
         aggregate: 'count()',
         dataset: Dataset.ERRORS,
         id: '',
-        query: '',
+        query: 'is:unresolved',
         timeWindow: 60,
         eventTypes: [EventTypes.ERROR],
       },
