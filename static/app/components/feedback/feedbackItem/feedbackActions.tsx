@@ -68,10 +68,8 @@ export default function FeedbackActions({
         : []),
     ].join('\n');
 
-    trackAnalytics('feedback.copy-feedback-as-markdown', {
+    trackAnalytics('feedback.feedback-item-copy-as-markdown', {
       organization,
-      feedback_id: feedbackItem.id,
-      project_slug: feedbackItem.project?.slug,
     });
 
     copy(markdown, {
