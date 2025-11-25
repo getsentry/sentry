@@ -193,7 +193,7 @@ class VercelEnvVarMapBuilder:
         self._auth_token = auth_token
         return self
 
-    def with_framework(self, framework: str) -> Self:
+    def with_framework(self, framework: str | None) -> Self:
         self._framework = framework
         return self
 
@@ -204,8 +204,6 @@ class VercelEnvVarMapBuilder:
             raise ValueError("project is required")
         if self._project_key is None:
             raise ValueError("project_key is required")
-        if self._framework is None:
-            raise ValueError("framework is required")
 
         is_next_js = self._framework == "nextjs"
         dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
