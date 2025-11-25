@@ -13,6 +13,7 @@ import type {
   AggregateField,
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
@@ -473,8 +474,8 @@ export function useSetQueryParamsCrossEvents() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    () => (crossEvent: string) => {
-      setQueryParams({crossEvents: [...(queryParams.crossEvents ?? []), {crossEvent}]});
+    ({query, type}: CrossEvent) => {
+      setQueryParams({crossEvents: [...(queryParams.crossEvents ?? []), {query, type}]});
     },
     [queryParams, setQueryParams]
   );

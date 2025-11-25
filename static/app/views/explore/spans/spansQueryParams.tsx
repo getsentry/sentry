@@ -154,6 +154,14 @@ export function getTargetWithReadableQueryParams(
         )
   );
 
+  updateNullableLocation(
+    target,
+    SPANS_CROSS_EVENTS_KEY,
+    writableQueryParams?.crossEvents
+      ? JSON.stringify(writableQueryParams.crossEvents)
+      : null
+  );
+
   return target;
 }
 

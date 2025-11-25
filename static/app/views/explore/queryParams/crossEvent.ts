@@ -1,24 +1,32 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import {decodeList} from 'sentry/utils/queryString';
+
+type CrossEventType = 'trace' | 'span' | 'metric';
 
 export interface CrossEvent {
-  crossEvent: string;
-}
-
-export function defaultCrossEvents() {
-  return [{crossEvent: ''}];
+  query: string;
+  type: CrossEventType;
 }
 
 export function getCrossEventsFromLocation(
   location: Location,
   key: string
 ): CrossEvent[] | undefined {
-  const rawCrossEvents = decodeList(location.query?.[key]);
+  let json: any;
 
-  if (rawCrossEvents.length) {
-    return rawCrossEvents.map(crossEvent => ({crossEvent}));
+  if (!defined(location.query?.[key]) || Array.isArray(location.query?.[key])) {
+    return undefined;
+  }
+
+  try {
+    json = JSON.parse(location.query?.[key]);
+  } catch {
+    return undefined;
+  }
+
+  if (Array.isArray(json) && json.every(isCrossEvent)) {
+    return json;
   }
 
   return undefined;
@@ -26,6 +34,9 @@ export function getCrossEventsFromLocation(
 
 export function isCrossEvent(value: any): value is CrossEvent {
   return (
-    defined(value) && typeof value === 'object' && typeof value.crossEvent === 'string'
+    defined(value) &&
+    typeof value === 'object' &&
+    typeof value.type === 'string' &&
+    typeof value.query === 'string'
   );
 }
