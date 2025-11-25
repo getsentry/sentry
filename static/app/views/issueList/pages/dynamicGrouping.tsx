@@ -17,6 +17,8 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar, IconClock, IconFire, IconFix} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -100,6 +102,73 @@ function CompactIssuePreview({group}: {group: Group}) {
   );
 }
 
+interface ClusterStats {
+  firstSeen: string | null;
+  isPending: boolean;
+  lastSeen: string | null;
+  totalEvents: number;
+}
+
+function useClusterStats(groupIds: number[]): ClusterStats {
+  const organization = useOrganization();
+
+  const {data: groups, isPending} = useApiQuery<Group[]>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          group: groupIds,
+          query: `issue.id:[${groupIds.join(',')}]`,
+        },
+      },
+    ],
+    {
+      staleTime: 60000,
+      enabled: groupIds.length > 0,
+    }
+  );
+
+  return useMemo(() => {
+    if (isPending || !groups || groups.length === 0) {
+      return {
+        totalEvents: 0,
+        firstSeen: null,
+        lastSeen: null,
+        isPending,
+      };
+    }
+
+    let totalEvents = 0;
+    let earliestFirstSeen: Date | null = null;
+    let latestLastSeen: Date | null = null;
+
+    for (const group of groups) {
+      totalEvents += parseInt(group.count, 10) || 0;
+
+      if (group.firstSeen) {
+        const firstSeenDate = new Date(group.firstSeen);
+        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
+          earliestFirstSeen = firstSeenDate;
+        }
+      }
+
+      if (group.lastSeen) {
+        const lastSeenDate = new Date(group.lastSeen);
+        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
+          latestLastSeen = lastSeenDate;
+        }
+      }
+    }
+
+    return {
+      totalEvents,
+      firstSeen: earliestFirstSeen?.toISOString() ?? null,
+      lastSeen: latestLastSeen?.toISOString() ?? null,
+      isPending,
+    };
+  }, [groups, isPending]);
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -147,10 +216,11 @@ function ClusterCard({
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
+  const clusterStats = useClusterStats(cluster.group_ids);
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md" paddingBottom="md">
+      <Flex justify="between" align="start" gap="md">
         <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
           <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
             {cluster.title}
@@ -174,6 +244,57 @@ function ClusterCard({
           </Text>
         </IssueCountBadge>
       </Flex>
+
+      <ClusterStatsBar>
+        {cluster.fixability_score && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('confidence')}
+            </Text>
+          </StatItem>
+        )}
+        <StatItem>
+          <IconFire size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalEvents.toLocaleString()}
+              </Text>{' '}
+              {tn('event', 'events', clusterStats.totalEvents)}
+            </Text>
+          )}
+        </StatItem>
+        {!clusterStats.isPending && clusterStats.lastSeen && (
+          <StatItem>
+            <IconClock size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('Last Seen')}
+              date={clusterStats.lastSeen}
+              suffix={t('ago')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+        {!clusterStats.isPending && clusterStats.firstSeen && (
+          <StatItem>
+            <IconCalendar size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('First Seen')}
+              date={clusterStats.firstSeen}
+              suffix={t('old')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+      </ClusterStatsBar>
 
       <Flex direction="column" flex="1" paddingTop="md">
         <ClusterIssues groupIds={cluster.group_ids} />
@@ -467,7 +588,7 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Issue count badge with custom background color
+// Issue count badge - compact version
 const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
@@ -483,6 +604,25 @@ const IssueCountNumber = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.purple400};
   line-height: 1;
+`;
+
+// Horizontal stats bar below header
+const ClusterStatsBar = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  padding: ${space(1.5)} 0;
+  margin-top: ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 // Issue preview link with hover effect
