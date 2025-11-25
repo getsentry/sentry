@@ -190,6 +190,11 @@ function BillingDetailsForm({
     form.setValue('countryCode', data.value.address.country);
     form.setValue('postalCode', data.value.address.postal_code);
     updateCountryCodeState(data.value.address.country ?? '');
+
+    // XXX(isabella): temp fix specific to UAE, remove this when we have a proper fix
+    if (data.value.address.country === 'AE') {
+      form.setValue('city', data.value.address.state);
+    }
   };
 
   useEffect(() => {
