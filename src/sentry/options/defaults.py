@@ -1,5 +1,7 @@
 import os
 
+from django.conf import settings
+
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
@@ -16,6 +18,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
+from sentry.utils.env import in_test_environment
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # Cache
@@ -395,7 +398,8 @@ register(
 # This is compatible with `sentry`'s CI and generally development workflows using `devservices`
 register(
     "objectstore.host_replacement",
-    default=os.environ.get("SENTRY_OBJECTSTORE_HOST_REPLACEMENT") or "objectstore",
+    default=os.environ.get("SENTRY_OBJECTSTORE_HOST_REPLACEMENT")
+    or ("objectstore" if settings.IS_DEV or in_test_environment() else None),
     flags=FLAG_NOSTORE,
 )
 
