@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -63,6 +64,33 @@ type Props<V extends Values, K extends keyof V> = {
 type State = {
   displayEventId: boolean;
 };
+
+function ReplaceCapturedCheckbox({
+  values,
+  onChange,
+}: {
+  onChange: (field: 'replaceCaptured', value: string) => void;
+  values: Values;
+}) {
+  const disabled = !hasCaptureGroups(values.pattern);
+  return (
+    <Tooltip
+      title={disabled ? t('This rule does not contain capture groups') : undefined}
+      disabled={!disabled}
+    >
+      <ReplaceCapturedCheckboxContainer gap="xs" align="center" disabled={disabled}>
+        <Checkbox
+          id="replace-captured"
+          name="replaceCaptured"
+          checked={values.replaceCaptured === 'true'}
+          disabled={disabled}
+          onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+        />
+        <label htmlFor="replace-captured">{t('Only replace first capture match')}</label>
+      </ReplaceCapturedCheckboxContainer>
+    </Tooltip>
+  );
+}
 
 class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   state: State = {
@@ -212,31 +240,16 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               required
               showHelpInTooltip
             >
-              <Flex gap="md" direction="column">
-                <RegularExpression
-                  type="text"
-                  name="pattern"
-                  placeholder={t('[a-zA-Z0-9]+')}
-                  onChange={this.handleChange('pattern')}
-                  value={values.pattern}
-                  onBlur={onValidate('pattern')}
-                  id="regex-matches"
-                />
-                <Flex gap="md" align="center">
-                  <Checkbox
-                    id="replace-captured"
-                    name="replaceCaptured"
-                    checked={values.replaceCaptured === 'true'}
-                    disabled={!hasCaptureGroups(values.pattern)}
-                    onChange={e =>
-                      onChange('replaceCaptured', e.target.checked.toString())
-                    }
-                  />
-                  <ReplaceCapturedLabel htmlFor="replace-captured">
-                    {t('Only replace first capture match')}
-                  </ReplaceCapturedLabel>
-                </Flex>
-              </Flex>
+              <RegularExpression
+                type="text"
+                name="pattern"
+                placeholder={t('[a-zA-Z0-9]+')}
+                onChange={this.handleChange('pattern')}
+                value={values.pattern}
+                onBlur={onValidate('pattern')}
+                id="regex-matches"
+              />
+              <ReplaceCapturedCheckbox values={values} onChange={onChange} />
             </FieldGroup>
           )}
         </FieldContainer>
@@ -360,84 +373,67 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
             </FieldGroup>
           )}
         </FieldContainer>
-        <Flex direction="column" gap="md">
-          <FieldContainer hasTwoColumns={values.type === RuleType.PATTERN}>
+        <FieldContainer hasTwoColumns={values.type === RuleType.PATTERN}>
+          <FieldGroup
+            data-test-id="type-field"
+            label={t('Data Type')}
+            help={t(
+              'What to look for. Use an existing pattern or define your own using regular expressions.'
+            )}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            showHelpInTooltip
+          >
+            <SelectField
+              placeholder={t('Select type')}
+              name="type"
+              options={sortBy(Object.values(RuleType)).map(value => ({
+                label: getRuleLabel(value),
+                value,
+              }))}
+              value={type}
+              onChange={value => onChange('type', value?.value)}
+            />
+          </FieldGroup>
+          {values.type === RuleType.PATTERN && (
             <FieldGroup
-              data-test-id="type-field"
-              label={t('Data Type')}
-              help={t(
-                'What to look for. Use an existing pattern or define your own using regular expressions.'
-              )}
+              label={t('Regex matches')}
+              help={t('Custom regular expression (see documentation)')}
               inline={false}
+              id="regex-matches"
+              error={errors?.pattern}
               flexibleControlStateSize
               stacked
+              required
               showHelpInTooltip
             >
-              <SelectField
-                placeholder={t('Select type')}
-                name="type"
-                options={sortBy(Object.values(RuleType)).map(value => ({
-                  label: getRuleLabel(value),
-                  value,
-                }))}
-                value={type}
-                onChange={value => onChange('type', value?.value)}
-              />
-            </FieldGroup>
-            {values.type === RuleType.PATTERN && (
-              <FieldGroup
-                label={t('Regex matches')}
-                help={t('Custom regular expression (see documentation)')}
-                inline={false}
+              <RegularExpression
+                type="text"
+                name="pattern"
+                placeholder={t('[a-zA-Z0-9]+')}
+                onChange={this.handleChange('pattern')}
+                value={values.pattern}
+                onBlur={onValidate('pattern')}
                 id="regex-matches"
-                error={errors?.pattern}
-                flexibleControlStateSize
-                stacked
-                required
-                showHelpInTooltip
-              >
-                <Flex gap="md" direction="column">
-                  <RegularExpression
-                    type="text"
-                    name="pattern"
-                    placeholder={t('[a-zA-Z0-9]+')}
-                    onChange={this.handleChange('pattern')}
-                    value={values.pattern}
-                    onBlur={onValidate('pattern')}
-                    id="regex-matches"
-                  />
-                  <Flex gap="md" align="center">
-                    <Checkbox
-                      id="replace-captured"
-                      name="replaceCaptured"
-                      checked={values.replaceCaptured === 'true'}
-                      disabled={!hasCaptureGroups(values.pattern)}
-                      onChange={e =>
-                        onChange('replaceCaptured', e.target.checked.toString())
-                      }
-                    />
-                    <ReplaceCapturedLabel htmlFor="replace-captured">
-                      {t('Only replace first capture match')}
-                    </ReplaceCapturedLabel>
-                  </Flex>
-                </Flex>
-              </FieldGroup>
-            )}
-          </FieldContainer>
-          <ToggleWrapper>
-            {displayEventId ? (
-              <Toggle priority="link" onClick={this.handleToggleEventId}>
-                {t('Hide event ID field')}
-                <IconChevron direction="up" size="xs" />
-              </Toggle>
-            ) : (
-              <Toggle priority="link" onClick={this.handleToggleEventId}>
-                {t('Use event ID for auto-completion')}
-                <IconChevron direction="down" size="xs" />
-              </Toggle>
-            )}
-          </ToggleWrapper>
-        </Flex>
+              />
+              <ReplaceCapturedCheckbox values={values} onChange={onChange} />
+            </FieldGroup>
+          )}
+        </FieldContainer>
+        <ToggleWrapper>
+          {displayEventId ? (
+            <Toggle priority="link" onClick={this.handleToggleEventId}>
+              {t('Hide event ID field')}
+              <IconChevron direction="up" size="xs" />
+            </Toggle>
+          ) : (
+            <Toggle priority="link" onClick={this.handleToggleEventId}>
+              {t('Use event ID for auto-completion')}
+              <IconChevron direction="down" size="xs" />
+            </Toggle>
+          )}
+        </ToggleWrapper>
         <SourceGroup isExpanded={displayEventId}>
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -464,7 +460,7 @@ const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
-    margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -484,11 +480,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 
 const RegularExpression = styled(Input)`
   font-family: ${p => p.theme.text.familyMono};
-`;
-
-const ReplaceCapturedLabel = styled('label')`
-  font-weight: normal;
-  margin-bottom: 0;
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const DatasetRadioField = styled(RadioField)`
@@ -515,5 +507,18 @@ const Toggle = styled(Button)`
     gap: ${space(0.5)};
     grid-template-columns: repeat(2, max-content);
     align-items: center;
+  }
+`;
+
+const ReplaceCapturedCheckboxContainer = styled(Flex)<{disabled: boolean}>`
+  label {
+    font-weight: normal;
+    margin-bottom: 0;
+    line-height: 1rem;
+    ${p =>
+      p.disabled &&
+      css`
+        color: ${p.theme.disabled};
+      `}
   }
 `;
