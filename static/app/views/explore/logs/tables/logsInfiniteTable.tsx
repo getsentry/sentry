@@ -1,4 +1,4 @@
-import type {CSSProperties} from 'react';
+import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -74,6 +74,7 @@ import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 type LogsTableProps = {
   additionalData?: {
     event?: Event;
+    scrollToDisabled?: boolean;
   };
   allowPagination?: boolean;
   embedded?: boolean;
@@ -132,6 +133,7 @@ export function LogsInfiniteTable({
   } = useLogsPageDataQueryResult();
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
+  const baseDataLength = useBox(baseData.length);
 
   const pseudoRowIndex = useMemo(() => {
     if (
@@ -149,7 +151,7 @@ export function LogsInfiniteTable({
       row =>
         isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
     );
-    return index === -1 ? baseData.length : index; // If the event is older than all the data, add it to the end.
+    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
   const data: LogTableRowItem[] = useMemo(() => {
@@ -165,8 +167,10 @@ export function LogsInfiniteTable({
     }
 
     const newData: LogTableRowItem[] = [...baseData];
+    const newSelectedIndex =
+      pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
     newData.splice(
-      pseudoRowIndex,
+      newSelectedIndex,
       0,
       createPseudoLogResponseItem(
         additionalData.event,
@@ -174,7 +178,7 @@ export function LogsInfiniteTable({
       )
     );
     return newData;
-  }, [baseData, additionalData, isPending, isError, pseudoRowIndex]);
+  }, [baseData, additionalData, isPending, isError, pseudoRowIndex, baseDataLength]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -280,15 +284,27 @@ export function LogsInfiniteTable({
   );
 
   useEffect(() => {
-    if (pseudoRowIndex !== -1 && scrollContainer?.current) {
+    if (
+      pseudoRowIndex !== -1 &&
+      scrollContainer?.current &&
+      !additionalData?.scrollToDisabled
+    ) {
       setTimeout(() => {
-        containerVirtualizer.scrollToIndex(pseudoRowIndex, {
+        const scrollToIndex =
+          pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+        containerVirtualizer.scrollToIndex(scrollToIndex, {
           behavior: 'smooth',
           align: 'center',
         });
       }, 100);
     }
-  }, [pseudoRowIndex, containerVirtualizer, scrollContainer]);
+  }, [
+    pseudoRowIndex,
+    containerVirtualizer,
+    scrollContainer,
+    baseDataLength,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -772,4 +788,10 @@ function BackToTopButton({
       <IconArrow direction="up" size="md" />
     </Button>
   );
+}
+
+function useBox<T>(value: T): RefObject<T> {
+  const box = useRef(value);
+  box.current = value;
+  return box;
 }

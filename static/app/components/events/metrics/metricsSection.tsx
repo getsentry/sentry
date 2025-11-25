@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {Flex} from '@sentry/scraps/layout/flex';
 
@@ -12,8 +12,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -68,6 +71,8 @@ function MetricsSectionContent({
   traceId: string;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const {result, error} = useMetricsIssueSection({traceId});
@@ -81,6 +86,24 @@ function MetricsSectionContent({
       trackAnalytics('metrics.issue_details.drawer_opened', {
         organization,
       });
+
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            [METRICS_DRAWER_QUERY_PARAM]: 'true',
+          },
+        },
+        {replace: true}
+      );
+    },
+    [navigate, location, organization]
+  );
+
+  useEffect(() => {
+    const shouldOpenDrawer = location.query[METRICS_DRAWER_QUERY_PARAM] === 'true';
+    if (shouldOpenDrawer) {
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
@@ -99,14 +122,24 @@ function MetricsSectionContent({
             const viewAllButton = viewAllButtonRef.current;
             return !viewAllButton?.contains(element);
           },
+          onClose: () => {
+            navigate(
+              {
+                ...location,
+                query: {
+                  ...location.query,
+                  [METRICS_DRAWER_QUERY_PARAM]: undefined,
+                },
+              },
+              {replace: true}
+            );
+          },
         }
       );
-    },
-    [group, event, project, openDrawer, organization, traceId]
-  );
+    }
+  }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
 
   if (!result.data || result.data.length === 0 || error) {
-    // Don't show the metrics section if there are no metrics
     return null;
   }
 
