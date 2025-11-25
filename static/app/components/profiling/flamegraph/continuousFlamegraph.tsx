@@ -334,7 +334,11 @@ export function ContinuousFlamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree = useMemo(() => {
+  const spanTree: SpanTree | null = useMemo(() => {
+    if (segment.type === 'empty') {
+      return null;
+    }
+
     if (segment.type === 'resolved' && segment.data) {
       return new SpanTree(
         segment.data,
@@ -346,7 +350,7 @@ export function ContinuousFlamegraph(): ReactElement {
   }, [segment]);
 
   const spanChart = useMemo(() => {
-    if (!profile) {
+    if (!profile || !spanTree) {
       return null;
     }
 

@@ -189,6 +189,8 @@ export type PageFilters = {
   projects: number[];
 };
 
+type EmptyState = {type: 'empty'};
+
 type InitialState = {type: 'initial'};
 
 type LoadingState = {type: 'loading'};
@@ -204,6 +206,7 @@ type ErroredState = {
 };
 
 export type RequestState<T> =
+  | EmptyState
   | InitialState
   | LoadingState
   | ResolvedState<T>
