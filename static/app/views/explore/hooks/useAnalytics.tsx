@@ -713,7 +713,10 @@ export function useMetricsPanelAnalytics({
   const organization = useOrganization();
 
   const dataset = DiscoverDatasets.METRICS;
-  const dataScanned = metricSamplesTableResult.result.meta?.dataScanned ?? '';
+  const dataScanned =
+    mode === Mode.AGGREGATE
+      ? (metricAggregatesTableResult.result.meta?.dataScanned ?? '')
+      : (metricSamplesTableResult.result.meta?.dataScanned ?? '');
   const search = useQueryParamsSearch();
   const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
@@ -740,7 +743,11 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricSamplesTableResult.result.isFetching || metricTimeseriesResult.isPending) {
+    if (
+      metricSamplesTableResult.result.isFetching ||
+      metricTimeseriesResult.isPending ||
+      !dataScanned
+    ) {
       return;
     }
 
@@ -810,7 +817,8 @@ export function useMetricsPanelAnalytics({
 
     if (
       metricAggregatesTableResult.result.isPending ||
-      metricTimeseriesResult.isPending
+      metricTimeseriesResult.isPending ||
+      !dataScanned
     ) {
       return;
     }
