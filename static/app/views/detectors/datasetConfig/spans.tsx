@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import {getChartInterval} from 'sentry/views/detectors/datasetConfig/utils/chartInterval';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
@@ -93,6 +94,16 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
       ...options,
       dataset: DetectorSpansConfig.getDiscoverDataset(),
       aggregate: translateAggregateTag(options.aggregate),
+      interval: getChartInterval({
+        timeWindow: options.timeWindow,
+        timeRange: {
+          statsPeriod: options.statsPeriod,
+          start: options.start,
+          end: options.end,
+        },
+        // See /src/sentry/search/eap/constants.py
+        maxBuckets: 2689,
+      }),
     });
   },
   getIntervals: ({detectionType}) => {

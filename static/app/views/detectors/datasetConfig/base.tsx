@@ -43,16 +43,16 @@ interface DetectorSeriesQueryOptions {
   dataset: Dataset;
   environment: string;
   eventTypes: EventTypes[];
-  /**
-   * Metric detector interval in seconds
-   */
-  interval: number;
   organization: Organization;
   projectId: string;
   /**
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  /**
+   * Metric detector time window in seconds
+   */
+  timeWindow: number;
   end?: string | null;
   /**
    * Extra query parameters to pass

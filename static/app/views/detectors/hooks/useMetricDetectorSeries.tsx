@@ -18,9 +18,9 @@ interface UseMetricDetectorSeriesProps {
   detectorDataset: DetectorDataset;
   environment: string | undefined;
   eventTypes: EventTypes[];
-  interval: number;
   projectId: string;
   query: string;
+  timeWindow: number;
   comparisonDelta?: number;
   end?: string | null;
   extrapolationMode?: ExtrapolationMode;
@@ -43,7 +43,7 @@ export function useMetricDetectorSeries({
   detectorDataset,
   dataset,
   aggregate,
-  interval,
+  timeWindow,
   query,
   eventTypes,
   environment,
@@ -63,7 +63,7 @@ export function useMetricDetectorSeries({
   const seriesQueryOptions = datasetConfig.getSeriesQueryOptions({
     organization,
     aggregate,
-    interval,
+    timeWindow,
     query,
     environment: environment || '',
     projectId,

@@ -163,7 +163,7 @@ export function MetricDetectorChart({
     detectorDataset,
     dataset,
     aggregate,
-    interval,
+    timeWindow: interval,
     query,
     environment,
     projectId,

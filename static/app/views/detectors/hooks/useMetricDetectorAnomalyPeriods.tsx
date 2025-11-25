@@ -155,7 +155,7 @@ export function useMetricDetectorAnomalyPeriods({
     detectorDataset,
     dataset,
     aggregate,
-    interval,
+    timeWindow: interval,
     query,
     eventTypes,
     environment,

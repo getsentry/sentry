@@ -166,7 +166,7 @@ export function useMetricDetectorChart({
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
     aggregate: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
-    interval: snubaQuery.timeWindow,
+    timeWindow: snubaQuery.timeWindow,
     query: snubaQuery.query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
