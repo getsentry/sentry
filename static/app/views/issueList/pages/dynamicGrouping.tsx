@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,6 +9,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -17,7 +18,14 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock, IconFire, IconFix} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconClock,
+  IconClose,
+  IconFire,
+  IconFix,
+  IconUpload,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -331,17 +339,48 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
+  const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
+  const [showJsonInput, setShowJsonInput] = useState(false);
+  const [jsonInputValue, setJsonInputValue] = useState('');
+  const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
+    null
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
       staleTime: 60000,
+      enabled: customClusterData === null, // Only fetch if no custom data
     }
   );
 
-  const clusterData = topIssuesResponse?.data ?? [];
+  const handleParseJson = useCallback(() => {
+    try {
+      const parsed = JSON.parse(jsonInputValue);
+      // Support both {data: [...]} format and direct array format
+      const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
+      if (!Array.isArray(clusters)) {
+        setJsonError(t('JSON must be an array or have a "data" property with an array'));
+        return;
+      }
+      setCustomClusterData(clusters as ClusterSummary[]);
+      setJsonError(null);
+      setShowJsonInput(false);
+    } catch (e) {
+      setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
+    }
+  }, [jsonInputValue]);
+
+  const handleClearCustomData = useCallback(() => {
+    setCustomClusterData(null);
+    setJsonInputValue('');
+    setJsonError(null);
+  }, []);
+
+  const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
+  const isUsingCustomData = customClusterData !== null;
 
   // Extract all unique teams from the cluster data
   const teamsInData = useMemo(() => {
@@ -417,9 +456,72 @@ function DynamicGrouping() {
   return (
     <PageWrapper>
       <HeaderSection>
-        <Heading as="h1" style={{marginBottom: space(2)}}>
-          {t('Top Issues')}
-        </Heading>
+        <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
+          <Heading as="h1">{t('Top Issues')}</Heading>
+          {isUsingCustomData && (
+            <CustomDataBadge>
+              <Text size="xs" bold>
+                {t('Using Custom Data')}
+              </Text>
+              <Button
+                size="zero"
+                borderless
+                icon={<IconClose size="xs" />}
+                aria-label={t('Clear custom data')}
+                onClick={handleClearCustomData}
+              />
+            </CustomDataBadge>
+          )}
+        </Flex>
+
+        <Flex gap="sm" style={{marginBottom: space(2)}}>
+          <Button
+            size="sm"
+            icon={<IconUpload size="xs" />}
+            onClick={() => setShowJsonInput(!showJsonInput)}
+          >
+            {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+          </Button>
+        </Flex>
+
+        {showJsonInput && (
+          <JsonInputContainer>
+            <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+              {t(
+                'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+              )}
+            </Text>
+            <TextArea
+              value={jsonInputValue}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                setJsonInputValue(e.target.value);
+                setJsonError(null);
+              }}
+              placeholder={t('Paste JSON here...')}
+              rows={8}
+              monospace
+            />
+            {jsonError && (
+              <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                {jsonError}
+              </Text>
+            )}
+            <Flex gap="sm" style={{marginTop: space(1)}}>
+              <Button size="sm" priority="primary" onClick={handleParseJson}>
+                {t('Parse and Load')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowJsonInput(false);
+                  setJsonError(null);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+            </Flex>
+          </JsonInputContainer>
+        )}
 
         {isPending ? null : (
           <Fragment>
@@ -684,6 +786,25 @@ const DescriptionText = styled('p')`
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+const JsonInputContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const CustomDataBadge = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.yellow100};
+  border: 1px solid ${p => p.theme.yellow300};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.yellow400};
 `;
 
 export default DynamicGrouping;
