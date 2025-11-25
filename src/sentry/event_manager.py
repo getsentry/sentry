@@ -146,7 +146,10 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -1434,6 +1437,9 @@ def handle_existing_grouphash(
         release=job["release"],
     )
 
+    # Ensure the group has a DetectorGroup association for existing groups
+    ensure_association_with_detector(group)
+
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
@@ -2377,7 +2383,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.stored_id or attachment.data
+        attachment.stored_id or attachment.load_data(project)
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,

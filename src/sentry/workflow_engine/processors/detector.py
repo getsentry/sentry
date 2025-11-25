@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import sentry_sdk
@@ -17,6 +17,7 @@ from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
@@ -102,6 +103,77 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     )
 
 
+@dataclass(frozen=True)
+class EventDetectors:
+    issue_stream_detector: Detector | None = None
+    event_detector: Detector | None = None
+
+    def __post_init__(self) -> None:
+        if not self.has_detectors:
+            raise ValueError("At least one detector must be provided")
+
+    @property
+    def has_detectors(self) -> bool:
+        """
+        Returns True if at least one detector exists.
+        """
+        return self.issue_stream_detector is not None or self.event_detector is not None
+
+    @property
+    def preferred_detector(self) -> Detector:
+        """
+        The preferred detector is the one that should be used for the event,
+        if we need to use a singular detector (for example, in logging).
+        The class will not initialize if no detectors are found.
+        """
+        detector = self.event_detector or self.issue_stream_detector
+        assert detector is not None, "At least one detector must exist"
+        return detector
+
+    @property
+    def detectors(self) -> set[Detector]:
+        return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
+
+
+def get_detectors_for_event(
+    event_data: WorkflowEventData, detector: Detector | None = None
+) -> EventDetectors | None:
+    """
+    Returns a list of detectors for the event to process workflows for.
+
+    We always return at least the issue stream detector.
+    If the event has an associated detector, we return it too.
+
+    If the detector is passed in, use that instead of searching for a detector.
+    This is used for Activity updates.
+    """
+    issue_stream_detector: Detector | None = None
+    try:
+        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+            event_data.group.project_id
+        )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        logger.exception(
+            "Issue stream detector not found for event",
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
+        )
+
+    if detector is None:
+        try:
+            detector = get_detector_by_event(event_data)
+        except Detector.DoesNotExist:
+            pass
+
+    try:
+        return EventDetectors(issue_stream_detector=issue_stream_detector, event_detector=detector)
+    except ValueError:
+        return None
+
+
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     evt = event_data.event
 
@@ -137,6 +209,53 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
         raise Detector.DoesNotExist("Detector not found for event")
 
     return detector
+
+
+def get_detector_by_group(group: Group) -> Detector:
+    """
+    Returns Detector associated with this group, either based on DetectorGroup,
+    (project, type), or if those fail, returns the Issue Stream detector.
+    """
+    try:
+        detector = DetectorGroup.objects.get(group=group).detector
+        if detector is not None:
+            return detector
+    except DetectorGroup.DoesNotExist:
+        logger.exception(
+            "DetectorGroup not found for group",
+            extra={"group_id": group.id},
+        )
+        pass
+
+    try:
+        return Detector.objects.get(project_id=group.project_id, type=group.issue_type.slug)
+    except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
+        # return issue stream detector
+        return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
+
+
+def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
+    try:
+        if isinstance(event_data.event, GroupEvent):
+            return get_detector_by_event(event_data)
+        elif isinstance(event_data.event, Activity):
+            return get_detector_by_group(event_data.group)
+        else:
+            raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
+    except Detector.DoesNotExist:
+        logger.exception(
+            "Detector not found for event data",
+            extra={
+                "type": type(event_data.event),
+                "id": (
+                    event_data.event.event_id
+                    if isinstance(event_data.event, GroupEvent)
+                    else event_data.event.id
+                ),
+                "group_id": event_data.group.id,
+            },
+        )
+        raise
 
 
 class _SplitEvents(NamedTuple):
@@ -186,89 +305,6 @@ def _create_event_detector_map(
         result.update({event.event_id: detector for event in detector_events})
 
     return result, keys
-
-
-def get_detectors_by_groupevents_bulk(
-    event_list: list[GroupEvent],
-) -> Mapping[str, Detector]:
-    """
-    Given a list of GroupEvents, return a mapping of event_id to Detector.
-    """
-    if not event_list:
-        return {}
-
-    result: dict[str, Detector] = {}
-
-    # Separate events by whether they have occurrences or not
-    events_with_occurrences, error_events, events_missing_detectors = _split_events_by_occurrence(
-        event_list
-    )
-
-    # Fetch detectors for events with occurrences (by detector_id)
-    missing_detector_ids = set()
-    if events_with_occurrences:
-        detector_id_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
-
-        for event, detector_id in events_with_occurrences:
-            detector_id_to_events[detector_id].append(event)
-
-        def _extract_events_lookup_key(detector: Detector) -> int:
-            return detector.id
-
-        if detector_id_to_events:
-            detectors = Detector.objects.filter(id__in=list(detector_id_to_events.keys()))
-            mapping, found_detector_ids = _create_event_detector_map(
-                detectors,
-                key_event_map=detector_id_to_events,
-                detector_key_extractor=_extract_events_lookup_key,
-            )
-            result.update(mapping)
-
-            missing_detector_ids = set(detector_id_to_events.keys()) - found_detector_ids
-
-    # Fetch detectors for events without occurrences (by project_id)
-    projects_missing_detectors = set()
-    if error_events:
-        # Group events by project_id
-        project_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
-
-        for event in error_events:
-            project_to_events[event.project_id].append(event)
-
-        def _extract_events_lookup_key(detector: Detector) -> int:
-            return detector.project_id
-
-        detectors = Detector.objects.filter(
-            project_id__in=project_to_events.keys(),
-            type=ErrorGroupType.slug,
-        )
-        mapping, projects_with_error_detectors = _create_event_detector_map(
-            detectors,
-            key_event_map=project_to_events,
-            detector_key_extractor=_extract_events_lookup_key,
-        )
-        result.update(mapping)
-
-        projects_missing_detectors = set(project_to_events.keys()) - projects_with_error_detectors
-
-    # Log all missing detectors
-    if missing_detector_ids or projects_missing_detectors or events_missing_detectors:
-        metrics.incr(
-            "workflow_engine.detectors.error",
-            amount=len(projects_missing_detectors) + len(missing_detector_ids),
-        )
-        logger.error(
-            "Detectors not found for events",
-            extra={
-                "projects_missing_error_detectors": projects_missing_detectors,
-                "missing_detectors": missing_detector_ids,
-                "events_missing_detectors": [
-                    (event.event_id, event.group_id) for event in events_missing_detectors
-                ],
-            },
-        )
-
-    return result
 
 
 def create_issue_platform_payload(result: DetectorEvaluationResult, detector_type: str) -> None:
@@ -382,6 +418,28 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
                 },
             )
             return False
+
+    # Check if the detector exists. If not, create DetectorGroup with null detector_id
+    # to make it clear that we were associated with a detector that no longer exists.
+    if not Detector.objects.filter(id=detector_id).exists():
+        metrics.incr(
+            "workflow_engine.associate_new_group_with_detector",
+            tags={"group_type": group.type, "result": "detector_missing"},
+        )
+        logger.warning(
+            "associate_new_group_with_detector_detector_missing",
+            extra={
+                "group_id": group.id,
+                "group_type": group.type,
+                "detector_id": detector_id,
+            },
+        )
+        DetectorGroup.objects.get_or_create(
+            detector_id=None,
+            group_id=group.id,
+        )
+        return True
+
     DetectorGroup.objects.get_or_create(
         detector_id=detector_id,
         group_id=group.id,
@@ -390,4 +448,70 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
         "workflow_engine.associate_new_group_with_detector",
         tags={"group_type": group.type, "result": "success"},
     )
+    return True
+
+
+def ensure_association_with_detector(group: Group, detector_id: int | None = None) -> bool:
+    """
+    Ensure a Group has a DetectorGroup association, creating it if missing.
+    Backdates date_added to group.first_seen for gradual backfill of existing groups.
+    """
+    if not options.get("workflow_engine.ensure_detector_association"):
+        return False
+
+    # Common case: it exists, we verify and move on.
+    if DetectorGroup.objects.filter(group_id=group.id).exists():
+        return True
+
+    # Association is missing, determine the detector_id if not provided
+    if detector_id is None:
+        # For error Groups, we know there is a Detector and we can find it by project.
+        if group.type == ErrorGroupType.type_id:
+            try:
+                detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            except Detector.DoesNotExist:
+                logger.warning(
+                    "ensure_association_with_detector_detector_not_found",
+                    extra={
+                        "group_id": group.id,
+                        "group_type": group.type,
+                        "project_id": group.project.id,
+                    },
+                )
+                return False
+        else:
+            return False
+    else:
+        # Check if the explicitly provided detector exists. If not, create DetectorGroup
+        # with null detector_id to make it clear that we were associated with a detector
+        # that no longer exists.
+        if not Detector.objects.filter(id=detector_id).exists():
+            detector_group, created = DetectorGroup.objects.get_or_create(
+                group_id=group.id,
+                defaults={"detector_id": None},
+            )
+            if created:
+                # Backdate the date_added to match the group's first_seen
+                DetectorGroup.objects.filter(id=detector_group.id).update(
+                    date_added=group.first_seen
+                )
+                metrics.incr(
+                    "workflow_engine.ensure_association_with_detector.created",
+                    tags={"group_type": group.type},
+                )
+            return True
+
+    detector_group, created = DetectorGroup.objects.get_or_create(
+        group_id=group.id,
+        defaults={"detector_id": detector_id},
+    )
+
+    if created:
+        # Backdate the date_added to match the group's first_seen
+        DetectorGroup.objects.filter(id=detector_group.id).update(date_added=group.first_seen)
+        metrics.incr(
+            "workflow_engine.ensure_association_with_detector.created",
+            tags={"group_type": group.type},
+        )
+
     return True

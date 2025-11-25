@@ -37,7 +37,6 @@ class WorkflowSerializer(Serializer):
         last_triggered_map: dict[int, datetime] = dict(
             WorkflowFireHistory.objects.filter(
                 workflow__in=item_list,
-                is_single_written=True,
             )
             .values("workflow_id")
             .annotate(last_triggered=Max("date_added"))

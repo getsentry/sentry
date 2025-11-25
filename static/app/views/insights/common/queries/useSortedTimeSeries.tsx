@@ -39,7 +39,6 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import {
@@ -64,7 +63,6 @@ interface Options<Fields> {
   samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
-  traceMetric?: TraceMetric;
   yAxis?: Fields;
 }
 
@@ -89,7 +87,6 @@ export const useSortedTimeSeries = <
     samplingMode,
     disableAggregateExtrapolation,
     caseInsensitive,
-    traceMetric,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -127,13 +124,17 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
+  const groupBy = fields?.filter(
+    field => !(yAxis as unknown as string[]).includes(field)
+  );
+
   const timeSeriesResult = useFetchEventsTimeSeries(
     dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
       topEvents,
-      groupBy: fields as unknown as any,
+      groupBy,
       pageFilters: pageFilters.selection,
       sort: decodeSorts(orderby)[0],
       interval,
@@ -166,8 +167,6 @@ export const useSortedTimeSeries = <
       // pagination does not cause extra requests
       cursor: undefined,
       caseInsensitive,
-      metricName: traceMetric?.name ? traceMetric.name : undefined,
-      metricType: traceMetric?.type ? traceMetric.type : undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

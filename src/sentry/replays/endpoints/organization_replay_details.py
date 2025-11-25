@@ -30,13 +30,16 @@ def query_replay_instance_eap(
     start: datetime,
     end: datetime,
     organization_id: int,
-    request_user_id: int,
+    request_user_id: int | None,
     referrer: str = "replays.query.details_query",
 ):
+    # EAP stores replay_id in hex without dashes
+    replay_ids_no_dashes = [replay_id.replace("-", "") for replay_id in replay_ids]
+
     select = [
         Column("replay_id"),
         Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
-        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
+        Function("min", parameters=[Column("timestamp")], alias="started_at"),
         Function("max", parameters=[Column("timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
@@ -64,14 +67,14 @@ def query_replay_instance_eap(
             ],
             alias="count_rage_clicks",
         ),
-        Function("max", parameters=[Column("is_archived")], alias="is_archived"),
+        Function("max", parameters=[Column("is_archived")], alias="isArchived"),
     ]
 
     snuba_query = Query(
         match=Entity("replays"),
         select=select,
         where=[
-            Condition(Column("replay_id"), Op.IN, replay_ids),
+            Condition(Column("replay_id"), Op.IN, replay_ids_no_dashes),
         ],
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
@@ -159,14 +162,25 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        snuba_response = query_replay_instance(
-            project_id=project_ids,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=organization,
-            request_user_id=request.user.id,
-        )
+        # Use EAP query if feature flag is enabled
+        if features.has("organizations:replay-details-eap-query", organization, actor=request.user):
+            snuba_response = query_replay_instance_eap(
+                project_ids=project_ids,
+                replay_ids=[replay_id],
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization_id=organization.id,
+                request_user_id=request.user.id,
+            )["data"]
+        else:
+            snuba_response = query_replay_instance(
+                project_id=project_ids,
+                replay_id=replay_id,
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization=organization,
+                request_user_id=request.user.id,
+            )
 
         response = process_raw_response(
             snuba_response,

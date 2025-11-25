@@ -318,7 +318,7 @@ def _get_profile_from_trace_tree(
     )
 
     if profile:
-        execution_tree = _convert_profile_to_execution_tree(profile)
+        execution_tree, _ = _convert_profile_to_execution_tree(profile)
         return (
             None
             if not execution_tree
@@ -653,12 +653,10 @@ def trigger_autofix(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # seer runs are free for web vitals issues during testing phase
-    if group.issue_type != WebVitalsGroup:
-        # log billing event for seer autofix
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+    # log billing event for seer autofix
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+    )
 
     return Response(
         {

@@ -1,9 +1,13 @@
 import logging
 
 from django.conf import settings
+from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.conf.server import (
+    SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+    SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+)
 from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.net.http import connection_from_url
@@ -13,9 +17,11 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
+    AnomalyThresholdDataPoint,
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
+    SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
@@ -30,6 +36,8 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
 
 
 # TODO: delete this once we deprecate the AlertRule model
@@ -95,6 +103,7 @@ def get_anomaly_data_from_seer_legacy(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,
             data,
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
@@ -213,6 +222,7 @@ def get_anomaly_data_from_seer(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,
             json.dumps(detect_anomalies_request).encode("utf-8"),
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
@@ -274,3 +284,67 @@ def get_anomaly_data_from_seer(
         )
         return None
     return ts
+
+
+def get_anomaly_threshold_data_from_seer(
+    subscription: QuerySubscription,
+    start: float,
+    end: float,
+) -> list[AnomalyThresholdDataPoint] | None:
+    """
+    Get anomaly detection threshold data from Seer for a specific query subscription and time range.
+    Returns data points with yhat_lower and yhat_upper threshold values.
+    """
+    source_id = subscription.id
+    source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+
+    payload = {
+        "alert": {
+            "id": None,
+            "source_id": source_id,
+            "source_type": source_type,
+        },
+        "start": start,
+        "end": end,
+    }
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+            path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+            body=json.dumps(payload).encode("utf-8"),
+        )
+    except (TimeoutError, MaxRetryError):
+        logger.warning("Timeout error when hitting anomaly detection detector data endpoint")
+        return None
+
+    if response.status >= 400:
+        logger.error(
+            "Error when hitting Seer detector data endpoint",
+            extra={
+                "response_data": response.data,
+                "payload": payload,
+                "status": response.status,
+            },
+        )
+        return None
+
+    try:
+        results: SeerDetectorDataResponse = json.loads(response.data.decode("utf-8"))
+    except JSONDecodeError:
+        logger.exception(
+            "Failed to parse Seer detector data response",
+            extra={
+                "response_data": response.data,
+                "payload": payload,
+            },
+        )
+        return None
+
+    if not results.get("success"):
+        detailed_error_message = results.get("message", "<unknown>")
+        # We want Sentry to group them by error message.
+        msg = f"Error when hitting Seer detector data endpoint: {detailed_error_message}"
+        logger.warning(msg)
+        return None
+
+    return results.get("data")

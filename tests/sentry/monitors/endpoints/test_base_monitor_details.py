@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_timeout_at
@@ -345,18 +346,21 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_can_mute(self) -> None:
         monitor = self._create_monitor()
+        # Create an environment so the monitor has an environment to mute
+        self._create_monitor_environment(monitor)
+
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": True}
         )
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
 
     def test_can_unmute(self) -> None:
         monitor = self._create_monitor()
-
-        monitor.update(is_muted=True)
+        # Create a muted environment so the monitor is muted
+        self._create_monitor_environment(monitor, is_muted=True)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": False}
@@ -364,7 +368,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert not monitor.is_muted
+        assert not is_monitor_muted(monitor)
 
     def test_timezone(self) -> None:
         monitor = self._create_monitor()
@@ -923,7 +927,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor.id, model_name="Monitor"
         ).exists()
         mock_update_monitor_slug.assert_called_once()
-        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()

@@ -11,7 +11,13 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, get_cron_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorStatus,
+    ScheduleType,
+    get_cron_monitor,
+    is_monitor_muted,
+)
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
@@ -234,7 +240,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_seat")
@@ -304,13 +310,20 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         assert monitor.status == ObjectStatus.DISABLED
 
-    def test_create_with_is_muted(self):
-        """Test creating a muted monitor."""
+    def test_create_with_is_muted_noop(self):
+        """Test that creating a monitor with is_muted does nothing.
+
+        Since is_muted is computed from MonitorEnvironment.is_muted, setting is_muted=True
+        during monitor creation has no effect because there are no environments yet.
+        A monitor with no environments is always considered unmuted.
+
+        To mute a monitor, you must use the update API after the monitor has environments.
+        """
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
-            "isMuted": True,  # Note: camelCase as per API convention
+            "isMuted": True,  # This has no effect on creation
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         validator = MonitorValidator(data=data, context=self.context)
@@ -318,7 +331,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assert monitor.is_muted is True
+        # Monitor has no environments, so is_muted returns False regardless of input
+        assert is_monitor_muted(monitor) is False
 
 
 class MonitorValidatorUpdateTest(MonitorTestCase):
@@ -508,6 +522,13 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_is_muted(self):
         """Test updating is_muted field."""
+        # Create an environment first so the monitor can be muted
+        env = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            is_muted=False,
+        )
+
         validator = MonitorValidator(
             instance=self.monitor,
             data={"is_muted": True},
@@ -521,7 +542,11 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert validator.is_valid()
 
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is True
+        assert is_monitor_muted(updated_monitor) is True
+
+        # Verify the environment was also muted
+        env.refresh_from_db()
+        assert env.is_muted is True
 
     def test_update_is_muted_propagates_to_environments(self):
         """Test that muting a monitor propagates to all its environments."""
@@ -551,7 +576,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         )
         assert validator.is_valid()
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is True
+        assert is_monitor_muted(updated_monitor) is True
 
         # Verify both environments are now muted
         env1.refresh_from_db()
@@ -561,9 +586,6 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_is_muted_false_propagates_to_environments(self):
         """Test that unmuting a monitor propagates to all its environments."""
-        # Start with a muted monitor
-        self.monitor.update(is_muted=True)
-
         # Create two muted monitor environments
         env1 = self.create_monitor_environment(
             monitor=self.monitor,
@@ -577,7 +599,10 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
             is_muted=True,
         )
 
-        # Unmute the monitor
+        # Verify monitor is muted (all environments are muted)
+        assert is_monitor_muted(self.monitor) is True
+
+        # Unmute the monitor via validator
         validator = MonitorValidator(
             instance=self.monitor,
             data={"is_muted": False},
@@ -590,7 +615,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         )
         assert validator.is_valid()
         updated_monitor = validator.save()
-        assert updated_monitor.is_muted is False
+        assert is_monitor_muted(updated_monitor) is False
 
         # Verify both environments are now unmuted
         env1.refresh_from_db()
@@ -641,7 +666,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
-        mock_check_seat.assert_called_once_with(DataCategory.MONITOR, self.monitor)
+        mock_check_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, self.monitor)
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
@@ -675,7 +700,6 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
             data={
                 "name": "New Name",
                 "slug": "new-slug",
-                "is_muted": True,
                 "owner": f"team:{self.team.id}",
             },
             partial=True,
@@ -690,7 +714,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.name == "New Name"
         assert updated_monitor.slug == "new-slug"
-        assert updated_monitor.is_muted is True
+        assert is_monitor_muted(updated_monitor) is False
         assert updated_monitor.owner_team_id == self.team.id
 
     def test_update_slug_already_exists(self):
@@ -1046,7 +1070,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.config["schedule"] == schedule
         assert monitor.status == status
-        assert monitor.is_muted is False
+        assert is_monitor_muted(monitor) is False
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id is None
 
@@ -1206,7 +1230,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
 
         # Verify seat was assigned exactly once (not double-called)
         monitor = get_cron_monitor(detector)
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.RATE_LIMITED)
     def test_create_enabled_no_seat_available(self, mock_assign_seat):
@@ -1233,7 +1257,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify seat assignment was attempted exactly once (not double-called)
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):
@@ -1271,7 +1295,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
         # Verify seat was assigned exactly once
-        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_assign_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     @patch(
         "sentry.quotas.backend.check_assign_seat",
@@ -1317,7 +1341,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify seat availability check was performed
-        mock_check_seat.assert_called_with(DataCategory.MONITOR, monitor)
+        mock_check_seat.assert_called_with(DataCategory.MONITOR_SEAT, monitor)
 
     @patch("sentry.quotas.backend.disable_seat")
     def test_update_disable_disables_seat(self, mock_disable_seat):
@@ -1353,7 +1377,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         # Verify disable_seat was called exactly once
-        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     @patch("sentry.quotas.backend.remove_seat")
     def test_delete_removes_seat(self, mock_remove_seat: MagicMock) -> None:
@@ -1383,4 +1407,4 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         validator.delete()
 
         # Verify remove_seat was called exactly once
-        mock_remove_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_remove_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)

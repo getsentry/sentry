@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -22,13 +23,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
-  DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -54,6 +55,7 @@ export default function OrganizationDataForwardingEditWrapper() {
 
 function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataForwarder}) {
   const {provider} = dataForwarder;
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects({orgId: organization.slug});
@@ -151,9 +153,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 }
               >
                 <Flex align="center" gap="sm">
-                  <PluginIcon
-                    pluginId={key === DataForwarderProviderSlug.SQS ? 'amazon-sqs' : key}
-                  />
+                  <PluginIcon pluginId={key} />
                   <b>{label}</b>
                 </Flex>
               </TabList.Item>
@@ -163,7 +163,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         <Form
           model={formModel}
           onSubmit={data => {
-            const {enroll_new_projects, project_ids, is_enabled, ...config} = data;
+            const {enroll_new_projects, project_ids = [], is_enabled, ...config} = data;
             const dataForwardingPayload: Record<string, any> = {
               provider,
               config,
@@ -184,6 +184,12 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             </DataForwarderDeleteConfirm>
           }
           submitLabel={t('Update Forwarder')}
+          footerStyle={{
+            borderTop: 0,
+            borderBottom: `1px solid ${theme.border}`,
+            marginTop: `-${theme.space.lg}`,
+            paddingBottom: theme.space['3xl'],
+          }}
         >
           <JsonForm
             forms={getDataForwarderFormGroups({
@@ -193,6 +199,30 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             })}
           />
         </Form>
+        <Flex align="center" justify="between" gap="2xl">
+          <Flex direction="column" gap="sm">
+            <Flex align="center" gap="lg">
+              <Heading as="h2" size="2xl">
+                {t('Manage your overrides')}
+              </Heading>
+            </Flex>
+            <Text variant="muted">
+              {t(
+                'These configurations apply to individual projects under your %s forwarder.',
+                ProviderLabels[provider]
+              )}
+            </Text>
+          </Flex>
+        </Flex>
+        <Stack gap="xl">
+          {dataForwarder.enrolledProjects.map(project => (
+            <ProjectOverrideForm
+              key={project.id}
+              project={project}
+              dataForwarder={dataForwarder}
+            />
+          ))}
+        </Stack>
       </Flex>
     </Fragment>
   );

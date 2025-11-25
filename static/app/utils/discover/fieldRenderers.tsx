@@ -1424,9 +1424,10 @@ function getDashboardUrl(
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
       linkedDashboard => linkedDashboard.field === field
     );
-    if (dashboardLink) {
-      const newTemporaryFilters: GlobalFilter[] =
-        dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const newTemporaryFilters: GlobalFilter[] = [
+        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
+      ].filter(filter => Boolean(filter.value));
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');

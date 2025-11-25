@@ -11,7 +11,7 @@ import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -153,7 +153,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
         <StyledHeaderActions>
-          <FeedbackWidgetButton />
+          <FeedbackButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Summary')}
           </LinkButton>

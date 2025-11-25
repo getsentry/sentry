@@ -580,14 +580,7 @@ Sentry.init({
     const manualContent: ContentBlock[] = [
       {
         type: 'text',
-        text: tct(
-          'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-            ),
-          }
-        ),
+        text: t('Initialize the Sentry SDK in the entry point of your application.'),
       },
       {
         type: 'code',
@@ -597,23 +590,23 @@ Sentry.init({
             language: 'javascript',
             code: `${getImport(packageName).join('\n')}
 
-// Create a span around your AI call
-await Sentry.startSpan({
-  op: "gen_ai.chat",
-  name: "chat gpt-4o",
-  attributes: {
-    "gen_ai.operation.name": "chat",
-    "gen_ai.request.model": "gpt-4o",
-  }
-}, async (span) => {
-  // Call your AI function here
-  // e.g., await generateText(...)
-
-  // Set further span attributes after the AI call
-  span.setAttribute("gen_ai.response.text", "<Your model's response>");
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  tracesSampleRate: 1.0,
 });`,
           },
         ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'Then follow the [link:manual instrumentation guide] to instrument your AI calls.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+            ),
+          }
+        ),
       },
     ];
 
@@ -802,24 +795,21 @@ export const getNodeMcpOnboarding = ({
       ],
     },
   ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
-            code: <code />,
-          }),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `${getImport(packageName).join('\n')}
+  configure: params => {
+    const mcpSdkStep: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+          code: <code />,
+        }),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -827,38 +817,79 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
+          {
+            code: <code />,
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
 const { McpServer } = require("@modelcontextprotocol/sdk");
 
 const server = Sentry.wrapMcpServerWithSentry(new McpServer({
     name: "my-mcp-server",
     version: "1.0.0",
 }));`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
+          },
+        ],
+      },
+    ];
+
+    const manualStep: ContentBlock[] = [
+      {
+        type: 'text',
+        text: t('Initialize the Sentry SDK in the entry point of your application:'),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(packageName).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  tracesSampleRate: 1.0,
+});`,
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: tct(
+          'Then follow the [link:manual instrumentation guide] to instrument your MCP server.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/custom-instrumentation/mcp-module/#manual-instrumentation" />
+            ),
+          }
+        ),
+      },
+    ];
+
+    const selected = (params.platformOptions as any)?.integration ?? 'mcp_sdk';
+    const content = selected === 'manual' ? manualStep : mcpSdkStep;
+
+    return [
+      {
+        type: StepType.CONFIGURE,
+        content,
+      },
+    ];
+  },
   verify: () => [
     {
       type: StepType.VERIFY,

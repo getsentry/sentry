@@ -191,7 +191,10 @@ describe('SpansTabContent', () => {
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
-    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
     expect(groupBys).toEqual(['project']);
@@ -429,9 +432,7 @@ describe('SpansTabContent', () => {
         const input = screen.getByRole('combobox');
         await userEvent.click(input);
 
-        expect(
-          screen.queryByText(/Ask Seer to build your query/)
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText(/Ask AI to build your query/)).not.toBeInTheDocument();
       });
     });
 
@@ -449,7 +450,7 @@ describe('SpansTabContent', () => {
 
       // re-open the combobox
       await userEvent.click(input);
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -473,7 +474,7 @@ describe('SpansTabContent', () => {
       await userEvent.click(input);
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -498,7 +499,7 @@ describe('SpansTabContent', () => {
       await userEvent.type(input, 'span.duration:>10ms{enter}');
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
