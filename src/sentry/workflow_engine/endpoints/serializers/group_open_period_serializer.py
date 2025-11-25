@@ -46,15 +46,25 @@ class GroupOpenPeriodSerializer(Serializer):
         result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
             defaultdict(dict)
         )
-        activities = GroupOpenPeriodActivity.objects.filter(
-            group_open_period__in=item_list
-        ).order_by("date_added")
+
+        activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)
+
+        first_activity_qs = GroupOpenPeriodActivity.objects.none()
 
         if query_start:
+            first_activity = (
+                activities.filter(date_added__lt=query_start).order_by("-date_added").first()
+            )
+
+            if first_activity:
+                first_activity_qs = GroupOpenPeriodActivity.objects.filter(pk=first_activity.pk)
+
             activities = activities.filter(date_added__gte=query_start)
 
         if query_end:
             activities = activities.filter(date_added__lte=query_end)
+
+        activities = first_activity_qs.union(activities).order_by("date_added")
 
         gopas = defaultdict(list)
         for activity, serialized_activity in zip(

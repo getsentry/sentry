@@ -423,7 +423,16 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group_open_period.save()
 
         self.opened_gopa.date_added = self.group_open_period.date_added
+        self.opened_gopa.value = PriorityLevel.MEDIUM
         self.opened_gopa.save()
+
+        update_gopa = GroupOpenPeriodActivity.objects.create(
+            group_open_period=self.group_open_period,
+            type=OpenPeriodActivityType.STATUS_CHANGE,
+            value=self.group.priority,
+        )
+        update_gopa.date_added = curr_time - timedelta(minutes=6)
+        update_gopa.save()
 
         response = self.get_success_response(
             *self.get_url_args(),
@@ -440,5 +449,11 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["end"] is None
         assert open_period["isOpen"] is True
         assert (
-            len(open_period["activities"]) == 0
-        )  # don't include this GOPA, whose date_added doesn't overlap
+            len(open_period["activities"]) == 1
+        )  # don't include the opened GOPA, whose date_added doesn't overlap
+        assert open_period["activities"][0] == {
+            "id": str(update_gopa.id),
+            "type": OpenPeriodActivityType.STATUS_CHANGE.to_str(),
+            "value": PriorityLevel(self.group.priority).to_str(),
+            "dateCreated": update_gopa.date_added,
+        }
