@@ -1871,6 +1871,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             org_id=self.organization.id,
             trace_id=trace_id,
             message_substring="request",
+            substring_case_sensitive=False,
             stats_period="1d",
         )
         assert result is not None
