@@ -54,6 +54,14 @@ export type InsightEventParameters = {
   };
   'insights.open_in_explore': {referrer: string};
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
+  'insights.release.select_primary_release': {
+    moduleName: ModuleName;
+    release: string;
+  };
+  'insights.release.select_secondary_release': {
+    moduleName: ModuleName;
+    release: string;
+  };
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
 
@@ -110,4 +118,6 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insights.eap.toggle': 'Insights: EAP Toggle',
   'insights.open_in_explore': 'Insights: Open in Explore',
   'insights.create_alert': 'Insights: Create Alert',
+  'insights.release.select_primary_release': 'Insights: Select Primary Release',
+  'insights.release.select_secondary_release': 'Insights: Select Secondary Release',
 };

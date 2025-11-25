@@ -12,10 +12,12 @@ import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ReleasesSort,
@@ -27,6 +29,7 @@ import {
   useReleaseSelection,
 } from 'sentry/views/insights/common/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 export const PRIMARY_RELEASE_ALIAS = 'R1';
 export const SECONDARY_RELEASE_ALIAS = 'R2';
@@ -187,16 +190,19 @@ function getReleasesSortBy(
 }
 
 type ReleaseComparisonSelectorProps = {
+  moduleName: ModuleName;
   primaryOnly?: boolean;
 };
 
 export function ReleaseComparisonSelector({
   primaryOnly = false,
+  moduleName,
 }: ReleaseComparisonSelectorProps) {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   const [localStoragedReleaseBy, setLocalStoragedReleaseBy] =
     useLocalStorageState<ReleasesSortByOption>(
@@ -257,6 +263,12 @@ export function ReleaseComparisonSelector({
         allOptionDescription={t('Show data from all releases.')}
         allOptionTitle={t('All')}
         onChange={newValue => {
+          trackAnalytics('insights.release.select_primary_release', {
+            organization,
+            release: (newValue.value as string) ?? '',
+            moduleName,
+          });
+
           const updatedQuery: Record<string, string> = {
             ...location.query,
             primaryRelease: newValue.value as string,
@@ -288,6 +300,12 @@ export function ReleaseComparisonSelector({
           allOptionDescription={t('No comparison.')}
           allOptionTitle={t('None')}
           onChange={newValue => {
+            trackAnalytics('insights.release.select_secondary_release', {
+              organization,
+              release: (newValue.value as string) ?? '',
+              moduleName,
+            });
+
             const updatedQuery: Record<string, string> = {
               ...location.query,
               secondaryRelease: newValue.value as string,
