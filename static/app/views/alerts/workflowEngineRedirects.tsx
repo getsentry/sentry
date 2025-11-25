@@ -193,7 +193,7 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
         if (incidentGroupOpenPeriod) {
           return (
             <Redirect
-              to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}`}
+              to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}/`}
             />
           );
         }
