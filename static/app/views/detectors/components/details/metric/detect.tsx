@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
 
-import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -12,15 +11,18 @@ import {
   ProvidedFormattedQuery,
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   DataConditionType,
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricCondition,
+  MetricDetector,
+} from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -35,6 +37,85 @@ function getDetectorTypeLabel(detector: MetricDetector) {
   return t('Static threshold');
 }
 
+function getConditionLabel({condition}: {condition: MetricCondition}) {
+  switch (condition.conditionResult) {
+    case DetectorPriorityLevel.OK:
+      return t('Resolved');
+    case DetectorPriorityLevel.LOW:
+      return t('Low');
+    case DetectorPriorityLevel.MEDIUM:
+      return t('Medium');
+    case DetectorPriorityLevel.HIGH:
+      return t('High');
+    default:
+      return t('Unknown');
+  }
+}
+
+function makeDirectionText(condition: MetricCondition) {
+  switch (condition.type) {
+    case DataConditionType.GREATER:
+      return t('Above');
+    case DataConditionType.LESS:
+      return t('Below');
+    case DataConditionType.EQUAL:
+      return t('Equal to');
+    case DataConditionType.NOT_EQUAL:
+      return t('Not equal to');
+    case DataConditionType.GREATER_OR_EQUAL:
+      return t('Above or equal to');
+    case DataConditionType.LESS_OR_EQUAL:
+      return t('Below or equal to');
+    default:
+      return t('Unknown');
+  }
+}
+
+function getConditionDescription({
+  aggregate,
+  config,
+  condition,
+}: {
+  aggregate: string;
+  condition: MetricCondition;
+  config: MetricDetector['config'];
+}) {
+  const comparisonValue =
+    typeof condition.comparison === 'number' ? String(condition.comparison) : '';
+  const unit = getMetricDetectorSuffix(config.detectionType, aggregate);
+
+  if (config.detectionType === 'percent') {
+    const direction =
+      condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
+    const delta = config.comparisonDelta;
+    const timeRange = getExactDuration(delta);
+
+    if (condition.conditionResult === DetectorPriorityLevel.OK) {
+      return t(
+        `Less than %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        {
+          comparisonValue,
+          unit,
+          direction,
+          timeRange,
+        }
+      );
+    }
+
+    return t(
+      `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+      {
+        comparisonValue,
+        unit,
+        direction,
+        timeRange,
+      }
+    );
+  }
+
+  return `${makeDirectionText(condition)} ${comparisonValue}${unit}`;
+}
+
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
   if (detector.config.detectionType === 'dynamic') {
     return <div>{t('Sentry will automatically update priority.')}</div>;
@@ -42,50 +123,29 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
 
   const conditions = detector.conditionGroup?.conditions || [];
 
-  // Filter out OK conditions and sort by priority level
-  const priorityConditions = conditions
-    .filter(condition => condition.conditionResult !== DetectorPriorityLevel.OK)
-    .sort((a, b) => (a.conditionResult || 0) - (b.conditionResult || 0));
-
-  if (priorityConditions.length === 0) {
-    return null;
-  }
-
-  const getConditionLabel = (condition: (typeof priorityConditions)[0]) => {
-    const comparisonValue =
-      typeof condition.comparison === 'number' ? String(condition.comparison) : '';
-    const unit = getMetricDetectorSuffix(
-      detector.config.detectionType,
-      detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
-    );
-
-    if (detector.config.detectionType === 'percent') {
-      const direction =
-        condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
-      const delta = detector.config.comparisonDelta;
-      const ago = t('than the previous %s', getExactDuration(delta));
-      return `${comparisonValue}${unit} ${direction} ${ago}`;
-    }
-
-    const typeLabel =
-      condition.type === DataConditionType.GREATER ? t('Above') : t('Below');
-    return `${typeLabel} ${comparisonValue}${unit}`;
-  };
-
   return (
-    <Grid columns="1fr auto auto" width="fit-content" align="center" gap="sm">
-      {priorityConditions.map((condition, index) => (
+    <Grid columns="auto 1fr" gap="sm lg" align="start">
+      {conditions.map((condition, index) => (
         <Fragment key={index}>
-          <div>{getConditionLabel(condition)}</div>
-          <IconArrow direction="right" />
-          <GroupPriorityBadge
-            showLabel
-            priority={
-              DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
-                condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
-              ]
-            }
-          />
+          <Flex align="center" gap="sm">
+            <PriorityDot
+              priority={
+                condition.conditionResult === DetectorPriorityLevel.OK
+                  ? 'resolved'
+                  : DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[
+                      condition.conditionResult as keyof typeof DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL
+                    ]
+              }
+            />
+            <Text>{getConditionLabel({condition})}</Text>
+          </Flex>
+          <Text>
+            {getConditionDescription({
+              aggregate: detector.dataSources[0].queryObj.snubaQuery.aggregate,
+              condition,
+              config: detector.config,
+            })}
+          </Text>
         </Fragment>
       ))}
     </Grid>

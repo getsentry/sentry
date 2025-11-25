@@ -36,8 +36,11 @@ describe('MetricDetectorDetailsDetect', () => {
 
     render(<MetricDetectorDetailsDetect detector={detector} />);
 
-    expect(screen.getByText(/Above 8/)).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
+    expect(screen.getByText(/Above 8/)).toBeInTheDocument();
+
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByText(/Below or equal to 8/)).toBeInTheDocument();
   });
 
   it('renders percent change description with delta window', () => {
@@ -49,6 +52,11 @@ describe('MetricDetectorDetailsDetect', () => {
 
     expect(screen.getByText('Percent change')).toBeInTheDocument();
     expect(screen.getByText(/8% higher than the previous 1 minute/)).toBeInTheDocument();
+
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Less than 8% lower than the previous 1 minute/)
+    ).toBeInTheDocument();
   });
 
   it('renders dynamic detection notice', () => {

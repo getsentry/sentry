@@ -49,6 +49,7 @@ import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -680,14 +681,6 @@ const PriorityRowContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const PriorityDot = styled('div')<{priority: 'high' | 'medium'}>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: ${p => (p.priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
-  flex-shrink: 0;
 `;
 
 const PriorityLabel = styled('span')`
