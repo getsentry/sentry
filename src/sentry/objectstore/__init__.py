@@ -46,5 +46,6 @@ def get_attachments_client() -> ClientBuilder:
             "attachments",
             metrics_backend=SentryMetricsBackend(),
             default_expiration_policy=TimeToLive(timedelta(days=30)),
+            timeout=options.get("timeout"),
         )
     return _attachments_client

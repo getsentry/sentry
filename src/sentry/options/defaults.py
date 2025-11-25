@@ -385,7 +385,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 # New `objectstore` service configuration
 register(
     "objectstore.config",
-    default={"base_url": "http://127.0.0.1:8888"},
+    default={"base_url": "http://127.0.0.1:8888", "timeout": 5},
     flags=FLAG_NOSTORE,
 )
 
