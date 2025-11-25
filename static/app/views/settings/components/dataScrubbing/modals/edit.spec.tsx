@@ -189,7 +189,7 @@ describe('Edit Modal', () => {
         method: 'mask',
         pattern: '',
         placeholder: '',
-        replaceCaptured: 'false',
+        replaceCaptured: false,
         type: 'anything',
         source: valueSuggestions[2]!.value,
       },

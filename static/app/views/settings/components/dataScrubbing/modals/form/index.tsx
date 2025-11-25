@@ -51,7 +51,7 @@ type Props<V extends Values, K extends keyof V> = {
   errors: Partial<V>;
   eventId: EventId;
   onAttributeError: (message: string) => void;
-  onChange: (field: K, value: string) => void;
+  onChange: (field: K, value: V[K]) => void;
   onChangeDataset: (dataset: AllowedDataScrubbingDatasets) => void;
   onUpdateEventId: (eventId: string) => void;
   onValidate: (field: K) => () => void;
@@ -69,7 +69,7 @@ function ReplaceCapturedCheckbox({
   values,
   onChange,
 }: {
-  onChange: (field: 'replaceCaptured', value: string) => void;
+  onChange: (field: 'replaceCaptured', value: boolean) => void;
   values: Values;
 }) {
   const disabled = !hasCaptureGroups(values.pattern);
@@ -82,9 +82,9 @@ function ReplaceCapturedCheckbox({
         <Checkbox
           id="replace-captured"
           name="replaceCaptured"
-          checked={values.replaceCaptured === 'true'}
+          checked={values.replaceCaptured}
           disabled={disabled}
-          onChange={e => onChange('replaceCaptured', e.target.checked.toString())}
+          onChange={e => onChange('replaceCaptured', e.target.checked)}
         />
         <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
           {t('Only replace first capture match')}
@@ -102,7 +102,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   handleChange =
     <K extends keyof Values>(field: K) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      this.props.onChange(field, event.target.value);
+      this.props.onChange(field, event.target.value as Values[K]);
     };
 
   handleToggleEventId = () => {

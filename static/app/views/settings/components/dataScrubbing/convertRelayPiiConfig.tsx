@@ -58,10 +58,9 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
             source,
             placeholder: redaction?.text,
             pattern: resolvedRule.pattern,
-            replaceCaptured: (
+            replaceCaptured:
               resolvedRule.replaceGroups?.length === 1 &&
-              resolvedRule.replaceGroups?.at(0) === 1
-            ).toString(),
+              resolvedRule.replaceGroups?.at(0) === 1,
           });
         } else {
           convertedRules.push({
@@ -79,10 +78,9 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
           type: RuleType.PATTERN,
           source,
           pattern: resolvedRule.pattern,
-          replaceCaptured: (
+          replaceCaptured:
             resolvedRule.replaceGroups?.length === 1 &&
-            resolvedRule.replaceGroups?.at(0) === 1
-          ).toString(),
+            resolvedRule.replaceGroups?.at(0) === 1,
         });
       } else {
         convertedRules.push({id, method, type, source});
