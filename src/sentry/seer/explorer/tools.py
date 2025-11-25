@@ -1115,7 +1115,7 @@ def get_trace_item_attributes(
 
 def _make_get_trace_request(
     trace_id: str,
-    trace_item_type: TraceItemType,
+    trace_item_type: TraceItemType.ValueType,
     resolver: SearchResolver,
     limit: int | None,
     sampling_mode: SAMPLING_MODES,
@@ -1186,7 +1186,7 @@ def _make_get_trace_request(
         resolved_attrs_by_name = {attributes[i]: resolved_attrs[i] for i in range(len(attributes))}
 
         for item in item_group.items:
-            attr_dict = {}
+            attr_dict: dict[str, dict[str, Any]] = {}
             for attribute in item.attributes:
                 r = resolved_attrs_by_name[attribute.key.name]
                 if r.proto_definition.type == STRING:
@@ -1225,8 +1225,10 @@ def _make_get_trace_request(
                 }
             )
 
-        # We expect only one item group in the request/response.
+        # We expect exactly one item group in the request/response.
         return items
+
+    return []
 
 
 def get_log_attributes_for_trace(
@@ -1291,9 +1293,9 @@ def get_log_attributes_for_trace(
         return {"data": items}
 
     # Filter on message substring.
-    filtered_items = []
+    filtered_items: list[dict[str, Any]] = []
     for item in items:
-        if len(filtered_items) >= limit:
+        if limit is not None and len(filtered_items) >= limit:
             break
 
         message: str = item["attributes"].get("message", {}).get("value", "")
@@ -1362,14 +1364,14 @@ def get_metric_attributes_for_trace(
         sampling_mode=sampling_mode,
     )
 
-    if not metric_name or not limit:
+    if not metric_name:
         # Limit is already applied by the EAP request
         return {"data": items}
 
     # Filter on metric name (exact case-insensitive match).
-    filtered_items = []
+    filtered_items: list[dict[str, Any]] = []
     for item in items:
-        if len(filtered_items) >= limit:
+        if limit is not None and len(filtered_items) >= limit:
             break
 
         item_metric_name: str = item["attributes"].get("metric.name", {}).get("value", "")
