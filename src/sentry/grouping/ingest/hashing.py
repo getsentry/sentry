@@ -248,6 +248,56 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
         return grouphash_exists
 
 
+def _get_or_create_single_grouphash(
+    hash_value: str, project: Project, use_caching: bool
+) -> tuple[GroupHash, bool]:
+    """
+    Create or retrieve a `GroupHash` record for the given hash.
+
+    If `use_caching` is true, and the resulting grouphash has an assigned group, cache the
+    `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
+    change when a group is assigned.) Cache retention is controlled by the
+    `grouping.ingest_grouphash_object_cache_expiry` option.
+    """
+    with metrics.timer(
+        "grouping.get_or_create_grouphashes.get_or_create_grouphash"
+    ) as metrics_tags:
+        # If caching is used, these will get overridden below
+        metrics_tags.update({"cache_get": False, "cache_set": False})
+
+        if use_caching:
+            cache_key = f"grouphash_with_assigned_group:{project.id}:{hash_value}"
+            cache_expiry_seconds = options.get("grouping.ingest_grouphash_object_cache_expiry")
+
+            grouphash = cache.get(cache_key)
+            got_cache_hit = grouphash is not None
+
+            metrics_tags.update(
+                {
+                    "cache_get": True,
+                    "cache_result": "hit" if got_cache_hit else "miss",
+                    "expiry_seconds": cache_expiry_seconds,
+                    # If there's a cache miss this will be overridden below
+                    "created": False,
+                }
+            )
+
+            if got_cache_hit:
+                return (grouphash, False)
+
+        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        metrics_tags["created"] = created
+
+        # We only want to cache grouphashes which already have a group assigned, because we know any
+        # without a group will only stay current in the cache for a few milliseconds (until they get
+        # their own group), so there's no point in bothering to cache them.
+        if use_caching and grouphash.group_id is not None:
+            cache.set(cache_key, grouphash, cache_expiry_seconds)
+            metrics_tags["cache_set"] = True
+
+        return (grouphash, created)
+
+
 def get_or_create_grouphashes(
     event: Event,
     project: Project,
