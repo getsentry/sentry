@@ -28,6 +28,10 @@ class CustomTaskQueue:
         """Called to wait for queue completion."""
         pass
 
+    def task_done(self) -> None:
+        """Called when a task is complete."""
+        pass
+
 
 class PrepareDeletesByProjectTest(TestCase):
     def test_no_filters(self) -> None:
@@ -138,7 +142,9 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
         assert Group.objects.count() == 4
         assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
-        ids = Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
+        ids = list(
+            Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
+        )
 
         with (
             assume_test_silo_mode(SiloMode.REGION),

@@ -722,7 +722,7 @@ def run_bulk_deletes_in_deletes(
 
 
 def run_bulk_deletes_by_project(
-    task_queue: _WorkQueue,
+    task_queue: Any,
     project_id: int | None,
     start_from_project_id: int | None,
     is_filtered: Callable[[type[BaseModel]], bool],
