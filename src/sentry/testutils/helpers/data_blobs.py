@@ -756,60 +756,60 @@ JIRA_SERVER_ACTION_DATA_BLOBS = [
 ]
 
 EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
-    # IssueOwners (targetIdentifier is "None")
+    # IssueOwners (target_identifier is "None")
     {
-        "targetType": "IssueOwners",
+        "target_type": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetIdentifier": "None",
+        "target_identifier": "None",
         "fallthrough_type": "ActiveMembers",
         "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
     },
-    # NoOne Fallthrough (targetIdentifier is "")
+    # NoOne fallthrough (target_identifier is "")
     {
-        "targetType": "IssueOwners",
-        "targetIdentifier": "",
+        "target_type": "IssueOwners",
+        "target_identifier": "",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "fallthrough_type": "NoOne",
         "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
     },
-    # AllMembers Fallthrough (targetIdentifier is None)
+    # AllMembers fallthrough (target_identifier is None)
     {
-        "targetType": "IssueOwners",
+        "target_type": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetIdentifier": None,
+        "target_identifier": None,
         "fallthrough_type": "AllMembers",
         "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
     },
-    # NoOne Fallthrough (targetIdentifier is "None")
+    # NoOne fallthrough (target_identifier is "None")
     {
-        "targetType": "IssueOwners",
+        "target_type": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetIdentifier": "None",
+        "target_identifier": "None",
         "fallthrough_type": "NoOne",
         "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
     },
-    # ActiveMembers Fallthrough
+    # ActiveMembers fallthrough
     {
-        "targetType": "Member",
+        "target_type": "Member",
         "fallthrough_type": "ActiveMembers",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetIdentifier": 3234013,
+        "target_identifier": 3234013,
         "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
     },
     # Member Email
     {
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "targetIdentifier": 2160509,
-        "targetType": "Member",
+        "target_identifier": 2160509,
+        "target_type": "Member",
         "uuid": "42c3e1d6-4004-4a51-a90b-13d3404f1e55",
     },
     # Team Email
     {
-        "targetType": "Team",
+        "target_type": "Team",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "fallthrough_type": "AllMembers",
         "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
-        "targetIdentifier": 188022,
+        "target_identifier": 188022,
     },
 ]
 

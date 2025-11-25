@@ -99,7 +99,7 @@ class EmailFieldMappingKeys(StrEnum):
     """
 
     FALLTHROUGH_TYPE_KEY = "fallthrough_type"
-    TARGET_TYPE_KEY = "targetType"
+    TARGET_TYPE_KEY = "target_type"
 
 
 class ActionFieldMapping(TypedDict):
@@ -161,7 +161,7 @@ ACTION_FIELD_MAPPINGS: dict[str, ActionFieldMapping] = {
     ),
     ActionType.EMAIL: ActionFieldMapping(
         id="sentry.mail.actions.NotifyEmailAction",
-        target_identifier_key="targetIdentifier",
+        target_identifier_key="target_identifier",
     ),
     ActionType.PLUGIN: ActionFieldMapping(
         id="sentry.rules.actions.notify_event.NotifyEventAction",
