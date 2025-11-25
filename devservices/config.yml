@@ -254,6 +254,9 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
       ]
     minimal: [postgres, snuba]
+    # The minimal set of services Symbolicator needs to run
+    # Sentry integration tests.
+    symbolicator-tests: [postgres, snuba, objectstore]
     uptime:
       [
         snuba,
