@@ -4,7 +4,6 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ConfigureReplayCard from 'sentry/components/replays/header/configureReplayCard';
-import ReplayFeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {space} from 'sentry/styles/space';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -37,7 +36,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
     >
       {({replay}) => (
         <ButtonActionsWrapper>
-          {replay.isVideoReplay() ? <FeedbackButton /> : <ReplayFeedbackButton />}
+          <FeedbackButton />
           <ConfigureReplayCard
             isMobile={replay.isVideoReplay()}
             replayRecord={replay.getReplay()}

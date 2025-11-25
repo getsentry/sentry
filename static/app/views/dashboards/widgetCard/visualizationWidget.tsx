@@ -6,7 +6,6 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {Widget as CommonWidget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
@@ -69,20 +68,18 @@ export function VisualizationWidget({
         const errorDisplay =
           renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
 
+        if (loading) {
+          return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+        }
+        if (errorDisplay) {
+          return errorDisplay;
+        }
+
         return (
-          <CommonWidget
-            Title={<CommonWidget.WidgetTitle title={widget.title} />}
-            Visualization={
-              errorDisplay || loading ? (
-                errorDisplay
-              ) : (
-                <TimeSeriesWidgetVisualization
-                  plottables={plottables}
-                  releases={releases}
-                  showReleaseAs={showReleaseAs}
-                />
-              )
-            }
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            releases={releases}
+            showReleaseAs={showReleaseAs}
           />
         );
       }}

@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -111,19 +112,26 @@ export function McpOverviewTable() {
               promptName={dataRow[SpanFields.MCP_PROMPT_NAME]}
             />
           );
-        case 'failure_rate()':
+        case 'failure_rate()': {
+          const search = new MutableSearch(query);
+          search.addFilterValue(SpanFields.SPAN_STATUS, 'internal_error');
+          search.addFilterValue(
+            SpanFields.SPAN_DESCRIPTION,
+            dataRow[SpanFields.SPAN_DESCRIPTION]
+          );
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error ${SpanFields.SPAN_DESCRIPTION}:${dataRow[SpanFields.SPAN_DESCRIPTION]}`,
+                query: search.formatString(),
                 selection,
                 organization,
                 referrer: MCPReferrer.MCP_OVERVIEW_TABLE,
               })}
             />
           );
+        }
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case AVG_DURATION:
@@ -178,6 +186,9 @@ function SpanDescriptionCell({
   fields.push('span.duration');
   fields.push('timestamp');
 
+  const search = new MutableSearch('');
+  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.SPAN_DESCRIPTION, spanDescription);
   const link = getExploreUrl({
     organization,
     selection,
@@ -188,7 +199,7 @@ function SpanDescriptionCell({
         yAxes: ['count(span.duration)'],
       },
     ],
-    query: `span.op:mcp.server ${SpanFields.SPAN_DESCRIPTION}:"${spanDescription}"`,
+    query: search.formatString(),
     sort: `-count(span.duration)`,
     field: fields,
   });
