@@ -125,7 +125,10 @@ function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {label: middleEllipsis(value, 70, /[\s-_:]/), value});
+      map.set(value, {
+        label: middleEllipsis(value, 70, /[\s-_:]/),
+        value,
+      });
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
