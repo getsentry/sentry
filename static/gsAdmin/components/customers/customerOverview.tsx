@@ -638,7 +638,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
-            {customer.dataRetention || '90d'}
+            {customer.orgRetention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
+              90}
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}

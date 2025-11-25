@@ -692,4 +692,66 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('null')).toBeInTheDocument();
     expect(screen.queryByText('36925')).not.toBeInTheDocument();
   });
+
+  it('renders org retention', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: 1234567, downsampled: null},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('1234567 days')).toBeInTheDocument();
+  });
+
+  it('renders errors retention default', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: null, downsampled: null},
+      categories: {
+        errors: MetricHistoryFixture({
+          retention: {standard: 987, downsampled: null},
+        }),
+      },
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('987 days')).toBeInTheDocument();
+  });
+
+  it('renders org retention default', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('90 days')).toBeInTheDocument();
+  });
 });
