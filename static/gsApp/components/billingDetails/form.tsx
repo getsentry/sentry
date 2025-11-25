@@ -194,7 +194,6 @@ function BillingDetailsForm({
     // XXX(isabella): temp fix specific to UAE, remove this when we have a proper fix
     if (state.countryCode === 'AE') {
       form.setValue('city', data.value.address.state);
-      form.setValue('region', null);
     }
   };
 
