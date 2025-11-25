@@ -6,7 +6,6 @@ from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 
@@ -196,7 +195,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
@@ -335,7 +333,6 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert len(results) == 24
         assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory for hourly stats when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
