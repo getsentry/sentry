@@ -347,7 +347,7 @@
   # begin: stronger typing
   [[tool.mypy.overrides]]
     module = [
-      "fixtures.safe_migrations_apps.*",
+          "fixtures.safe_migrations_apps.*",
       "fixtures.schema_validation",
       "sentry.analytics.*",
       "sentry.api.bases.*",
@@ -878,7 +878,7 @@
       "tests.snuba.models.*",
       "tests.social_auth.*",
       "tools.*",
-    ]
+]
     disallow_any_generics = true
     disallow_untyped_defs = true
     # end: stronger typing
