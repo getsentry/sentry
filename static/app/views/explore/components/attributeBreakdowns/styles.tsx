@@ -111,7 +111,7 @@ function LoadingCharts() {
       {showMessage && (
         <Text size="md" variant="muted">
           {t(
-            'This is taking a bit longer. Try narrowing the time range to get results faster.'
+            'This is taking a bit longer. You can try narrowing the time range to get results faster.'
           )}
         </Text>
       )}
