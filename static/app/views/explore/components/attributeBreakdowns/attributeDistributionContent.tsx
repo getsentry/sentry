@@ -142,7 +142,7 @@ export function AttributeDistribution() {
 
   return (
     <Panel>
-      <Flex direction="column" gap="xl" padding="xl">
+      <Flex direction="column" gap="2xl" padding="xl">
         <Fragment>
           <ControlsContainer>
             <StyledBaseSearchBar

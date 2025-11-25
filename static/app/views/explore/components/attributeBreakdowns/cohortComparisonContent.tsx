@@ -129,7 +129,7 @@ export function CohortComparison({
 
   return (
     <Panel data-explore-chart-selection-region>
-      <Flex direction="column" gap="xl" padding="xl">
+      <Flex direction="column" gap="2xl" padding="xl">
         <ControlsContainer>
           <StyledBaseSearchBar
             placeholder={t('Search keys')}

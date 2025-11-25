@@ -108,7 +108,7 @@ function LoadingCharts() {
   }, []);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="2xl">
       {showMessage && (
         <Text size="md" variant="muted">
           {t(
