@@ -16,6 +16,7 @@ import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
@@ -197,7 +198,7 @@ function validateMediumThreshold({
 interface PriorityRowProps {
   aggregate: string;
   detectionType: 'static' | 'percent';
-  priority: 'high' | 'medium';
+  priority: PriorityLevel;
   showComparisonAgo?: boolean;
 }
 
@@ -480,12 +481,12 @@ function DetectSection() {
                 </DefineThresholdParagraph>
                 <PriorityRowsContainer>
                   <PriorityRow
-                    priority="high"
+                    priority={PriorityLevel.HIGH}
                     detectionType="static"
                     aggregate={aggregate}
                   />
                   <PriorityRow
-                    priority="medium"
+                    priority={PriorityLevel.MEDIUM}
                     detectionType="static"
                     aggregate={aggregate}
                   />
@@ -502,13 +503,13 @@ function DetectSection() {
                 </DefineThresholdParagraph>
                 <PriorityRowsContainer>
                   <PriorityRow
-                    priority="high"
+                    priority={PriorityLevel.HIGH}
                     detectionType="percent"
                     aggregate={aggregate}
                     showComparisonAgo
                   />
                   <PriorityRow
-                    priority="medium"
+                    priority={PriorityLevel.MEDIUM}
                     detectionType="percent"
                     aggregate={aggregate}
                   />
