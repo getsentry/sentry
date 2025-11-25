@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
@@ -418,18 +417,6 @@ function DynamicGrouping() {
   return (
     <PageWrapper>
       <HeaderSection>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: t('Issues'),
-              to: `/organizations/${organization.slug}/issues/`,
-            },
-            {
-              label: t('Top Issues'),
-            },
-          ]}
-        />
-
         <Heading as="h1" style={{marginBottom: space(2)}}>
           {t('Top Issues')}
         </Heading>
