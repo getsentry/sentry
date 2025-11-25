@@ -233,7 +233,7 @@ function BillingDetailsPanel({
               billingDetails.region ||
               billingDetails.postalCode) && (
               <Text>
-                {`${billingDetails.city ? billingDetails.city : ''}${billingDetails.region ? `${billingDetails.city ? ', ' : ''}${billingDetails.region}` : ''}${billingDetails.postalCode ? ` ${billingDetails.postalCode}` : ''}`}
+                {`${billingDetails.city || ''}${billingDetails.region ? `${billingDetails.city ? ', ' : ''}${billingDetails.region}` : ''}${billingDetails.postalCode ? ` ${billingDetails.postalCode}` : ''}`}
               </Text>
             )}
             {billingDetails.countryCode && (
