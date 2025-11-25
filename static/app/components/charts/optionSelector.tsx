@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {FeatureBadge} from 'sentry/components/core/badge';
 import type {
@@ -19,7 +18,7 @@ type BaseProps = {
   featureType?: 'alpha' | 'beta' | 'new';
 };
 
-type SingleUnClearableProps = DistributiveOmit<
+type SingleUnClearableProps = DistributedOmit<
   SingleSelectProps<string>,
   'onChange' | 'multiple' | 'title' | 'value'
 > &
@@ -30,7 +29,7 @@ type SingleUnClearableProps = DistributiveOmit<
     multiple?: false;
   };
 
-type SingleClearableProps = DistributiveOmit<
+type SingleClearableProps = DistributedOmit<
   SingleSelectProps<string>,
   'onChange' | 'multiple' | 'title' | 'value'
 > &
@@ -43,7 +42,7 @@ type SingleClearableProps = DistributiveOmit<
 
 type SingleProps = SingleClearableProps | SingleUnClearableProps;
 
-type MultipleProps = DistributiveOmit<
+type MultipleProps = DistributedOmit<
   MultipleSelectProps<string>,
   'onChange' | 'multiple' | 'title' | 'value'
 > &

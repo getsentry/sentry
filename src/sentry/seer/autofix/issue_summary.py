@@ -343,18 +343,22 @@ def run_automation(
         }
     )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+    # Only generate fixability if it doesn't already exist
+    fixability_score = group.seer_fixability_score
+    if fixability_score is None:
+        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+            issue_summary = _generate_fixability_score(group)
 
-    if not issue_summary.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if issue_summary.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
+        if not issue_summary.scores:
+            raise ValueError("Issue summary scores is None or empty.")
+        if issue_summary.scores.fixability_score is None:
+            raise ValueError("Issue summary fixability score is None.")
 
-    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+        fixability_score = issue_summary.scores.fixability_score
+        group.update(seer_fixability_score=fixability_score)
 
     if (
-        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        not _is_issue_fixable(group, fixability_score)
         and not group.issue_type.always_trigger_seer_automation
     ):
         return
@@ -377,9 +381,7 @@ def run_automation(
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
         logger.info("Triage signals V0: %s: generating stopping point", group.id)
-        fixability_stopping_point = _get_stopping_point_from_fixability(
-            issue_summary.scores.fixability_score
-        )
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
         logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
