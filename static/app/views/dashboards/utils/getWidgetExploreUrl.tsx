@@ -303,7 +303,8 @@ function _getWidgetExploreUrl(
     field: fields,
     query: applyDashboardFilters(
       overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
-      dashboardFilters
+      dashboardFilters,
+      widget.widgetType
     ),
     sort: sort || undefined,
     interval:
