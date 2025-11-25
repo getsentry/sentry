@@ -740,7 +740,11 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricSamplesTableResult.result.isFetching || metricTimeseriesResult.isPending) {
+    if (
+      metricSamplesTableResult.result.isFetching ||
+      metricTimeseriesResult.isPending ||
+      !dataScanned
+    ) {
       return;
     }
 
@@ -810,7 +814,8 @@ export function useMetricsPanelAnalytics({
 
     if (
       metricAggregatesTableResult.result.isPending ||
-      metricTimeseriesResult.isPending
+      metricTimeseriesResult.isPending ||
+      !dataScanned
     ) {
       return;
     }
