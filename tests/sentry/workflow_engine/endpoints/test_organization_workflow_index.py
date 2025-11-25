@@ -668,7 +668,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
         assert Workflow.objects.count() == 0
 
-    def test_create_workflow_with_unauthorized_detectors(self) -> None:
+    def test_create_workflow_with_other_project_detector(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -685,15 +686,24 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "detectorIds": [other_detector.id],
         }
 
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             raw_data=workflow_data,
-            status_code=403,
         )
 
-        # Verify no detector-workflow connections were created
+        # Verify detector-workflow connections was created
         created_detector_workflows = DetectorWorkflow.objects.all()
-        assert created_detector_workflows.count() == 0
+        assert created_detector_workflows.count() == 1
+
+    def test_cannot_create_workflow_without_alerts_write(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+            status_code=403,
+        )
 
 
 @region_silo_test

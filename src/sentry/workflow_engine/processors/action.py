@@ -119,11 +119,19 @@ def update_workflow_action_group_statuses(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
 
-    WorkflowActionGroupStatus.objects.bulk_create(
+    all_statuses = WorkflowActionGroupStatus.objects.bulk_create(
         missing_statuses,
         batch_size=1000,
         ignore_conflicts=True,
     )
+    missing_status_pairs = [
+        (status.workflow_id, status.action_id) for status in all_statuses if status.id is None
+    ]
+    if missing_status_pairs:
+        logger.warning(
+            "Failed to create WorkflowActionGroupStatus objects",
+            extra={"missing_status_pairs": missing_status_pairs},
+        )
 
 
 def get_unique_active_actions(
