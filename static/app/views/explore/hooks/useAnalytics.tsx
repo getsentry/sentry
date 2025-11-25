@@ -713,7 +713,10 @@ export function useMetricsPanelAnalytics({
   const organization = useOrganization();
 
   const dataset = DiscoverDatasets.METRICS;
-  const dataScanned = metricSamplesTableResult.result.meta?.dataScanned ?? '';
+  const dataScanned =
+    mode === Mode.AGGREGATE
+      ? (metricAggregatesTableResult.result.meta?.dataScanned ?? '')
+      : (metricSamplesTableResult.result.meta?.dataScanned ?? '');
   const search = useQueryParamsSearch();
   const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
