@@ -620,10 +620,11 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
         # Invalid JSON should cause parsing to fail before any metrics are processed
+        # The task will return ERROR since the callback raises an exception
         status, details = self._run_task_and_verify_status(b"invalid json")
 
-        assert status == ChunkFileState.OK
-        assert details is None
+        assert status == ChunkFileState.ERROR
+        assert details is not None
 
         # Verify the existing PENDING metric was updated to FAILED
         size_metrics = PreprodArtifactSizeMetrics.objects.filter(

@@ -390,23 +390,25 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
+    size_metrics_updated: list[PreprodArtifactSizeMetrics] = []
     try:
         size_analysis_results = SizeAnalysisResults.parse_raw(
             assemble_result.bundle_temp_file.read()
         )
         was_created = False
-        size_metrics_updated: list[PreprodArtifactSizeMetrics] = []
 
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
             app_components = size_analysis_results.app_components or []
 
             if not app_components:
                 # No components in results - fall back to top-level sizes for backwards compatibility
+                # Don't include identifier in lookup to match old behavior and find any existing
+                # MAIN_ARTIFACT regardless of identifier value
                 size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
                     preprod_artifact=preprod_artifact,
                     metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                    identifier=None,
                     defaults={
+                        "identifier": None,
                         "analysis_file_id": assemble_result.bundle.id,
                         "min_install_size": None,
                         "max_install_size": size_analysis_results.install_size,
@@ -497,11 +499,12 @@ def _assemble_preprod_artifact_size_analysis(
                 else:
                     # No metrics were processed yet - update MAIN_ARTIFACT to FAILED
                     # to avoid leaving any existing PENDING metrics stuck
+                    # Don't include identifier in lookup to match old behavior
                     PreprodArtifactSizeMetrics.objects.update_or_create(
                         preprod_artifact=preprod_artifact,
                         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                        identifier=None,
                         defaults={
+                            "identifier": None,
                             "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
                             "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
                             "error_message": str(e),
