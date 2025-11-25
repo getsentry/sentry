@@ -107,10 +107,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         # dedupes action if both workflows will fire it
         assert set(triggered_actions) == {self.action}
         # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert getattr(triggered_actions[0], "workflow_id") in {
-            self.workflow.id,
-            workflow.id,
-        }  # either is valid
+        assert getattr(triggered_actions[0], "workflow_id") == self.workflow.id
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
