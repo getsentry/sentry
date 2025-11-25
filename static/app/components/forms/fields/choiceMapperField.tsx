@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button} from 'sentry/components/core/button';
 import {
@@ -50,7 +49,7 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: DistributiveOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
+  addDropdown: DistributedOmit<SingleSelectProps<string>, 'options' | 'clearable'> & {
     items: Array<SelectOption<string>>;
     noResultsMessage?: string;
   };
