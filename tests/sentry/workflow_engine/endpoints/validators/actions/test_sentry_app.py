@@ -26,7 +26,7 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID.SENTRY_APP_INSTALLATION_UUID,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "targetType": ActionType.SENTRY_APP,
                 "target_identifier": self.sentry_app_installation.uuid,
             },
