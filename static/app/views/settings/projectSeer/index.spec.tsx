@@ -547,6 +547,7 @@ describe('ProjectSeer', () => {
   it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
     const projectWithFeatureFlag = ProjectFixture({
       features: ['triage-signals-v0'],
+      autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
     });
 
     render(<ProjectSeer />, {
@@ -583,7 +584,7 @@ describe('ProjectSeer', () => {
       const projectWithFlag = ProjectFixture({
         features: ['triage-signals-v0'],
         seerScannerAutomation: true,
-        autofixAutomationTuning: 'off',
+        autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
       });
 
       const {unmount} = render(<ProjectSeer />, {
@@ -620,30 +621,16 @@ describe('ProjectSeer', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('maps values correctly: off=unchecked, others=checked', async () => {
-      const {unmount} = render(<ProjectSeer />, {
-        organization,
-        outletContext: {
-          project: ProjectFixture({
-            features: ['triage-signals-v0'],
-            seerScannerAutomation: true,
-            autofixAutomationTuning: 'off',
-          }),
-        },
-      });
-
-      expect(
-        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
-      ).not.toBeChecked();
-      unmount();
-
+    it('toggle is always checked when triage-signals-v0 flag is enabled', async () => {
+      // When flag is on, the toggle is always checked regardless of stored value
+      // because we default to ON for triage signals users
       render(<ProjectSeer />, {
         organization,
         outletContext: {
           project: ProjectFixture({
             features: ['triage-signals-v0'],
             seerScannerAutomation: true,
-            autofixAutomationTuning: 'high',
+            autofixAutomationTuning: 'medium',
           }),
         },
       });
@@ -666,21 +653,15 @@ describe('ProjectSeer', () => {
           project: ProjectFixture({
             features: ['triage-signals-v0'],
             seerScannerAutomation: true,
-            autofixAutomationTuning: 'off',
+            autofixAutomationTuning: 'medium', // Start with enabled so no auto-enable
           }),
         },
       });
 
       const toggle = await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i});
-      await userEvent.click(toggle);
+      expect(toggle).toBeChecked();
 
-      await waitFor(() => {
-        expect(projectPutRequest).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({data: {autofixAutomationTuning: 'medium'}})
-        );
-      });
-
+      // Toggle OFF
       await userEvent.click(toggle);
 
       await waitFor(() => {
@@ -689,6 +670,52 @@ describe('ProjectSeer', () => {
           expect.objectContaining({data: {autofixAutomationTuning: 'off'}})
         );
       });
+
+      // Toggle back ON
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(projectPutRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({data: {autofixAutomationTuning: 'medium'}})
+        );
+      });
+    });
+
+    it('respects existing off setting for orgs with flag enabled', async () => {
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'off', // Existing org with it disabled
+          }),
+        },
+      });
+
+      // Toggle should be unchecked, respecting the existing 'off' setting
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeChecked();
+    });
+
+    it('defaults to ON for new orgs (undefined value)', async () => {
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: undefined, // New org
+          }),
+        },
+      });
+
+      // Toggle should be checked for new orgs
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeChecked();
     });
   });
 
