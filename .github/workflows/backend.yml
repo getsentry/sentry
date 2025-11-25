@@ -73,7 +73,7 @@ jobs:
           sleep 1
 
           kill $VMSTAT_PID
-          wait $VMSTAT_PID
+          wait $VMSTAT_PID || true
 
       - name: Upload vmstat logs
         uses: actions/upload-artifact@v4
