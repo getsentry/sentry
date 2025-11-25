@@ -236,6 +236,9 @@ function filterClusters(
   });
 }
 
+const RECENCY_HALF_LIFE_HOURS = 24;
+const MS_PER_HOUR = 1000 * 60 * 60;
+
 function sortClustersByScore(
   clusters: ClusterSummary[],
   statsMap: Map<number, ClusterStats>,
@@ -252,8 +255,6 @@ function sortClustersByScore(
     maxFix = -Infinity;
   let minEvents = Infinity,
     maxEvents = -Infinity;
-  let minRecency = Infinity,
-    maxRecency = -Infinity;
   let minIssues = Infinity,
     maxIssues = -Infinity;
 
@@ -269,12 +270,6 @@ function sortClustersByScore(
     maxEvents = Math.max(maxEvents, events);
     minIssues = Math.min(minIssues, issues);
     maxIssues = Math.max(maxIssues, issues);
-
-    if (stats?.lastSeen) {
-      const age = now - new Date(stats.lastSeen).getTime();
-      minRecency = Math.min(minRecency, age);
-      maxRecency = Math.max(maxRecency, age);
-    }
   }
 
   const total = weights.fixability + weights.events + weights.recency + weights.issues;
@@ -284,10 +279,14 @@ function sortClustersByScore(
   const scores = new Map<number, number>();
   for (const cluster of clusters) {
     const stats = statsMap.get(cluster.cluster_id);
-    const recency =
-      stats?.lastSeen && minRecency !== Infinity
-        ? 1 - normalize(now - new Date(stats.lastSeen).getTime(), minRecency, maxRecency)
-        : 0.5;
+
+    // Exponential decay: score halves every RECENCY_HALF_LIFE_HOURS
+    // 0 hours → 1.0, 24 hours → 0.5, 48 hours → 0.25, etc.
+    let recency = 0.5;
+    if (stats?.lastSeen) {
+      const ageHours = (now - new Date(stats.lastSeen).getTime()) / MS_PER_HOUR;
+      recency = Math.exp((-ageHours * Math.LN2) / RECENCY_HALF_LIFE_HOURS);
+    }
 
     const score =
       getWeight('fixability') * normalize(cluster.fixability_score ?? 0, minFix, maxFix) +
