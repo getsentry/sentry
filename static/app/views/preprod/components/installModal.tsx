@@ -108,9 +108,11 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
       ) {
         errors = (
           <CodeSignatureInfo>
-            {installDetails.code_signature_errors.map(e => (
-              <Text key={e}>{e}</Text>
-            ))}
+            <Stack gap="sm">
+              {installDetails.code_signature_errors.map((e, index) => (
+                <Text key={index}>{e}</Text>
+              ))}
+            </Stack>
           </CodeSignatureInfo>
         );
       }
