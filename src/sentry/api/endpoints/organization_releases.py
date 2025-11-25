@@ -127,7 +127,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             elif value_o == "latest":
                 latest_releases = get_latest_release(
                     projects=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
+                    environments=filter_params.get("environment_objects"),
                     organization_id=organization.id,
                 )
                 query_q = Q(version__in=latest_releases)
