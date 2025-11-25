@@ -150,18 +150,16 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.LoadingCharts />
         ) : (
           <Fragment>
+            {selectionHint && (
+              <SelectionHintContainer>
+                <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
+                  {selectionHint.selection}
+                </SelectionHint>
+                <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
+              </SelectionHintContainer>
+            )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
-                {selectionHint && (
-                  <SelectionHintContainer>
-                    <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
-                      {selectionHint.selection}
-                    </SelectionHint>
-                    <SelectionHint color="#A29FAA">
-                      {selectionHint.baseline}
-                    </SelectionHint>
-                  </SelectionHintContainer>
-                )}
                 <ChartsGrid>
                   {filteredRankedAttributes
                     .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
