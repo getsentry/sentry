@@ -1,7 +1,7 @@
-
 from collections.abc import Sequence
 from typing import Any
 from unittest import mock
+
 import responses
 
 from sentry import audit_log
@@ -11,7 +11,6 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
@@ -26,6 +25,11 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTarget,
+    ActionType,
+    SentryAppIdentifier,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, MockActionValidatorTranslator
 
 
@@ -411,8 +415,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             {"name": "alert_prefix", "value": "[Not Good]"},
             {"name": "channel", "value": "#ignored-errors"},
             {"name": "best_emoji", "value": ":fire:"},
-            {"name": "teamId", "value": 1},
-            {"name": "assigneeId", "value": 3},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
         ]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")

@@ -82,8 +82,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "alert_prefix", "value": "[Not Good]"},
             {"name": "channel", "value": "#ignored-errors"},
             {"name": "best_emoji", "value": ":fire:"},
-            {"name": "teamId", "value": 1},
-            {"name": "assigneeId", "value": 3},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
         ]
 
     def test_simple(self) -> None:
@@ -163,8 +163,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "alert_prefix", "value": "[Very Good]"},
             {"name": "channel", "value": "#pay-attention-to-errors"},
             {"name": "best_emoji", "value": ":ice:"},
-            {"name": "teamId", "value": 1},
-            {"name": "assigneeId", "value": 3},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
         ]
         self.valid_workflow["actionFilters"] = [
             {
