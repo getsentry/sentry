@@ -149,11 +149,8 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
         assert Group.objects.count() == 4
         assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
-        # Fetch IDs in ascending order to match deletion order
         ids = list(
-            Group.objects.filter(last_seen__lt=before_now(days=days))
-            .order_by("id")
-            .values_list("id", flat=True)
+            Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
         )
 
         with (
