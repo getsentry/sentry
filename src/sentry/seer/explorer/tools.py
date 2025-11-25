@@ -1288,7 +1288,7 @@ def get_log_attributes_for_trace(
         sampling_mode=sampling_mode,
     )
 
-    if not message_substring or not limit:
+    if not message_substring:
         # Limit is already applied by the EAP request
         return {"data": items}
 
