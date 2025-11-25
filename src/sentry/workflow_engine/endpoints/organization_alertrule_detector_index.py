@@ -80,7 +80,9 @@ class OrganizationAlertRuleDetectorIndexEndpoint(OrganizationEndpoint):
         if alert_rule_id:
             try:
                 calculated_detector_id = get_object_id_from_fake_id(int(alert_rule_id))
-                detector = Detector.objects.get(id=calculated_detector_id)
+                detector = Detector.objects.get(
+                    id=calculated_detector_id, project__organization=organization
+                )
 
                 if detector:
                     return Response(
