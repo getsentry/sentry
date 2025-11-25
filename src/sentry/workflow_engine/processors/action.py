@@ -222,12 +222,12 @@ def filter_recently_fired_workflow_actions(
             now=now,
         )
     )
-    _, _, uncreated_statuses = update_workflow_action_group_statuses(
+    _, _, conflicted_statuses = update_workflow_action_group_statuses(
         now, statuses_to_update, missing_statuses
     )
 
     # if statuses were not created for some reason, we should not fire for them
-    for workflow_id, action_id in uncreated_statuses:
+    for workflow_id, action_id in conflicted_statuses:
         action_to_workflows_ids[action_id].remove(workflow_id)
         if not action_to_workflows_ids[action_id]:
             action_to_workflows_ids.pop(action_id)
