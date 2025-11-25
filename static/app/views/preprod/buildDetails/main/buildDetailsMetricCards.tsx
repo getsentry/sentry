@@ -128,41 +128,32 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
 
   return (
     <Flex gap="lg" wrap="wrap">
-      {metricsCards.map(card => {
-        const valueContent = (
+      {metricsCards.map(card => (
+        <MetricCard
+          key={card.key}
+          icon={card.icon}
+          label={card.title}
+          labelTooltip={card.labelTooltip}
+          action={
+            card.showInsightsButton
+              ? {
+                  icon: <IconSettings size="sm" color="white" />,
+                  tooltip: t('View insight details'),
+                  ariaLabel: t('View insight details'),
+                  onClick: () => {
+                    trackAnalytics('preprod.builds.details.open_insights_sidebar', {
+                      organization,
+                      platform: platformProp ?? null,
+                      project_type: projectType,
+                      source: 'metric_card',
+                    });
+                    onOpenInsightsSidebar();
+                  },
+                }
+              : undefined
+          }
+        >
           <Heading as="h3">
-            <MetricValue $interactive={Boolean(card.watchBreakdown)}>
-              {card.value}
-            </MetricValue>
-            {card.percentageText ?? ''}
-          </Heading>
-        );
-
-        return (
-          <MetricCard
-            key={card.key}
-            icon={card.icon}
-            label={card.title}
-            labelTooltip={card.labelTooltip}
-            action={
-              card.showInsightsButton
-                ? {
-                    icon: <IconSettings size="sm" color="white" />,
-                    tooltip: t('View insight details'),
-                    ariaLabel: t('View insight details'),
-                    onClick: () => {
-                      trackAnalytics('preprod.builds.details.open_insights_sidebar', {
-                        organization,
-                        platform: platformProp ?? null,
-                        project_type: projectType,
-                        source: 'metric_card',
-                      });
-                      onOpenInsightsSidebar();
-                    },
-                  }
-                : undefined
-            }
-          >
             {card.watchBreakdown ? (
               <Tooltip
                 title={
@@ -171,16 +162,17 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     watchValue={card.watchBreakdown.watchValue}
                   />
                 }
-                position="left"
+                position="bottom"
               >
-                {valueContent}
+                <MetricValue $interactive>{card.value}</MetricValue>
               </Tooltip>
             ) : (
-              valueContent
+              <MetricValue>{card.value}</MetricValue>
             )}
-          </MetricCard>
-        );
-      })}
+            {card.percentageText ?? ''}
+          </Heading>
+        </MetricCard>
+      ))}
     </Flex>
   );
 }
