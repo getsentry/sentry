@@ -201,7 +201,7 @@ function BillingDetailsPanel({
             }}
             onSubmitError={error => {
               setFormError(
-                Object.values(error.responseJSON || {}).join(' ') ??
+                Object.values(error.responseJSON || {}).join(' ') ||
                   t('An unknown error occurred.')
               );
             }}
