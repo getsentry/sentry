@@ -101,6 +101,7 @@ class SeerExplorerClient:
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
             custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
+            is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
     """
 
     def __init__(
@@ -112,6 +113,7 @@ class SeerExplorerClient:
         artifact_schema: type[BaseModel] | None = None,
         custom_tools: list[type[ExplorerTool]] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
+        is_interactive: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -120,6 +122,7 @@ class SeerExplorerClient:
         self.intelligence_level = intelligence_level
         self.category_key = category_key
         self.category_value = category_value
+        self.is_interactive = is_interactive
 
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
@@ -160,6 +163,7 @@ class SeerExplorerClient:
             "on_page_context": on_page_context,
             "user_org_context": collect_user_org_context(self.user, self.organization),
             "intelligence_level": self.intelligence_level,
+            "is_interactive": self.is_interactive,
         }
 
         # Add artifact schema if provided
@@ -221,6 +225,7 @@ class SeerExplorerClient:
             "run_id": run_id,
             "insert_index": insert_index,
             "on_page_context": on_page_context,
+            "is_interactive": self.is_interactive,
         }
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
