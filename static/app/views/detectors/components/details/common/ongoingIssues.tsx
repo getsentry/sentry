@@ -1,5 +1,4 @@
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -31,19 +30,17 @@ export function DetectorDetailsOngoingIssues({
 
   return (
     <Section
-      title={
-        <Flex justify="between" align="center">
-          {t('Ongoing Issues')}
-          <LinkButton
-            size="xs"
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: queryParams,
-            }}
-          >
-            {t('View All')}
-          </LinkButton>
-        </Flex>
+      title={t('Ongoing Issues')}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: queryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
       }
     >
       <ErrorBoundary mini>

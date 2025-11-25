@@ -14,6 +14,7 @@ interface TableProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
+  ref?: RefObject<HTMLDivElement | null>;
   variant?: 'default' | 'faded';
 }
 
@@ -71,9 +72,9 @@ function HeaderCell({
   );
 }
 
-function Row({children, variant = 'default', ...props}: RowProps) {
+function Row({children, variant = 'default', ref, ...props}: RowProps) {
   return (
-    <StyledRow variant={variant} role="row" {...props}>
+    <StyledRow variant={variant} role="row" ref={ref} {...props}>
       {children}
     </StyledRow>
   );

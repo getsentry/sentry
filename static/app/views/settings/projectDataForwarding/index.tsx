@@ -82,10 +82,9 @@ function DataForwardingStats({organization, project}: DataForwardingStatsProps) 
             height={150}
           />
         ) : (
-          <EmptyMessage
-            title={t('Nothing forwarded in the last 30 days.')}
-            description={t('Total events forwarded to third party integrations.')}
-          />
+          <EmptyMessage title={t('Nothing forwarded in the last 30 days.')}>
+            {t('Total events forwarded to third party integrations.')}
+          </EmptyMessage>
         )}
       </PanelBody>
     </Panel>

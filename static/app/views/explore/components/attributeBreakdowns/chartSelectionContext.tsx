@@ -1,11 +1,11 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
+import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
 type ChartSelectionState = {
-  boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
+  selection: Selection;
 } | null;
 
 type ChartSelectionContextValue = {

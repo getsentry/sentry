@@ -67,7 +67,7 @@ describe('CartDiff', () => {
         sharedMaxBudget: 100_00,
       },
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
