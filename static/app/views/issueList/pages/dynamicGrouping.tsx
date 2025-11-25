@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
@@ -17,17 +16,19 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar, IconClock, IconFire, IconFix} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 interface AssignedEntity {
-  email: string | null;
   id: string;
   name: string;
   type: string;
@@ -35,22 +36,24 @@ interface AssignedEntity {
 
 interface ClusterSummary {
   assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null; // unused
+  cluster_avg_similarity: number | null;
   cluster_id: number;
-  cluster_min_similarity: number | null; // unused
-  cluster_size: number | null; // unused
+  cluster_min_similarity: number | null;
+  cluster_size: number | null;
   description: string;
   fixability_score: number | null;
   group_ids: number[];
-  issue_titles: string[]; // unused
-  project_ids: number[]; // unused
-  tags: string[]; // unused
+  issue_titles: string[];
+  project_ids: number[];
+  tags: string[];
   title: string;
 }
 
 interface TopIssuesResponse {
   data: ClusterSummary[];
 }
+
+const EMPTY_CLUSTERS: ClusterSummary[] = [];
 
 function CompactIssuePreview({group}: {group: Group}) {
   const {subtitle} = getTitle(group);
@@ -100,6 +103,220 @@ function CompactIssuePreview({group}: {group: Group}) {
   );
 }
 
+interface ClusterStats {
+  firstSeen: string | null;
+  lastSeen: string | null;
+  totalEvents: number;
+}
+
+const BATCH_SIZE = 50;
+
+/** Fetches issue stats for clusters in batches to avoid API limits. */
+function useBatchClusterStats(clusters: ClusterSummary[]): {
+  isPending: boolean;
+  statsMap: Map<number, ClusterStats>;
+} {
+  const organization = useOrganization();
+
+  const {groupToClusterMap, allGroupIds} = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const cluster of clusters) {
+      for (const groupId of cluster.group_ids) {
+        map.set(groupId, cluster.cluster_id);
+      }
+    }
+    return {groupToClusterMap: map, allGroupIds: Array.from(map.keys())};
+  }, [clusters]);
+
+  const batchedQueryKeys = useMemo(() => {
+    const batches: ApiQueryKey[] = [];
+    for (let i = 0; i < allGroupIds.length; i += BATCH_SIZE) {
+      const batch = allGroupIds.slice(i, i + BATCH_SIZE);
+      batches.push([
+        `/organizations/${organization.slug}/issues/`,
+        {query: {group: batch, query: `issue.id:[${batch.join(',')}]`}},
+      ]);
+    }
+    return batches;
+  }, [allGroupIds, organization.slug]);
+
+  const queryResults = useApiQueries<Group[]>(batchedQueryKeys, {
+    staleTime: 60000,
+    enabled: allGroupIds.length > 0,
+  });
+
+  return useMemo(() => {
+    const isPending = queryResults.some(r => r.isPending);
+    if (isPending || allGroupIds.length === 0) {
+      return {statsMap: new Map(), isPending};
+    }
+
+    const statsMap = new Map<number, ClusterStats>(
+      clusters.map(c => [c.cluster_id, {totalEvents: 0, firstSeen: null, lastSeen: null}])
+    );
+
+    for (const group of queryResults.flatMap(r => r.data ?? [])) {
+      const clusterId = groupToClusterMap.get(Number(group.id));
+      if (clusterId === undefined) continue;
+      const stats = statsMap.get(clusterId);
+      if (!stats) continue;
+
+      stats.totalEvents += Number(group.count) || 0;
+      if (group.firstSeen && (!stats.firstSeen || group.firstSeen < stats.firstSeen)) {
+        stats.firstSeen = group.firstSeen;
+      }
+      if (group.lastSeen && (!stats.lastSeen || group.lastSeen > stats.lastSeen)) {
+        stats.lastSeen = group.lastSeen;
+      }
+    }
+
+    return {statsMap, isPending: false};
+  }, [queryResults, clusters, groupToClusterMap, allGroupIds.length]);
+}
+
+interface ScoreWeights {
+  events: number;
+  fixability: number;
+  freshness: number;
+  issues: number;
+  recency: number;
+}
+
+const DEFAULT_WEIGHTS: ScoreWeights = {
+  events: 1,
+  fixability: 5,
+  freshness: 1,
+  issues: 3,
+  recency: 2,
+};
+
+/** Min-max normalization to [0, 1]. Returns 0.5 if max === min. */
+function normalize(value: number, min: number, max: number) {
+  return max === min ? 0.5 : (value - min) / (max - min);
+}
+
+interface FilterOptions {
+  filterByAssignedToMe: boolean;
+  minFixabilityScore: number;
+  removedClusterIds: Set<number>;
+  selectedTeamIds: Set<string>;
+  userId: string;
+  userTeamIds: Set<string>;
+}
+
+function filterClusters(
+  clusters: ClusterSummary[],
+  options: FilterOptions
+): ClusterSummary[] {
+  const {
+    removedClusterIds,
+    minFixabilityScore,
+    filterByAssignedToMe,
+    selectedTeamIds,
+    userId,
+    userTeamIds,
+  } = options;
+
+  return clusters.filter(cluster => {
+    if (removedClusterIds.has(cluster.cluster_id)) return false;
+    if ((cluster.fixability_score ?? 0) * 100 < minFixabilityScore) return false;
+
+    if (filterByAssignedToMe) {
+      return cluster.assignedTo?.some(
+        e =>
+          (e.type === 'user' && e.id === userId) ||
+          (e.type === 'team' && userTeamIds.has(e.id))
+      );
+    }
+    if (selectedTeamIds.size > 0) {
+      return cluster.assignedTo?.some(
+        e => e.type === 'team' && selectedTeamIds.has(e.id)
+      );
+    }
+    return true;
+  });
+}
+
+const RECENCY_HALF_LIFE_HOURS = 24;
+const FRESHNESS_HALF_LIFE_HOURS = 168; // 1 week
+const MS_PER_HOUR = 1000 * 60 * 60;
+
+function sortClustersByScore(
+  clusters: ClusterSummary[],
+  statsMap: Map<number, ClusterStats>,
+  weights: ScoreWeights
+): ClusterSummary[] {
+  if (clusters.length === 0) {
+    return clusters;
+  }
+
+  const now = Date.now();
+
+  // Compute min/max ranges for normalization
+  let minFix = Infinity,
+    maxFix = -Infinity;
+  let minEvents = Infinity,
+    maxEvents = -Infinity;
+  let minIssues = Infinity,
+    maxIssues = -Infinity;
+
+  for (const cluster of clusters) {
+    const stats = statsMap.get(cluster.cluster_id);
+    const fixability = cluster.fixability_score ?? 0;
+    const events = stats?.totalEvents ?? 0;
+    const issues = cluster.group_ids.length;
+
+    minFix = Math.min(minFix, fixability);
+    maxFix = Math.max(maxFix, fixability);
+    minEvents = Math.min(minEvents, events);
+    maxEvents = Math.max(maxEvents, events);
+    minIssues = Math.min(minIssues, issues);
+    maxIssues = Math.max(maxIssues, issues);
+  }
+
+  const total =
+    weights.fixability +
+    weights.events +
+    weights.recency +
+    weights.freshness +
+    weights.issues;
+  const getWeight = (key: keyof ScoreWeights) => (total > 0 ? weights[key] / total : 0.2);
+
+  const scores = new Map<number, number>();
+  for (const cluster of clusters) {
+    const stats = statsMap.get(cluster.cluster_id);
+
+    // Recency: Exponential decay based on lastSeen
+    // 0 hours → 1.0, 24 hours → 0.5, 48 hours → 0.25, etc.
+    let recency = 0.5;
+    if (stats?.lastSeen) {
+      const ageHours = (now - new Date(stats.lastSeen).getTime()) / MS_PER_HOUR;
+      recency = Math.exp((-ageHours * Math.LN2) / RECENCY_HALF_LIFE_HOURS);
+    }
+
+    // Freshness: Exponential decay based on firstSeen (newer issues score higher)
+    // 0 hours → 1.0, 24 hours → 0.5, 48 hours → 0.25, etc.
+    let freshness = 0.5;
+    if (stats?.firstSeen) {
+      const ageHours = (now - new Date(stats.firstSeen).getTime()) / MS_PER_HOUR;
+      freshness = Math.exp((-ageHours * Math.LN2) / FRESHNESS_HALF_LIFE_HOURS);
+    }
+
+    const score =
+      getWeight('fixability') * normalize(cluster.fixability_score ?? 0, minFix, maxFix) +
+      getWeight('events') * normalize(stats?.totalEvents ?? 0, minEvents, maxEvents) +
+      getWeight('recency') * recency +
+      getWeight('freshness') * freshness +
+      getWeight('issues') * normalize(cluster.group_ids.length, minIssues, maxIssues);
+
+    scores.set(cluster.cluster_id, score);
+  }
+
+  return clusters.toSorted(
+    (a, b) => (scores.get(b.cluster_id) ?? 0) - (scores.get(a.cluster_id) ?? 0)
+  );
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -139,9 +356,11 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 
 function ClusterCard({
   cluster,
+  clusterStats,
   onRemove,
 }: {
   cluster: ClusterSummary;
+  clusterStats: ClusterStats;
   onRemove: (clusterId: number) => void;
 }) {
   const organization = useOrganization();
@@ -150,7 +369,7 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md" paddingBottom="md">
+      <Flex justify="between" align="start" gap="md">
         <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
           <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
             {cluster.title}
@@ -174,6 +393,51 @@ function ClusterCard({
           </Text>
         </IssueCountBadge>
       </Flex>
+
+      <ClusterStatsBar>
+        {cluster.fixability_score && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('confidence')}
+            </Text>
+          </StatItem>
+        )}
+        <StatItem>
+          <IconFire size="xs" color="gray300" />
+          <Text size="xs">
+            <Text size="xs" bold as="span">
+              {clusterStats.totalEvents.toLocaleString()}
+            </Text>{' '}
+            {tn('event', 'events', clusterStats.totalEvents)}
+          </Text>
+        </StatItem>
+        {clusterStats.lastSeen && (
+          <StatItem>
+            <IconClock size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('Last Seen')}
+              date={clusterStats.lastSeen}
+              suffix={t('ago')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+        {clusterStats.firstSeen && (
+          <StatItem>
+            <IconCalendar size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('First Seen')}
+              date={clusterStats.firstSeen}
+              suffix={t('old')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+      </ClusterStatsBar>
 
       <Flex direction="column" flex="1" paddingTop="md">
         <ClusterIssues groupIds={cluster.group_ids} />
@@ -209,33 +473,31 @@ function DynamicGrouping() {
   const user = useUser();
   const {teams: userTeams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [selectedTeamIds, setSelectedTeamIds] = useState(new Set<string>());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
+  const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
+  const [scoreWeights, setScoreWeights] = useState(DEFAULT_WEIGHTS);
 
-  // Fetch cluster data from API
-  const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
-    [`/organizations/${organization.slug}/top-issues/`],
-    {
+  const {data: topIssuesResponse, isPending: isClustersPending} =
+    useApiQuery<TopIssuesResponse>([`/organizations/${organization.slug}/top-issues/`], {
       staleTime: 60000,
-    }
-  );
+    });
 
-  const clusterData = topIssuesResponse?.data ?? [];
+  const clusterData = topIssuesResponse?.data ?? EMPTY_CLUSTERS;
+  const {statsMap, isPending: isStatsPending} = useBatchClusterStats(clusterData);
+  const isPending = isClustersPending || isStatsPending;
 
-  // Extract all unique teams from the cluster data
-  const teamsInData = useMemo(() => {
-    const data = topIssuesResponse?.data ?? [];
-    const teamMap = new Map<string, {id: string; name: string}>();
-    for (const cluster of data) {
-      for (const entity of cluster.assignedTo ?? []) {
-        if (entity.type === 'team' && !teamMap.has(entity.id)) {
-          teamMap.set(entity.id, {id: entity.id, name: entity.name});
-        }
+  const teamMap = new Map<string, {id: string; name: string}>();
+  for (const cluster of clusterData) {
+    for (const entity of cluster.assignedTo ?? []) {
+      if (entity.type === 'team' && !teamMap.has(entity.id)) {
+        teamMap.set(entity.id, {id: entity.id, name: entity.name});
       }
     }
-    return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [topIssuesResponse?.data]);
+  }
+  const teamsInData = Array.from(teamMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   const isTeamFilterActive = selectedTeamIds.size > 0;
 
@@ -260,34 +522,35 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  const filteredAndSortedClusters = clusterData
-    .filter(cluster => {
-      if (removedClusterIds.has(cluster.cluster_id)) return false;
+  const userTeamIds = useMemo(() => new Set(userTeams.map(team => team.id)), [userTeams]);
 
-      const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-      if (fixabilityScore < minFixabilityScore) return false;
+  const filteredClusters = useMemo(
+    () =>
+      filterClusters(clusterData, {
+        removedClusterIds,
+        minFixabilityScore,
+        filterByAssignedToMe,
+        selectedTeamIds,
+        userId: user.id,
+        userTeamIds,
+      }),
+    [
+      clusterData,
+      removedClusterIds,
+      minFixabilityScore,
+      filterByAssignedToMe,
+      selectedTeamIds,
+      user.id,
+      userTeamIds,
+    ]
+  );
 
-      if (filterByAssignedToMe) {
-        if (!cluster.assignedTo?.length) return false;
-        return cluster.assignedTo.some(
-          entity =>
-            (entity.type === 'user' && entity.id === user.id) ||
-            (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-        );
-      }
+  const sortedClusters = useMemo(
+    () => sortClustersByScore(filteredClusters, statsMap, scoreWeights),
+    [filteredClusters, statsMap, scoreWeights]
+  );
 
-      if (isTeamFilterActive) {
-        if (!cluster.assignedTo?.length) return false;
-        return cluster.assignedTo.some(
-          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-        );
-      }
-
-      return true;
-    })
-    .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
-
-  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
+  const totalIssues = sortedClusters.reduce((sum, c) => sum + c.group_ids.length, 0);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
@@ -297,18 +560,6 @@ function DynamicGrouping() {
   return (
     <PageWrapper>
       <HeaderSection>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: t('Issues'),
-              to: `/organizations/${organization.slug}/issues/`,
-            },
-            {
-              label: t('Top Issues'),
-            },
-          ]}
-        />
-
         <Heading as="h1" style={{marginBottom: space(2)}}>
           {t('Top Issues')}
         </Heading>
@@ -320,7 +571,7 @@ function DynamicGrouping() {
                 'Viewing %s issue in %s cluster',
                 'Viewing %s issues across %s clusters',
                 totalIssues,
-                filteredAndSortedClusters.length
+                sortedClusters.length
               )}
             </Text>
 
@@ -339,6 +590,87 @@ function DynamicGrouping() {
                 </Disclosure.Title>
                 <Disclosure.Content>
                   <Flex direction="column" gap="md" paddingTop="md">
+                    <Flex direction="column" gap="sm">
+                      <Text size="sm" bold>
+                        {t('Sorting Weights')}
+                      </Text>
+                      <Text size="xs" variant="muted">
+                        {t(
+                          'Adjust how much each signal contributes to the priority score. Weights are normalized automatically.'
+                        )}
+                      </Text>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Fixability')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.fixability}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, fixability: value ?? 0}))
+                          }
+                          aria-label={t('Fixability weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Event Count')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.events}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, events: value ?? 0}))
+                          }
+                          aria-label={t('Event count weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Recency')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.recency}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, recency: value ?? 0}))
+                          }
+                          aria-label={t('Recency weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Freshness')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.freshness}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, freshness: value ?? 0}))
+                          }
+                          aria-label={t('Freshness weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+
+                      <WeightInputRow>
+                        <WeightLabel>{t('Issue Count')}</WeightLabel>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={scoreWeights.issues}
+                          onChange={value =>
+                            setScoreWeights(prev => ({...prev, issues: value ?? 0}))
+                          }
+                          aria-label={t('Issue count weight')}
+                          size="sm"
+                        />
+                      </WeightInputRow>
+                    </Flex>
+
                     <Flex gap="sm" align="center">
                       <Checkbox
                         checked={filterByAssignedToMe}
@@ -400,7 +732,7 @@ function DynamicGrouping() {
       <CardsSection>
         {isPending ? (
           <LoadingIndicator />
-        ) : filteredAndSortedClusters.length === 0 ? (
+        ) : sortedClusters.length === 0 ? (
           <Container padding="lg" border="primary" radius="md" background="primary">
             <Text variant="muted" align="center" as="div">
               {t('No clusters match the current filters')}
@@ -408,10 +740,17 @@ function DynamicGrouping() {
           </Container>
         ) : (
           <CardsGrid>
-            {filteredAndSortedClusters.map(cluster => (
+            {sortedClusters.map(cluster => (
               <ClusterCard
                 key={cluster.cluster_id}
                 cluster={cluster}
+                clusterStats={
+                  statsMap.get(cluster.cluster_id) ?? {
+                    totalEvents: 0,
+                    firstSeen: null,
+                    lastSeen: null,
+                  }
+                }
                 onRemove={handleRemoveCluster}
               />
             ))}
@@ -448,7 +787,6 @@ const CardsGrid = styled('div')`
   }
 `;
 
-// Card with hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -467,7 +805,6 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Issue count badge with custom background color
 const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
@@ -485,7 +822,24 @@ const IssueCountNumber = styled('div')`
   line-height: 1;
 `;
 
-// Issue preview link with hover effect
+const ClusterStatsBar = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  padding: ${space(1.5)} 0;
+  margin-top: ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -502,7 +856,7 @@ const IssuePreviewLink = styled(Link)`
   }
 `;
 
-// Issue title with ellipsis and nested em styling for EventOrGroupTitle
+// EventOrGroupTitle renders emphasized text in <em> tags
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -518,14 +872,12 @@ const IssueTitle = styled('div')`
   }
 `;
 
-// EventMessage override for compact display
 const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
-// Meta separator line
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
@@ -557,6 +909,18 @@ const DescriptionText = styled('p')`
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+const WeightInputRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const WeightLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  min-width: 90px;
 `;
 
 export default DynamicGrouping;
