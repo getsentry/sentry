@@ -286,12 +286,12 @@ const StyledButton = styled(Button)`
   padding: 0 ${space(0.5)};
   margin: ${p =>
     p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
+      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
 `;
 
-const MenuTitleWrapper = styled('span')`
+export const MenuTitleWrapper = styled('span')`
   display: inline-block;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
