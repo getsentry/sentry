@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -45,7 +46,7 @@ NO_CHANNEL_ID_MESSAGE = "Could not identify the Slack channel ID. Please try aga
 
 def get_orgs_with_teams_linked_to_channel(
     organization_ids: list[int], slack_request: SlackDMRequest
-) -> list[int]:
+) -> set[int]:
     """Get the organizations with teams linked to a Slack channel"""
     return set(
         ExternalActor.objects.filter(
@@ -58,7 +59,7 @@ def get_orgs_with_teams_linked_to_channel(
     )
 
 
-def get_team_admin_member_ids(org_members: list[OrganizationMember]) -> set[int]:
+def get_team_admin_member_ids(org_members: Iterable[OrganizationMember]) -> set[int]:
     return set(
         OrganizationMemberTeam.objects.filter(
             organizationmember_id__in=[om.id for om in org_members], role="admin"
