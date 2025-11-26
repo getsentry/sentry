@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, type ReactNode} from 'react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {type UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -6,7 +6,8 @@ import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-interface Props extends Omit<ButtonProps, 'icon'> {
+interface Props extends Omit<ButtonProps, 'children'> {
+  children?: ReactNode;
   feedbackOptions?: UseFeedbackOptions;
 }
 
@@ -49,11 +50,7 @@ interface Props extends Omit<ButtonProps, 'icon'> {
  *
  * @returns A Button that opens the feedback widget on click, or null if feedback is not enabled
  */
-export default function FeedbackButton({
-  feedbackOptions,
-  children,
-  ...buttonProps
-}: Props) {
+export default function FeedbackButton({feedbackOptions, ...buttonProps}: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const openForm = useFeedbackForm();
 
@@ -62,18 +59,20 @@ export default function FeedbackButton({
     return null;
   }
 
+  const children = 'children' in buttonProps ? buttonProps.children : t('Give Feedback');
+
   return (
     <Button
       ref={buttonRef}
       size="sm"
-      {...buttonProps}
       icon={<IconMegaphone />}
+      {...buttonProps}
       onClick={e => {
         openForm?.(feedbackOptions);
         buttonProps.onClick?.(e);
       }}
     >
-      {children || t('Give Feedback')}
+      {children}
     </Button>
   );
 }

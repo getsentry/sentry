@@ -1,15 +1,15 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -17,6 +17,15 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
+import TimeSince from 'sentry/components/timeSince';
+import {
+  IconCalendar,
+  IconClock,
+  IconClose,
+  IconFire,
+  IconFix,
+  IconUpload,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -100,6 +109,73 @@ function CompactIssuePreview({group}: {group: Group}) {
   );
 }
 
+interface ClusterStats {
+  firstSeen: string | null;
+  isPending: boolean;
+  lastSeen: string | null;
+  totalEvents: number;
+}
+
+function useClusterStats(groupIds: number[]): ClusterStats {
+  const organization = useOrganization();
+
+  const {data: groups, isPending} = useApiQuery<Group[]>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          group: groupIds,
+          query: `issue.id:[${groupIds.join(',')}]`,
+        },
+      },
+    ],
+    {
+      staleTime: 60000,
+      enabled: groupIds.length > 0,
+    }
+  );
+
+  return useMemo(() => {
+    if (isPending || !groups || groups.length === 0) {
+      return {
+        totalEvents: 0,
+        firstSeen: null,
+        lastSeen: null,
+        isPending,
+      };
+    }
+
+    let totalEvents = 0;
+    let earliestFirstSeen: Date | null = null;
+    let latestLastSeen: Date | null = null;
+
+    for (const group of groups) {
+      totalEvents += parseInt(group.count, 10) || 0;
+
+      if (group.firstSeen) {
+        const firstSeenDate = new Date(group.firstSeen);
+        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
+          earliestFirstSeen = firstSeenDate;
+        }
+      }
+
+      if (group.lastSeen) {
+        const lastSeenDate = new Date(group.lastSeen);
+        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
+          latestLastSeen = lastSeenDate;
+        }
+      }
+    }
+
+    return {
+      totalEvents,
+      firstSeen: earliestFirstSeen?.toISOString() ?? null,
+      lastSeen: latestLastSeen?.toISOString() ?? null,
+      isPending,
+    };
+  }, [groups, isPending]);
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -147,10 +223,11 @@ function ClusterCard({
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
   const [showDescription, setShowDescription] = useState(false);
+  const clusterStats = useClusterStats(cluster.group_ids);
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md" paddingBottom="md">
+      <Flex justify="between" align="start" gap="md">
         <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
           <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
             {cluster.title}
@@ -174,6 +251,57 @@ function ClusterCard({
           </Text>
         </IssueCountBadge>
       </Flex>
+
+      <ClusterStatsBar>
+        {cluster.fixability_score && (
+          <StatItem>
+            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>{' '}
+              {t('confidence')}
+            </Text>
+          </StatItem>
+        )}
+        <StatItem>
+          <IconFire size="xs" color="gray300" />
+          {clusterStats.isPending ? (
+            <Text size="xs" variant="muted">
+              –
+            </Text>
+          ) : (
+            <Text size="xs">
+              <Text size="xs" bold as="span">
+                {clusterStats.totalEvents.toLocaleString()}
+              </Text>{' '}
+              {tn('event', 'events', clusterStats.totalEvents)}
+            </Text>
+          )}
+        </StatItem>
+        {!clusterStats.isPending && clusterStats.lastSeen && (
+          <StatItem>
+            <IconClock size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('Last Seen')}
+              date={clusterStats.lastSeen}
+              suffix={t('ago')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+        {!clusterStats.isPending && clusterStats.firstSeen && (
+          <StatItem>
+            <IconCalendar size="xs" color="gray300" />
+            <TimeSince
+              tooltipPrefix={t('First Seen')}
+              date={clusterStats.firstSeen}
+              suffix={t('old')}
+              unitStyle="short"
+            />
+          </StatItem>
+        )}
+      </ClusterStatsBar>
 
       <Flex direction="column" flex="1" paddingTop="md">
         <ClusterIssues groupIds={cluster.group_ids} />
@@ -211,17 +339,48 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
-  const [removedClusterIds, setRemovedClusterIds] = useState<Set<number>>(new Set());
+  const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
+  const [showJsonInput, setShowJsonInput] = useState(false);
+  const [jsonInputValue, setJsonInputValue] = useState('');
+  const [customClusterData, setCustomClusterData] = useState<ClusterSummary[] | null>(
+    null
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
     [`/organizations/${organization.slug}/top-issues/`],
     {
       staleTime: 60000,
+      enabled: customClusterData === null, // Only fetch if no custom data
     }
   );
 
-  const clusterData = topIssuesResponse?.data ?? [];
+  const handleParseJson = useCallback(() => {
+    try {
+      const parsed = JSON.parse(jsonInputValue);
+      // Support both {data: [...]} format and direct array format
+      const clusters = Array.isArray(parsed) ? parsed : parsed?.data;
+      if (!Array.isArray(clusters)) {
+        setJsonError(t('JSON must be an array or have a "data" property with an array'));
+        return;
+      }
+      setCustomClusterData(clusters as ClusterSummary[]);
+      setJsonError(null);
+      setShowJsonInput(false);
+    } catch (e) {
+      setJsonError(t('Invalid JSON: %s', e instanceof Error ? e.message : String(e)));
+    }
+  }, [jsonInputValue]);
+
+  const handleClearCustomData = useCallback(() => {
+    setCustomClusterData(null);
+    setJsonInputValue('');
+    setJsonError(null);
+  }, []);
+
+  const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
+  const isUsingCustomData = customClusterData !== null;
 
   // Extract all unique teams from the cluster data
   const teamsInData = useMemo(() => {
@@ -297,21 +456,72 @@ function DynamicGrouping() {
   return (
     <PageWrapper>
       <HeaderSection>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: t('Issues'),
-              to: `/organizations/${organization.slug}/issues/`,
-            },
-            {
-              label: t('Top Issues'),
-            },
-          ]}
-        />
+        <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
+          <Heading as="h1">{t('Top Issues')}</Heading>
+          {isUsingCustomData && (
+            <CustomDataBadge>
+              <Text size="xs" bold>
+                {t('Using Custom Data')}
+              </Text>
+              <Button
+                size="zero"
+                borderless
+                icon={<IconClose size="xs" />}
+                aria-label={t('Clear custom data')}
+                onClick={handleClearCustomData}
+              />
+            </CustomDataBadge>
+          )}
+        </Flex>
 
-        <Heading as="h1" style={{marginBottom: space(2)}}>
-          {t('Top Issues')}
-        </Heading>
+        <Flex gap="sm" style={{marginBottom: space(2)}}>
+          <Button
+            size="sm"
+            icon={<IconUpload size="xs" />}
+            onClick={() => setShowJsonInput(!showJsonInput)}
+          >
+            {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+          </Button>
+        </Flex>
+
+        {showJsonInput && (
+          <JsonInputContainer>
+            <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+              {t(
+                'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+              )}
+            </Text>
+            <TextArea
+              value={jsonInputValue}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                setJsonInputValue(e.target.value);
+                setJsonError(null);
+              }}
+              placeholder={t('Paste JSON here...')}
+              rows={8}
+              monospace
+            />
+            {jsonError && (
+              <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                {jsonError}
+              </Text>
+            )}
+            <Flex gap="sm" style={{marginTop: space(1)}}>
+              <Button size="sm" priority="primary" onClick={handleParseJson}>
+                {t('Parse and Load')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowJsonInput(false);
+                  setJsonError(null);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+            </Flex>
+          </JsonInputContainer>
+        )}
 
         {isPending ? null : (
           <Fragment>
@@ -467,7 +677,7 @@ const CardContainer = styled('div')`
   }
 `;
 
-// Issue count badge with custom background color
+// Issue count badge - compact version
 const IssueCountBadge = styled('div')`
   display: flex;
   flex-direction: column;
@@ -483,6 +693,25 @@ const IssueCountNumber = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.purple400};
   line-height: 1;
+`;
+
+// Horizontal stats bar below header
+const ClusterStatsBar = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(2)};
+  padding: ${space(1.5)} 0;
+  margin-top: ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 // Issue preview link with hover effect
@@ -557,6 +786,25 @@ const DescriptionText = styled('p')`
 const FilterLabel = styled('span')<{disabled?: boolean}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.subText)};
+`;
+
+const JsonInputContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  padding: ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const CustomDataBadge = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.yellow100};
+  border: 1px solid ${p => p.theme.yellow300};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.yellow400};
 `;
 
 export default DynamicGrouping;

@@ -327,8 +327,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
+  // When triage signals flag is on, toggle defaults to checked unless explicitly 'off'
+  // - New orgs (undefined): shows checked, persists on form interaction
+  // - Existing orgs with 'off': shows unchecked, preserves their choice
   const automationTuning = isTriageSignalsFeatureOn
-    ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+    ? project.autofixAutomationTuning !== 'off'
     : (project.autofixAutomationTuning ?? 'off');
 
   return (
@@ -346,6 +349,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           // Same DB field, different UI: toggle (boolean) vs dropdown (string)
+          // When triage signals flag is on, default to true (ON)
           autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'

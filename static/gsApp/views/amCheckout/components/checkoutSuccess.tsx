@@ -7,14 +7,12 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconMegaphone} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -574,8 +572,6 @@ function CheckoutSuccess({
           date: effectiveDate,
         });
 
-  const openFeedbackForm = useFeedbackForm();
-
   return (
     <Flex
       padding="2xl"
@@ -607,25 +603,18 @@ function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            {openFeedbackForm ? (
-              <Button
-                icon={<IconMegaphone />}
-                onClick={() => {
-                  openFeedbackForm({
-                    formTitle: t('Give feedback'),
-                    messagePlaceholder: t(
-                      'How can we make the checkout experience better for you?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'checkout_success',
-                      ['feedback.owner']: 'billing',
-                    },
-                  });
-                }}
-              >
-                {t('Give feedback')}
-              </Button>
-            ) : null}
+            <FeedbackButton
+              feedbackOptions={{
+                formTitle: t('Give feedback'),
+                messagePlaceholder: t(
+                  'How can we make the checkout experience better for you?'
+                ),
+                tags: {
+                  ['feedback.source']: 'checkout_success',
+                  ['feedback.owner']: 'billing',
+                },
+              }}
+            />
           </Flex>
         </Flex>
       </Flex>
