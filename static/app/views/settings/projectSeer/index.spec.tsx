@@ -1141,6 +1141,7 @@ describe('ProjectSeer', () => {
                 handoff_point: 'root_cause',
                 target: 'cursor_background_agent',
                 integration_id: 123,
+                auto_create_pr: false,
               },
             }),
           })
