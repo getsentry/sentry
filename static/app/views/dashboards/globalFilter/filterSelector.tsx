@@ -15,6 +15,7 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -124,7 +125,10 @@ function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {label: value, value});
+      map.set(value, {
+        label: middleEllipsis(value, 70, /[\s-_:]/),
+        value,
+      });
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
@@ -180,7 +184,7 @@ function FilterSelector({
   };
 
   const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
-    <Flex gap="md">
+    <Flex gap="lg">
       {activeFilterValues.length > 0 && (
         <StyledButton
           aria-label={t('Clear Selections')}
@@ -228,7 +232,9 @@ function FilterSelector({
         onClose={() => {
           setStagedFilterValues([]);
         }}
-        menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+        menuTitle={
+          <MenuTitleWrapper>{t('%s Filter', getDatasetLabel(dataset))}</MenuTitleWrapper>
+        }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
         triggerProps={{
           children: renderFilterSelectorTrigger(),
@@ -252,7 +258,6 @@ function FilterSelector({
         setStagedFilterValues(value);
       }}
       sizeLimit={30}
-      maxMenuWidth={500}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
@@ -261,7 +266,9 @@ function FilterSelector({
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
-      menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+      menuTitle={
+        <MenuTitleWrapper>{t('%s Filter', getDatasetLabel(dataset))}</MenuTitleWrapper>
+      }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
       triggerProps={{
         children: renderFilterSelectorTrigger(),
@@ -279,6 +286,12 @@ const StyledButton = styled(Button)`
   padding: 0 ${space(0.5)};
   margin: ${p =>
     p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
+      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+`;
+
+export const MenuTitleWrapper = styled('span')`
+  display: inline-block;
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
