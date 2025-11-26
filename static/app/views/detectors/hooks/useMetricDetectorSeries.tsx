@@ -36,6 +36,14 @@ interface UseMetricDetectorSeriesResult {
   series: Series[];
 }
 
+function applySharedSeriesOptions(series: Series[]): Series[] {
+  return series.map(s => ({
+    ...s,
+    // Disable mouse hover emphasis effect on series points
+    emphasis: {disabled: true},
+  }));
+}
+
 /**
  * Make the request to the backend provided series query and transform into a series
  */
@@ -106,8 +114,8 @@ export function useMetricDetectorSeries({
         : [];
 
     return {
-      series: transformedSeries,
-      comparisonSeries: transformedComparisonSeries,
+      series: applySharedSeriesOptions(transformedSeries),
+      comparisonSeries: applySharedSeriesOptions(transformedComparisonSeries),
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
