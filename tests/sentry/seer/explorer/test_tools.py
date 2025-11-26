@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
@@ -1883,6 +1884,9 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(self.logs)
 
+    def get_id_str(item: TraceItem) -> str:
+        return item.item_id[::-1].hex()
+
     def test_get_log_attributes_for_trace_basic(self) -> None:
         result = get_log_attributes_for_trace(
             org_id=self.organization.id,
@@ -1895,7 +1899,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         auth_log_expected = self.logs[0]
         auth_log = None
         for item in result["data"]:
-            if item["id"] == auth_log_expected.item_id.hex():
+            if item["id"] == self.get_id_str(auth_log_expected):
                 auth_log = item
 
         assert auth_log is not None
@@ -1925,8 +1929,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert result is not None
         assert len(result["data"]) == 2
         ids = [item["id"] for item in result["data"]]
-        assert self.logs[2].item_id.hex() in ids
-        assert self.logs[3].item_id.hex() in ids
+        assert self.get_id_str(self.logs[2]) in ids
+        assert self.get_id_str(self.logs[3]) in ids
 
         result = get_log_attributes_for_trace(
             org_id=self.organization.id,
@@ -1937,7 +1941,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         )
         assert result is not None
         assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.logs[3].item_id.hex()
+        assert result["data"][0]["id"] == self.get_id_str(self.logs[3])
 
     def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_log_attributes_for_trace(
@@ -1949,9 +1953,9 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert result is not None
         assert len(result["data"]) == 1
         assert result["data"][0]["id"] in [
-            self.logs[0].item_id.hex(),
-            self.logs[2].item_id.hex(),
-            self.logs[3].item_id.hex(),
+            self.get_id_str(self.logs[0]),
+            self.get_id_str(self.logs[2]),
+            self.get_id_str(self.logs[3]),
         ]
 
     def test_get_log_attributes_for_trace_limit_with_filter(self) -> None:
@@ -1966,5 +1970,5 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert result is not None
         assert len(result["data"]) == 2
         ids = [item["id"] for item in result["data"]]
-        assert self.logs[2].item_id.hex() in ids
-        assert self.logs[3].item_id.hex() in ids
+        assert self.get_id_str(self.logs[2]) in ids
+        assert self.get_id_str(self.logs[3]) in ids
