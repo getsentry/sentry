@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
-import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {NAV_BORDER_BOTTOM, NAV_HEIGHT} from 'sentry/views/nav/secondary/secondary';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
@@ -57,12 +58,16 @@ export default function ReplayDetails() {
 
   const content = (
     <Fragment>
-      <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        <ReplayDetailsHeaderActions readerResult={readerResult} />
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Header>
+      <Flex direction="column">
+        <Header>
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          <ReplayDetailsHeaderActions readerResult={readerResult} />
+        </Header>
+        <StyledFlex justify="between" align="center">
+          <ReplayDetailsUserBadge readerResult={readerResult} />
+          <ReplayDetailsMetadata readerResult={readerResult} />
+        </StyledFlex>
+      </Flex>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
@@ -86,11 +91,20 @@ export default function ReplayDetails() {
   );
 }
 
-const Header = styled(Layout.Header)`
+const Header = styled('div')`
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
+  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: ${space(1)};
-  padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    gap: ${space(1)} ${space(3)};
-    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
-  }
+  flex-flow: row wrap;
+  height: ${NAV_HEIGHT};
+  z-index: 1;
+`;
+
+const StyledFlex = styled(Flex)`
+  padding: ${p => p.theme.space.lg};
+  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
 `;
