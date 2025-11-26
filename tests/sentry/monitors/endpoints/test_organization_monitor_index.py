@@ -589,6 +589,10 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert rule is not None
         assert rule.environment_id == self.environment.id
 
+        # Verify the detector was created
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
         #

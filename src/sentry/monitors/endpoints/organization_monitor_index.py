@@ -46,7 +46,6 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import ensure_cron_detector
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
@@ -285,7 +284,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         monitor = validator.save()
-        ensure_cron_detector(monitor)
         return self.respond(serialize(monitor, request.user), status=201)
 
     @extend_schema(
