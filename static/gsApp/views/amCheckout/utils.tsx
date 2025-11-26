@@ -900,9 +900,16 @@ export function hasBillingInfo(
   isComplete: boolean
 ) {
   if (isComplete) {
-    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+    return (
+      subscription.isSelfServePartner ||
+      (!!subscription.paymentSource && hasSomeBillingDetails(billingDetails))
+    );
   }
-  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
+  return (
+    subscription.isSelfServePartner ||
+    !!subscription.paymentSource ||
+    hasSomeBillingDetails(billingDetails)
+  );
 }
 
 /**
