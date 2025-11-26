@@ -197,7 +197,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
-  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
+  const isTriageSignalsFeatureOn = organization.features.includes(
+    'triage-signals-v0-org'
+  );
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const cursorIntegrations =

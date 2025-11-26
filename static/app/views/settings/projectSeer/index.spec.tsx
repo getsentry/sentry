@@ -544,15 +544,17 @@ describe('ProjectSeer', () => {
     }
   });
 
-  it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
-    const projectWithFeatureFlag = ProjectFixture({
-      features: ['triage-signals-v0'],
+  it('hides Scan Issues toggle when triage-signals-v0-org feature flag is enabled', async () => {
+    const orgWithFeatureFlag = OrganizationFixture({
+      features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+    });
+    const projectWithAutomation = ProjectFixture({
       autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
     });
 
     render(<ProjectSeer />, {
-      organization,
-      outletContext: {project: projectWithFeatureFlag},
+      organization: orgWithFeatureFlag,
+      outletContext: {project: projectWithAutomation},
     });
 
     // Wait for the page to load
@@ -566,7 +568,7 @@ describe('ProjectSeer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Scan Issues toggle when triage-signals-v0 feature flag is disabled', async () => {
+  it('shows Scan Issues toggle when triage-signals-v0-org feature flag is disabled', async () => {
     render(<ProjectSeer />, {
       organization,
       outletContext: {project},
@@ -579,16 +581,18 @@ describe('ProjectSeer', () => {
     expect(toggle).toBeInTheDocument();
   });
 
-  describe('Auto-Trigger Fixes with triage-signals-v0', () => {
+  describe('Auto-Trigger Fixes with triage-signals-v0-org', () => {
     it('shows as toggle when flag enabled, dropdown when disabled', async () => {
+      const orgWithFlag = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
       const projectWithFlag = ProjectFixture({
-        features: ['triage-signals-v0'],
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium', // Already enabled, so no auto-enable PUT
       });
 
       const {unmount} = render(<ProjectSeer />, {
-        organization,
+        organization: orgWithFlag,
         outletContext: {project: projectWithFlag},
       });
 
@@ -621,14 +625,16 @@ describe('ProjectSeer', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('toggle is always checked when triage-signals-v0 flag is enabled', async () => {
+    it('toggle is always checked when triage-signals-v0-org flag is enabled', async () => {
       // When flag is on, the toggle is always checked regardless of stored value
       // because we default to ON for triage signals users
+      const orgWithFlag = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithFlag,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'medium',
           }),
@@ -641,17 +647,19 @@ describe('ProjectSeer', () => {
     });
 
     it('saves "medium" when toggled ON, "off" when toggled OFF', async () => {
+      const orgWithFlag = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
       const projectPutRequest = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/`,
+        url: `/projects/${orgWithFlag.slug}/${project.slug}/`,
         method: 'PUT',
         body: {},
       });
 
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithFlag,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'medium', // Start with enabled so no auto-enable
           }),
@@ -683,11 +691,13 @@ describe('ProjectSeer', () => {
     });
 
     it('respects existing off setting for orgs with flag enabled', async () => {
+      const orgWithFlag = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithFlag,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             seerScannerAutomation: true,
             autofixAutomationTuning: 'off', // Existing org with it disabled
           }),
@@ -701,11 +711,13 @@ describe('ProjectSeer', () => {
     });
 
     it('defaults to ON for new orgs (undefined value)', async () => {
+      const orgWithFlag = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithFlag,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             seerScannerAutomation: true,
             autofixAutomationTuning: undefined, // New org
           }),
