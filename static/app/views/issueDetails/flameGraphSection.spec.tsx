@@ -116,7 +116,7 @@ describe('FlameGraphSection', () => {
 
     expect(
       screen.getByText(
-        'A profile was attached to this event, but could not be loaded. This could be caused by the profile being dropped due to sampling.'
+        'We couldn’t load the profile attached to this event. It may have been sampled out.'
       )
     ).toBeInTheDocument();
   });
