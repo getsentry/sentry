@@ -255,7 +255,11 @@ class SentryAppActionValidatorHandler:
             # XXX: it's only ok to not pass settings if there is no sentry app schema
             # this means the app doesn't expect any settings
             components = app_service.find_app_components(app_id=installation.sentry_app.id)
-            if any(component.app_schema for component in components):
+            if any(
+                component.app_schema
+                for component in components
+                if component.type == "alert-rule-action"
+            ):
                 raise ValidationError("'settings' is a required property")
 
         else:
