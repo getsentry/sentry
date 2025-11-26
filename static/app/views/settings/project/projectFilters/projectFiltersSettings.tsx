@@ -608,6 +608,41 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   />
                 </NestedForm>
               </PanelItem>
+              <PanelItem noPadding>
+                <NestedForm
+                  apiMethod="PUT"
+                  apiEndpoint={projectEndpoint}
+                  initialData={{
+                    'filters:common-errors':
+                      project.options?.['filters:common-errors'],
+                  }}
+                  saveOnBlur
+                  onFieldChange={(name, value) => {
+                    trackAnalytics('settings.inbound_filter_updated', {
+                      organization,
+                      project_id: parseInt(project.id, 10),
+                      filter: name,
+                      new_state: value ? 'enabled' : 'disabled',
+                    });
+                  }}
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
+                >
+                  <FieldFromConfig
+                    getData={getOptionsData}
+                    field={{
+                      type: 'boolean',
+                      name: 'filters:common-errors',
+                      label: t('Filter out noisy errors'),
+                      help: t(
+                        'Filters out errors that are typically not actionable, such as network errors, aborted requests, ResizeObserver loop errors, and other browser-specific quirks.'
+                      ),
+                      disabled: !hasAccess,
+                    }}
+                  />
+                </NestedForm>
+              </PanelItem>
             </PanelBody>
           </Panel>
 
