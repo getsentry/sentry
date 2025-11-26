@@ -76,7 +76,7 @@ function ToolbarGroupByItem({
   onColumnChange,
   onColumnDelete,
 }: ToolbarGroupByItemProps) {
-  const [search, setSearch] = useState<string | undefined>(undefined);
+  const [search, setSearch] = useState<string>('');
   const debouncedSearch = useDebouncedValue(search, 200);
 
   return (
@@ -92,7 +92,7 @@ function ToolbarGroupByItem({
         onColumnDelete={onColumnDelete}
         groupBys={groupBys}
         onSearch={setSearch}
-        onClose={() => setSearch(undefined)}
+        onClose={() => setSearch('')}
       />
     </TraceItemAttributeProvider>
   );
