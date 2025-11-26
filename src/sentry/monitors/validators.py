@@ -41,6 +41,7 @@ from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.monitors.utils import (
     create_issue_alert_rule,
+    ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
     signal_monitor_created,
@@ -373,16 +374,22 @@ class MonitorValidator(CamelSnakeSerializer):
             config=validated_data["config"],
         )
 
-        # Skip quota operations if requested by context (e.g., detector flow handles this)
-        if not self.context.get("skip_quota", False):
+        # When called from the new detector flow, skip detector and quota operations
+        # since they're handled at a higher level by the detector validator
+        from_detector_flow = self.context.get("from_detector_flow", False)
+
+        if not from_detector_flow:
+            detector = ensure_cron_detector(monitor)
+            assert detector
+
             # Attempt to assign a seat for this monitor
             seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
             if seat_outcome != Outcome.ACCEPTED:
+                detector.update(enabled=False)
                 monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
         signal_monitor_created(project, request.user, False, monitor, request)
-
         validated_issue_alert_rule = validated_data.get("alert_rule")
         if validated_issue_alert_rule:
             issue_alert_rule_id = create_issue_alert_rule(
@@ -643,12 +650,9 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         if self.instance:
             monitor_instance = self.instance
 
-        # Skip quota operations - the detector validator handles seat assignment
-        context = {**self.context, "skip_quota": True}
-
         monitor_validator = MonitorValidator(
             data=monitor_data,
-            context=context,
+            context={**self.context, "from_detector_flow": True},
             instance=monitor_instance,
             partial=self.partial,
         )
@@ -686,6 +690,28 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
             return monitor_validator.update(instance, monitor_validator.validated_data)
 
 
+class MonitorDataSourceListField(serializers.ListField):
+    """
+    Custom ListField that properly binds the Monitor instance to child validators.
+
+    When updating a detector, we need to ensure the MonitorDataSourceValidator
+    knows about the existing Monitor so slug validation works correctly.
+    """
+
+    def to_internal_value(self, data):
+        # If we're updating (parent has instance), bind the Monitor instance to child validator
+        if hasattr(self.parent, "instance") and self.parent.instance:
+            detector = self.parent.instance
+            monitor = get_cron_monitor(detector)
+
+            # Bind the monitor instance so slug validation recognizes this as an update
+            # Type ignore: self.child is typed as Field but is actually MonitorDataSourceValidator
+            self.child.instance = monitor  # type: ignore[attr-defined]
+            self.child.partial = self.parent.partial  # type: ignore[attr-defined]
+
+        return super().to_internal_value(data)
+
+
 class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     """
     Validator for monitor incident detection configuration.
@@ -694,7 +720,8 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
+    enforce_single_datasource = True
+    data_sources = MonitorDataSourceListField(child=MonitorDataSourceValidator(), required=False)
 
     def validate_enabled(self, value: bool) -> bool:
         """

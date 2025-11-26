@@ -6,19 +6,18 @@ import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert'
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconDiamond, IconMegaphone} from 'sentry/icons';
+import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -168,28 +167,22 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-  const openForm = useFeedbackForm();
 
-  const feedbackButton = openForm ? (
-    <Button
-      onClick={() => {
-        openForm({
-          formTitle: 'Anomaly Detection Feedback',
-          messagePlaceholder: t(
-            'How can we make alerts using anomaly detection more useful?'
-          ),
-          tags: {
-            ['feedback.source']: 'dynamic_thresholding',
-            ['feedback.owner']: 'ml-ai',
-          },
-        });
+  const feedbackButton = (
+    <FeedbackButton
+      feedbackOptions={{
+        formTitle: t('Anomaly Detection Feedback'),
+        messagePlaceholder: t(
+          'How can we make alerts using anomaly detection more useful?'
+        ),
+        tags: {
+          ['feedback.source']: 'dynamic_thresholding',
+          ['feedback.owner']: 'ml-ai',
+        },
       }}
       size="xs"
-      icon={<IconMegaphone />}
-    >
-      Give Feedback
-    </Button>
-  ) : null;
+    />
+  );
 
   return (
     <Fragment>
