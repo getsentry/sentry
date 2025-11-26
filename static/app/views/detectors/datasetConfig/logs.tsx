@@ -4,6 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import {getChartInterval} from 'sentry/views/detectors/datasetConfig/utils/chartInterval';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
@@ -36,6 +37,16 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorLogsConfig.getDiscoverDataset(),
+      interval: getChartInterval({
+        timeWindow: options.timeWindow,
+        timeRange: {
+          statsPeriod: options.statsPeriod,
+          start: options.start,
+          end: options.end,
+        },
+        // See /src/sentry/search/eap/constants.py
+        maxBuckets: 2689,
+      }),
     });
   },
   getIntervals: ({detectionType}) => {

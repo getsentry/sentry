@@ -1,5 +1,8 @@
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 
+// See MAX_ROLLUP_POINTS in sentry/constants.py
+const DEFAULT_MAX_BUCKETS = 10000;
+
 const INTERVAL_PRESETS_SECONDS = [
   60, // 1 minute
   300, // 5 minutes
@@ -56,7 +59,6 @@ function snapToPresetInterval(minIntervalSeconds: number): number {
 }
 
 interface GetChartIntervalOptions {
-  maxBuckets: number;
   timeRange: {
     end?: string | null;
     start?: string | null;
@@ -66,6 +68,7 @@ interface GetChartIntervalOptions {
    * The detector's configured time window in seconds.
    */
   timeWindow: number;
+  maxBuckets?: number;
 }
 
 /**
@@ -80,7 +83,7 @@ interface GetChartIntervalOptions {
 export function getChartInterval({
   timeWindow,
   timeRange,
-  maxBuckets,
+  maxBuckets = DEFAULT_MAX_BUCKETS,
 }: GetChartIntervalOptions): number {
   const timeRangeSeconds = getTimeRangeInSeconds(timeRange);
   if (timeRangeSeconds <= 0) {

@@ -6,6 +6,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {EventsSearchBar} from 'sentry/views/detectors/datasetConfig/components/eventSearchBar';
+import {getChartInterval} from 'sentry/views/detectors/datasetConfig/utils/chartInterval';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
@@ -83,7 +84,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   getSeriesQueryOptions: options => {
     // If interval is 1 minute and statsPeriod is 7 days, apply a 9998m statsPeriod to avoid the 10k results limit.
     // Applied specifically to errors dataset because it has 1m intervals, spans/logs have a minimum of 5m intervals.
-    if (options.interval === 60 && options.statsPeriod === '7d') {
+    if (options.timeWindow === 60 && options.statsPeriod === '7d') {
       options.statsPeriod = '9998m';
     }
 
@@ -91,6 +92,14 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
       ...options,
       dataset: DetectorErrorsConfig.getDiscoverDataset(),
       aggregate: translateAggregateTag(options.aggregate),
+      interval: getChartInterval({
+        timeWindow: options.timeWindow,
+        timeRange: {
+          statsPeriod: options.statsPeriod,
+          start: options.start,
+          end: options.end,
+        },
+      }),
     });
   },
   getIntervals: ({detectionType}) => {
