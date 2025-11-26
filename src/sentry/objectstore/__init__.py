@@ -46,7 +46,7 @@ def get_attachments_session(org: int, project: int) -> Session:
         _ATTACHMENTS_CLIENT = Client(
             options["base_url"],
             metrics_backend=SentryMetricsBackend(),
-            timeout=options.get("timeout"),
+            timeout_ms=options.get("timeout") * 1000,
         )
 
     return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
