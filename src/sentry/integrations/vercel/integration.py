@@ -423,7 +423,14 @@ class VercelIntegrationProvider(IntegrationProvider):
             )
             return
 
-        user = User.objects.get(id=extra.get("user_id"))
+        user_id = extra.get("user_id")
+        if user_id is None:
+            logger.error(
+                "vercel.post_install.missing_user_id",
+                extra={"organization_id": organization.id},
+            )
+            return
+        user = User.objects.get(id=user_id)
         # create the internal integration and link it to the join table
         sentry_app = SentryAppCreator(
             name="Vercel Internal Integration",
