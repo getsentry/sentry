@@ -1,4 +1,4 @@
-OFFSET = 10**9
+OFFSET = 10**10
 
 
 def get_fake_id_from_object_id(obj_id: int) -> int:

@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.core.cache import cache
 
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.utils import OFFSET
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
@@ -21,8 +22,6 @@ from sentry.workflow_engine.models.action_alertruletriggeraction import ActionAl
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
-
-OFFSET = 10**9
 
 
 class TestDetectorSerializer(TestWorkflowEngineSerializer):
