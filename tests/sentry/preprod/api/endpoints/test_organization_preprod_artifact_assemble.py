@@ -41,6 +41,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
             "checksum": "a" * 40,
             "chunks": ["b" * 40, "c" * 40],
             "build_configuration": "release",
+            "date_built": "2025-11-26T10:30:00",
             "head_sha": "e" * 40,
             "base_sha": "f" * 40,
             "provider": "github",
@@ -160,6 +161,21 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
     def test_pr_number_invalid(self) -> None:
         """Test invalid pr_number returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert result == {}
+
+    def test_date_built_valid_string(self) -> None:
+        """Test valid date_built string is accepted."""
+        data = {"checksum": "a" * 40, "chunks": [], "date_built": "2025-11-26T10:30:00"}
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert result == data
+
+    def test_date_built_wrong_type(self) -> None:
+        """Test non-string date_built returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "date_built": 123})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
