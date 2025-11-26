@@ -108,53 +108,6 @@ class VercelEnvVarDefinition(TypedDict):
     target: list[str]
 
 
-# TODO: Remove this function and use the new VercelEnvVarMapBuilder class instead
-def get_env_var_map(
-    organization: RpcOrganization,
-    project: RpcProject,
-    project_dsn: str,
-    auth_token: str | None,
-    framework: str,
-) -> dict[str, VercelEnvVarDefinition]:
-    """
-    Returns a dictionary of environment variables to be set in Vercel for a given project.
-    """
-
-    is_next_js = framework == "nextjs"
-    dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
-    return {
-        "SENTRY_ORG": {
-            "type": "encrypted",
-            "value": organization.slug,
-            "target": ["production", "preview"],
-        },
-        "SENTRY_PROJECT": {
-            "type": "encrypted",
-            "value": project.slug,
-            "target": ["production", "preview"],
-        },
-        dsn_env_name: {
-            "type": "encrypted",
-            "value": project_dsn,
-            "target": [
-                "production",
-                "preview",
-                "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
-            ],
-        },
-        "SENTRY_AUTH_TOKEN": {
-            "type": "encrypted",
-            "value": auth_token,
-            "target": ["production", "preview"],
-        },
-        "VERCEL_GIT_COMMIT_SHA": {
-            "type": "system",
-            "value": "VERCEL_GIT_COMMIT_SHA",
-            "target": ["production", "preview"],
-        },
-    }
-
-
 class VercelEnvVarMapBuilder:
     """
     Builder for creating Vercel environment variable maps.
