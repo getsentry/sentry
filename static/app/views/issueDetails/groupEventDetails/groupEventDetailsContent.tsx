@@ -7,7 +7,6 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -58,10 +57,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -73,11 +69,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform} from 'sentry/utils/platform';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FlameGraphSection} from 'sentry/views/issueDetails/flameGraphSection';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
@@ -87,15 +81,6 @@ import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {
-  ProfileGroupProvider,
-  useProfileGroup,
-} from 'sentry/views/profiling/profileGroupProvider';
-import {
-  ProfileContext,
-  ProfilesProvider,
-  useProfiles,
-} from 'sentry/views/profiling/profilesProvider';
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -163,7 +148,7 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
-      <EventFlameGraphPreview event={event} project={project} />
+      <FlameGraphSection event={event} project={project} />
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
@@ -514,135 +499,6 @@ function EntryErrorBoundary({
   );
 }
 
-function EventFlameGraphPreview({event, project}: {event: Event; project: Project}) {
-  const organization = useOrganization();
-  const profilerId = event.contexts?.profile?.profiler_id ?? undefined;
-  const timestamp: string | undefined = event.dateCreated ?? undefined;
-
-  if (!organization || !project?.slug) {
-    return null;
-  }
-
-  if (!profilerId) {
-    return null;
-  }
-
-  if (!timestamp) {
-    return null;
-  }
-
-  // TODO: Events don't seem to have a duration, but it's required for querying the profile.
-  // We'll use a 10 second window around the event timestamp for now.
-  const start = new Date(timestamp).getTime() - 10_000;
-  const end = new Date(timestamp).getTime() + 10_000;
-
-  const profileMeta = {
-    profiler_id: profilerId,
-    start: new Date(start).toISOString(),
-    end: new Date(end).toISOString(),
-  };
-
-  let openTarget: import('history').LocationDescriptor | string | undefined = undefined;
-  openTarget = generateProfileFlamechartRoute({
-    organization,
-    projectSlug: project.slug,
-    profileId: profilerId,
-  });
-
-  return (
-    <InterimSection
-      type={SectionKey.FLAME_GRAPH}
-      title={
-        <span>
-          {t('Aggregated Flamegraph ')}
-          <QuestionTooltip
-            position="bottom"
-            size="sm"
-            title={t(
-              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
-            )}
-          />
-        </span>
-      }
-      initialCollapse
-      actions={
-        openTarget ? (
-          <LinkButton size="xs" to={openTarget}>
-            {t('Open in Profiling')}
-          </LinkButton>
-        ) : null
-      }
-    >
-      <ErrorBoundary mini>
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={project.slug}
-          profileMeta={profileMeta}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamegraph"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profilerId ?? profilerId ?? ''}
-              >
-                <FlamegraphThemeProvider>
-                  <InlineFlamegraphPreview />
-                </FlamegraphThemeProvider>
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      </ErrorBoundary>
-    </InterimSection>
-  );
-}
-
-function InlineFlamegraphPreview() {
-  const profiles = useProfiles();
-  const profileGroup = useProfileGroup();
-
-  const active =
-    profileGroup.profiles[profileGroup.activeProfileIndex] ??
-    profileGroup.profiles[0] ??
-    null;
-  const flamegraph = useMemo(
-    () => (active ? new FlamegraphModel(active, {sort: 'left heavy'}) : null),
-    [active]
-  );
-
-  if (profiles.type === 'loading') {
-    return (
-      <ProfilePreviewContainer>
-        <LoadingIndicator />
-      </ProfilePreviewContainer>
-    );
-  }
-
-  if (profiles.type !== 'resolved') {
-    return null;
-  }
-
-  if (!active || !flamegraph) {
-    return null;
-  }
-
-  const relativeStart = 0;
-  const relativeStop = flamegraph.configSpace.width;
-
-  return (
-    <div>
-      <ProfilePreviewContainer>
-        <FlamegraphPreview
-          flamegraph={flamegraph}
-          relativeStartTimestamp={relativeStart}
-          relativeStopTimestamp={relativeStop}
-        />
-      </ProfilePreviewContainer>
-    </div>
-  );
-}
-
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
@@ -657,10 +513,4 @@ const StyledDataSection = styled(DataSection)`
   &:empty {
     display: none;
   }
-`;
-
-const ProfilePreviewContainer = styled('div')`
-  height: 200px;
-  margin-top: ${space(0.5)};
-  position: relative;
 `;
