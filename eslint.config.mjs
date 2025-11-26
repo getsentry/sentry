@@ -987,6 +987,11 @@ export default typescript.config([
     settings: {
       // order matters here because of nested directories
       'boundaries/elements': [
+        {
+          type: 'figma-code-connect',
+          pattern: ['static/**/*.figma.tsx'],
+          mode: 'full',
+        },
         // --- stories ---
         {
           type: 'story-files',
@@ -1117,6 +1122,10 @@ export default typescript.config([
               from: ['gsAdmin*'],
               disallow: ['sentry-locale'],
               allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+            },
+            {
+              from: ['figma*'],
+              allow: ['core*', 'sentry*'],
             },
             {
               from: ['test-sentry'],

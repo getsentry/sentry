@@ -11,6 +11,7 @@
     "static/gsApp",
     "static/gsAdmin",
     "static/eslint",
+    "static/figma",
     "tests/js",
     "config",
     "scripts"
