@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconNumber, IconTable} from 'sentry/icons';
+import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,9 +24,10 @@ const typeIcons = {
   [DisplayType.LINE]: <IconGraph key="line" type="line" />,
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
+  [DisplayType.DETAILS]: <IconSettings key="details" />,
 };
 
-const displayTypes = {
+const displayTypes: Partial<Record<DisplayType, string>> = {
   [DisplayType.AREA]: t('Area'),
   [DisplayType.BAR]: t('Bar'),
   [DisplayType.LINE]: t('Line'),
@@ -45,6 +46,10 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
+
+  if (organization.features.includes('dashboards-details-widget')) {
+    displayTypes[DisplayType.DETAILS] = t('Details');
+  }
 
   return (
     <Fragment>

@@ -16,7 +16,10 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import {
+  dashboardFiltersToString,
+  isChartDisplayType,
+} from 'sentry/views/dashboards/utils';
 import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -419,10 +422,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     onDataFetchStart?.();
 
     try {
-      if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-        await this.fetchTableData(queryFetchID);
-      } else {
+      if (isChartDisplayType(widget.displayType)) {
         await this.fetchSeriesData(queryFetchID);
+      } else {
+        await this.fetchTableData(queryFetchID);
       }
     } catch (err: any) {
       if (this._isMounted) {

@@ -193,6 +193,7 @@ export const SpansConfig: DatasetConfig<
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
+    DisplayType.DETAILS,
   ],
   getTableRequest: (
     api: Client,
@@ -316,6 +317,7 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+
   const hasQueueFeature = organization.features.includes(
     'visibility-dashboards-async-queue'
   );
