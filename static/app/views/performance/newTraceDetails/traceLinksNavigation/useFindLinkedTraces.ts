@@ -38,7 +38,6 @@ export function useFindAdjacentTrace({
     let _projectId: number | undefined = undefined;
     let _environment: string | undefined = undefined;
     let _currentTraceId: string | undefined;
-    let _currentSpanId: string | undefined;
     let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
 
     for (const a of attributes ?? []) {
@@ -48,8 +47,6 @@ export function useFindAdjacentTrace({
         _environment = a.value;
       } else if (a.name === 'trace' && a.type === 'str') {
         _currentTraceId = a.value;
-      } else if (a.name === 'transaction.span_id' && a.type === 'str') {
-        _currentSpanId = a.value;
       } else if (a.name === 'previous_trace' && a.type === 'str') {
         _adjacentTraceAttribute = a;
       }
