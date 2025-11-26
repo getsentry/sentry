@@ -147,7 +147,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             completed_at=completed_at,
         )
     except Exception as e:
-        _update_posted_status_check(preprod_artifact, success=False, error=e)
+        _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
         raise
 
     if check_id is None:
@@ -159,10 +159,12 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
                 "organization_slug": preprod_artifact.project.organization.slug,
             },
         )
-        _update_posted_status_check(preprod_artifact, success=False)
+        _update_posted_status_check(preprod_artifact, check_type="size", success=False)
         return
 
-    _update_posted_status_check(preprod_artifact, success=True, check_id=check_id)
+    _update_posted_status_check(
+        preprod_artifact, check_type="size", success=True, check_id=check_id
+    )
 
     logger.info(
         "preprod.status_checks.create.success",
@@ -178,22 +180,26 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
 def _update_posted_status_check(
     preprod_artifact: PreprodArtifact,
+    check_type: str,
     success: bool,
     check_id: str | None = None,
     error: Exception | None = None,
 ) -> None:
-    """Update the posted_status_check field in the artifact's extras."""
+    """Update the posted_status_checks field in the artifact's extras."""
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
         extras = artifact.extras or {}
 
-        posted_status_check: dict[str, Any] = {"success": success}
-        if success and check_id:
-            posted_status_check["check_id"] = check_id
-        if not success:
-            posted_status_check["error_type"] = _get_error_type(error).value
+        posted_status_checks = extras.get("posted_status_checks", {})
 
-        extras["posted_status_check"] = posted_status_check
+        check_result: dict[str, Any] = {"success": success}
+        if success and check_id:
+            check_result["check_id"] = check_id
+        if not success:
+            check_result["error_type"] = _get_error_type(error).value
+
+        posted_status_checks[check_type] = check_result
+        extras["posted_status_checks"] = posted_status_checks
         artifact.extras = extras
         artifact.save(update_fields=["extras"])
 
