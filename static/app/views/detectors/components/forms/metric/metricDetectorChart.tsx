@@ -25,6 +25,7 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
@@ -177,6 +178,7 @@ export function MetricDetectorChart({
     useMetricDetectorThresholdSeries({
       conditions,
       detectionType,
+      aggregate,
       comparisonSeries,
     });
 
@@ -216,30 +218,7 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
-  // Calculate y-axis bounds to ensure all thresholds are visible
-  const maxValue = useMemo(() => {
-    // Get max from series data
-    let seriesMax = 0;
-    if (series.length > 0) {
-      const allSeriesValues = series.flatMap(s =>
-        s.data
-          .map(point => point.value)
-          .filter(val => typeof val === 'number' && !isNaN(val))
-      );
-      seriesMax = allSeriesValues.length > 0 ? Math.max(...allSeriesValues) : 0;
-    }
-
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
-
-    const roundedMax = Math.round(combinedMax);
-
-    // Add padding to the bounds
-    const padding = roundedMax * 0.1;
-    return roundedMax + padding;
-  }, [series, thresholdMaxValue]);
+  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries];
@@ -257,17 +236,22 @@ export function MetricDetectorChart({
   ]);
 
   const yAxes = useMemo(() => {
-    const {formatYAxisLabel} = getDetectorChartFormatters({
+    const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
     });
 
+    const isPercentage = outputType === 'percentage';
+    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
+    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = isPercentage ? minValue : 0;
+
     const mainYAxis: YAXisComponentOption = {
-      max: maxValue > 0 ? maxValue : undefined,
-      min: 0,
+      max: yAxisMax,
+      min: yAxisMin,
       axisLabel: {
-        // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-        showMaxLabel: false,
+        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        showMaxLabel: isPercentage,
         // Format the axis labels with units
         formatter: formatYAxisLabel,
       },
@@ -285,6 +269,7 @@ export function MetricDetectorChart({
     return axes;
   }, [
     maxValue,
+    minValue,
     isAnomalyDetection,
     anomalyMarkerResult.incidentMarkerYAxis,
     detectionType,

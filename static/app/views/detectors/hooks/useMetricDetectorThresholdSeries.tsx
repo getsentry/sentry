@@ -15,6 +15,7 @@ import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -117,6 +118,10 @@ function extractThresholdsFromConditions(
 interface UseMetricDetectorThresholdSeriesProps {
   conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
+  /**
+   * The aggregate function to determine if thresholds should be scaled for percentage display
+   */
+  aggregate?: string;
   comparisonSeries?: Series[];
 }
 
@@ -134,11 +139,16 @@ interface UseMetricDetectorThresholdSeriesResult {
 export function useMetricDetectorThresholdSeries({
   conditions,
   detectionType,
+  aggregate,
   comparisonSeries = [],
 }: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
 
   return useMemo((): UseMetricDetectorThresholdSeriesResult => {
+    // For percentage aggregates (e.g., crash-free rate), thresholds are input as whole numbers
+    // (e.g., 95 for 95%) but need to be displayed as decimals (0.95) on the chart
+    const isPercentageAggregate =
+      aggregate && aggregateOutputType(aggregate) === 'percentage';
     if (!conditions) {
       return {maxValue: undefined, additionalSeries: []};
     }
@@ -216,11 +226,15 @@ export function useMetricDetectorThresholdSeries({
             ? theme.red300
             : theme.yellow300;
         const areaColor = lineColor;
+        // Scale threshold for percentage aggregates (e.g., 95 -> 0.95)
+        const displayThreshold = isPercentageAggregate
+          ? threshold.value / 100
+          : threshold.value;
 
         return {
           type: 'line',
-          markLine: createThresholdMarkLine(lineColor, threshold.value),
-          markArea: createThresholdMarkArea(areaColor, threshold.value, isAbove),
+          markLine: createThresholdMarkLine(lineColor, displayThreshold),
+          markArea: createThresholdMarkArea(areaColor, displayThreshold, isAbove),
           data: [],
         };
       });
@@ -231,12 +245,16 @@ export function useMetricDetectorThresholdSeries({
         resolution && !thresholds.some(threshold => threshold.value === resolution.value)
       );
       if (resolution && isResolutionManual) {
+        // Scale resolution threshold for percentage aggregates
+        const displayResolution = isPercentageAggregate
+          ? resolution.value / 100
+          : resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
-          markLine: createThresholdMarkLine(theme.green300, resolution.value),
+          markLine: createThresholdMarkLine(theme.green300, displayResolution),
           markArea: createThresholdMarkArea(
             theme.green300,
-            resolution.value,
+            displayResolution,
             resolution.type === DataConditionType.GREATER
           ),
           data: [],
@@ -245,8 +263,12 @@ export function useMetricDetectorThresholdSeries({
       }
 
       const valuesForMax = [
-        ...thresholds.map(threshold => threshold.value),
-        ...(resolution && isResolutionManual ? [resolution.value] : []),
+        ...thresholds.map(threshold =>
+          isPercentageAggregate ? threshold.value / 100 : threshold.value
+        ),
+        ...(resolution && isResolutionManual
+          ? [isPercentageAggregate ? resolution.value / 100 : resolution.value]
+          : []),
       ];
       const maxValue = valuesForMax.length > 0 ? Math.max(...valuesForMax) : undefined;
       return {maxValue, additionalSeries: additional};
@@ -254,5 +276,5 @@ export function useMetricDetectorThresholdSeries({
 
     // Other detection types not supported yet
     return {maxValue: undefined, additionalSeries: additional};
-  }, [conditions, detectionType, comparisonSeries, theme]);
+  }, [conditions, detectionType, aggregate, comparisonSeries, theme]);
 }
