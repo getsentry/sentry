@@ -165,7 +165,10 @@ def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode
         old_extrapolation_mode = ExtrapolationMode(old_extrapolation_mode).name.lower()
     if type(old_extrapolation_mode) is ExtrapolationMode:
         old_extrapolation_mode = old_extrapolation_mode.name.lower()
-    if ExtrapolationMode.from_str(new_extrapolation_mode) is None:
+    if (
+        new_extrapolation_mode is not None
+        and ExtrapolationMode.from_str(new_extrapolation_mode) is None
+    ):
         return True
     if (
         new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
