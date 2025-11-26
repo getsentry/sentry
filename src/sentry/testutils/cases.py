@@ -3860,7 +3860,6 @@ class ReplayEAPTestCase(BaseTestCase):
             "replay_id": replay_id,
             "segment_id": segment_id,
             "project_id": project.id,
-            "timestamp": int(timestamp.timestamp()),
             "category": category,
         }
 

@@ -116,6 +116,9 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         assert "started_at" in replay1_data
         assert "finished_at" in replay1_data
 
+        assert replay1_data["started_at"] is not None, "started_at should not be None"
+        assert replay1_data["finished_at"] is not None, "finished_at should not be None"
+
         assert replay1_data["count_dead_clicks"] == 3, "2 DEAD_CLICK + 1 RAGE_CLICK = 3 dead"
         assert replay1_data["count_rage_clicks"] == 1, "1 RAGE_CLICK = 1 rage"
 

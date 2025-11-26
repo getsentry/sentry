@@ -39,8 +39,8 @@ def query_replay_instance_eap(
     select = [
         Column("replay_id"),
         Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
-        Function("min", parameters=[Column("timestamp")], alias="started_at"),
-        Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+        Function("min", parameters=[Column("sentry.timestamp")], alias="started_at"),
+        Function("max", parameters=[Column("sentry.timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
         Function("sum", parameters=[Column("count_warning_events")], alias="count_warnings"),
@@ -51,7 +51,10 @@ def query_replay_instance_eap(
                 Column("click_is_dead"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_dead_clicks",
@@ -62,7 +65,10 @@ def query_replay_instance_eap(
                 Column("click_is_rage"),
                 Function(
                     "greaterOrEquals",
-                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                    [
+                        Column("sentry.timestamp"),
+                        int(datetime(year=2023, month=7, day=24).timestamp()),
+                    ],
                 ),
             ],
             alias="count_rage_clicks",
@@ -84,8 +90,7 @@ def query_replay_instance_eap(
         attribute_types={
             "replay_id": str,
             "project_id": int,
-            "timestamp": int,
-            "replay_start_timestamp": int,
+            "sentry.timestamp": int,
             "segment_id": int,
             "is_archived": int,
             "count_error_events": int,
