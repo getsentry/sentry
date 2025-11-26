@@ -66,9 +66,6 @@ const config: KnipConfig = {
     '!static/eslint/**/*.mjs!',
     // TEMPORARY! Abdullah Khan: WILL BE REMOVING IN STACKED PRs. Trying to merge PRs in smaller batches.
     '!static/app/views/performance/newTraceDetails/traceModels/traceTreeNode/**/*.{js,mjs,ts,tsx}!',
-    // TODO @nsdeschenes: Remove this once we are using the new cross event feature
-    '!static/app/views/explore/queryParams/crossEvent.ts!',
-    '!static/app/views/explore/queryParams/context.tsx!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
