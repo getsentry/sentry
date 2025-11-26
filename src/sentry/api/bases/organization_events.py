@@ -163,12 +163,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
 
-                # kill switch: disable the highest accuracy flex time strategy to avoid hammering snuba
-                if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME" and not features.has(
-                    "organizations:ourlogs-high-fidelity", organization, actor=request.user
-                ):
-                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
-
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
