@@ -2,11 +2,10 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
-from django.db.models import Max
 
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -163,14 +162,21 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
-    base_queryset = (
-        Group.objects.filter(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.REGRESSED,
-            grouphistory__status=GroupHistoryStatus.REGRESSED,
+    date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
+
+    regressed_group_ids = (
+        GroupHistory.objects.filter(
+            status=GroupHistoryStatus.REGRESSED,
+            date_added__lte=date_threshold,
         )
-        .annotate(recent_regressed_history=Max("grouphistory__date_added"))
-        .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
+        .values_list("group_id", flat=True)
+        .distinct()
+    )
+
+    base_queryset = Group.objects.filter(
+        id__in=regressed_group_ids,
+        status=GroupStatus.UNRESOLVED,
+        substatus=GroupSubStatus.REGRESSED,
     )
 
     with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
@@ -244,14 +250,23 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
-    base_queryset = (
-        Group.objects.filter(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ESCALATING,
-            grouphistory__status=GroupHistoryStatus.ESCALATING,
+    date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
+
+    # Query GroupHistory first to avoid expensive JOIN + MAX aggregation.
+    # Find groups with ESCALATING history within the date range.
+    escalating_group_ids = (
+        GroupHistory.objects.filter(
+            status=GroupHistoryStatus.ESCALATING,
+            date_added__lte=date_threshold,
         )
-        .annotate(recent_escalating_history=Max("grouphistory__date_added"))
-        .filter(recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
+        .values_list("group_id", flat=True)
+        .distinct()
+    )
+
+    base_queryset = Group.objects.filter(
+        id__in=escalating_group_ids,
+        status=GroupStatus.UNRESOLVED,
+        substatus=GroupSubStatus.ESCALATING,
     )
 
     with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
