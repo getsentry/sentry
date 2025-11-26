@@ -33,7 +33,6 @@ import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -57,6 +56,8 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -83,8 +84,8 @@ type Props = {
   api: Client;
   loading: boolean;
   location: Location;
+  navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
@@ -400,8 +401,7 @@ export class Results extends Component<Props, State> {
   }
 
   handleCursor: CursorHandler = (cursor, path, query, _direction) => {
-    const {router} = this.props;
-    router.push({
+    this.props.navigate({
       pathname: path,
       query: {...query, cursor},
     });
@@ -424,7 +424,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleSearch = (query: string) => {
-    const {router, location} = this.props;
+    const {location, navigate} = this.props;
 
     const queryParams = normalizeDateTimeParams({
       ...location.query,
@@ -434,14 +434,14 @@ export class Results extends Component<Props, State> {
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });
   };
 
   handleYAxisChange = (value: string[]) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
     const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
       location.query.display as DisplayModes
     );
@@ -458,7 +458,7 @@ export class Results extends Component<Props, State> {
           : location.query.display,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -475,14 +475,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleDisplayChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       display: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -494,7 +494,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleIntervalChange = (value: string | undefined) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
@@ -502,7 +502,7 @@ export class Results extends Component<Props, State> {
     };
 
     if (location.query.interval !== value) {
-      router.push({
+      navigate({
         pathname: location.pathname,
         query: newQuery,
       });
@@ -515,14 +515,14 @@ export class Results extends Component<Props, State> {
   };
 
   handleTopEventsChange = (value: string) => {
-    const {router, location} = this.props;
+    const {navigate, location} = this.props;
 
     const newQuery = {
       ...location.query,
       topEvents: value,
     };
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });
@@ -1005,12 +1005,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   );
 }
 
-export default function ResultsContainer(
-  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
-) {
+export default function ResultsContainer() {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -1026,10 +1026,9 @@ export default function ResultsContainer(
   return (
     <PageFiltersContainer
       disablePersistence={
-        organization.features.includes('discover-query') &&
-        !!(props.savedQuery || props.location.query.id)
+        organization.features.includes('discover-query') && !!location.query.id
       }
-      skipLoadLastUsed={!!props.savedQuery}
+      skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
@@ -1038,7 +1037,8 @@ export default function ResultsContainer(
         api={api}
         organization={organization}
         selection={selection}
-        {...props}
+        location={location}
+        navigate={navigate}
       />
     </PageFiltersContainer>
   );
