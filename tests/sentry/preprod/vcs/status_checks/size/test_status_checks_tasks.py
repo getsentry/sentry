@@ -1019,9 +1019,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         preprod_artifact.refresh_from_db()
         assert preprod_artifact.extras is not None
-        assert "posted_status_check" in preprod_artifact.extras
-        assert preprod_artifact.extras["posted_status_check"]["success"] is True
-        assert preprod_artifact.extras["posted_status_check"]["check_id"] == "check_12345"
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_12345"
 
     def test_posted_status_check_failure_null_check_id(self):
         """Test that failed status check posts (null check_id) are recorded in artifact extras."""
@@ -1050,10 +1051,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         preprod_artifact.refresh_from_db()
         assert preprod_artifact.extras is not None
-        assert "posted_status_check" in preprod_artifact.extras
-        assert preprod_artifact.extras["posted_status_check"]["success"] is False
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
         assert (
-            preprod_artifact.extras["posted_status_check"]["error_type"]
+            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
             == StatusCheckErrorType.UNKNOWN.value
         )
 
@@ -1106,10 +1108,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         preprod_artifact.refresh_from_db()
         assert preprod_artifact.extras is not None
-        assert "posted_status_check" in preprod_artifact.extras
-        assert preprod_artifact.extras["posted_status_check"]["success"] is False
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
         assert (
-            preprod_artifact.extras["posted_status_check"]["error_type"]
+            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
             == StatusCheckErrorType.INTEGRATION_ERROR.value
         )
 
@@ -1146,6 +1149,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert preprod_artifact.extras["existing_field"] == "existing_value"
         assert preprod_artifact.extras["another_field"] == 123
         # Verify new field is added
-        assert "posted_status_check" in preprod_artifact.extras
-        assert preprod_artifact.extras["posted_status_check"]["success"] is True
-        assert preprod_artifact.extras["posted_status_check"]["check_id"] == "check_67890"
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_67890"
