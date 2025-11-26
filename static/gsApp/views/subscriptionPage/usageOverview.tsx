@@ -9,10 +9,12 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProgressRing from 'sentry/components/progressRing';
 import {
   IconClock,
   IconDownload,
+  IconEllipsis,
   IconLightning,
   IconLock,
   IconTable,
@@ -26,6 +28,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
@@ -108,16 +111,20 @@ function ProductTrialRibbon({
 }
 
 function ProductRow({
+  organization,
   product,
   selectedProduct,
   onRowClick,
   subscription,
   isChildProduct,
   parentProduct,
+  usageData,
 }: {
   onRowClick: (category: DataCategory | AddOnCategory) => void;
+  organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
+  usageData: CustomerUsage;
 } & (
   | {
       isChildProduct: true;
@@ -131,6 +138,11 @@ function ProductRow({
     }
 )) {
   const theme = useTheme();
+  const {layout: navLayout} = useNavContext();
+  const isMobile = navLayout === NavLayout.MOBILE;
+  const [isHovered, setIsHovered] = useState(false);
+  const showAdditionalSpendColumn =
+    subscription.canSelfServe || supportsPayg(subscription);
   const isAddOn = checkIsAddOn(parentProduct ?? product);
   const billedCategory = getBilledCategory(subscription, product);
   if (!billedCategory) {
@@ -184,7 +196,10 @@ function ProductRow({
             cents: reservedBudget.categories[product]?.reservedSpend ?? 0,
           })
         : displayPriceWithCents({cents: reservedBudget.totalReservedSpend})
-      : formatUsageWithUnits(metricHistory.usage, billedCategory, {isAbbreviated: true});
+      : formatUsageWithUnits(metricHistory.usage, billedCategory, {
+          isAbbreviated: true,
+          useUnitScaling: true,
+        });
 
     if (reservedBudget) {
       formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
@@ -215,6 +230,7 @@ function ProductRow({
 
     formattedUsage = formatUsageWithUnits(metricHistory.usage, billedCategory, {
       isAbbreviated: true,
+      useUnitScaling: true,
     });
     formattedPrepaid = formatReservedWithUnits(prepaid, billedCategory, {
       useUnitScaling: true,
@@ -243,64 +259,82 @@ function ProductRow({
     !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
 
   const isClickable = !!potentialProductTrial || isEnabled;
+  const isSelected = selectedProduct === product;
 
   return (
-    <TableRow
-      isClickable={isClickable}
-      isSelected={selectedProduct === product}
-      onClick={() => (isClickable ? onRowClick(product) : undefined)}
-      onKeyDown={e => {
-        if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
-          onRowClick(product);
-        }
-      }}
-      tabIndex={0}
-      role="button"
-      aria-label={t('View %s usage', displayName)}
-    >
-      {(activeProductTrial || potentialProductTrial) && (
-        <ProductTrialRibbon
-          activeProductTrial={activeProductTrial}
-          potentialProductTrial={potentialProductTrial}
+    <Fragment>
+      <TableRow
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        isClickable={isClickable}
+        isSelected={isSelected}
+        onClick={() => (isClickable ? onRowClick(product) : undefined)}
+        onKeyDown={e => {
+          if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+            onRowClick(product);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label={t('View %s usage', displayName)}
+      >
+        {(activeProductTrial || potentialProductTrial) && (
+          <ProductTrialRibbon
+            activeProductTrial={activeProductTrial}
+            potentialProductTrial={potentialProductTrial}
+          />
+        )}
+        <Flex
+          paddingLeft={
+            activeProductTrial || potentialProductTrial
+              ? 'lg'
+              : isChildProduct
+                ? '2xl'
+                : undefined
+          }
+          gap="sm"
+          align="center"
+        >
+          <Text variant={isEnabled ? 'primary' : 'muted'}>{displayName}</Text>
+          {!isEnabled && <IconLock size="sm" locked color="disabled" />}
+        </Flex>
+        {isEnabled && (
+          <Fragment>
+            <Flex align="center" gap="xs">
+              {usageExceeded ? (
+                <IconWarning size="sm" color="danger" />
+              ) : isPaygOnly ||
+                isChildProduct ||
+                reserved === UNLIMITED_RESERVED ? null : (
+                <ProgressRing
+                  value={percentUsed}
+                  progressColor={
+                    !usageExceeded && percentUsed === 100 ? theme.warningFocus : undefined
+                  }
+                />
+              )}
+              <Text>
+                {isPaygOnly || isChildProduct || !formattedPrepaid
+                  ? formattedUsage
+                  : `${formattedUsage} / ${formattedPrepaid}`}
+              </Text>
+            </Flex>
+            {showAdditionalSpendColumn && (
+              <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
+            )}
+          </Fragment>
+        )}
+        {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
+      </TableRow>
+      {isMobile && isSelected && (
+        <ProductBreakdownPanel
+          organization={organization}
+          selectedProduct={selectedProduct}
+          subscription={subscription}
+          usageData={usageData}
         />
       )}
-      <Flex
-        paddingLeft={
-          activeProductTrial || potentialProductTrial
-            ? 'lg'
-            : isChildProduct
-              ? '2xl'
-              : undefined
-        }
-        gap="sm"
-        align="center"
-      >
-        <Text variant={isEnabled ? 'primary' : 'muted'}>{displayName}</Text>
-        {!isEnabled && <IconLock size="sm" locked color="disabled" />}
-      </Flex>
-      {isEnabled && (
-        <Fragment>
-          <Flex align="center" gap="xs">
-            {usageExceeded ? (
-              <IconWarning size="sm" color="danger" />
-            ) : isPaygOnly || isChildProduct || reserved === UNLIMITED_RESERVED ? null : (
-              <ProgressRing
-                value={percentUsed}
-                progressColor={
-                  !usageExceeded && percentUsed === 100 ? theme.warningFocus : undefined
-                }
-              />
-            )}
-            <Text>
-              {isPaygOnly || isChildProduct || !formattedPrepaid
-                ? formattedUsage
-                : `${formattedUsage} / ${formattedPrepaid}`}
-            </Text>
-          </Flex>
-          <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
-        </Fragment>
-      )}
-    </TableRow>
+    </Fragment>
   );
 }
 
@@ -309,14 +343,18 @@ function UsageOverviewTable({
   subscription,
   onRowClick,
   selectedProduct,
+  usageData,
 }: UsageOverviewProps & {
   onRowClick: (category: DataCategory | AddOnCategory) => void;
   selectedProduct: DataCategory | AddOnCategory;
+  usageData: CustomerUsage;
 }) {
   const addOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
   ).flatMap(addOnInfo => addOnInfo.dataCategories);
   const sortedCategories = sortCategories(subscription.categories);
+  const showAdditionalSpendColumn =
+    subscription.canSelfServe || supportsPayg(subscription);
 
   return (
     <Grid
@@ -328,15 +366,17 @@ function UsageOverviewTable({
       width="100%"
     >
       <TableHeader>
-        <Text bold variant="muted">
-          {t('FEATURE')}
+        <Text bold variant="muted" uppercase>
+          {t('Feature')}
         </Text>
-        <Text bold variant="muted">
-          {t('USAGE')}
+        <Text bold variant="muted" uppercase>
+          {t('Usage')}
         </Text>
-        <Text bold variant="muted" align="right">
-          {t('ADDITIONAL SPEND')}
-        </Text>
+        {showAdditionalSpendColumn && (
+          <Text bold variant="muted" align="right" uppercase>
+            {t('Additional spend')}
+          </Text>
+        )}
       </TableHeader>
       {sortedCategories
         .filter(
@@ -356,6 +396,8 @@ function UsageOverviewTable({
               selectedProduct={selectedProduct}
               onRowClick={onRowClick}
               subscription={subscription}
+              usageData={usageData}
+              organization={organization}
             />
           );
         })}
@@ -389,6 +431,8 @@ function UsageOverviewTable({
                 selectedProduct={selectedProduct}
                 onRowClick={onRowClick}
                 subscription={subscription}
+                usageData={usageData}
+                organization={organization}
               />
               {sortedCategories
                 .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
@@ -404,6 +448,8 @@ function UsageOverviewTable({
                       subscription={subscription}
                       isChildProduct
                       parentProduct={apiName}
+                      usageData={usageData}
+                      organization={organization}
                     />
                   );
                 })}
@@ -411,6 +457,92 @@ function UsageOverviewTable({
           );
         })}
     </Grid>
+  );
+}
+
+function UsageOverviewActions({organization}: {organization: Organization}) {
+  const {layout: navLayout} = useNavContext();
+  const isMobile = navLayout === NavLayout.MOBILE;
+
+  const {currentHistory, isPending, isError} = useCurrentBillingHistory();
+  const hasBillingPerms = organization.access.includes('org:billing');
+  if (!hasBillingPerms) {
+    return null;
+  }
+
+  const buttons: Array<{
+    icon: React.ReactNode;
+    label: string;
+    disabled?: boolean;
+    onClick?: () => void;
+    to?: string;
+  }> = [
+    {
+      label: t('View all usage'),
+      to: '/settings/billing/usage/',
+      icon: <IconTable />,
+    },
+    {
+      label: t('Download as CSV'),
+      icon: <IconDownload />,
+      onClick: () => {
+        trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
+          organization,
+          reportType: 'summary',
+        });
+        if (currentHistory) {
+          window.open(currentHistory.links.csv, '_blank');
+        }
+      },
+      disabled: isPending || isError,
+    },
+  ];
+
+  if (isMobile) {
+    return (
+      <DropdownMenu
+        triggerProps={{
+          'aria-label': t('More Actions'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: 'sm',
+        }}
+        items={buttons.map(buttonInfo => ({
+          key: buttonInfo.label,
+          label: buttonInfo.label,
+          onAction: buttonInfo.onClick,
+          to: buttonInfo.to,
+          disabled: buttonInfo.disabled,
+        }))}
+      />
+    );
+  }
+
+  return (
+    <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
+      {buttons.map(buttonInfo =>
+        buttonInfo.to ? (
+          <LinkButton
+            key={buttonInfo.label}
+            icon={buttonInfo.icon}
+            priority="default"
+            to={buttonInfo.to}
+          >
+            {buttonInfo.label}
+          </LinkButton>
+        ) : (
+          <Button
+            key={buttonInfo.label}
+            icon={buttonInfo.icon}
+            priority="default"
+            onClick={buttonInfo.onClick}
+            disabled={buttonInfo.disabled}
+          >
+            {buttonInfo.label}
+          </Button>
+        )
+      )}
+    </Flex>
   );
 }
 
@@ -424,9 +556,10 @@ function UsageOverview({
   );
   const navigate = useNavigate();
   const location = useLocation();
-  const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed} = useNavContext();
-  const {currentHistory, isPending, isError} = useCurrentBillingHistory();
+  const {layout: navLayout} = useNavContext();
+  const isMobile = navLayout === NavLayout.MOBILE;
+
   const startDate = moment(subscription.onDemandPeriodStart);
   const endDate = moment(subscription.onDemandPeriodEnd);
   const startsAndEndsSameYear = startDate.year() === endDate.year();
@@ -461,32 +594,7 @@ function UsageOverview({
               })}
             </Heading>
           </Flex>
-          {hasBillingPerms && (
-            <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
-              <LinkButton
-                icon={<IconTable />}
-                priority="default"
-                to="/settings/billing/usage/"
-              >
-                {t('View all usage')}
-              </LinkButton>
-              <Button
-                icon={<IconDownload />}
-                disabled={isPending || isError}
-                onClick={() => {
-                  trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
-                    organization,
-                    reportType: 'summary',
-                  });
-                  if (currentHistory) {
-                    window.open(currentHistory.links.csv, '_blank');
-                  }
-                }}
-              >
-                {t('Download as CSV')}
-              </Button>
-            </Flex>
-          )}
+          <UsageOverviewActions organization={organization} />
         </Flex>
         <UsageOverviewTable
           subscription={subscription}
@@ -512,14 +620,17 @@ function UsageOverview({
             );
           }}
           selectedProduct={selectedProduct}
+          usageData={usageData}
         />
       </Container>
-      <ProductBreakdownPanel
-        organization={organization}
-        selectedProduct={selectedProduct}
-        subscription={subscription}
-        usageData={usageData}
-      />
+      {!isMobile && (
+        <ProductBreakdownPanel
+          organization={organization}
+          selectedProduct={selectedProduct}
+          subscription={subscription}
+          usageData={usageData}
+        />
+      )}
     </Grid>
   );
 }
@@ -562,6 +673,17 @@ const TableRow = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
         background: ${p.theme.backgroundSecondary};
       }
     `}
+`;
+
+const SelectedPill = styled('div')<{isSelected: boolean}>`
+  position: absolute;
+  right: -1px;
+  top: 14px;
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: ${p =>
+    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
 `;
 
 const RibbonBase = styled('div')<{ribbonColor: string}>`

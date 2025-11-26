@@ -163,7 +163,7 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
 
-  if (!options.useUnitScaling) {
+  if (!options.useUnitScaling || dataCategory === DataCategory.ATTACHMENTS) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
         ? {...options, isAbbreviated: false}
@@ -187,7 +187,7 @@ export function formatUsageWithUnits(
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
   if (isByteCategory(dataCategory)) {
-    if (options.useUnitScaling) {
+    if (options.useUnitScaling && dataCategory !== DataCategory.ATTACHMENTS) {
       return formatByteUnits(usageQuantity);
     }
 

@@ -399,6 +399,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const StyledTable = styled(StripedTable)`
+  width: unset;
   table-layout: fixed;
 
   th,

@@ -15,6 +15,8 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
 
 import StartTrialButton from 'getsentry/components/startTrialButton';
@@ -337,6 +339,9 @@ function ProductBreakdownPanel({
   subscription: Subscription;
   usageData: CustomerUsage;
 }) {
+  const {layout: navLayout} = useNavContext();
+  const isMobile = navLayout === NavLayout.MOBILE;
+
   const isAddOn = Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
   let breakdownInfo = null;
   const billedCategory = getBilledCategory(subscription, selectedProduct);
@@ -387,7 +392,19 @@ function ProductBreakdownPanel({
   }
 
   return (
-    <Container background="primary" border="primary" radius="md">
+    <Container
+      background="primary"
+      border={isMobile ? undefined : 'primary'}
+      borderBottom={isMobile ? 'primary' : undefined}
+      radius={isMobile ? undefined : 'md'}
+      style={
+        isMobile
+          ? {
+              gridColumn: '1 / -1',
+            }
+          : undefined
+      }
+    >
       <PanelHeader selectedProduct={selectedProduct} subscription={subscription} />
       <ProductTrialCta
         organization={organization}
