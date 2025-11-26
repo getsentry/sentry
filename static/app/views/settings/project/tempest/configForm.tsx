@@ -36,7 +36,11 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
                 name: 'tempestFetchDumps',
                 type: 'boolean',
                 label: t('Attach Dumps'),
-                help: t('Attach dumps to issues.'),
+                help: t(
+                  'Option temporarily set to enabled: dumps are always fetched since they are needed for symbolication.'
+                ),
+                disabled: true,
+                setValue: () => true,
               },
             ],
           },
