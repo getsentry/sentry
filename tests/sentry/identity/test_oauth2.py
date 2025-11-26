@@ -5,14 +5,16 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.http import HttpResponse
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import ERR_INVALID_STATE, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationPipelineErrorReason
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
@@ -156,6 +158,41 @@ class OAuth2CallbackViewTest(TestCase):
         assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
+    def test_dispatch_sanitizes_error_parameter(self, mock_record: MagicMock) -> None:
+        malicious_error = "bad\n1NjfU4n3X') OR 456=(SELECT 456 FROM PG_SLEEP(15))--"
+        request = RequestFactory().get("/", {"error": malicious_error})
+        pipeline = MagicMock(spec=IdentityPipeline)
+        pipeline.provider = MagicMock(key="dummy")
+        pipeline.error.return_value = HttpResponse("error")
+
+        response = self.view.dispatch(request, pipeline)
+        assert response == pipeline.error.return_value
+
+        expected_error = "bad\\n1NjfU4n3X\\') OR 456=(SELECT 456 FROM PG_SLEEP(15))--"
+        pipeline.error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError: {expected_error}")
+
+        lifecycle = mock_record.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_failure.assert_called_once_with(
+            IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+            extra={"error": expected_error},
+        )
+
+    def test_dispatch_handles_blank_error(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"error": "    "})
+        pipeline = MagicMock(spec=IdentityPipeline)
+        pipeline.provider = MagicMock(key="dummy")
+        pipeline.error.return_value = HttpResponse("error")
+
+        response = self.view.dispatch(request, pipeline)
+        assert response == pipeline.error.return_value
+
+        pipeline.error.assert_called_once_with(ERR_INVALID_STATE)
+        lifecycle = mock_record.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_failure.assert_called_once_with(
+            IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+            extra={"error": ""},
+        )
 
 
 @control_silo_test
