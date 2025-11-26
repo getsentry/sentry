@@ -1,12 +1,11 @@
 import {useMemo} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
@@ -17,11 +16,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -32,6 +29,7 @@ import {
   useIncidentMarkers,
   type IncidentPeriod,
 } from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
@@ -40,18 +38,6 @@ import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorC
 interface IncidentTooltipContext {
   period: IncidentPeriod;
   theme: Theme;
-}
-
-interface AnomalyThresholdDataPoint {
-  external_alert_id: number;
-  timestamp: number;
-  value: number;
-  yhat_lower: number;
-  yhat_upper: number;
-}
-
-interface AnomalyThresholdDataResponse {
-  data: AnomalyThresholdDataPoint[];
 }
 
 function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
@@ -170,8 +156,6 @@ export function useMetricDetectorChart({
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const organization = useOrganization();
 
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
@@ -223,28 +207,6 @@ export function useMetricDetectorChart({
     };
   }, [series]);
 
-  const hasAnomalyDataFlag = organization.features.includes(
-    'anomaly-detection-threshold-data'
-  );
-
-  const {data: anomalyData} = useApiQuery<AnomalyThresholdDataResponse>(
-    [
-      `/organizations/${organization.slug}/detectors/${detector.id}/anomaly-data/`,
-      {
-        query: {
-          start: metricTimestamps.start ? metricTimestamps.start : undefined,
-          end: metricTimestamps.end,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled:
-        hasAnomalyDataFlag &&
-        Boolean(detector.id && metricTimestamps.start && metricTimestamps.end),
-    }
-  );
-
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions: detector.conditionGroup?.conditions,
@@ -252,104 +214,12 @@ export function useMetricDetectorChart({
       comparisonSeries,
     });
 
-  const anomalyThresholdSeries = useMemo(() => {
-    if (!anomalyData?.data || anomalyData.data.length === 0 || series.length === 0) {
-      return [];
-    }
-
-    const data = anomalyData.data;
-    const metricData = series[0]?.data;
-
-    if (!metricData || metricData.length === 0) {
-      return [];
-    }
-
-    const anomalyMap = new Map(data.map(point => [point.timestamp * 1000, point]));
-
-    const upperBoundData: Array<[number, number]> = [];
-    const lowerBoundData: Array<[number, number]> = [];
-    const seerValueData: Array<[number, number]> = [];
-
-    metricData.forEach(metricPoint => {
-      const timestamp =
-        typeof metricPoint.name === 'number'
-          ? metricPoint.name
-          : new Date(metricPoint.name).getTime();
-      const anomalyPoint = anomalyMap.get(timestamp);
-
-      if (anomalyPoint) {
-        upperBoundData.push([timestamp, anomalyPoint.yhat_upper]);
-        lowerBoundData.push([timestamp, anomalyPoint.yhat_lower]);
-        seerValueData.push([timestamp, anomalyPoint.value]);
-      }
-    });
-
-    const lineColor = theme.red300;
-    const seerValueColor = theme.yellow300;
-
-    return [
-      LineSeries({
-        name: 'Upper Threshold',
-        data: upperBoundData,
-        lineStyle: {
-          color: lineColor,
-          type: 'dashed',
-          width: 1,
-          dashOffset: 0,
-        },
-        areaStyle: {
-          color: lineColor,
-          opacity: 0.05,
-          origin: 'end',
-        },
-        itemStyle: {color: lineColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'none',
-        connectNulls: true,
-        step: false,
-      }),
-      LineSeries({
-        name: 'Lower Threshold',
-        data: lowerBoundData,
-        lineStyle: {
-          color: lineColor,
-          type: 'dashed',
-          width: 1,
-          dashOffset: 0,
-        },
-        areaStyle: {
-          color: lineColor,
-          opacity: 0.05,
-          origin: 'start',
-        },
-        itemStyle: {color: lineColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'none',
-        connectNulls: true,
-        step: false,
-      }),
-      LineSeries({
-        name: 'Seer Historical Value',
-        data: seerValueData,
-        lineStyle: {
-          color: seerValueColor,
-          type: 'solid',
-          width: 2,
-        },
-        itemStyle: {color: seerValueColor},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-        symbol: 'circle',
-        symbolSize: 4,
-        connectNulls: true,
-      }),
-    ];
-  }, [anomalyData, series, theme]);
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detector.id,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series,
+  });
 
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [
