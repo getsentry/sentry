@@ -159,7 +159,7 @@ export function getTargetWithReadableQueryParams(
     SPANS_CROSS_EVENTS_KEY,
     writableQueryParams?.crossEvents === null
       ? null
-      : writableQueryParams.crossEvents?.map(crossEvent => JSON.stringify(crossEvent))
+      : JSON.stringify(writableQueryParams.crossEvents)
   );
 
   return target;
