@@ -1905,10 +1905,10 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert isinstance(auth_log["attributes"].get("timestamp_precise"), int)
 
         for name, value, type in [
-            ("message", "Request processed successfully", "string"),
+            ("message", "User authentication failed", "string"),
             ("project", self.project.slug, "string"),
             ("project.id", self.project.id, "integer"),
-            ("severity", "INFO", "string"),
+            ("severity", "ERROR", "string"),
             # todo: boolean and double custom attributes
         ]:
             assert auth_log["attributes"][name]["value"] == value
@@ -1920,7 +1920,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             trace_id=self.trace_id,
             stats_period="1d",
             message_substring="database",
-            message_substring_case_sensitive=False,
+            substring_case_sensitive=False,
         )
         assert result is not None
         assert len(result["data"]) == 2
@@ -1933,7 +1933,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             trace_id=self.trace_id,
             stats_period="1d",
             message_substring="database",
-            message_substring_case_sensitive=True,
+            substring_case_sensitive=True,
         )
         assert result is not None
         assert len(result["data"]) == 1
@@ -1960,7 +1960,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             trace_id=self.trace_id,
             stats_period="1d",
             message_substring="database",
-            message_substring_case_sensitive=False,
+            substring_case_sensitive=False,
             limit=2,
         )
         assert result is not None

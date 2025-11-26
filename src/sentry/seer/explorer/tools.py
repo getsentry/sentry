@@ -3,7 +3,6 @@ import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
-from psycopg2.extensions import BOOLEAN
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -23,7 +22,7 @@ from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.constants import DOUBLE, INT, STRING
+from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
