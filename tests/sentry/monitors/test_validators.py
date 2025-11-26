@@ -19,6 +19,7 @@ from sentry.monitors.models import (
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -261,6 +262,11 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert assign_seat.called
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.DISABLED
+
+        # Verify the detector is also disabled when quota is exceeded
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert detector.enabled is False
 
     def test_invalid_schedule(self):
         data = {
