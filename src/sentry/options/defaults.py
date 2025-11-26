@@ -1,7 +1,5 @@
 import os
 
-from django.conf import settings
-
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
@@ -18,7 +16,6 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.env import in_test_environment
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # Cache
@@ -391,18 +388,6 @@ register(
     default={"base_url": "http://127.0.0.1:8888"},
     flags=FLAG_NOSTORE,
 )
-# Replacement for the host part of URLs to Objectstore
-# This replacement is carried out by the `maybe_rewrite_url` function in `src/sentry/objectstore/__init__.py`
-# This should be used for local development and testing, where services can run either locally or in containers
-# By default, assumes that Sentry runs as a local process while other services run in containers
-# This is compatible with `sentry`'s CI and generally development workflows using `devservices`
-register(
-    "objectstore.host_replacement",
-    default=os.environ.get("SENTRY_OBJECTSTORE_HOST_REPLACEMENT")
-    or ("objectstore" if settings.IS_DEV or in_test_environment() else None),
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(

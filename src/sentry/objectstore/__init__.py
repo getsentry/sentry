@@ -1,10 +1,14 @@
+import subprocess
 from datetime import timedelta
 from urllib.parse import urlparse, urlunparse
 
+from django.conf import settings
 from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
 from objectstore_client.metrics import Tags
 
+from sentry import options
 from sentry.utils import metrics as sentry_metrics
+from sentry.utils.env import in_test_environment
 
 __all__ = ["get_attachments_session"]
 
@@ -41,23 +45,32 @@ _ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timed
 def get_attachments_session(org: int, project: int) -> Session:
     global _ATTACHMENTS_CLIENT
     if not _ATTACHMENTS_CLIENT:
-        from sentry import options as options_store
-
-        options = options_store.get("objectstore.config")
+        config = options.get("objectstore.config")
         _ATTACHMENTS_CLIENT = Client(
-            options["base_url"],
+            config["base_url"],
             metrics_backend=SentryMetricsBackend(),
         )
 
     return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
 
 
-def maybe_rewrite_url(url: str) -> str:
-    from sentry import options
+def get_symbolicator_url(session: Session, key: str) -> str:
+    """Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore."""
 
-    replacement = options.get("objectstore.host_replacement")
-    if not replacement:
+    url = session.object_url(key)
+    if not (settings.IS_DEV or in_test_environment()):
         return url
+
+    docker_ps = subprocess.run(
+        ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
+    )
+    if docker_ps.returncode != 0:
+        raise RuntimeError("Failed to run docker ps")
+
+    if "symbolicator" not in docker_ps.stdout:
+        return url
+
+    replacement = "objectstore"
     parsed = urlparse(url)
     if parsed.port:
         replacement += f":{parsed.port}"

@@ -26,7 +26,7 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import get_attachments_session, maybe_rewrite_url
+from sentry.objectstore import get_attachments_session, get_symbolicator_url
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
@@ -197,8 +197,7 @@ class Symbolicator:
 
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = session.object_url(minidump.stored_id)
-            storage_url = maybe_rewrite_url(storage_url)
+            storage_url = get_symbolicator_url(session, minidump.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -243,8 +242,7 @@ class Symbolicator:
 
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = session.object_url(report.stored_id)
-            storage_url = maybe_rewrite_url(storage_url)
+            storage_url = get_symbolicator_url(session, report.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
