@@ -264,9 +264,10 @@ export function ReleaseComparisonSelector({
         allOptionDescription={t('Show data from all releases.')}
         allOptionTitle={t('All')}
         onChange={newValue => {
-          trackAnalytics('insights.release.select_primary_release', {
+          trackAnalytics('insights.release.select_release', {
             organization,
-            release: (newValue.value as string) ?? '',
+            filtered: defined(newValue.value) && newValue.value !== '',
+            type: 'primary',
             moduleName,
           });
 
@@ -301,9 +302,10 @@ export function ReleaseComparisonSelector({
           allOptionDescription={t('No comparison.')}
           allOptionTitle={t('None')}
           onChange={newValue => {
-            trackAnalytics('insights.release.select_secondary_release', {
+            trackAnalytics('insights.release.select_release', {
               organization,
-              release: (newValue.value as string) ?? '',
+              filtered: defined(newValue.value) && newValue.value !== '',
+              type: 'secondary',
               moduleName,
             });
 

@@ -40,11 +40,12 @@ describe('ReleaseComparisonSelector analytics', () => {
     await userEvent.click(option);
 
     expect(trackAnalytics).toHaveBeenCalledWith(
-      'insights.release.select_primary_release',
+      'insights.release.select_release',
       expect.objectContaining({
         organization,
         moduleName: ModuleName.MOBILE_VITALS,
-        release: 'v2.0.0',
+        filtered: true,
+        type: 'primary',
       })
     );
 
@@ -53,11 +54,12 @@ describe('ReleaseComparisonSelector analytics', () => {
     await userEvent.click(allOption);
 
     expect(trackAnalytics).toHaveBeenCalledWith(
-      'insights.release.select_primary_release',
+      'insights.release.select_release',
       expect.objectContaining({
         organization,
         moduleName: ModuleName.MOBILE_VITALS,
-        release: '',
+        filtered: false,
+        type: 'primary',
       })
     );
   });
