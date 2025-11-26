@@ -1244,6 +1244,12 @@ def _get_project_config(
         except Exception:
             capture_exception()
 
+    # PlayStation / Tempest configuration
+    if features.has("organizations:relay-playstation-ingestion", project.organization):
+        config["playstationConfig"] = {
+            "storeProsperodump": project.get_option("sentry:tempest_fetch_dumps", False)
+        }
+
     return ProjectConfig(project, **cfg)
 
 
