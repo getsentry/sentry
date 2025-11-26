@@ -146,6 +146,27 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             ),
         }
 
+    def test_rejects_multiple_data_sources(self):
+        """Test that multiple data sources are rejected for uptime monitors."""
+        data = self.get_valid_data(
+            data_sources=[
+                {
+                    "url": "https://sentry.io",
+                    "intervalSeconds": 60,
+                    "timeoutMs": 1000,
+                },
+                {
+                    "url": "https://example.com",
+                    "intervalSeconds": 60,
+                    "timeoutMs": 1000,
+                },
+            ]
+        )
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "dataSources" in validator.errors
+        assert "Only one data source is allowed" in str(validator.errors["dataSources"])
+
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
         return_value=Outcome.ACCEPTED,
