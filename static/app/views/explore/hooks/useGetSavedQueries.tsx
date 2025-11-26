@@ -95,7 +95,7 @@ export type SortOption =
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
-type ReadableSavedQuery = {
+export type ReadableSavedQuery = {
   dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
