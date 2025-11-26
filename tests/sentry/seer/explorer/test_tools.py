@@ -1148,7 +1148,8 @@ class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, Occurre
             mock_get_recommended_event.return_value = event
 
             # Second newer event
-            data = load_data("python", timestamp=first_seen + timedelta(minutes=6, seconds=7))
+            new_timestamp = first_seen + timedelta(minutes=6, seconds=7)
+            data = load_data("python", timestamp=new_timestamp)
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             self.store_event(data=data, project_id=self.project.id)
 
