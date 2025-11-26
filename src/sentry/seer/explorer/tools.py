@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
+from psycopg2.extensions import BOOLEAN
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -21,6 +22,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -1017,7 +1019,7 @@ def _make_get_trace_request(
         - timestamp: ISO 8601 timestamp, Z suffix.
         - attributes: A dictionary of dictionaries, where the keys are the attribute names.
           - attributes[name].value: The value of the attribute (str, int, float, bool).
-          - attributes[name].type: The string type of the attribute ("string", "integer", "double", "boolean").
+          - attributes[name].type: The string type of the attribute.
     """
     organization = cast(Organization, resolver.params.organization)
     projects = list(resolver.params.projects)
@@ -1049,56 +1051,57 @@ def _make_get_trace_request(
     if limit:
         request.limit = limit
 
-    # Query EAP EndpointGetTrace
+    # Query EAP EndpointGetTrace then format the response - based on spans_rpc.Spans.run_trace_query
     response = get_trace_rpc(request)
 
-    # Format the response - based on spans_rpc.Spans.run_trace_query
-    for item_group in response.item_groups:
-        # Collect the returned attributes
-        attributes = []
-        for item in item_group.items:
-            for attribute in item.attributes:
-                attributes.append(attribute.key.name)
+    # Map internal names to attribute definitions for easy lookup
+    resolved_attrs_by_internal_name: dict[str, ResolvedAttribute] = {}
+    for r in resolver.definitions.columns.values():
+        # Use the first found resolved attribute for each internal name. Avoids duplicates like project.id and project_id.
+        if not r.secondary_alias and r.internal_name not in resolved_attrs_by_internal_name:
+            resolved_attrs_by_internal_name[r.internal_name] = r
 
-        # Resolve the attributes to get the types and public aliases
-        items: list[dict[str, Any]] = []
-        resolved_attrs, _ = resolver.resolve_attributes(attributes)
-        resolved_attrs_by_name = {attributes[i]: resolved_attrs[i] for i in range(len(attributes))}
+    # Parse response, returning the public aliases.
+    for item_group in response.item_groups:
+        item_dicts: list[dict[str, Any]] = []
 
         for item in item_group.items:
             attr_dict: dict[str, dict[str, Any]] = {}
-            for attribute in item.attributes:
-                r = resolved_attrs_by_name[attribute.key.name]
-                if r.proto_definition.type == STRING:
-                    attr_dict[r.public_alias] = {
-                        "value": attribute.value.val_str,
-                        "type": "string",
+            for a in item.attributes:
+                r = resolved_attrs_by_internal_name.get(a.key.name)
+                public_alias = r.public_alias if r else a.key.name
+
+                if a.key.type == STRING:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_str,
+                        "type": STRING,
                     }
-                elif r.proto_definition.type == DOUBLE:
-                    attr_dict[r.public_alias] = {
-                        "value": attribute.value.val_double,
-                        "type": "double",
+                elif a.key.type == DOUBLE:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_double,
+                        "type": DOUBLE,
                     }
-                elif r.search_type == "boolean":
-                    attr_dict[r.public_alias] = {
-                        "value": attribute.value.val_int == 1,
-                        "type": "boolean",
+                elif a.key.type == BOOLEAN or (
+                    a.key.type == INT and r and r.search_type == "boolean"
+                ):
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_int == 1,
+                        "type": BOOLEAN,
                     }
-                elif r.proto_definition.type == INT:
-                    attr_dict[r.public_alias] = {
-                        "value": attribute.value.val_int,
-                        "type": "integer",
+                elif a.key.type == INT:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_int,
+                        "type": INT,
                     }
-                    if r.public_alias == "project.id":
+
+                    if r and r.internal_name == "sentry.project_id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
-                            "value": resolver.params.project_id_map.get(
-                                attribute.value.val_int, "Unknown"
-                            ),
-                            "type": "string",
+                            "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
+                            "type": STRING,
                         }
 
-            items.append(
+            item_dicts.append(
                 {
                     "id": item.id,
                     "timestamp": item.timestamp.ToJsonString(),
@@ -1107,7 +1110,7 @@ def _make_get_trace_request(
             )
 
         # We expect exactly one item group in the request/response.
-        return items
+        return item_dicts
 
     return []
 
