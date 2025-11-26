@@ -831,6 +831,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.delete_pending_groups",
+    "sentry.deletions.tasks.delete_seer_grouping_records",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -894,8 +896,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
-    "sentry.tasks.delete_pending_groups",
-    "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.groupowner",
@@ -1009,7 +1009,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("0", "*/2", "*", "*", "*"),
     },
     "delete-pending-groups": {
-        "task": "deletions:sentry.tasks.delete_pending_groups",
+        "task": "deletions:sentry.deletions.tasks.delete_pending_groups",
         # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
         "schedule": task_crontab("0", "*/6", "*", "*", "*"),
     },
