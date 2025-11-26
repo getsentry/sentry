@@ -217,6 +217,7 @@ const patterns: RegExp[] = [
   new RegExp('^avatar/[^/]+/$'),
   new RegExp('^sentry-app-avatar/[^/]+/$'),
   new RegExp('^doc-integration-avatar/[^/]+/$'),
+  new RegExp('^_chartcuterie-config\\.js$'),
   new RegExp('^robots\\.txt$'),
   new RegExp('^\\.well-known/security\\.txt$'),
   new RegExp('^\\.well-known/mcp\\.json$'),
