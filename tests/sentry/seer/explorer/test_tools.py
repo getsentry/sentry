@@ -1871,6 +1871,15 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                 },
                 timestamp=self.nine_mins_ago,
             ),
+            self.create_ourlog(
+                {
+                    "body": "Another database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                    "trace_id": self.trace_id,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
         ]
         self.store_ourlogs(self.logs)
 
@@ -1881,7 +1890,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 2
+        assert len(result["data"]) == 3
 
         auth_log_expected = self.logs[0]
         auth_log = None
@@ -1900,7 +1909,62 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             ("project", self.project.slug, "string"),
             ("project.id", self.project.id, "integer"),
             ("severity", "INFO", "string"),
-            # todo: boolean and double attributes
+            # todo: boolean and double custom attributes
         ]:
             assert auth_log["attributes"][name]["value"] == value
             assert auth_log["attributes"][name]["type"] == type
+
+    def test_get_log_attributes_for_trace_substring_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            message_substring_case_sensitive=False,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.logs[2].item_id.hex() in ids
+        assert self.logs[3].item_id.hex() in ids
+
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            message_substring_case_sensitive=True,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == self.logs[3].item_id.hex()
+
+    def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            limit=1,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] in [
+            self.logs[0].item_id.hex(),
+            self.logs[2].item_id.hex(),
+            self.logs[3].item_id.hex(),
+        ]
+
+    def test_get_log_attributes_for_trace_limit_with_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            message_substring_case_sensitive=False,
+            limit=2,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.logs[2].item_id.hex() in ids
+        assert self.logs[3].item_id.hex() in ids
