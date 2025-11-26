@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -296,11 +297,18 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   // OFF = stop at code_changes, ON = stop at open_pr
   const handleAutoOpenPrChange = useCallback(
     (value: boolean) => {
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: value ? 'open_pr' : 'code_changes',
-        automation_handoff: undefined, // Clear cursor handoff when using Seer PR
-      });
+      updateProjectSeerPreferences(
+        {
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: value ? 'open_pr' : 'code_changes',
+          automation_handoff: undefined, // Clear cursor handoff when using Seer PR
+        },
+        {
+          onError: () => {
+            addErrorMessage(t('Failed to update auto-open PR setting'));
+          },
+        }
+      );
     },
     [updateProjectSeerPreferences, preference?.repositories]
   );
@@ -314,21 +322,36 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         if (!cursorIntegration) {
           throw new Error('Cursor integration not found');
         }
-        updateProjectSeerPreferences({
-          repositories: preference?.repositories || [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
-            integration_id: parseInt(cursorIntegration.id, 10),
+        updateProjectSeerPreferences(
+          {
+            repositories: preference?.repositories || [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: parseInt(cursorIntegration.id, 10),
+              auto_create_pr: false,
+            },
           },
-        });
+          {
+            onError: () => {
+              addErrorMessage(t('Failed to update Cursor handoff setting'));
+            },
+          }
+        );
       } else {
-        updateProjectSeerPreferences({
-          repositories: preference?.repositories || [],
-          automated_run_stopping_point: 'code_changes',
-          automation_handoff: undefined,
-        });
+        updateProjectSeerPreferences(
+          {
+            repositories: preference?.repositories || [],
+            automated_run_stopping_point: 'code_changes',
+            automation_handoff: undefined,
+          },
+          {
+            onError: () => {
+              addErrorMessage(t('Failed to update Cursor handoff setting'));
+            },
+          }
+        );
       }
     },
     [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
