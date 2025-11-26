@@ -196,10 +196,6 @@ export function SearchQueryBuilderProvider({
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
   useEffect(() => {
-    if (!parsedQuery?.length) {
-      return;
-    }
-
     // on the first render, we want to check the currently parsed query,
     // then on subsequent renders, we want to ensure the parsedQuery hasnt changed
     if (!firstRender.current && state.query === previousQuery) {
@@ -208,17 +204,22 @@ export function SearchQueryBuilderProvider({
     firstRender.current = false;
 
     const warnings = parsedQuery
-      .filter(token => 'warning' in token && defined(token.warning))
-      .reduce((acc, isWarning) => acc + (isWarning ? 1 : 0), 0);
+      ?.filter(token => 'warning' in token && defined(token.warning))
+      ?.reduce((acc, isWarning) => acc + (isWarning ? 1 : 0), 0);
+    if (warnings) {
+      Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
+        attributes: {searchSource},
+      });
+    }
+
     const invalids = parsedQuery
-      .filter(token => 'invalid' in token && defined(token.invalid))
-      .reduce((acc, isInvalids) => acc + (isInvalids ? 1 : 0), 0);
-    Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
-      attributes: {searchSource},
-    });
-    Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
-      attributes: {searchSource},
-    });
+      ?.filter(token => 'invalid' in token && defined(token.invalid))
+      ?.reduce((acc, isInvalids) => acc + (isInvalids ? 1 : 0), 0);
+    if (invalids) {
+      Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
+        attributes: {searchSource},
+      });
+    }
   }, [parsedQuery, state.query, previousQuery, searchSource]);
 
   const handleSearch = useHandleSearch({
