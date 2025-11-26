@@ -8,6 +8,7 @@ from sentry.tasks.llm_issue_detection import (
     run_llm_issue_detection,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
 
@@ -140,6 +141,7 @@ class LLMIssueDetectionTest(TestCase):
         evidence_names = {e.name for e in occurrence.evidence_display}
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
 
+    @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
     @patch("sentry.tasks.llm_issue_detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
