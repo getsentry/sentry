@@ -6,6 +6,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from django.db import router, transaction
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
@@ -181,18 +183,19 @@ def _update_posted_status_check(
     error: Exception | None = None,
 ) -> None:
     """Update the posted_status_check field in the artifact's extras."""
-    preprod_artifact.refresh_from_db(fields=["extras"])
-    extras = preprod_artifact.extras or {}
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
+        extras = artifact.extras or {}
 
-    posted_status_check: dict[str, Any] = {"success": success}
-    if success and check_id:
-        posted_status_check["check_id"] = check_id
-    if not success:
-        posted_status_check["error_type"] = _get_error_type(error).value
+        posted_status_check: dict[str, Any] = {"success": success}
+        if success and check_id:
+            posted_status_check["check_id"] = check_id
+        if not success:
+            posted_status_check["error_type"] = _get_error_type(error).value
 
-    extras["posted_status_check"] = posted_status_check
-    preprod_artifact.extras = extras
-    preprod_artifact.save(update_fields=["extras"])
+        extras["posted_status_check"] = posted_status_check
+        artifact.extras = extras
+        artifact.save(update_fields=["extras"])
 
 
 def _get_error_type(error: Exception | None) -> StatusCheckErrorType:
