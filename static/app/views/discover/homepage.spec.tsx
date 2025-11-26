@@ -1,9 +1,7 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -22,7 +20,6 @@ import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
   const features = ['discover-query'];
-  let initialData: ReturnType<typeof initializeOrg>;
   let organization: ReturnType<typeof OrganizationFixture>;
   let mockHomepage: jest.Mock;
   let measurementsMetaMock: jest.Mock;
@@ -31,15 +28,8 @@ describe('Discover > Homepage', () => {
     organization = OrganizationFixture({
       features,
     });
-    // TODO: delete this?
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: LocationFixture(),
-      },
-    });
 
-    ProjectsStore.loadInitialData(initialData.projects);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -110,7 +100,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -135,7 +125,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -153,7 +143,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
     renderGlobalModal();
 
@@ -183,7 +173,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -230,7 +220,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
@@ -250,12 +240,12 @@ describe('Discover > Homepage', () => {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-            field: ['project'], // TODO: should field be passed here? if so, what should it be passed as?
+            field: ['title'],
           },
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     await waitFor(() => {
@@ -278,12 +268,12 @@ describe('Discover > Homepage', () => {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
-            field: ['project'],
+            field: ['title'],
           },
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     await userEvent.click(await screen.findByText('24H'));
@@ -312,7 +302,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     await waitFor(() => {
@@ -346,7 +336,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     await waitFor(() => {
@@ -395,7 +385,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -422,7 +412,7 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
