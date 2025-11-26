@@ -899,6 +899,10 @@ export function hasBillingInfo(
   subscription: Subscription,
   isComplete: boolean
 ) {
+  if (subscription.isSelfServePartner) {
+    return true;
+  }
+
   if (isComplete) {
     return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
   }
