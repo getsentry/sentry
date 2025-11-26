@@ -6,7 +6,6 @@ from wsgiref.util import is_hop_by_hop
 import requests
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
-from rest_framework.parsers import BaseParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +15,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
+
+CHUNK_SIZE = 512 * 1024
 
 
 @region_silo_endpoint
@@ -62,67 +63,36 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         method: Literal["GET", "PUT", "POST", "DELETE"],
         path: str,
         request: Request,
-    ) -> StreamingHttpResponse:
+    ) -> Response | StreamingHttpResponse:
         target_base_url = options.get("objectstore.config")["base_url"].rstrip("/")
         target_url = urljoin(target_base_url, path)
 
         headers = dict(request.headers)
-        is_chunked = headers.get("Transfer-Encoding") == "chunked"
+        if method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
+            return Response("Only Transfer-Encoding: chunked is supported", status=400)
 
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
-        body_stream: StreamReader | ChunkedStreamDecoder | None = None
+        body_stream = None
         if method in ("PUT", "POST"):
             wsgi_input = request._request.META.get("wsgi.input")
-            if wsgi_input and hasattr(wsgi_input, "_read"):
-                stream_func = wsgi_input._read
-                content_length = request._request.META.get("CONTENT_LENGTH")
-
-                if is_chunked:
-                    print("chunked")
-                    body_stream = ChunkedStreamDecoder(stream_func)
-                elif content_length:
-                    print("reader with content length")
-                    body_stream = StreamReader(stream_func, int(content_length))
-                    headers["Content-Length"] = content_length
-                else:
-                    print("reader without content length")
-                    body_stream = StreamReader(stream_func)
+            assert wsgi_input
+            stream_func = wsgi_input._read
+            body_stream = ChunkedStreamDecoder(stream_func)
 
         response = requests.request(
             method,
             url=target_url,
             headers=headers,
-            params=dict(request.GET) if request.GET else None,
             data=body_stream,
+            params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
         )
         response.raise_for_status()
 
-        return parse_objectstore_response(response)
-
-
-class StreamReader:
-    """
-    Wraps a stream function to provide a file-like interface for requests library.
-    Streams data without buffering the entire body in memory.
-    """
-
-    def __init__(self, read_func: Callable[[int], bytes], content_length: int | None = None):
-        self._read = read_func
-        self._content_length = content_length
-
-    def read(self, size: int = -1) -> bytes:
-        if size == -1 and self._content_length:
-            size = self._content_length
-        return self._read(size)
-
-    def __len__(self) -> int:
-        if self._content_length is None:
-            raise AttributeError("Content length unknown")
-        return self._content_length
+        return stream_response(response)
 
 
 class ChunkedStreamDecoder:
@@ -183,14 +153,8 @@ class ChunkedStreamDecoder:
         return b"".join(result)
 
 
-def parse_objectstore_response(response: ExternalResponse) -> StreamingHttpResponse:
-    """
-    Converts requests Response to StreamingHttpResponse, preserving Content-Encoding
-    by disabling automatic decompression.
-    """
-    CHUNK_SIZE = 512 * 1024
-
-    def stream_response() -> Generator[bytes]:
+def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
+    def stream() -> Generator[bytes]:
         response.raw.decode_content = False
         while True:
             chunk = response.raw.read(CHUNK_SIZE)
@@ -199,9 +163,8 @@ def parse_objectstore_response(response: ExternalResponse) -> StreamingHttpRespo
             yield chunk
 
     streamed_response = StreamingHttpResponse(
-        streaming_content=stream_response(),
+        streaming_content=stream(),
         status=response.status_code,
-        content_type=response.headers.pop("Content-Type", None),
     )
 
     for header, value in response.headers.items():
@@ -209,8 +172,3 @@ def parse_objectstore_response(response: ExternalResponse) -> StreamingHttpRespo
             streamed_response[header] = value
 
     return streamed_response
-
-
-def get_target_url(path: str) -> str:
-
-    return url
