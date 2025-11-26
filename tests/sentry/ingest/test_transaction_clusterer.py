@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -13,6 +14,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_active_projects,
     get_redis_client,
     get_transaction_names,
+    record_segment_name,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -205,6 +207,47 @@ def test_record_transactions(
             "transaction": txname,
             "transaction_info": {"source": source},
         },
+    )
+    assert len(mocked_record.mock_calls) == expected
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+@django_db_all
+@pytest.mark.parametrize(
+    "source, segment_name, attributes, expected",
+    [
+        ("url", "/a/b/c", {}, 1),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 200}},
+            1,
+        ),
+        ("route", "/", {}, 0),
+        ("url", None, {}, 0),
+        (
+            "url",
+            "/a/b/c",
+            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 404}},
+            0,
+        ),
+        (None, "/a/b/c", {}, 1),
+        (None, "foo", {}, 0),
+    ],
+)
+def test_record_segment_name(
+    mocked_record, default_organization, source, segment_name, attributes, expected
+) -> None:
+    project = Project(id=111, name="project", organization_id=default_organization.id)
+    record_segment_name(
+        project,
+        {
+            "name": segment_name,
+            "attributes": {
+                ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {"type": "string", "value": source},
+                **attributes,
+            },
+        },  # type: ignore[typeddict-item]
     )
     assert len(mocked_record.mock_calls) == expected
 

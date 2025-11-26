@@ -75,6 +75,7 @@ export type RuleDefault = RuleBase & {
 
 type RulePattern = RuleBase & {
   pattern: string;
+  replaceCaptured: boolean;
   type: RuleType.PATTERN;
 } & Pick<RuleDefault, 'method'>;
 
@@ -94,7 +95,12 @@ export type EventId = {
   value: string;
 };
 
-export type EditableRule = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
+export type EditableRule = Omit<
+  {
+    [K in KeysOfUnion<Rule>]: K extends 'replaceCaptured' ? boolean : string;
+  },
+  'id'
+>;
 
 export type AttributeResults = Record<
   AllowedDataScrubbingDatasets,
@@ -122,6 +128,7 @@ type PiiConfigPattern = {
     method: RulePattern['method'];
   };
   type: RulePattern['type'];
+  replaceGroups?: number[];
 };
 
 type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
