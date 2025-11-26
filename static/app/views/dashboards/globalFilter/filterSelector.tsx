@@ -212,7 +212,16 @@ function FilterSelector({
     if (!filterToken) {
       return;
     }
+
     setActiveFilterValues(opts);
+    if (opts.length === 0) {
+      setStagedOperator(TermOperator.DEFAULT);
+      onUpdateFilter({
+        ...globalFilter,
+        value: '',
+      });
+      return;
+    }
 
     let newValue = '';
     if (opts.length !== 0) {
@@ -266,7 +275,7 @@ function FilterSelector({
   const renderFilterSelectorTrigger = () => (
     <FilterSelectorTrigger
       globalFilter={globalFilter}
-      activeFilterValues={initialValues}
+      activeFilterValues={stagedFilterValues}
       operator={stagedOperator}
       options={options}
       queryResult={queryResult}
