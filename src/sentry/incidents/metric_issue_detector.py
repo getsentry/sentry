@@ -159,9 +159,13 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
     if type(new_extrapolation_mode) is int:
         new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
+    if type(new_extrapolation_mode) is ExtrapolationMode:
+        new_extrapolation_mode = new_extrapolation_mode.name.lower()
     if type(old_extrapolation_mode) is int:
         old_extrapolation_mode = ExtrapolationMode(old_extrapolation_mode).name.lower()
-    if new_extrapolation_mode not in [name for name, value in ExtrapolationMode.as_text_choices()]:
+    if type(old_extrapolation_mode) is ExtrapolationMode:
+        old_extrapolation_mode = old_extrapolation_mode.name.lower()
+    if ExtrapolationMode.from_str(new_extrapolation_mode) is None:
         return True
     if (
         new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
