@@ -240,12 +240,13 @@ class Spans(rpc_dataset_common.RPCBase):
                         span[resolved_column.public_alias] = attribute.value.val_str
                     elif resolved_column.proto_definition.type == DOUBLE:
                         span[resolved_column.public_alias] = attribute.value.val_double
-                    elif resolved_column.proto_definition.type == BOOLEAN:
-                        span[resolved_column.public_alias] = attribute.value.val_bool
                     elif resolved_column.search_type == "boolean":
                         span[resolved_column.public_alias] = (
                             attribute.value.val_bool or attribute.value.val_int == 1
                         )
+                    elif resolved_column.proto_definition.type == BOOLEAN:
+                        span[resolved_column.public_alias] = attribute.value.val_bool
+
                     elif resolved_column.proto_definition.type == INT:
                         span[resolved_column.public_alias] = attribute.value.val_int
                         if resolved_column.public_alias == "project.id":
