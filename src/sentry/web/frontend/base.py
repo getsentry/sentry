@@ -48,7 +48,7 @@ from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
-from sentry.web.frontend.generic import FOREVER_CACHE
+from sentry.web.constants import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
 
