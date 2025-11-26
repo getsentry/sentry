@@ -13,7 +13,6 @@ from sentry.utils.json import prune_empty_keys
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
-ATTACHMENT_META_KEY = "{key}:a"
 ATTACHMENT_UNCHUNKED_DATA_KEY = "{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = "{key}:a:{id}:{chunk_index}"
 
@@ -187,14 +186,6 @@ class BaseAttachmentCache:
     def get_from_chunks(self, key: str, **attachment) -> CachedAttachment:
         return CachedAttachment(key=key, cache=self, **attachment)
 
-    def get(self, key: str) -> Generator[CachedAttachment]:
-        result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
-
-        for id, attachment in enumerate(result or ()):
-            attachment.setdefault("id", id)
-            attachment.setdefault("key", key)
-            yield CachedAttachment(cache=self, **attachment)
-
     def get_data(self, attachment: CachedAttachment) -> bytes:
         data = bytearray()
 
@@ -206,6 +197,3 @@ class BaseAttachmentCache:
             data.extend(decompressed)
 
         return bytes(data)
-
-    def delete(self, key: str):
-        self.inner.delete(ATTACHMENT_META_KEY.format(key=key))

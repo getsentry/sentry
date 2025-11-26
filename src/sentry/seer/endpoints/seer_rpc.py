@@ -90,6 +90,8 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     get_issue_and_event_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
     get_trace_item_attributes,
@@ -1037,6 +1039,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
+    "get_log_attributes_for_trace": get_log_attributes_for_trace,
+    "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
