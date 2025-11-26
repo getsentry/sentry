@@ -47,7 +47,7 @@ class LLMIssueDetectionTest(TestCase):
         )
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_trace_for_transaction")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
     @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_no_traces(self, mock_shuffle, mock_get_transactions, mock_get_trace):
@@ -157,14 +157,14 @@ class LLMIssueDetectionTest(TestCase):
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
-    @patch("sentry.tasks.llm_issue_detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
-    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.random.sample")
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
         self,
-        mock_sample,
+        mock_shuffle,
         mock_get_transactions,
         mock_get_trace,
         mock_seer_request,
@@ -175,7 +175,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_transaction.name = "api/users/list"
         mock_transaction.project_id = self.project.id
         mock_get_transactions.return_value = [mock_transaction]
-        mock_sample.side_effect = lambda x, n: x
+        mock_shuffle.return_value = None
 
         mock_span = EvidenceSpan(
             span_id="span123",

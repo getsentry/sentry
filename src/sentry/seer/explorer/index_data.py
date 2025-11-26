@@ -146,7 +146,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         auto_fields=True,
     )
 
-    # Step 1: Get a trace ID for the transaction
+    # Step 1: Get a random trace ID for the transaction
     escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
@@ -196,7 +196,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 3: Build span objects
-    spans: list[Span] = []
+    spans = []
     for row in spans_result.get("data", []):
         span_id = row.get("span_id")
         parent_span_id = row.get("parent_span")
