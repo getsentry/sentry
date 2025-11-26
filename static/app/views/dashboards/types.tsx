@@ -168,6 +168,7 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {
