@@ -1,7 +1,12 @@
 name: migrations-drift
 on:
   pull_request:
-    paths: ['src/sentry/**/migrations/**.py', '.github/workflows/migrations-drift.yml']
+    paths:
+      [
+        'tools/migrations/**.py',
+        'src/sentry/**/migrations/**.py',
+        '.github/workflows/migrations-drift.yml',
+      ]
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -17,7 +22,7 @@ defaults:
 
 jobs:
   drift:
-    name: migration drift
+    name: migration drift (non blocking)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
