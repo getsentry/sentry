@@ -1176,7 +1176,8 @@ def get_log_attributes_for_trace(
     )
 
     if not message_substring:
-        # Limit is already applied by the EAP request
+        if limit is not None:
+            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
         return {"data": items}
 
     # Filter on message substring.
@@ -1252,7 +1253,8 @@ def get_metric_attributes_for_trace(
     )
 
     if not metric_name:
-        # Limit is already applied by the EAP request
+        if limit is not None:
+            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
         return {"data": items}
 
     # Filter on metric name (exact case-insensitive match).

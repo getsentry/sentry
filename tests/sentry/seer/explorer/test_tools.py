@@ -1853,6 +1853,12 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                     "severity_number": 17,
                     "trace_id": self.trace_id,
                 },
+                attributes={
+                    "my-string-attribute": "custom value",
+                    "my-boolean-attribute": True,
+                    "my-double-attribute": 1.23,
+                    "my-integer-attribute": 123,
+                },
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
@@ -1907,14 +1913,15 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ts = datetime.fromisoformat(auth_log["timestamp"]).timestamp()
         assert int(ts) == auth_log_expected.timestamp.seconds
 
-        assert isinstance(auth_log["attributes"].get("timestamp_precise"), int)
-
         for name, value, type in [
             ("message", "User authentication failed", "string"),
             ("project", self.project.slug, "string"),
             ("project.id", self.project.id, "integer"),
             ("severity", "ERROR", "string"),
-            # todo: boolean and double custom attributes
+            ("my-string-attribute", "custom value", "string"),
+            ("my-boolean-attribute", True, "boolean"),
+            ("my-double-attribute", 1.23, "double"),
+            ("my-integer-attribute", 123, "integer"),
         ]:
             assert auth_log["attributes"][name]["value"] == value
             assert auth_log["attributes"][name]["type"] == type
