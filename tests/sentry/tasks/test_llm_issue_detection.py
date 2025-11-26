@@ -14,7 +14,6 @@ from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_l
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-
 from sentry.utils import json
 
 
@@ -35,7 +34,6 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
 
-
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
     def test_detect_llm_issues_no_transactions(self, mock_get_transactions):
@@ -43,7 +41,6 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.return_value = []
 
         detect_llm_issues_for_project(self.project.id)
-
 
         mock_get_transactions.assert_called_once_with(
             self.project.id, limit=50, start_time_delta={"minutes": 30}
@@ -63,7 +60,6 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_trace.return_value = None
 
         detect_llm_issues_for_project(self.project.id)
-
 
         mock_get_trace.assert_called_once_with(mock_transaction.name, mock_transaction.project_id)
 
@@ -159,7 +155,6 @@ class LLMIssueDetectionTest(TestCase):
 
         evidence_names = {e.name for e in occurrence.evidence_display}
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
-
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
