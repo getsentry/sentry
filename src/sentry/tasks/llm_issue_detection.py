@@ -9,7 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel
 
-from sentry import options
+from sentry import features, options
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -180,7 +180,13 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     Process a single project for LLM issue detection.
     """
     project = Project.objects.get_from_cache(id=project_id)
-    organization_id = project.organization_id
+    organization = project.organization
+
+    has_access = features.has("organizations:gen-ai-features", organization) and not bool(
+        organization.get_option("sentry:hide_ai_features")
+    )
+    if not has_access:
+        return
 
     transactions = get_transactions_for_project(
         project_id, limit=50, start_time_delta={"minutes": 30}
@@ -220,7 +226,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
             seer_request = {
                 "telemetry": [{**trace.dict(), "kind": "trace"}],
-                "organization_id": organization_id,
+                "organization_id": organization.id,
                 "project_id": project_id,
             }
             response = make_signed_seer_api_request(
