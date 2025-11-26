@@ -8,7 +8,8 @@ from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from requests import HTTPError
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -26,7 +27,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 
 DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
 
@@ -42,6 +43,8 @@ class CursorIntegrationMetadata(BaseModel):
     api_key: str
     webhook_secret: str
     domain_name: Literal["cursor.sh"] = "cursor.sh"
+    api_key_name: str | None = None
+    user_email: str | None = None
 
 
 metadata = IntegrationMetadata(
@@ -106,11 +109,36 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             raise IntegrationConfigurationError("Missing configuration data")
 
         webhook_secret = generate_token()
+        api_key = config["api_key"]
+
+        api_key_name = None
+        user_email = None
+        try:
+            client = CursorAgentClient(api_key=api_key, webhook_secret=webhook_secret)
+            cursor_metadata = client.get_api_key_metadata()
+            api_key_name = cursor_metadata.apiKeyName
+            user_email = cursor_metadata.userEmail
+        except (HTTPError, ApiError):
+            self.get_logger().exception(
+                "cursor.build_integration.metadata_fetch_failed",
+            )
+        except ValidationError:
+            self.get_logger().exception(
+                "cursor.build_integration.metadata_validation_failed",
+            )
+
+        integration_name = (
+            f"Cursor Cloud Agent - {user_email}/{api_key_name}"
+            if user_email and api_key_name
+            else "Cursor Cloud Agent"
+        )
 
         metadata = CursorIntegrationMetadata(
             domain_name="cursor.sh",
-            api_key=config["api_key"],
+            api_key=api_key,
             webhook_secret=webhook_secret,
+            api_key_name=api_key_name,
+            user_email=user_email,
         )
 
         return {
@@ -118,7 +146,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             # Why UUIDs? We use UUIDs here for each integration installation because we don't know how many times this USER-LEVEL API key will be used, or if the same org can have multiple cursor agents (in the near future)
             # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
             "external_id": uuid.uuid4().hex,
-            "name": "Cursor Agent",
+            "name": integration_name,
             "metadata": metadata.dict(),
         }
 
@@ -169,6 +197,18 @@ class CursorAgentIntegration(CodingAgentIntegration):
             api_key=self.api_key,
             webhook_secret=self.webhook_secret,
         )
+
+    def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
+        """Return metadata to display in the configurations list."""
+        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+
+        display_info = {}
+        if metadata.api_key_name:
+            display_info["api_key_name"] = metadata.api_key_name
+        if metadata.user_email:
+            display_info["user_email"] = metadata.user_email
+
+        return display_info if display_info else None
 
     @property
     def webhook_secret(self) -> str:
