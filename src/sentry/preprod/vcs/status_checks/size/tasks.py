@@ -181,6 +181,7 @@ def _update_posted_status_check(
     error: Exception | None = None,
 ) -> None:
     """Update the posted_status_check field in the artifact's extras."""
+    preprod_artifact.refresh_from_db(fields=["extras"])
     extras = preprod_artifact.extras or {}
 
     posted_status_check: dict[str, Any] = {"success": success}
