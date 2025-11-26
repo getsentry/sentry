@@ -26,9 +26,9 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "targetType": ActionType.SENTRY_APP,
-                "target_identifier": self.sentry_app_installation.uuid,
+                "targetIdentifier": self.sentry_app_installation.uuid,
             },
             "data": {"settings": self.sentry_app_settings},
         }
@@ -51,6 +51,27 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
             success=True, message="success"
         )
+
+        validator = BaseActionValidator(
+            data=self.valid_data,
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is True
+        validator.save()
+
+    @mock.patch(
+        "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
+    )
+    def test_validate_sentry_app_id(
+        self, mock_trigger_sentry_app_action_creators: mock.MagicMock
+    ) -> None:
+        mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
+            success=True, message="success"
+        )
+        self.valid_data["config"]["sentryAppIdentifier"] = SentryAppIdentifier.SENTRY_APP_ID
+        self.valid_data["config"]["targetIdentifier"] = str(self.sentry_app.id)
 
         validator = BaseActionValidator(
             data=self.valid_data,
@@ -106,7 +127,7 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID.SENTRY_APP_INSTALLATION_UUID,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "targetType": ActionType.SENTRY_APP,
                 "target_identifier": install.uuid,
             },
