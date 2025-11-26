@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import pytest
 import re
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import override_settings
 from django.urls import reverse
 
