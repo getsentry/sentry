@@ -173,16 +173,10 @@ def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode
 
 def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode:
     if type(extrapolation_mode) is int:
+        return ExtrapolationMode(extrapolation_mode)
+    if type(extrapolation_mode) is ExtrapolationMode:
         return extrapolation_mode
-    extrapolation_mode_options = ExtrapolationMode.as_text_choices()
-    numerical_extrapolation_mode = None
-    for name, value in extrapolation_mode_options:
-        if name == extrapolation_mode:
-            numerical_extrapolation_mode = value
-            break
-    if type(numerical_extrapolation_mode) is not int:
-        return None
-    return numerical_extrapolation_mode
+    return ExtrapolationMode.from_str(extrapolation_mode)
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
@@ -212,12 +206,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
                 )
 
-    def _validate_extrapolation_mode(self, extrapolation_mode: str) -> None:
-        if extrapolation_mode is not None and extrapolation_mode not in [
-            name for name, value in ExtrapolationMode.as_text_choices()
-        ]:
-            raise serializers.ValidationError(f"Invalid extrapolation mode: {extrapolation_mode}")
-        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+    def _validate_extrapolation_mode(self, extrapolation_mode: ExtrapolationMode) -> None:
+        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED:
             raise serializers.ValidationError(
                 "server_weighted extrapolation mode is not supported for new detectors."
             )
@@ -308,7 +298,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     "Failed to send data to Seer, cannot update detector"
                 )
 
-        numerical_extrapolation_mode = format_extrapolation_mode(
+        extrapolation_mode = format_extrapolation_mode(
             data_source.get("extrapolation_mode", snuba_query.extrapolation_mode)
         )
 
@@ -322,7 +312,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
-            extrapolation_mode=numerical_extrapolation_mode,
+            extrapolation_mode=extrapolation_mode,
         )
 
     def update_anomaly_detection(self, instance: Detector, validated_data: dict[str, Any]) -> bool:

@@ -1315,12 +1315,11 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         }
 
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Invalid extrapolation mode: blah",
-        ):
-            validator.save()
+        assert not validator.is_valid(), validator.errors
+        assert (
+            validator.errors["dataSources"]["extrapolationMode"][0]
+            == "Invalid extrapolation mode: blah"
+        )
 
     def test_nonexistent_extrapolation_mode_update(self) -> None:
         data = {
@@ -1361,9 +1360,9 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
         )
-        assert update_validator.is_valid(), update_validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Invalid extrapolation mode for this detector type.",
-        ):
-            update_validator.save()
+
+        assert not update_validator.is_valid(), update_validator.errors
+        assert (
+            update_validator.errors["dataSources"]["extrapolationMode"][0]
+            == "Invalid extrapolation mode: blah"
+        )

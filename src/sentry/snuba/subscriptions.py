@@ -89,7 +89,7 @@ def update_snuba_query(
     resolution,
     environment,
     event_types,
-    extrapolation_mode=None,
+    extrapolation_mode: ExtrapolationMode | None = None,
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
@@ -131,7 +131,7 @@ def update_snuba_query(
             resolution=int(resolution.total_seconds()),
             environment=environment,
             extrapolation_mode=(
-                extrapolation_mode
+                extrapolation_mode.value
                 if extrapolation_mode is not None
                 else snuba_query.extrapolation_mode
             ),

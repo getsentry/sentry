@@ -167,6 +167,15 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return validated
 
+    def validate_extrapolation_mode(self, extrapolation_mode: str) -> ExtrapolationMode | None:
+        if extrapolation_mode is not None:
+            extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
+            if extrapolation_mode_enum is None:
+                raise serializers.ValidationError(
+                    f"Invalid extrapolation mode: {extrapolation_mode}"
+                )
+            return extrapolation_mode_enum
+
     def validate(self, data):
         data = super().validate(data)
         self._validate_aggregate(data)
@@ -406,17 +415,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     @override
     def create_source(self, validated_data) -> QuerySubscription:
-        extrapolation_mode = validated_data.get("extrapolation_mode")
-        if extrapolation_mode is not None:
-            extrapolation_mode_options = ExtrapolationMode.as_text_choices()
-            for name, value in extrapolation_mode_options:
-                if name == extrapolation_mode:
-                    extrapolation_mode = ExtrapolationMode(value)
-                    break
-            if type(extrapolation_mode) is not ExtrapolationMode:
-                raise serializers.ValidationError(
-                    f"Invalid extrapolation mode: {extrapolation_mode}"
-                )
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],
@@ -427,7 +425,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),
-            extrapolation_mode=extrapolation_mode,
+            extrapolation_mode=validated_data.get("extrapolation_mode"),
         )
         return create_snuba_subscription(
             project=self.context["project"],
