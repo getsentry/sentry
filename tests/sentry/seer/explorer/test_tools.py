@@ -1917,15 +1917,15 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         for name, value, type in [
             ("message", "User authentication failed", "str"),
             ("project", self.project.slug, "str"),
-            ("project.id", self.project.id, "int"),
+            ("project.id", self.project.id, "double"),
             ("severity", "ERROR", "str"),
             ("my-string-attribute", "custom value", "str"),
-            ("my-boolean-attribute", True, "bool"),
+            ("my-boolean-attribute", True, "double"),
             ("my-double-attribute", 1.23, "double"),
-            ("my-integer-attribute", 123, "int"),
+            ("my-integer-attribute", 123, "double"),
         ]:
-            assert auth_log["attributes"][name]["value"] == value
-            assert auth_log["attributes"][name]["type"] == type
+            assert auth_log["attributes"][name]["value"] == value, name
+            assert auth_log["attributes"][name]["type"] == type, f"{name} type mismatch"
 
     def test_get_log_attributes_for_trace_substring_filter(self) -> None:
         result = get_log_attributes_for_trace(

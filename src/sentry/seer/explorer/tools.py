@@ -1070,6 +1070,7 @@ def _make_get_trace_request(
                 r = resolved_attrs_by_internal_name.get(a.key.name)
                 public_alias = r.public_alias if r else a.key.name
 
+                # Note - custom attrs not in the definitions can only be returned as strings or doubles.
                 if a.key.type == STRING:
                     attr_dict[public_alias] = {
                         "value": a.value.val_str,
@@ -1097,7 +1098,7 @@ def _make_get_trace_request(
                             "type": "int",
                         }
 
-                    if r and r.internal_name == "sentry.project_id":
+                    if public_alias == "project.id" or public_alias == "project_id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
                             "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
