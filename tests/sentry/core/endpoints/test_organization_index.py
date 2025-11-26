@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import re
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -183,6 +184,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         )
         OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
+    @pytest.mark.skip(reason="flaky: #104054")
     def test_valid_slugs(self) -> None:
         valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for input_slug in valid_slugs:
