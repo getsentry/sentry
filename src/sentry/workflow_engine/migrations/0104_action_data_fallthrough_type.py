@@ -28,7 +28,7 @@ def migrate_fallthrough_type(apps: StateApps, schema_editor: BaseDatabaseSchemaE
                 "Progress update",
                 extra={
                     "count": count,
-                    "current_detector_id": action.id,
+                    "current_action_id": action.id,
                 },
             )
 
