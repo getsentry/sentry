@@ -627,7 +627,7 @@ def _do_save_event(
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:
-                delete_cached_and_ratelimited_attachments(project, data, all_attachments)
+                delete_cached_and_ratelimited_attachments(project, all_attachments)
 
             if start_time:
                 metrics.timing(
