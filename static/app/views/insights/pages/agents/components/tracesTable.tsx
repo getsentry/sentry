@@ -123,7 +123,6 @@ export function TracesTable() {
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
-      limit: 100,
     },
     Referrer.TRACES_TABLE
   );
