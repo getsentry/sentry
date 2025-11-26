@@ -70,11 +70,18 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
             success=True, message="success"
         )
-        self.valid_data["config"]["sentryAppIdentifier"] = SentryAppIdentifier.SENTRY_APP_ID
-        self.valid_data["config"]["targetIdentifier"] = str(self.sentry_app.id)
+        valid_data = {
+            "type": Action.Type.SENTRY_APP,
+            "config": {
+                "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "targetType": ActionType.SENTRY_APP,
+                "targetIdentifier": str(self.sentry_app.id),
+            },
+            "data": {"settings": self.sentry_app_settings},
+        }
 
         validator = BaseActionValidator(
-            data=self.valid_data,
+            data=valid_data,
             context={"organization": self.organization},
         )
 
