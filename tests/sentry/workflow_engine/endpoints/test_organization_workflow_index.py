@@ -2,6 +2,8 @@ from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
+import responses
+
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -9,7 +11,6 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
@@ -24,7 +25,12 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from tests.sentry.workflow_engine.test_base import MockActionValidatorTranslator
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTarget,
+    ActionType,
+    SentryAppIdentifier,
+)
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, MockActionValidatorTranslator
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -375,7 +381,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
-class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
+class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
     method = "POST"
 
     def setUp(self) -> None:
@@ -403,6 +409,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                 "comparison": 1,
                 "conditionResult": True,
             }
+        ]
+        self.sentry_app, _ = self.create_sentry_app_with_schema()
+        self.sentry_app_settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": "1"},
+            {"name": "assigneeId", "value": "3"},
         ]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
@@ -538,6 +552,146 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         )
         assert dcga.action.type == Action.Type.EMAIL
         assert dcga.action.data == {"fallthrough_type": "ActiveMembers"}
+
+    @responses.activate
+    def test_create_workflow_with_sentry_app_action(self) -> None:
+        """
+        Test that you can add a sentry app with settings
+        (e.g. a sentry app that makes a ticket in some 3rd party system as opposed to one without settings)
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=updated_workflow)
+        dcga = DataConditionGroupAction.objects.filter(
+            condition_group=new_action_filters[0].condition_group
+        )
+        action = dcga[0].action
+
+        assert action.type == Action.Type.SENTRY_APP
+        assert action.config == {
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            "target_identifier": str(self.sentry_app.id),
+            "target_type": ActionTarget.SENTRY_APP.value,
+        }
+        assert action.data["settings"] == self.sentry_app_settings
+
+    @responses.activate
+    def test_create_sentry_app_action_missing_settings(self) -> None:
+        """
+        Test that if you forget to pass settings to your sentry app action it will fail and tell you why.
+        Settings are only required if the sentry app schema is not an empty dict
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(self.sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
+        assert "'settings' is a required property" in str(response.data).lower()
+
+    @responses.activate
+    def test_create_sentry_app_action_no_settings(self) -> None:
+        """
+        Test that if you are creating a sentry app action for a sentry app that has no schema it works as expected when settings are not passed
+        because settings are not expected
+        """
+        sentry_app = self.create_sentry_app(
+            name="Moo Deng's Wind Sentry App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+                "actions": [
+                    {
+                        "config": {
+                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
+                            "targetIdentifier": str(sentry_app.id),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        updated_workflow = Workflow.objects.get(id=response.data["id"])
+        new_action_filters = WorkflowDataConditionGroup.objects.filter(workflow=updated_workflow)
+        dcga = DataConditionGroupAction.objects.filter(
+            condition_group=new_action_filters[0].condition_group
+        )
+        action = dcga[0].action
+
+        assert action.type == Action.Type.SENTRY_APP
+        assert action.config == {
+            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            "target_identifier": str(sentry_app.id),
+            "target_type": ActionTarget.SENTRY_APP.value,
+        }
+        assert action.data == {}
 
     def test_create_invalid_workflow(self) -> None:
         self.valid_workflow["name"] = ""

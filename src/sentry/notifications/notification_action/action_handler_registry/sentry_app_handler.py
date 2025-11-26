@@ -33,6 +33,7 @@ class SentryAppActionHandler(ActionHandler):
 
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The data schema for a Sentry App Action",
         "type": "object",
         "properties": {
             "settings": {"type": ["array", "object"]},
