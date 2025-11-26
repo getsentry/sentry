@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import Feature
 
 
 class GroupResolutionTest(TestCase):
@@ -16,6 +17,8 @@ class GroupResolutionTest(TestCase):
         self.group = self.create_group()
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
+        self.old_semver_release_with_build = self.create_release(version="foo_package@1.0.0+build1")
+        self.new_semver_release_with_build = self.create_release(version="foo_package@1.0.0+build2")
 
     def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
@@ -214,3 +217,36 @@ class GroupResolutionTest(TestCase):
             )
 
             resolution.delete()
+
+    def test_for_semver_in_next_release_with_build_code(self) -> None:
+        """
+        Test that build code is ignored in regression detection for an issue resolved in next release
+        when feature flag "organizations:regressions-semver-precedence" is enabled.
+        """
+        grp_resolution = GroupResolution.objects.create(
+            release=self.old_semver_release_with_build,
+            current_release_version=self.old_semver_release_with_build.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+
+        # old release < new release -> regression
+        assert not GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+
+        # versions treated as equal -> no regression
+        with Feature({"organizations:regressions-semver-precedence": True}):
+            assert GroupResolution.has_resolution(self.group, self.new_semver_release_with_build)
+
+        grp_resolution.delete()
+
+        # version comparison without build code should still work as normal
+        grp_resolution = GroupResolution.objects.create(
+            release=self.old_semver_release,
+            current_release_version=self.old_semver_release.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        with Feature({"organizations:regressions-semver-precedence": True}):
+            assert GroupResolution.has_resolution(self.group, self.old_semver_release)
+            assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+        grp_resolution.delete()
