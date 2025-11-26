@@ -1856,7 +1856,6 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                     "trace_id": self.trace_id,
                 },
                 attributes={
-                    "sentry.project_id": self.project.id,
                     "my-string-attribute": "custom value",
                     "my-boolean-attribute": True,
                     "my-double-attribute": 1.23,
@@ -1919,7 +1918,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         for name, value, type in [
             ("message", "User authentication failed", "str"),
             ("project", self.project.slug, "str"),
-            ("project.id", self.project.id, "double"),
+            ("project.id", self.project.id, "int"),
             ("severity", "ERROR", "str"),
             ("my-string-attribute", "custom value", "str"),
             ("my-boolean-attribute", True, "double"),
@@ -2002,7 +2001,6 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 metric_unit="millisecond",
                 trace_id=self.trace_id,
                 attributes={
-                    "sentry.project_id": self.project.id,
                     "http.method": "GET",
                     "http.status_code": 200,
                     "my-string-attribute": "custom value",
@@ -2017,9 +2015,6 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 metric_value=5.0,
                 metric_type="counter",
                 # No trace_id - should not be returned in trace queries
-                attributes={
-                    "sentry.project_id": self.project.id,
-                },
                 timestamp=self.nine_mins_ago,
             ),
             self.create_trace_metric(
@@ -2029,7 +2024,6 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 metric_unit="millisecond",
                 trace_id=self.trace_id,
                 attributes={
-                    "sentry.project_id": self.project.id,
                     "http.method": "POST",
                     "http.status_code": 201,
                 },
@@ -2041,7 +2035,6 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 metric_type="gauge",
                 trace_id=self.trace_id,
                 attributes={
-                    "sentry.project_id": self.project.id,
                     "cache.type": "redis",
                 },
                 timestamp=self.nine_mins_ago,
@@ -2078,7 +2071,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             ("metric.type", "distribution", "str"),
             ("value", 125.5, "double"),
             ("project", self.project.slug, "str"),
-            ("project.id", self.project.id, "double"),
+            ("project.id", self.project.id, "int"),
             ("http.method", "GET", "str"),
             ("http.status_code", 200, "double"),
             ("my-string-attribute", "custom value", "str"),

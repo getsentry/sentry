@@ -21,7 +21,6 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
-from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -1054,11 +1053,9 @@ def _make_get_trace_request(
     response = get_trace_rpc(request)
 
     # Map internal names to attribute definitions for easy lookup
-    resolved_attrs_by_internal_name: dict[str, ResolvedAttribute] = {}
-    for c in resolver.definitions.columns.values():
-        # Use the first found resolved attribute for each internal name. Avoids duplicates like project.id and project_id.
-        if not c.secondary_alias and c.internal_name not in resolved_attrs_by_internal_name:
-            resolved_attrs_by_internal_name[c.internal_name] = c
+    resolved_attrs_by_internal_name = {
+        c.internal_name: c for c in resolver.definitions.columns.values() if not c.secondary_alias
+    }
 
     # Parse response, returning the public aliases.
     for item_group in response.item_groups:
@@ -1069,6 +1066,8 @@ def _make_get_trace_request(
             for a in item.attributes:
                 r = resolved_attrs_by_internal_name.get(a.key.name)
                 public_alias = r.public_alias if r else a.key.name
+                if public_alias == "project_id":  # Same internal name, normalize to project.id
+                    public_alias = "project.id"
 
                 # Note - custom attrs not in the definitions can only be returned as strings or doubles.
                 if a.key.type == STRING:
@@ -1098,7 +1097,7 @@ def _make_get_trace_request(
                             "type": "int",
                         }
 
-                    if public_alias == "project.id" or public_alias == "project_id":
+                    if public_alias == "project.id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
                             "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
