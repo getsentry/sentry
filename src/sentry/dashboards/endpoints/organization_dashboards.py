@@ -446,7 +446,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        dashboard_count = Dashboard.objects.filter(organization=organization).count()
+        dashboard_count = Dashboard.objects.filter(
+            organization=organization, prebuilt_id=None
+        ).count()
         dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
         if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
             return Response(
