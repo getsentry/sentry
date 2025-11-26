@@ -6,7 +6,6 @@ from django.conf import settings
 from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
 from objectstore_client.metrics import Tags
 
-from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
@@ -45,9 +44,11 @@ _ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timed
 def get_attachments_session(org: int, project: int) -> Session:
     global _ATTACHMENTS_CLIENT
     if not _ATTACHMENTS_CLIENT:
-        config = options.get("objectstore.config")
+        from sentry import options as options_store
+
+        options = options_store.get("objectstore.config")
         _ATTACHMENTS_CLIENT = Client(
-            config["base_url"],
+            options["base_url"],
             metrics_backend=SentryMetricsBackend(),
         )
 
