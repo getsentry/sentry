@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
@@ -48,6 +49,30 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
+
+
+def _flatten_legacy_or_conditions(cond: Sequence[Any]) -> list[Sequence[Any]]:
+    """
+    Legacy conditions can be arbitrarily nested lists representing OR groups.
+    Flatten them into a simple list of legacy condition triplets.
+    """
+
+    flattened: list[Sequence[Any]] = []
+
+    def _walk(node: Any) -> None:
+        if is_condition(node):
+            flattened.append(node)
+            return
+
+        if isinstance(node, Sequence) and not isinstance(node, (str, bytes)):
+            for child in node:
+                _walk(child)
+            return
+
+        raise InvalidSearchQuery("Invalid event query")
+
+    _walk(cond)
+    return flattened
 
 
 def issue_search_query_to_conditions(
@@ -102,10 +127,11 @@ def issue_search_query_to_conditions(
     for cond in resolved_legacy_conditions or ():
         if not is_condition(cond):
             # this shouldn't be possible since issue search only allows ands
-            or_conditions = []
-            for or_cond in cond:
-                or_conditions.append(parse_condition(or_cond))
+            flattened_or_conditions = _flatten_legacy_or_conditions(cond)
+            if not flattened_or_conditions:
+                continue
 
+            or_conditions = [parse_condition(or_cond) for or_cond in flattened_or_conditions]
             if len(or_conditions) > 1:
                 snql_conditions.append(Or(or_conditions))
             else:
