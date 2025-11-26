@@ -44,7 +44,6 @@ export function ExploreContent() {
   const onboardingProject = useOnboardingProject();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 

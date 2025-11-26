@@ -212,10 +212,8 @@ function Content({datePageFilterProps}: ContentProps) {
 }
 
 export function MultiQueryModeContent() {
-  const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 

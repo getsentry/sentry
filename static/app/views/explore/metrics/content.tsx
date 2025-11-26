@@ -28,7 +28,6 @@ export default function MetricsContent() {
   const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRACE_METRICS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
