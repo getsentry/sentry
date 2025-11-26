@@ -65,9 +65,6 @@ def get_symbolicator_url(session: Session, key: str) -> str:
     docker_ps = subprocess.run(
         ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
     )
-    if docker_ps.returncode != 0:
-        raise RuntimeError("Failed to run docker ps")
-
     if "symbolicator" not in docker_ps.stdout:
         return url
 
