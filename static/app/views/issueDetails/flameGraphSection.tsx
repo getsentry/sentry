@@ -14,7 +14,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -40,11 +40,12 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
     return null;
   }
 
-  let openTarget: import('history').LocationDescriptor | string | undefined = undefined;
-  openTarget = generateProfileFlamechartRoute({
+  const openTarget = generateContinuousProfileFlamechartRouteWithQuery({
     organization,
     projectSlug: project.slug,
-    profileId: profileMeta.profiler_id,
+    profilerId: profileMeta.profiler_id,
+    start: profileMeta.start,
+    end: profileMeta.end,
   });
 
   return (
@@ -202,8 +203,8 @@ function getProfileTimeWindow(event: Event): {end: string; start: string} | null
 
   // fallback to 10 second window around the event timestamp
   return {
-    end: new Date(eventTimeMs + 10_000).toISOString(),
-    start: new Date(eventTimeMs - 10_000).toISOString(),
+    end: new Date(eventTimeMs + 5_000).toISOString(),
+    start: new Date(eventTimeMs - 5_000).toISOString(),
   };
 }
 
