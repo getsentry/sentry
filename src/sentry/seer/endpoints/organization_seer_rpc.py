@@ -4,33 +4,39 @@ from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.exceptions import NotFound, ParseError, ValidationError
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
+from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.endpoints.seer_rpc import (
     get_attribute_names,
     get_attribute_values_with_substring,
     get_attributes_and_values,
+    get_attributes_for_span,
     get_organization_project_ids,
     get_organization_slug,
     get_spans,
 )
-from sentry.seer.endpoints.utils import map_org_id_param
-from sentry.seer.explorer.tools import (
-    execute_trace_query_chart,
-    execute_trace_query_table,
-    get_issue_details,
-    get_repository_definition,
-    rpc_get_trace_waterfall,
+from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
+from sentry.seer.explorer.index_data import (
+    rpc_get_issues_for_transaction,
+    rpc_get_profiles_for_trace,
+    rpc_get_trace_for_transaction,
+    rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.tools import get_repository_definition, rpc_get_trace_waterfall
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.utils.env import in_test_environment
 
@@ -43,7 +49,7 @@ logger = logging.getLogger(__name__)
 #
 # Parameter conventions:
 # - `organization_id` (int): Organization ID, auto-injected and validated. use map_org_id_param to map to `org_id` if needed.
-public_seer_method_registry: dict[str, Callable] = {
+public_org_seer_method_registry: dict[str, Callable] = {
     # Common to Seer features
     "get_organization_project_ids": map_org_id_param(get_organization_project_ids),
     "get_organization_slug": map_org_id_param(get_organization_slug),
@@ -62,27 +68,43 @@ public_seer_method_registry: dict[str, Callable] = {
     #
     # Explorer (cross-project)
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_details": get_issue_details,
-    "execute_trace_query_chart": map_org_id_param(execute_trace_query_chart),
-    "execute_trace_query_table": map_org_id_param(execute_trace_query_table),
     "get_repository_definition": get_repository_definition,
+}
+
+
+# Registry of read-only telemetry methods that require project-level access
+# These methods require a `project_id` parameter in the request args
+#
+# Parameter conventions:
+# - `organization_id` (int): Organization ID, auto-injected and validated
+# - `project_id` (int): Project ID, must be provided in request args and validated
+public_project_seer_method_registry: dict[str, Callable] = {
+    # Explorer - project-scoped methods
+    "get_transactions_for_project": accept_organization_id_param(rpc_get_transactions_for_project),
+    "get_trace_for_transaction": accept_organization_id_param(rpc_get_trace_for_transaction),
+    "get_profiles_for_trace": accept_organization_id_param(rpc_get_profiles_for_trace),
+    "get_issues_for_transaction": accept_organization_id_param(rpc_get_issues_for_transaction),
+    # Autofix - project-scoped methods
+    "get_error_event_details": accept_organization_id_param(get_error_event_details),
+    "get_profile_details": get_profile_details,
+    "get_attributes_for_span": get_attributes_for_span,
+    # Replays - project-scoped methods
+    "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
 }
 
 
 @region_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
-    Public RPC endpoint for organization members to call read-only seer methods
-    that operate on organization-level or cross-project data.
+    Public RPC endpoint for organization members to call read-only seer methods.
 
-    This endpoint enforces organization-level permissions. For methods that access
-    multiple projects, it validates that all project IDs belong to the organization.
-
-    For single-project methods with stricter project-level permissions,
-    use ProjectSeerRpcEndpoint instead.
+    This endpoint supports both organization-level and project-level methods:
+    - Organization-level methods: Require only organization membership
+    - Project-level methods: Require `project_id` in request args for project access validation
 
     Parameter conventions:
-    - `organization_id` (int): Organization ID, auto-injected and validated. use map_org_id_param to map to `org_id` if needed.
+    - `organization_id` (int): Organization ID, auto-injected and validated
+    - `project_id` (int): For project-scoped methods, must be provided in request args
     """
 
     publish_status = {
@@ -91,28 +113,81 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     enforce_rate_limit = False
 
+    def _is_allowed(self, organization: Organization) -> bool:
+        """Check if the organization is allowed to use this endpoint."""
+        return features.has("organizations:seer-public-rpc", organization)
+
+    def _validate_project_access(
+        self, request: Request, organization: Organization, project_id: int
+    ) -> Project:
+        """Validate that the project exists, belongs to the org, and user has access."""
+        try:
+            project = Project.objects.get(
+                id=project_id,
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+            )
+        except Project.DoesNotExist:
+            raise NotFound("Project not found")
+
+        # Check if user has access to the project
+        if not request.access.has_project_access(project):
+            raise PermissionDenied("You do not have access to this project")
+
+        return project
+
     @sentry_sdk.trace
     def _dispatch_to_local_method(
-        self, method_name: str, arguments: dict[str, Any], organization: Organization
+        self,
+        request: Request,
+        method_name: str,
+        arguments: dict[str, Any],
+        organization: Organization,
     ) -> Any:
-        if method_name not in public_seer_method_registry:
-            raise RpcResolutionException(f"Unknown method {method_name}")
+        # Check if this is an org-level method
+        if method_name in public_org_seer_method_registry:
+            method = public_org_seer_method_registry[method_name]
+            arguments["organization_id"] = organization.id
+            return method(**arguments)
 
-        method = public_seer_method_registry[method_name]
+        # Check if this is a project-level method
+        if method_name in public_project_seer_method_registry:
+            project_id = arguments.get("project_id")
+            if project_id is None:
+                raise ParseError("project_id is required for this method")
 
-        arguments["organization_id"] = organization.id
+            # Validate project access
+            project = self._validate_project_access(request, organization, project_id)
 
-        return method(**arguments)
+            method = public_project_seer_method_registry[method_name]
+
+            # Remove org/project from args since we inject validated values
+            arguments_without_org_and_project = {
+                key: value
+                for key, value in arguments.items()
+                if key not in ["organization_id", "project_id"]
+            }
+
+            return method(
+                **arguments_without_org_and_project,
+                organization_id=organization.id,
+                project_id=project.id,
+            )
+
+        raise RpcResolutionException(f"Unknown method {method_name}")
 
     @sentry_sdk.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
+        if not self._is_allowed(organization):
+            raise PermissionDenied("This organization is not allowed to use this endpoint")
+
         try:
             arguments: dict[str, Any] = request.data.get("args", {})
         except (KeyError, AttributeError) as e:
             raise ParseError from e
 
         try:
-            result = self._dispatch_to_local_method(method_name, arguments, organization)
+            result = self._dispatch_to_local_method(request, method_name, arguments, organization)
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
