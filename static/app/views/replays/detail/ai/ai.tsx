@@ -10,13 +10,13 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
@@ -205,8 +205,8 @@ export default function Ai() {
         </SummaryLeft>
         <SummaryRight>
           <Flex gap="xs">
-            <FeedbackButton type="positive" />
-            <FeedbackButton type="negative" />
+            <ThumbsUpDownButton type="positive" />
+            <ThumbsUpDownButton type="negative" />
           </Flex>
           <Button
             priority="default"
@@ -279,32 +279,27 @@ function ErrorState({
   );
 }
 
-function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
-  const openForm = useFeedbackForm();
-  if (!openForm) {
-    return null;
-  }
-
+function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
   return (
-    <Button
+    <FeedbackButton
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
       size="xs"
-      onClick={() =>
-        openForm({
-          messagePlaceholder:
-            type === 'positive'
-              ? t('What did you like about the replay summary and chapters?')
-              : t('How can we make the replay summary and chapters work better for you?'),
-          tags: {
-            ['feedback.source']: 'replay_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: type,
-          },
-        })
-      }
-    />
+      feedbackOptions={{
+        messagePlaceholder:
+          type === 'positive'
+            ? t('What did you like about the replay summary and chapters?')
+            : t('How can we make the replay summary and chapters work better for you?'),
+        tags: {
+          ['feedback.source']: 'replay_ai_summary',
+          ['feedback.owner']: 'replay',
+          ['feedback.type']: type,
+        },
+      }}
+    >
+      {undefined}
+    </FeedbackButton>
   );
 }
 

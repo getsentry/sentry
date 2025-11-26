@@ -12,7 +12,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
@@ -24,6 +24,7 @@ import {
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
+import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 interface BuildCompareHeaderContentProps {
   buildDetails: BuildDetailsApiResponse;
@@ -32,22 +33,31 @@ interface BuildCompareHeaderContentProps {
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
-  const organization = useOrganization();
   const theme = useTheme();
+  const project = ProjectsStore.getBySlug(projectId);
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: '#',
+      to: makeReleasesUrl(project?.id, {
+        appId: buildDetails.app_info.app_id ?? undefined,
+      }),
       label: t('Releases'),
     },
-    {
-      to: `/organizations/${organization.slug}/preprod/${projectId}/${buildDetails.id}/`,
-      label: buildDetails.app_info.version ?? t('Build Version'),
-    },
-    {
-      label: t('Compare'),
-    },
   ];
+
+  if (buildDetails.app_info.version) {
+    breadcrumbs.push({
+      to: makeReleasesUrl(project?.id, {
+        version: buildDetails.app_info.version,
+        appId: buildDetails.app_info.app_id ?? undefined,
+      }),
+      label: buildDetails.app_info.version,
+    });
+  }
+
+  breadcrumbs.push({
+    label: t('Compare'),
+  });
 
   return (
     <Flex justify="between" align="center" gap="lg">

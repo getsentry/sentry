@@ -106,8 +106,7 @@ export function ExploreTables(props: ExploreTablesProps) {
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
-        ) : props.tab === Mode.AGGREGATE &&
-          organization.features.includes('visibility-explore-aggregate-editor') ? (
+        ) : props.tab === Mode.AGGREGATE ? (
           <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>

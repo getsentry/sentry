@@ -23,6 +23,7 @@ class SegmentDataForwarderTest(TestCase):
             project=self.project,
             is_enabled=True,
         )
+        self.forwarder = SegmentForwarder()
 
     @responses.activate
     def test_simple_notification(self):
@@ -39,9 +40,8 @@ class SegmentDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SegmentForwarder.forward_event(event, self.data_forwarder_project)
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
-        assert result is True
         assert len(responses.calls) == 1
 
         request = responses.calls[0].request
@@ -75,5 +75,4 @@ class SegmentDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SegmentForwarder.forward_event(event, self.data_forwarder_project)
-        assert result is False
+        self.forwarder.post_process(event, self.data_forwarder_project)

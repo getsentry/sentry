@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -33,7 +33,7 @@ type DataForwardingStatsProps = {
 };
 
 function DataForwardingStats({organization, project}: DataForwardingStatsProps) {
-  const until = Math.floor(Date.now() / 1000);
+  const [until] = useState(() => Math.floor(Date.now() / 1000));
   const since = until - 3600 * 24 * 30;
   const options = {
     query: {

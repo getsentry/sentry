@@ -62,7 +62,7 @@ describe('AddFilter', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     // Should see filter key options for the dataset
-    expect(screen.getByText('Select Filter Tag')).toBeInTheDocument();
+    expect(screen.getByText('Select Errors Tag')).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
 

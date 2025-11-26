@@ -16,8 +16,8 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -94,7 +94,7 @@ function useNativeOperatorFilter(
 
   const renderInputField = () => {
     return (
-      <Input
+      <StyledInput
         aria-label="Filter value"
         value={stagedFilterValue}
         onChange={e => {
@@ -287,7 +287,11 @@ function NumericFilterSelector({
         filter.resetValues();
         setStagedIsNativeOperator(isNativeOperator);
       }}
-      menuTitle={t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+      menuTitle={
+        <MenuTitleWrapper>
+          {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+        </MenuTitleWrapper>
+      }
       menuHeaderTrailingItems={() => (
         <StyledButton
           aria-label={t('Remove Filter')}
@@ -350,24 +354,24 @@ function NumericFilterSelector({
 export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
-  margin: 4px;
+  padding: ${p => p.theme.space.md};
 `;
 
 const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   /* If there's FooterMessage above */
   &:not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 const FooterInnerWrap = styled('div')`
   grid-row: -1;
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-self: end;
   justify-items: end;
 
@@ -385,9 +389,13 @@ const StyledButton = styled(Button)`
   font-size: inherit;
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   margin: ${p =>
     p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+      ? `-${p.theme.space.xs} -${p.theme.space.xs}`
+      : `-${p.theme.space['2xs']} -${p.theme.space['2xs']}`};
+`;
+
+const StyledInput = styled(Input)`
+  text-align: center;
 `;

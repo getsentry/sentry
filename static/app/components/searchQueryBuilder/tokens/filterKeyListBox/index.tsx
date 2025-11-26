@@ -14,6 +14,7 @@ import type {
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -29,9 +30,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import usePrevious from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -80,30 +79,20 @@ function ListBoxSectionButton({
 
 function FeedbackFooter() {
   const {searchSource} = useSearchQueryBuilder();
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
 
   return (
     <SectionedOverlayFooter>
-      <Button
+      <FeedbackButton
         size="xs"
-        icon={<IconMegaphone />}
-        onClick={() =>
-          openForm({
-            messagePlaceholder: t('How can we make search better for you?'),
-            tags: {
-              search_source: searchSource,
-              ['feedback.source']: 'search_query_builder',
-              ['feedback.owner']: 'issues',
-            },
-          })
-        }
-      >
-        {t('Give Feedback')}
-      </Button>
+        feedbackOptions={{
+          messagePlaceholder: t('How can we make search better for you?'),
+          tags: {
+            search_source: searchSource,
+            ['feedback.source']: 'search_query_builder',
+            ['feedback.owner']: 'issues',
+          },
+        }}
+      />
     </SectionedOverlayFooter>
   );
 }

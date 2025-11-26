@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Badge} from 'sentry/components/core/badge';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -33,16 +34,23 @@ function FilterSelectorTrigger({
   const isAllSelected =
     activeFilterValues.length === 0 || activeFilterValues.length === options.length;
 
+  const tagKey = prettifyTagKey(tag.key);
+  const filterValue = activeFilterValues[0] ?? '';
+  const separator = <FilterValueSeparator>{':'}</FilterValueSeparator>;
+
   return (
     <ButtonLabelWrapper>
-      <TextOverflow>
-        {prettifyTagKey(tag.key)}:{' '}
-        {!isFetching && (
-          <span style={{fontWeight: 'normal'}}>
-            {isAllSelected ? t('All') : activeFilterValues[0]}
-          </span>
-        )}
-      </TextOverflow>
+      <FilterValueTruncated>{tagKey}</FilterValueTruncated>
+      {separator}
+      {!isFetching && (
+        <span style={{fontWeight: 'normal'}}>
+          {isAllSelected ? (
+            t('All')
+          ) : (
+            <FilterValueTruncated>{filterValue}</FilterValueTruncated>
+          )}
+        </span>
+      )}
       {isFetching && <StyledLoadingIndicator size={14} />}
       {shouldShowBadge && (
         <StyledBadge type="default">{`+${activeFilterValues.length - 1}`}</StyledBadge>
@@ -70,11 +78,16 @@ const StyledBadge = styled(Badge)`
   padding: 0 ${space(0.5)};
 `;
 
-const ButtonLabelWrapper = styled('span')`
-  width: 100%;
-  text-align: left;
+const ButtonLabelWrapper = styled(Flex)`
   align-items: center;
-  display: inline-grid;
-  grid-template-columns: 1fr auto;
-  line-height: 1;
+`;
+
+const FilterValueSeparator = styled('span')`
+  margin-right: ${space(0.5)};
+`;
+
+const FilterValueTruncated = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  max-width: 300px;
+  width: min-content;
 `;

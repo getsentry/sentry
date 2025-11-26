@@ -43,6 +43,10 @@ interface LogIssueDrawerProps {
   event: Event;
   group: Group;
   project: Project;
+  additionalData?: {
+    event?: Event;
+    scrollToDisabled?: boolean;
+  };
   embeddedOptions?: {
     openWithExpandedIds?: string[];
   };
@@ -53,6 +57,7 @@ export function OurlogsDrawer({
   project,
   group,
   embeddedOptions,
+  additionalData: propAdditionalData,
 }: LogIssueDrawerProps) {
   const organization = useOrganization();
   const setLogsQuery = useSetQueryParamsQuery();
@@ -81,8 +86,9 @@ export function OurlogsDrawer({
   const additionalData = useMemo(
     () => ({
       event,
+      scrollToDisabled: propAdditionalData?.scrollToDisabled,
     }),
-    [event]
+    [event, propAdditionalData?.scrollToDisabled]
   );
 
   const exploreUrl = useMemo(() => {

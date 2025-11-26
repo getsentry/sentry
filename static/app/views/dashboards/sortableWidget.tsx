@@ -40,6 +40,7 @@ type Props = {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isEmbedded?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
@@ -60,6 +61,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
+    isEmbedded,
     isPreview,
     isMobile,
     windowWidth,
@@ -120,7 +122,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
-    showContextMenu: true,
+    showContextMenu: !isEmbedded,
     isPreview,
     index,
     dashboardFilters,
