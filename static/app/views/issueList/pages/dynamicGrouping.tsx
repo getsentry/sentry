@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -243,6 +244,13 @@ function ClusterCard({
               )}
             </Fragment>
           )}
+          {cluster.tags && cluster.tags.length > 0 && (
+            <Flex wrap="wrap" gap="xs">
+              {cluster.tags.map(tag => (
+                <Tag key={tag}>{tag}</Tag>
+              ))}
+            </Flex>
+          )}
         </Flex>
         <IssueCountBadge>
           <IssueCountNumber>{issueCount}</IssueCountNumber>
@@ -346,6 +354,7 @@ function DynamicGrouping() {
     null
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [disableFilters, setDisableFilters] = useState(false);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -377,6 +386,7 @@ function DynamicGrouping() {
     setCustomClusterData(null);
     setJsonInputValue('');
     setJsonError(null);
+    setDisableFilters(false);
   }, []);
 
   const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
@@ -419,32 +429,36 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
-  const filteredAndSortedClusters = clusterData
-    .filter(cluster => {
-      if (removedClusterIds.has(cluster.cluster_id)) return false;
+  // When using custom JSON data with filters disabled, skip all filtering and sorting
+  const shouldSkipFilters = isUsingCustomData && disableFilters;
+  const filteredAndSortedClusters = shouldSkipFilters
+    ? clusterData.filter(cluster => !removedClusterIds.has(cluster.cluster_id))
+    : clusterData
+        .filter(cluster => {
+          if (removedClusterIds.has(cluster.cluster_id)) return false;
 
-      const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-      if (fixabilityScore < minFixabilityScore) return false;
+          const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
+          if (fixabilityScore < minFixabilityScore) return false;
 
-      if (filterByAssignedToMe) {
-        if (!cluster.assignedTo?.length) return false;
-        return cluster.assignedTo.some(
-          entity =>
-            (entity.type === 'user' && entity.id === user.id) ||
-            (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-        );
-      }
+          if (filterByAssignedToMe) {
+            if (!cluster.assignedTo?.length) return false;
+            return cluster.assignedTo.some(
+              entity =>
+                (entity.type === 'user' && entity.id === user.id) ||
+                (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
+            );
+          }
 
-      if (isTeamFilterActive) {
-        if (!cluster.assignedTo?.length) return false;
-        return cluster.assignedTo.some(
-          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-        );
-      }
+          if (isTeamFilterActive) {
+            if (!cluster.assignedTo?.length) return false;
+            return cluster.assignedTo.some(
+              entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+            );
+          }
 
-      return true;
-    })
-    .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
+          return true;
+        })
+        .sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
 
   const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
 
@@ -506,6 +520,17 @@ function DynamicGrouping() {
                 {jsonError}
               </Text>
             )}
+            <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+              <Checkbox
+                checked={disableFilters}
+                onChange={e => setDisableFilters(e.target.checked)}
+                aria-label={t('Disable filters and sorting')}
+                size="sm"
+              />
+              <Text size="sm" variant="muted">
+                {t('Disable filters and sorting')}
+              </Text>
+            </Flex>
             <Flex gap="sm" style={{marginTop: space(1)}}>
               <Button size="sm" priority="primary" onClick={handleParseJson}>
                 {t('Parse and Load')}
@@ -532,77 +557,80 @@ function DynamicGrouping() {
                 totalIssues,
                 filteredAndSortedClusters.length
               )}
+              {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
 
-            <Container
-              padding="sm"
-              border="primary"
-              radius="md"
-              background="primary"
-              marginTop="md"
-            >
-              <Disclosure>
-                <Disclosure.Title>
-                  <Text size="sm" bold>
-                    {t('More Filters')}
-                  </Text>
-                </Disclosure.Title>
-                <Disclosure.Content>
-                  <Flex direction="column" gap="md" paddingTop="md">
-                    <Flex gap="sm" align="center">
-                      <Checkbox
-                        checked={filterByAssignedToMe}
-                        onChange={e => handleAssignedToMeChange(e.target.checked)}
-                        aria-label={t('Show only issues assigned to me')}
-                        size="sm"
-                        disabled={isTeamFilterActive}
-                      />
-                      <FilterLabel disabled={isTeamFilterActive}>
-                        {t('Only show issues assigned to me')}
-                      </FilterLabel>
-                    </Flex>
-
-                    {teamsInData.length > 0 && (
-                      <Flex direction="column" gap="sm">
-                        <FilterLabel disabled={filterByAssignedToMe}>
-                          {t('Filter by teams')}
+            {!shouldSkipFilters && (
+              <Container
+                padding="sm"
+                border="primary"
+                radius="md"
+                background="primary"
+                marginTop="md"
+              >
+                <Disclosure>
+                  <Disclosure.Title>
+                    <Text size="sm" bold>
+                      {t('More Filters')}
+                    </Text>
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <Flex direction="column" gap="md" paddingTop="md">
+                      <Flex gap="sm" align="center">
+                        <Checkbox
+                          checked={filterByAssignedToMe}
+                          onChange={e => handleAssignedToMeChange(e.target.checked)}
+                          aria-label={t('Show only issues assigned to me')}
+                          size="sm"
+                          disabled={isTeamFilterActive}
+                        />
+                        <FilterLabel disabled={isTeamFilterActive}>
+                          {t('Only show issues assigned to me')}
                         </FilterLabel>
-                        <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
-                          {teamsInData.map(team => (
-                            <Flex key={team.id} gap="sm" align="center">
-                              <Checkbox
-                                checked={selectedTeamIds.has(team.id)}
-                                onChange={() => handleTeamToggle(team.id)}
-                                aria-label={t('Filter by team %s', team.name)}
-                                size="sm"
-                                disabled={filterByAssignedToMe}
-                              />
-                              <FilterLabel disabled={filterByAssignedToMe}>
-                                #{team.name}
-                              </FilterLabel>
-                            </Flex>
-                          ))}
-                        </Flex>
                       </Flex>
-                    )}
 
-                    <Flex gap="sm" align="center">
-                      <Text size="sm" variant="muted">
-                        {t('Minimum fixability score (%)')}
-                      </Text>
-                      <NumberInput
-                        min={0}
-                        max={100}
-                        value={minFixabilityScore}
-                        onChange={value => setMinFixabilityScore(value ?? 0)}
-                        aria-label={t('Minimum fixability score')}
-                        size="sm"
-                      />
+                      {teamsInData.length > 0 && (
+                        <Flex direction="column" gap="sm">
+                          <FilterLabel disabled={filterByAssignedToMe}>
+                            {t('Filter by teams')}
+                          </FilterLabel>
+                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            {teamsInData.map(team => (
+                              <Flex key={team.id} gap="sm" align="center">
+                                <Checkbox
+                                  checked={selectedTeamIds.has(team.id)}
+                                  onChange={() => handleTeamToggle(team.id)}
+                                  aria-label={t('Filter by team %s', team.name)}
+                                  size="sm"
+                                  disabled={filterByAssignedToMe}
+                                />
+                                <FilterLabel disabled={filterByAssignedToMe}>
+                                  #{team.name}
+                                </FilterLabel>
+                              </Flex>
+                            ))}
+                          </Flex>
+                        </Flex>
+                      )}
+
+                      <Flex gap="sm" align="center">
+                        <Text size="sm" variant="muted">
+                          {t('Minimum fixability score (%)')}
+                        </Text>
+                        <NumberInput
+                          min={0}
+                          max={100}
+                          value={minFixabilityScore}
+                          onChange={value => setMinFixabilityScore(value ?? 0)}
+                          aria-label={t('Minimum fixability score')}
+                          size="sm"
+                        />
+                      </Flex>
                     </Flex>
-                  </Flex>
-                </Disclosure.Content>
-              </Disclosure>
-            </Container>
+                  </Disclosure.Content>
+                </Disclosure>
+              </Container>
+            )}
           </Fragment>
         )}
       </HeaderSection>
