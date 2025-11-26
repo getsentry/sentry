@@ -12,13 +12,13 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
-import Settings from 'getsentry/views/seerAutomation/settings';
+import SeerAutomationSettings from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const organization = useOrganization();
 
   if (organization.features.includes('seer-settings-gtm')) {
-    return <Settings />;
+    return <SeerAutomationSettings />;
   }
 
   // Show the regular settings page
