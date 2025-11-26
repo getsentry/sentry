@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 
-type CrossEventType = 'trace' | 'span' | 'metric';
+type CrossEventType = 'logs' | 'span' | 'metric';
 
 export interface CrossEvent {
   query: string;
@@ -32,7 +32,7 @@ export function getCrossEventsFromLocation(
   return undefined;
 }
 
-export function isCrossEvent(value: any): value is CrossEvent {
+function isCrossEvent(value: any): value is CrossEvent {
   return (
     defined(value) &&
     typeof value === 'object' &&
