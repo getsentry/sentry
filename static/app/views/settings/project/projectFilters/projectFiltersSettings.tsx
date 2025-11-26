@@ -613,8 +613,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   apiMethod="PUT"
                   apiEndpoint={projectEndpoint}
                   initialData={{
-                    'filters:common-errors':
-                      project.options?.['filters:common-errors'],
+                    'filters:common-errors': project.options?.['filters:common-errors'],
                   }}
                   saveOnBlur
                   onFieldChange={(name, value) => {
