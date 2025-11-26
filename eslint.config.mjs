@@ -988,8 +988,8 @@ export default typescript.config([
       // order matters here because of nested directories
       'boundaries/elements': [
         {
-          type: 'figma-code-connect',
-          pattern: ['static/**/*.figma.tsx'],
+          type: 'figma',
+          pattern: ['static/**/*.figma.tsx', 'static/figma/**/*.{ts,tsx}'],
           mode: 'full',
         },
         // --- stories ---
@@ -1125,7 +1125,7 @@ export default typescript.config([
             },
             {
               from: ['figma*'],
-              allow: ['core*', 'sentry*'],
+              allow: ['figma*', 'core*', 'sentry*'],
             },
             {
               from: ['test-sentry'],
