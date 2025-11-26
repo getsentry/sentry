@@ -373,9 +373,7 @@ export function buildToolLinkUrl(
 
         const {y_axes} = toolLink.params;
         if (y_axes) {
-          const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
-          const stringifiedAxes = axes.map(axis => JSON.stringify(axis));
-          queryParams.yAxis = stringifiedAxes;
+          queryParams.yAxis = y_axes;
         }
 
         if (sort) {
