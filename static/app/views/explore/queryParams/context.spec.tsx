@@ -36,7 +36,7 @@ function Wrapper({children}: {children: ReactNode}) {
         mode: Mode.AGGREGATE,
         query,
         sortBys: defaultSortBys(defaultFields()),
-        crossEvents: [{query: 'foo', type: 'span'}],
+        crossEvents: [{query: 'foo', type: 'spans'}],
       }),
     [query]
   );
@@ -61,7 +61,7 @@ describe('QueryParamsContext', () => {
           additionalWrapper: Wrapper,
         });
 
-        expect(result.current).toEqual([{query: 'foo', type: 'span'}]);
+        expect(result.current).toEqual([{query: 'foo', type: 'spans'}]);
       });
     });
 
