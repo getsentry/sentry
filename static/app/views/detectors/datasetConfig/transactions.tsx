@@ -9,6 +9,7 @@ import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/featur
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import {getChartInterval} from 'sentry/views/detectors/datasetConfig/utils/chartInterval';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
@@ -18,7 +19,6 @@ import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
-  MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import {
   translateAggregateTag,
@@ -77,14 +77,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     defaultField: TransactionsConfig.defaultField,
     getAggregateOptions,
     getSeriesQueryOptions: options => {
-      // Force statsPeriod to be 9998m to avoid the 10k results limit.
-      // This is specific to the transactions dataset, since it has 1m intervals and does not support 10k+ results.
-      const isOneMinuteInterval = options.interval === 60;
-      const timePeriod =
-        options.statsPeriod === MetricDetectorTimePeriod.SEVEN_DAYS && isOneMinuteInterval
-          ? '9998m'
-          : options.statsPeriod;
-
       const hasMetricDataset =
         hasOnDemandMetricAlertFeature(options.organization) ||
         options.organization.features.includes('mep-rollout-flag') ||
@@ -103,10 +95,17 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       return getDiscoverSeriesQueryOptions({
         ...options,
         query,
-        statsPeriod: timePeriod,
         dataset: DetectorTransactionsConfig.getDiscoverDataset(),
         aggregate: translateAggregateTag(options.aggregate),
         ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
+        interval: getChartInterval({
+          timeWindow: options.timeWindow,
+          timeRange: {
+            statsPeriod: options.statsPeriod,
+            start: options.start,
+            end: options.end,
+          },
+        }),
       });
     },
     getIntervals: ({detectionType}) => {

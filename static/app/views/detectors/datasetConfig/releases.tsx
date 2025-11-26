@@ -9,6 +9,7 @@ import type {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
+import {getChartInterval} from 'sentry/views/detectors/datasetConfig/utils/chartInterval';
 import {
   getReleasesSeriesQueryOptions,
   transformMetricsResponseToSeries,
@@ -110,6 +111,14 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     return getReleasesSeriesQueryOptions({
       ...options,
       dataset: DetectorReleasesConfig.getDiscoverDataset(),
+      interval: getChartInterval({
+        timeWindow: options.timeWindow,
+        timeRange: {
+          statsPeriod: options.statsPeriod,
+          start: options.start,
+          end: options.end,
+        },
+      }),
     });
   },
   getIntervals: ({detectionType}) => {

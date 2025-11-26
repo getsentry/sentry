@@ -1,4 +1,6 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
@@ -8,7 +10,6 @@ import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/c
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
-import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
 import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -24,7 +25,6 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
 
   const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
   const eventTypes = snubaQuery?.eventTypes ?? [];
-  const interval = snubaQuery?.timeWindow;
   const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
 
   const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
@@ -37,7 +37,9 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
           {detectorDataset === DetectorDataset.TRANSACTIONS && (
             <TransactionsDatasetWarning />
           )}
-          <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+          <PageFilterBar condensed>
+            <DatePageFilter />
+          </PageFilterBar>
           {snubaQuery && (
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
           )}
