@@ -367,7 +367,6 @@ def as_trace_item(
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
     trace_item_context["attributes"]["segment_id"] = context["segment_id"]
-    trace_item_context["attributes"]["timestamp"] = int(trace_item_context["timestamp"])
 
     return new_trace_item(
         {
