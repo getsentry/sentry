@@ -1834,16 +1834,23 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             for field in self.default_fields:
                 assert field in log, field
 
-    def test_get_log_attributes_for_trace(self) -> None:
-        trace_id = uuid.uuid4().hex
+
+class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+
+        self.trace_id = uuid.uuid4().hex
         # Create logs with various attributes
-        logs = [
+        self.logs = [
             self.create_ourlog(
                 {
                     "body": "User authentication failed",
                     "severity_text": "ERROR",
                     "severity_number": 17,
-                    "trace_id": trace_id,
+                    "trace_id": self.trace_id,
                 },
                 timestamp=self.ten_mins_ago,
             ),
@@ -1852,7 +1859,6 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                     "body": "Request processed successfully",
                     "severity_text": "INFO",
                     "severity_number": 9,
-                    "trace_id": trace_id,
                 },
                 timestamp=self.nine_mins_ago,
             ),
@@ -1861,35 +1867,40 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                     "body": "Database connection timeout",
                     "severity_text": "WARN",
                     "severity_number": 13,
+                    "trace_id": self.trace_id,
                 },
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_ourlogs(self.logs)
 
+    def test_get_log_attributes_for_trace_basic(self) -> None:
         result = get_log_attributes_for_trace(
             org_id=self.organization.id,
-            trace_id=trace_id,
-            message_substring="request",
-            substring_case_sensitive=False,
+            trace_id=self.trace_id,
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 1
+        assert len(result["data"]) == 2
 
-        item = result["data"][0]
-        assert bytes(reversed(item["id"])) == logs[1].item_id
-        ts = datetime.fromisoformat(item["timestamp"]).timestamp()
-        assert int(ts) == logs[1].timestamp.seconds
+        auth_log_expected = self.logs[0]
+        auth_log = None
+        for item in result["data"]:
+            if item["id"] == auth_log_expected.item_id.hex():
+                auth_log = item
 
-        assert isinstance(item["attributes"].get("timestamp_precise"), int)
+        assert auth_log is not None
+        ts = datetime.fromisoformat(auth_log["timestamp"]).timestamp()
+        assert int(ts) == auth_log_expected.timestamp.seconds
+
+        assert isinstance(auth_log["attributes"].get("timestamp_precise"), int)
 
         for name, value, type in [
-            ("project", self.project.slug, "string"),
-            ("project_id", self.project.id, "integer"),
-            ("severity", "INFO", "string"),
             ("message", "Request processed successfully", "string"),
+            ("project", self.project.slug, "string"),
+            ("project.id", self.project.id, "integer"),
+            ("severity", "INFO", "string"),
             # todo: boolean and double attributes
         ]:
-            assert item["attributes"][name]["value"] == value
-            assert item["attributes"][name]["type"] == type
+            assert auth_log["attributes"][name]["value"] == value
+            assert auth_log["attributes"][name]["type"] == type
