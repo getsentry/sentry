@@ -986,7 +986,7 @@ describe('ProjectSeer', () => {
 
       // The integration selector should be visible with multiple integrations
       const integrationSelect = await screen.findByRole('textbox', {
-        name: /Cursor Integration/i,
+        name: /Select Configuration/i,
       });
       expect(integrationSelect).toBeInTheDocument();
 
@@ -1089,7 +1089,7 @@ describe('ProjectSeer', () => {
 
       // Find and click the integration selector
       const integrationSelect = await screen.findByRole('textbox', {
-        name: /Cursor Integration/i,
+        name: /Select Configuration/i,
       });
 
       act(() => {
@@ -1100,7 +1100,7 @@ describe('ProjectSeer', () => {
 
       // Select the second integration
       const secondIntegration = await screen.findByText(
-        'Cursor - user2@example.com/api-key-2'
+        'Cursor - user2@example.com/api-key-2 (456)'
       );
       await userEvent.click(secondIntegration);
 
@@ -1193,7 +1193,7 @@ describe('ProjectSeer', () => {
 
       // The integration selector should NOT be visible with only one integration
       expect(
-        screen.queryByRole('textbox', {name: /Cursor Integration/i})
+        screen.queryByRole('textbox', {name: /Select Configuration/i})
       ).not.toBeInTheDocument();
     });
   });
