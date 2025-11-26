@@ -242,6 +242,7 @@ ORG_OPTIONS = (
         ENABLE_SEER_CODING_DEFAULT,
     ),
     (
+        # Informs UI default for automated_run_stopping_point in project preferences
         "autoOpenPrs",
         "sentry:auto_open_prs",
         bool,
