@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
@@ -184,22 +184,28 @@ function ManageDashboards() {
     }
   );
 
-  const dashboards = dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
-    if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
-      return {
-        ...dashboard,
-        widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-          widget => widget.displayType
-        ),
-        widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(widget => ({
-          displayType: widget.displayType,
-          layout: widget.layout ?? null,
-        })),
-        projects: [],
-      };
-    }
-    return dashboard;
-  });
+  const dashboards = useMemo(
+    () =>
+      dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
+        if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+          return {
+            ...dashboard,
+            widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => widget.displayType
+            ),
+            widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => ({
+                displayType: widget.displayType,
+                layout: widget.layout ?? null,
+              })
+            ),
+            projects: [],
+          };
+        }
+        return dashboard;
+      }),
+    [dashboardsWithoutPrebuiltConfigs]
+  );
 
   const ownedDashboards = useOwnedDashboards({
     query: decodeScalar(location.query.query, ''),
