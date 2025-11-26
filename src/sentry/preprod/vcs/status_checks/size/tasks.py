@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from sentry.constants import ObjectStatus
@@ -129,19 +130,24 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    check_id = provider.create_status_check(
-        repo=commit_comparison.head_repo_name,
-        sha=commit_comparison.head_sha,
-        status=status,
-        title=title,
-        subtitle=subtitle,
-        text=None,  # TODO(telkins): add text field support
-        summary=summary,
-        external_id=str(preprod_artifact.id),
-        target_url=target_url,
-        started_at=preprod_artifact.date_added,
-        completed_at=completed_at,
-    )
+    try:
+        check_id = provider.create_status_check(
+            repo=commit_comparison.head_repo_name,
+            sha=commit_comparison.head_sha,
+            status=status,
+            title=title,
+            subtitle=subtitle,
+            text=None,  # TODO(telkins): add text field support
+            summary=summary,
+            external_id=str(preprod_artifact.id),
+            target_url=target_url,
+            started_at=preprod_artifact.date_added,
+            completed_at=completed_at,
+        )
+    except Exception as e:
+        _update_posted_status_check(preprod_artifact, success=False, error=e)
+        raise
+
     if check_id is None:
         logger.error(
             "preprod.status_checks.create.failed",
@@ -151,7 +157,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
                 "organization_slug": preprod_artifact.project.organization.slug,
             },
         )
+        _update_posted_status_check(preprod_artifact, success=False)
         return
+
+    _update_posted_status_check(preprod_artifact, success=True, check_id=check_id)
 
     logger.info(
         "preprod.status_checks.create.success",
@@ -163,6 +172,48 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
+
+
+def _update_posted_status_check(
+    preprod_artifact: PreprodArtifact,
+    success: bool,
+    check_id: str | None = None,
+    error: Exception | None = None,
+) -> None:
+    """Update the posted_status_check field in the artifact's extras."""
+    extras = preprod_artifact.extras or {}
+
+    posted_status_check: dict[str, Any] = {"success": success}
+    if success and check_id:
+        posted_status_check["check_id"] = check_id
+    if not success:
+        posted_status_check["error_type"] = _get_error_type(error).value
+
+    extras["posted_status_check"] = posted_status_check
+    preprod_artifact.extras = extras
+    preprod_artifact.save(update_fields=["extras"])
+
+
+def _get_error_type(error: Exception | None) -> StatusCheckErrorType:
+    """Determine the error type from an exception."""
+    if error is None:
+        return StatusCheckErrorType.UNKNOWN
+    if isinstance(error, IntegrationConfigurationError):
+        return StatusCheckErrorType.INTEGRATION_ERROR
+    if isinstance(error, ApiError):
+        return StatusCheckErrorType.API_ERROR
+    return StatusCheckErrorType.UNKNOWN
+
+
+class StatusCheckErrorType(StrEnum):
+    """Error types for status check creation failures."""
+
+    UNKNOWN = "unknown"
+    """An unknown error occurred (e.g., API returned null check_id)."""
+    API_ERROR = "api_error"
+    """A retryable API error (5xx, rate limit, transient issues)."""
+    INTEGRATION_ERROR = "integration_error"
+    """An integration configuration error (permissions, invalid request, etc.)."""
 
 
 def _compute_overall_status(
