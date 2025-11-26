@@ -354,7 +354,7 @@ function NumericFilterSelector({
 export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
-  padding: 10px;
+  padding: ${p => p.theme.space.md};
 `;
 
 const FooterWrap = styled('div')`
