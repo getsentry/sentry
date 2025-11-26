@@ -203,18 +203,18 @@ export function SearchQueryBuilderProvider({
     }
     firstRender.current = false;
 
-    const warnings = parsedQuery
-      ?.filter(token => 'warning' in token && defined(token.warning))
-      ?.reduce((acc, isWarning) => acc + (isWarning ? 1 : 0), 0);
+    const warnings = parsedQuery?.filter(
+      token => 'warning' in token && defined(token.warning)
+    )?.length;
     if (warnings) {
       Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
         attributes: {searchSource},
       });
     }
 
-    const invalids = parsedQuery
-      ?.filter(token => 'invalid' in token && defined(token.invalid))
-      ?.reduce((acc, isInvalids) => acc + (isInvalids ? 1 : 0), 0);
+    const invalids = parsedQuery?.filter(
+      token => 'invalid' in token && defined(token.invalid)
+    )?.length;
     if (invalids) {
       Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
         attributes: {searchSource},
