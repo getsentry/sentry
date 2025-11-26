@@ -7,14 +7,20 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
   BillingMetricHistory,
   Plan,
+  ProductTrial,
   ReservedBudget,
   Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isTrialPlan,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 function UsageBreakdownField({
@@ -35,6 +41,7 @@ function UsageBreakdownField({
 }
 
 function UsageBreakdownInfo({
+  subscription,
   plan,
   platformReservedField,
   formattedPlatformReserved,
@@ -43,96 +50,139 @@ function UsageBreakdownInfo({
   paygSpend,
   paygCategoryBudget,
   recurringReservedSpend,
-  canUsePayg,
+  productCanUsePayg,
+  activeProductTrial,
 }: {
-  canUsePayg: boolean;
+  activeProductTrial: ProductTrial | null;
   formattedAdditionalReserved: React.ReactNode | null;
-  formattedGifted: React.ReactNode;
-  formattedPlatformReserved: React.ReactNode;
+  formattedGifted: React.ReactNode | null;
+  formattedPlatformReserved: React.ReactNode | null;
   paygCategoryBudget: number | null;
   paygSpend: number;
   plan: Plan;
   platformReservedField: React.ReactNode;
+  productCanUsePayg: boolean;
   recurringReservedSpend: number;
+  subscription: Subscription;
 }) {
+  const canUsePayg = productCanUsePayg && supportsPayg(subscription);
+  const shouldShowIncludedVolume =
+    !!activeProductTrial ||
+    !!formattedPlatformReserved ||
+    !!formattedAdditionalReserved ||
+    !!formattedGifted;
+  const shouldShowAdditionalSpend = subscription.canSelfServe || canUsePayg;
+
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
-      <Flex direction="column" gap="lg">
-        <Text bold>{t('Included volume')}</Text>
-        <UsageBreakdownField
-          field={platformReservedField}
-          value={formattedPlatformReserved}
-        />
-        {formattedAdditionalReserved && (
-          <UsageBreakdownField
-            field={t('Additional reserved')}
-            value={formattedAdditionalReserved}
-          />
-        )}
-        <UsageBreakdownField field={t('Gifted')} value={formattedGifted} />
-      </Flex>
-      <Flex direction="column" gap="lg">
-        <Text bold>{t('Additional spend')}</Text>
-        {canUsePayg && (
-          <UsageBreakdownField
-            field={displayBudgetName(plan, {title: true})}
-            value={
-              <Fragment>
-                {displayPriceWithCents({cents: paygSpend})}
-                {!!paygCategoryBudget && (
-                  <Fragment>
-                    /
-                    <Text variant="muted">
-                      {displayPriceWithCents({cents: paygCategoryBudget})}
-                    </Text>
-                  </Fragment>
-                )}
-              </Fragment>
-            }
-          />
-        )}
-        <UsageBreakdownField
-          field={t('Reserved spend')}
-          value={displayPriceWithCents({cents: recurringReservedSpend})}
-        />
-      </Flex>
+      {shouldShowIncludedVolume && (
+        <Flex direction="column" gap="lg">
+          <Text bold>{t('Included volume')}</Text>
+          {activeProductTrial && (
+            <UsageBreakdownField field={t('Trial')} value={UNLIMITED} />
+          )}
+          {formattedPlatformReserved && (
+            <UsageBreakdownField
+              field={platformReservedField}
+              value={formattedPlatformReserved}
+            />
+          )}
+          {formattedAdditionalReserved && (
+            <UsageBreakdownField
+              field={t('Additional reserved')}
+              value={formattedAdditionalReserved}
+            />
+          )}
+          {formattedGifted && (
+            <UsageBreakdownField field={t('Gifted')} value={formattedGifted} />
+          )}
+        </Flex>
+      )}
+      {shouldShowAdditionalSpend && (
+        <Flex direction="column" gap="lg">
+          <Text bold>{t('Additional spend')}</Text>
+          {canUsePayg && (
+            <UsageBreakdownField
+              field={displayBudgetName(plan, {title: true})}
+              value={
+                <Fragment>
+                  {displayPriceWithCents({cents: paygSpend})}
+                  {!!paygCategoryBudget && (
+                    <Fragment>
+                      {' / '}
+                      <Text variant="muted">
+                        {displayPriceWithCents({cents: paygCategoryBudget})}
+                      </Text>
+                    </Fragment>
+                  )}
+                </Fragment>
+              }
+            />
+          )}
+          {subscription.canSelfServe && (
+            <UsageBreakdownField
+              field={t('Reserved spend')}
+              value={displayPriceWithCents({cents: recurringReservedSpend})}
+            />
+          )}
+        </Flex>
+      )}
     </Grid>
   );
 }
 
 function DataCategoryUsageBreakdownInfo({
-  plan,
+  subscription,
   category,
   metricHistory,
+  activeProductTrial,
 }: {
+  activeProductTrial: ProductTrial | null;
   category: DataCategory;
   metricHistory: BillingMetricHistory;
-  plan: Plan;
+  subscription: Subscription;
 }) {
-  const canUsePayg = plan.onDemandCategories.includes(category);
+  const {planDetails: plan} = subscription;
+  const productCanUsePayg = plan.onDemandCategories.includes(category);
   const platformReserved =
     plan.planCategories[category]?.find(
       bucket => bucket.price === 0 && bucket.events >= 0
     )?.events ?? 0;
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
-  const formattedPlatformReserved = formatReservedWithUnits(platformReserved, category);
   const reserved = metricHistory.reserved ?? 0;
-  const additionalReserved = Math.max(0, reserved - platformReserved);
-  const formattedAdditionalReserved = formatReservedWithUnits(
-    additionalReserved,
-    category
+  const isUnlimited = reserved === UNLIMITED_RESERVED;
+  const addOnDataCategories = Object.values(plan.addOnCategories).flatMap(
+    addOn => addOn.dataCategories
   );
+  const isAddOnChildCategory = addOnDataCategories.includes(category) && !isUnlimited;
+  const shouldShowAdditionalReserved =
+    !isAddOnChildCategory && !isUnlimited && subscription.canSelfServe;
+  const formattedPlatformReserved = isAddOnChildCategory
+    ? null
+    : formatReservedWithUnits(
+        shouldShowAdditionalReserved ? platformReserved : reserved,
+        category
+      );
+  const additionalReserved = Math.max(0, reserved - platformReserved);
+  const formattedAdditionalReserved = shouldShowAdditionalReserved
+    ? formatReservedWithUnits(additionalReserved, category)
+    : null;
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted = formatReservedWithUnits(gifted, category);
+  const formattedGifted = isAddOnChildCategory
+    ? null
+    : formatReservedWithUnits(gifted, category);
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
 
-  const recurringReservedSpend =
-    plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ?? 0;
+  const recurringReservedSpend = isAddOnChildCategory
+    ? 0
+    : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
+      0);
 
   return (
     <UsageBreakdownInfo
+      subscription={subscription}
       plan={plan}
       platformReservedField={platformReservedField}
       formattedPlatformReserved={formattedPlatformReserved}
@@ -141,7 +191,8 @@ function DataCategoryUsageBreakdownInfo({
       paygSpend={paygSpend}
       paygCategoryBudget={paygCategoryBudget}
       recurringReservedSpend={recurringReservedSpend}
-      canUsePayg={canUsePayg}
+      productCanUsePayg={productCanUsePayg}
+      activeProductTrial={activeProductTrial}
     />
   );
 }
@@ -149,19 +200,24 @@ function DataCategoryUsageBreakdownInfo({
 function ReservedBudgetUsageBreakdownInfo({
   subscription,
   reservedBudget,
+  activeProductTrial,
 }: {
+  activeProductTrial: ProductTrial | null;
   reservedBudget: ReservedBudget;
   subscription: Subscription;
 }) {
   const {planDetails: plan, categories: metricHistories} = subscription;
-  const canUsePayg = reservedBudget.dataCategories.every(category =>
+  const productCanUsePayg = reservedBudget.dataCategories.every(category =>
     plan.onDemandCategories.includes(category)
   );
-  const platformReservedField = tct('[productName] monthly credits', {
-    productName: toTitleCase(reservedBudget.productName, {
-      allowInnerUpperCase: true,
-    }),
-  });
+  const onTrialOrSponsored = isTrialPlan(subscription.plan) || subscription.isSponsored;
+  const platformReservedField = onTrialOrSponsored
+    ? tct('[planName] plan', {planName: plan.name})
+    : tct('[productName] monthly credits', {
+        productName: toTitleCase(reservedBudget.productName, {
+          allowInnerUpperCase: true,
+        }),
+      });
   const formattedPlatformReserved = displayPriceWithCents({
     cents: reservedBudget.reservedBudget,
   });
@@ -170,13 +226,19 @@ function ReservedBudgetUsageBreakdownInfo({
   const paygSpend = reservedBudget.dataCategories.reduce((acc, category) => {
     return acc + (metricHistories[category]?.onDemandSpendUsed ?? 0);
   }, 0);
+  const billedCategory = reservedBudget.dataCategories[0]!;
+  const metricHistory = subscription.categories[billedCategory];
+  if (!metricHistory) {
+    return null;
+  }
   const recurringReservedSpend =
-    plan.planCategories[reservedBudget.dataCategories[0]!]?.find(
-      bucket => bucket.events === RESERVED_BUDGET_QUOTA
+    plan.planCategories[billedCategory]?.find(
+      bucket => bucket.events === metricHistory.reserved
     )?.price ?? 0;
 
   return (
     <UsageBreakdownInfo
+      subscription={subscription}
       plan={plan}
       platformReservedField={platformReservedField}
       formattedPlatformReserved={formattedPlatformReserved}
@@ -185,7 +247,8 @@ function ReservedBudgetUsageBreakdownInfo({
       paygSpend={paygSpend}
       paygCategoryBudget={null}
       recurringReservedSpend={recurringReservedSpend}
-      canUsePayg={canUsePayg}
+      productCanUsePayg={productCanUsePayg}
+      activeProductTrial={activeProductTrial}
     />
   );
 }

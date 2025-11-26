@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -21,14 +21,13 @@ import {
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
 
-import {GIGABYTE, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {
   AddOnCategory,
@@ -37,13 +36,16 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  checkIsAddOn,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
+  getBilledCategory,
   getPercentage,
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   MILLISECONDS_IN_HOUR,
+  productIsEnabled,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {
@@ -105,6 +107,203 @@ function ProductTrialRibbon({
   );
 }
 
+function ProductRow({
+  product,
+  selectedProduct,
+  onRowClick,
+  subscription,
+  isChildProduct,
+  parentProduct,
+}: {
+  onRowClick: (category: DataCategory | AddOnCategory) => void;
+  selectedProduct: DataCategory | AddOnCategory;
+  subscription: Subscription;
+} & (
+  | {
+      isChildProduct: true;
+      parentProduct: DataCategory | AddOnCategory;
+      product: DataCategory;
+    }
+  | {
+      product: DataCategory | AddOnCategory;
+      isChildProduct?: false;
+      parentProduct?: never;
+    }
+)) {
+  const theme = useTheme();
+  const isAddOn = checkIsAddOn(parentProduct ?? product);
+  const billedCategory = getBilledCategory(subscription, product);
+  if (!billedCategory) {
+    return null;
+  }
+
+  const metricHistory = subscription.categories[billedCategory];
+  if (!metricHistory) {
+    return null;
+  }
+
+  const isEnabled = productIsEnabled(subscription, parentProduct ?? product);
+
+  if (!isEnabled && isChildProduct) {
+    // don't show child product rows if the parent product is not enabled
+    return null;
+  }
+
+  let displayName = '';
+  let percentUsed = 0;
+  let formattedUsage = '';
+  let formattedPrepaid = null;
+  let paygSpend = 0;
+
+  if (isAddOn) {
+    const addOnInfo = subscription.addOns?.[(parentProduct ?? product) as AddOnCategory];
+    if (!addOnInfo) {
+      return null;
+    }
+    const {productName} = addOnInfo;
+    displayName = isChildProduct
+      ? getPlanCategoryName({
+          plan: subscription.planDetails,
+          category: product,
+          title: true,
+        })
+      : toTitleCase(productName, {allowInnerUpperCase: true});
+
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
+      (parentProduct ?? product) as AddOnCategory
+    );
+    const reservedBudget = subscription.reservedBudgets?.find(
+      budget => budget.apiName === reservedBudgetCategory
+    );
+    percentUsed = reservedBudget
+      ? getPercentage(metricHistory.usage, reservedBudget.reservedBudget)
+      : 0;
+    formattedUsage = reservedBudget
+      ? isChildProduct
+        ? displayPriceWithCents({
+            cents: reservedBudget.categories[product]?.reservedSpend ?? 0,
+          })
+        : displayPriceWithCents({cents: reservedBudget.totalReservedSpend})
+      : formatUsageWithUnits(metricHistory.usage, billedCategory, {isAbbreviated: true});
+
+    if (reservedBudget) {
+      formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
+    }
+
+    paygSpend = isChildProduct
+      ? (subscription.categories[product]?.onDemandSpendUsed ?? 0)
+      : addOnInfo.dataCategories.reduce((acc, category) => {
+          return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
+        }, 0);
+  } else {
+    displayName = getPlanCategoryName({
+      plan: subscription.planDetails,
+      category: billedCategory,
+      title: true,
+    });
+    // convert prepaid amount to the same unit as usage to accurately calculate percent used
+    const {prepaid} = metricHistory;
+    const isUnlimited = prepaid === UNLIMITED_RESERVED;
+    const rawPrepaid = isUnlimited
+      ? prepaid
+      : isByteCategory(billedCategory)
+        ? prepaid * GIGABYTE
+        : isContinuousProfiling(billedCategory)
+          ? prepaid * MILLISECONDS_IN_HOUR
+          : prepaid;
+    percentUsed = rawPrepaid ? getPercentage(metricHistory.usage, rawPrepaid) : 0;
+
+    formattedUsage = formatUsageWithUnits(metricHistory.usage, billedCategory, {
+      isAbbreviated: true,
+    });
+    formattedPrepaid = formatReservedWithUnits(prepaid, billedCategory, {
+      useUnitScaling: true,
+      isAbbreviated: true,
+    });
+
+    paygSpend = subscription.categories[billedCategory]?.onDemandSpendUsed ?? 0;
+  }
+
+  const {reserved} = metricHistory;
+  const bucket = getBucket({
+    events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
+    buckets: subscription.planDetails.planCategories[billedCategory],
+  });
+  const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
+  const additionalSpend = recurringReservedSpend + paygSpend;
+
+  const activeProductTrial = isChildProduct
+    ? null
+    : getActiveProductTrial(subscription.productTrials ?? null, billedCategory);
+  const potentialProductTrial = isChildProduct
+    ? null
+    : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory);
+  const usageExceeded = subscription.categories[billedCategory]?.usageExceeded ?? false;
+  const isPaygOnly =
+    !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
+
+  const isClickable = !!potentialProductTrial || isEnabled;
+
+  return (
+    <TableRow
+      isClickable={isClickable}
+      isSelected={selectedProduct === product}
+      onClick={() => (isClickable ? onRowClick(product) : undefined)}
+      onKeyDown={e => {
+        if ((e.key === 'Enter' || e.key === ' ') && isClickable) {
+          onRowClick(product);
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={t('View %s usage', displayName)}
+    >
+      {(activeProductTrial || potentialProductTrial) && (
+        <ProductTrialRibbon
+          activeProductTrial={activeProductTrial}
+          potentialProductTrial={potentialProductTrial}
+        />
+      )}
+      <Flex
+        paddingLeft={
+          activeProductTrial || potentialProductTrial
+            ? 'lg'
+            : isChildProduct
+              ? '2xl'
+              : undefined
+        }
+        gap="sm"
+        align="center"
+      >
+        <Text variant={isEnabled ? 'primary' : 'muted'}>{displayName}</Text>
+        {!isEnabled && <IconLock size="sm" locked color="disabled" />}
+      </Flex>
+      {isEnabled && (
+        <Fragment>
+          <Flex align="center" gap="xs">
+            {usageExceeded ? (
+              <IconWarning size="sm" color="danger" />
+            ) : isPaygOnly || isChildProduct || reserved === UNLIMITED_RESERVED ? null : (
+              <ProgressRing
+                value={percentUsed}
+                progressColor={
+                  !usageExceeded && percentUsed === 100 ? theme.warningFocus : undefined
+                }
+              />
+            )}
+            <Text>
+              {isPaygOnly || isChildProduct || !formattedPrepaid
+                ? formattedUsage
+                : `${formattedUsage} / ${formattedPrepaid}`}
+            </Text>
+          </Flex>
+          <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
+        </Fragment>
+      )}
+    </TableRow>
+  );
+}
+
 function UsageOverviewTable({
   organization,
   subscription,
@@ -114,10 +313,10 @@ function UsageOverviewTable({
   onRowClick: (category: DataCategory | AddOnCategory) => void;
   selectedProduct: DataCategory | AddOnCategory;
 }) {
-  const theme = useTheme();
   const addOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
   ).flatMap(addOnInfo => addOnInfo.dataCategories);
+  const sortedCategories = sortCategories(subscription.categories);
 
   return (
     <Grid
@@ -139,231 +338,76 @@ function UsageOverviewTable({
           {t('ADDITIONAL SPEND')}
         </Text>
       </TableHeader>
-      {sortCategories(subscription.categories)
-        .filter(categoryInfo => !addOnDataCategories.includes(categoryInfo.category))
+      {sortedCategories
+        .filter(
+          categoryInfo =>
+            // filter out data categories that are part of add-ons
+            // unless they are unlimited
+            !addOnDataCategories.includes(categoryInfo.category) ||
+            categoryInfo.reserved === UNLIMITED_RESERVED
+        )
         .map(categoryInfo => {
-          const {category, usage, prepaid, reserved, usageExceeded, onDemandSpendUsed} =
-            categoryInfo;
-          const displayName = getPlanCategoryName({
-            plan: subscription.planDetails,
-            category,
-            title: true,
-          });
-          const formattedPrepaid = formatReservedWithUnits(prepaid, category, {
-            useUnitScaling: true,
-            isAbbreviated: true,
-          });
-          const formattedUsage = formatUsageWithUnits(usage, category, {
-            useUnitScaling: true,
-            isAbbreviated: true,
-          });
-          const isPaygOnly = reserved === 0 && supportsPayg(subscription);
-
-          const bucket = getBucket({
-            events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
-            buckets: subscription.planDetails.planCategories[category],
-          });
-          const recurringReservedSpend = bucket.price ?? 0;
-          const additionalSpend = recurringReservedSpend + onDemandSpendUsed;
-          const formattedAdditionalSpend = displayPriceWithCents({
-            cents: additionalSpend,
-          });
-
-          // convert prepaid amount to the same unit as usage to accurately calculate percent used
-          const rawPrepaid = isByteCategory(category)
-            ? prepaid * GIGABYTE
-            : isContinuousProfiling(category)
-              ? prepaid * MILLISECONDS_IN_HOUR
-              : prepaid;
-          const percentUsed = rawPrepaid ? getPercentage(usage, rawPrepaid) : 0;
-
-          const activeProductTrial = getActiveProductTrial(
-            subscription.productTrials ?? null,
-            category
-          );
-          const potentialProductTrial = getPotentialProductTrial(
-            subscription.productTrials ?? null,
-            category
-          );
+          const {category} = categoryInfo;
 
           return (
-            <TableRow
+            <ProductRow
               key={category}
-              isSelected={selectedProduct === category}
-              onClick={() => onRowClick(category)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  onRowClick(category);
-                }
-              }}
-              tabIndex={0}
-              role="button"
-              aria-label={t('View %s usage', displayName)}
-            >
-              {(activeProductTrial || potentialProductTrial) && (
-                <ProductTrialRibbon
-                  activeProductTrial={activeProductTrial}
-                  potentialProductTrial={potentialProductTrial}
-                />
-              )}
-              <Container
-                paddingLeft={
-                  activeProductTrial || potentialProductTrial ? 'lg' : undefined
-                }
-              >
-                <Text>{displayName}</Text>
-              </Container>
-              <Flex align="center" gap="xs">
-                {usageExceeded ? (
-                  <IconWarning size="sm" color="danger" />
-                ) : isPaygOnly ? null : (
-                  <ProgressRing
-                    value={percentUsed}
-                    progressColor={
-                      !usageExceeded && percentUsed === 100
-                        ? theme.warningFocus
-                        : undefined
-                    }
-                  />
-                )}
-                <Text>
-                  {isPaygOnly
-                    ? formattedUsage
-                    : `${formattedUsage} / ${formattedPrepaid}`}
-                </Text>
-              </Flex>
-              <Text align="right">{formattedAdditionalSpend}</Text>
-            </TableRow>
+              product={category}
+              selectedProduct={selectedProduct}
+              onRowClick={onRowClick}
+              subscription={subscription}
+            />
           );
         })}
       {Object.values(subscription.planDetails.addOnCategories)
         .filter(
+          // show add-ons regardless of whether they're enabled
+          // as long as they're launched for the org
+          // and none of their sub-categories are unlimited
+          // Also do not show Seer if the legacy Seer add-on is enabled
           addOnInfo =>
-            !addOnInfo.billingFlag ||
-            organization.features.includes(addOnInfo.billingFlag)
+            (!addOnInfo.billingFlag ||
+              organization.features.includes(addOnInfo.billingFlag)) &&
+            !addOnInfo.dataCategories.some(
+              category =>
+                subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+            ) &&
+            (addOnInfo.apiName !== AddOnCategory.SEER ||
+              !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
         )
         .map(addOnInfo => {
-          const {apiName, dataCategories, productName} = addOnInfo;
-          const isEnabled = subscription.addOns?.[apiName]?.enabled;
-
-          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
-          const reservedBudget = subscription.reservedBudgets?.find(
-            budget => budget.apiName === reservedBudgetCategory
-          );
-          const billedCategory = reservedBudget
-            ? dataCategories.find(category =>
-                subscription.planDetails.planCategories[category]?.find(
-                  bucket => bucket.events === RESERVED_BUDGET_QUOTA
-                )
-              )!
-            : dataCategories[0]!;
-
-          const activeProductTrial = getActiveProductTrial(
-            subscription.productTrials ?? null,
-            billedCategory
-          );
-          const potentialProductTrial = getPotentialProductTrial(
-            subscription.productTrials ?? null,
-            billedCategory
-          );
-
-          const prepaid = reservedBudget?.reservedBudget ?? null;
-          const usage =
-            reservedBudget?.totalReservedSpend ??
-            subscription.categories[billedCategory]?.usage ??
-            0;
-          const percentUsed = prepaid ? getPercentage(usage, prepaid) : 0;
-          const usageExceeded =
-            subscription.categories[billedCategory]?.usageExceeded ?? false;
-
-          const formattedUsage = reservedBudget
-            ? displayPriceWithCents({cents: usage})
-            : formatUsageWithUnits(usage, billedCategory, {
-                useUnitScaling: true,
-                isAbbreviated: true,
-              });
-          const formattedPrepaid = reservedBudget
-            ? displayPriceWithCents({cents: prepaid ?? 0})
-            : defined(prepaid)
-              ? formatReservedWithUnits(prepaid, billedCategory, {
-                  useUnitScaling: true,
-                  isAbbreviated: true,
-                })
-              : null;
-
-          const recurringReservedSpend =
-            isEnabled && defined(billedCategory)
-              ? (subscription.planDetails.planCategories[billedCategory]?.find(
-                  bucket =>
-                    bucket.events ===
-                    (subscription.categories[billedCategory]?.reserved ?? 0)
-                )?.price ?? 0)
-              : 0;
-          const paygSpend = dataCategories.reduce((acc, category) => {
-            return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
-          }, 0);
-          const additionalSpend = recurringReservedSpend + paygSpend;
-          const formattedAdditionalSpend = displayPriceWithCents({
-            cents: additionalSpend,
-          });
+          const {apiName, dataCategories} = addOnInfo;
+          const billedCategory = getBilledCategory(subscription, apiName);
+          if (!billedCategory) {
+            return null;
+          }
 
           return (
-            <TableRow
-              key={apiName}
-              isSelected={selectedProduct === apiName}
-              onClick={() => onRowClick(apiName)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  onRowClick(apiName);
-                }
-              }}
-              tabIndex={0}
-              role="button"
-              aria-label={t('View %s usage', productName)}
-            >
-              {(activeProductTrial || potentialProductTrial) && (
-                <ProductTrialRibbon
-                  activeProductTrial={activeProductTrial}
-                  potentialProductTrial={potentialProductTrial}
-                />
-              )}
-              <Flex
-                paddingLeft={
-                  activeProductTrial || potentialProductTrial ? 'lg' : undefined
-                }
-                gap="xs"
-                align="center"
-              >
-                <Text variant={isEnabled ? 'primary' : 'muted'}>
-                  {toTitleCase(productName, {allowInnerUpperCase: true})}
-                </Text>
-                {!isEnabled && <IconLock size="sm" locked color="disabled" />}
-              </Flex>
-              {isEnabled && (
-                <Fragment>
-                  <Flex align="center" gap="xs">
-                    {usageExceeded ? (
-                      <IconWarning size="sm" color="danger" />
-                    ) : defined(prepaid) ? (
-                      <ProgressRing
-                        value={percentUsed}
-                        progressColor={
-                          !usageExceeded && percentUsed === 100
-                            ? theme.warningFocus
-                            : undefined
-                        }
-                      />
-                    ) : null}
-                    <Text>
-                      {defined(prepaid)
-                        ? `${formattedUsage} / ${formattedPrepaid}`
-                        : formattedUsage}
-                    </Text>
-                  </Flex>
-                  <Text align="right">{formattedAdditionalSpend}</Text>
-                </Fragment>
-              )}
-            </TableRow>
+            <Fragment key={apiName}>
+              <ProductRow
+                product={apiName}
+                selectedProduct={selectedProduct}
+                onRowClick={onRowClick}
+                subscription={subscription}
+              />
+              {sortedCategories
+                .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
+                .map(categoryInfo => {
+                  const {category} = categoryInfo;
+
+                  return (
+                    <ProductRow
+                      key={category}
+                      product={category}
+                      selectedProduct={selectedProduct}
+                      onRowClick={onRowClick}
+                      subscription={subscription}
+                      isChildProduct
+                      parentProduct={apiName}
+                    />
+                  );
+                })}
+            </Fragment>
           );
         })}
     </Grid>
@@ -492,7 +536,7 @@ const TableHeader = styled('th')`
   padding: ${p => p.theme.space.xl};
 `;
 
-const TableRow = styled('tr')<{isSelected: boolean}>`
+const TableRow = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
   position: relative;
   background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
   display: grid;
@@ -509,9 +553,15 @@ const TableRow = styled('tr')<{isSelected: boolean}>`
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
 
-  &:hover {
-    background: ${p => p.theme.backgroundSecondary};
-  }
+  ${p =>
+    p.isClickable &&
+    css`
+      cursor: pointer;
+
+      &:hover {
+        background: ${p.theme.backgroundSecondary};
+      }
+    `}
 `;
 
 const RibbonBase = styled('div')<{ribbonColor: string}>`
