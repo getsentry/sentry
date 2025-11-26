@@ -899,17 +899,14 @@ export function hasBillingInfo(
   subscription: Subscription,
   isComplete: boolean
 ) {
-  if (isComplete) {
-    return (
-      subscription.isSelfServePartner ||
-      (!!subscription.paymentSource && hasSomeBillingDetails(billingDetails))
-    );
+  if (subscription.isSelfServePartner) {
+    return true;
   }
-  return (
-    subscription.isSelfServePartner ||
-    !!subscription.paymentSource ||
-    hasSomeBillingDetails(billingDetails)
-  );
+
+  if (isComplete) {
+    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+  }
+  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
 }
 
 /**
