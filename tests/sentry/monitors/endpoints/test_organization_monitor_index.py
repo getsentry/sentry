@@ -569,6 +569,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         ]
 
     def test_simple_with_alert_rule(self) -> None:
+        from sentry.workflow_engine.models import AlertRuleWorkflow, DetectorWorkflow, Workflow
+
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -589,9 +591,16 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert rule is not None
         assert rule.environment_id == self.environment.id
 
-        # Verify the detector was created
+        # Verify the detector was created and linked to the workflow
         detector = get_detector_for_monitor(monitor)
         assert detector is not None
+
+        # Verify the workflow was created for the rule
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        # Verify the detector is linked to the workflow
+        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
