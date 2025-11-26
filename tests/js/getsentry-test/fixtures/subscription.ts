@@ -255,6 +255,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
         }),
       }),
     },
+    effectiveRetentions: {},
     ...planData,
   };
 }
