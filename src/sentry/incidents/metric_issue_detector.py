@@ -175,7 +175,9 @@ def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode
     return False
 
 
-def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode:
+def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode | None:
+    if extrapolation_mode is None:
+        return None
     if type(extrapolation_mode) is int:
         return ExtrapolationMode(extrapolation_mode)
     if type(extrapolation_mode) is ExtrapolationMode:
