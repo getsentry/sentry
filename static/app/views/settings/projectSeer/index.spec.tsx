@@ -12,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -1439,6 +1440,170 @@ describe('ProjectSeer', () => {
           })
         );
       });
+    });
+
+    it('shows error when Cursor handoff fails due to missing integration', async () => {
+      const orgWithCursor = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'integrations-cursor'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursor.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {code_mapping_repos: []},
+      });
+
+      // Mock integrations endpoint returning empty array (no Cursor integration)
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {integrations: []},
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithCursor,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            autofixAutomationTuning: 'medium',
+          }),
+        },
+      });
+
+      await screen.findByText(/Automation/i);
+
+      // Toggle should not be visible when no Cursor integration exists
+      expect(
+        screen.queryByRole('checkbox', {name: /Hand off to Cursor/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows error message when Auto-open PR toggle fails', async () => {
+      jest.spyOn(indicators, 'addErrorMessage');
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal Server Error'},
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            autofixAutomationTuning: 'medium',
+          }),
+        },
+      });
+
+      const toggle = await screen.findByRole('checkbox', {name: /Auto-open PR/i});
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequest).toHaveBeenCalled();
+      });
+
+      // Should show error message
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Failed to update auto-open PR setting'
+      );
+    });
+
+    it('shows error message when Cursor handoff toggle fails', async () => {
+      jest.spyOn(indicators, 'addErrorMessage');
+
+      const orgWithCursor = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'integrations-cursor'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursor.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {code_mapping_repos: []},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithCursor.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursor.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursor.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal Server Error'},
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithCursor,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            autofixAutomationTuning: 'medium',
+          }),
+        },
+      });
+
+      const toggle = await screen.findByRole('checkbox', {name: /Hand off to Cursor/i});
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequest).toHaveBeenCalled();
+      });
+
+      // Should show error message
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Failed to update Cursor handoff setting'
+      );
     });
   });
 });

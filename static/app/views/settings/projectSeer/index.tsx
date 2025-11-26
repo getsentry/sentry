@@ -315,12 +315,15 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
 
   // Handler for Cursor handoff toggle (triage-signals-v0)
   // When ON: stops at root_cause and hands off to Cursor
-  // When OFF: clears handoff and defaults to code_changes
+  // When OFF: defaults to code_changes (user can then enable auto-open PR if desired)
   const handleCursorHandoffChange = useCallback(
     (value: boolean) => {
       if (value) {
         if (!cursorIntegration) {
-          throw new Error('Cursor integration not found');
+          addErrorMessage(
+            t('Cursor integration not found. Please refresh the page and try again.')
+          );
+          return;
         }
         updateProjectSeerPreferences(
           {
@@ -340,6 +343,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           }
         );
       } else {
+        // When turning OFF, default to code_changes
+        // User can then manually enable auto-open PR if desired
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
