@@ -112,7 +112,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
 
         try:
-            client = SeerExplorerClient(organization, request.user)
+            client = SeerExplorerClient(organization, request.user, is_interactive=True)
             if run_id:
                 # Continue existing conversation
                 result_run_id = client.continue_run(
