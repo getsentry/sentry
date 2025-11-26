@@ -42,3 +42,8 @@ export function useSourceGroupData() {
     saveToSourceGroupData,
   };
 }
+
+export function hasCaptureGroups(pattern: string) {
+  const m = pattern.match(/\(.*\)/);
+  return m !== null && m.length > 0;
+}
