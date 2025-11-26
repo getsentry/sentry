@@ -11,7 +11,7 @@ from sentry.integrations.cursor.integration import (
     CursorAgentIntegration,
     CursorAgentIntegrationProvider,
 )
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -36,6 +36,63 @@ def test_build_integration_stores_metadata(provider):
     assert metadata["domain_name"] == "cursor.sh"
     assert metadata["api_key"] == "cursor-api"
     assert metadata["webhook_secret"] == "hook-secret"
+
+
+def test_build_integration_fetches_and_stores_api_key_metadata(provider):
+    """Test that build_integration fetches metadata from /v0/me and stores it"""
+    from sentry.integrations.cursor.models import CursorApiKeyMetadata
+
+    fake_uuid = UUID("22222222-3333-4444-5555-666666666666")
+    mock_metadata = CursorApiKeyMetadata(
+        apiKeyName="Production API Key",
+        createdAt="2024-01-15T10:30:00Z",
+        userEmail="developer@example.com",
+    )
+
+    with (
+        patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
+        patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
+        patch(
+            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
+        ) as mock_get_metadata,
+    ):
+        mock_get_metadata.return_value = mock_metadata
+        integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
+
+    # Verify metadata was fetched
+    mock_get_metadata.assert_called_once()
+
+    # Verify metadata is stored
+    metadata = integration_data["metadata"]
+    assert metadata["api_key_name"] == "Production API Key"
+    assert metadata["user_email"] == "developer@example.com"
+
+    # Verify integration name includes API key name
+    assert (
+        integration_data["name"] == "Cursor Cloud Agent - developer@example.com/Production API Key"
+    )
+
+
+def test_build_integration_fallback_on_metadata_fetch_failure(provider):
+    """Test that build_integration falls back gracefully if metadata fetch fails"""
+    fake_uuid = UUID("33333333-4444-5555-6666-777777777777")
+
+    with (
+        patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
+        patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
+        patch(
+            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
+        ) as mock_get_metadata,
+    ):
+        # Simulate API call failure
+        mock_get_metadata.side_effect = ApiError("API Error", 500)
+        integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
+
+    # Verify integration was still created with fallback name
+    assert integration_data["name"] == "Cursor Cloud Agent"
+    metadata = integration_data["metadata"]
+    assert metadata["api_key_name"] is None
+    assert metadata["user_email"] is None
 
 
 def test_build_integration_stores_api_key_and_webhook_secret(provider):
@@ -266,7 +323,7 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         # All should have the same basic structure
         for integration_dict in [integration_dict_1, integration_dict_2, integration_dict_3]:
-            assert integration_dict["name"] == "Cursor Agent"
+            assert integration_dict["name"] == "Cursor Cloud Agent"
             assert "external_id" in integration_dict
             assert "metadata" in integration_dict
             assert integration_dict["metadata"]["domain_name"] == "cursor.sh"
@@ -280,3 +337,53 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         webhook_secrets = {webhook_secret_1, webhook_secret_2, webhook_secret_3}
         assert len(webhook_secrets) == 3, "Each integration should have a unique webhook secret"
+
+    def test_get_dynamic_display_information(self):
+        """Test that get_dynamic_display_information returns metadata"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent - Production Key",
+            external_id="cursor",
+            metadata={
+                "api_key": "test_api_key",
+                "webhook_secret": "test_secret",
+                "domain_name": "cursor.sh",
+                "api_key_name": "Production Key",
+                "user_email": "dev@example.com",
+            },
+        )
+
+        installation = cast(
+            CursorAgentIntegration,
+            integration.get_installation(organization_id=self.organization.id),
+        )
+
+        display_info = installation.get_dynamic_display_information()
+
+        assert display_info is not None
+        assert display_info["api_key_name"] == "Production Key"
+        assert display_info["user_email"] == "dev@example.com"
+
+    def test_get_dynamic_display_information_returns_none_when_no_metadata(self):
+        """Test that get_dynamic_display_information returns None when metadata is missing"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            name="Cursor Agent",
+            external_id="cursor",
+            metadata={
+                "api_key": "test_api_key",
+                "webhook_secret": "test_secret",
+                "domain_name": "cursor.sh",
+            },
+        )
+
+        installation = cast(
+            CursorAgentIntegration,
+            integration.get_installation(organization_id=self.organization.id),
+        )
+
+        display_info = installation.get_dynamic_display_information()
+
+        assert display_info is None
