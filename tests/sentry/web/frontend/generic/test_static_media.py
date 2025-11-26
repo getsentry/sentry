@@ -5,7 +5,7 @@ from django.test.utils import override_settings
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils.assets import get_frontend_app_asset_url
-from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
+from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 
 
 class StaticMediaTest(TestCase):
