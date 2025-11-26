@@ -281,6 +281,7 @@ def test_project_config_uses_filter_features(
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "0")
+    default_project.update_option("filters:common-errors", "0")
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)

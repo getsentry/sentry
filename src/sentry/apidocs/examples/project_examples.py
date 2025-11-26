@@ -154,6 +154,7 @@ DETAILED_PROJECT = {
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
         "filters:chunk-load-error": True,
+        "filters:common-errors": True,
         "filters:releases": "",
         "filters:error_messages": "",
         "feedback:branding": True,

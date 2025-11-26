@@ -77,6 +77,7 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
+        "filters:common-errors",
         "relay.cardinality-limiter.limits",
     ]
 )

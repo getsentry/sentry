@@ -883,6 +883,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "filters:chunk-load-error",
                     "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
+            if "filters:common-errors" in options:
+                project.update_option(
+                    "filters:common-errors",
+                    "1" if bool(options["filters:common-errors"]) else "0",
+                )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
                     "sentry:blacklisted_ips",
