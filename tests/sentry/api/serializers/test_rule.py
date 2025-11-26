@@ -14,7 +14,6 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
@@ -36,7 +35,6 @@ class RuleSerializerTest(TestCase):
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] == timezone.now()
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_last_triggered_with_workflow_only(self) -> None:
         rule = self.create_project_rule()
 
@@ -50,7 +48,6 @@ class RuleSerializerTest(TestCase):
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] == timezone.now()
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
     def test_last_triggered_with_workflow(self) -> None:
         rule = self.create_project_rule()
 

@@ -315,6 +315,7 @@ interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   integration_id: number;
   target: 'cursor_background_agent';
+  auto_create_pr?: boolean;
 }
 
 export interface ProjectSeerPreferences {

@@ -531,7 +531,7 @@ def rpc_get_profile_flamegraph(
         return {"error": "Failed to fetch profile data from profiling service"}
 
     # Convert to execution tree (returns dicts, not Pydantic models)
-    execution_tree = _convert_profile_to_execution_tree(profile_data)
+    execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
     if not execution_tree:
         logger.warning(
@@ -544,11 +544,6 @@ def rpc_get_profile_flamegraph(
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
-    # Extract thread_id from profile data
-    profile = profile_data.get("profile") or profile_data.get("chunk", {}).get("profile")
-    samples = profile.get("samples", []) if profile else []
-    thread_id = str(samples[0]["thread_id"]) if samples else None
-
     return {
         "execution_tree": execution_tree,
         "metadata": {
@@ -557,7 +552,7 @@ def rpc_get_profile_flamegraph(
             "is_continuous": is_continuous,
             "start_ts": min_start_ts,
             "end_ts": max_end_ts,
-            "thread_id": thread_id,
+            "thread_id": selected_thread_id,
         },
     }
 
@@ -656,126 +651,6 @@ def _get_issue_event_timeseries(
     if data is None:
         return None
     return data, stats_period, interval
-
-
-def get_issue_details(
-    *,
-    issue_id: str,
-    organization_id: int,
-    selected_event: str,
-) -> dict[str, Any] | None:
-    """
-    Args:
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up.
-        organization_id: The ID of the issue's organization.
-        selected_event: The event to return - "oldest", "latest", "recommended", or the event's UUID.
-
-    Returns:
-        A dict containing:
-            `issue`: Serialized issue details.
-            `tags_overview`: A summary of all tags in the issue.
-            `event`: Serialized event details, selected according to `selected_event`.
-            `event_id`: The event ID of the selected event.
-            `event_trace_id`: The trace ID of the selected event.
-            `project_id`: The ID of the issue's project.
-            `project_slug`: The slug of the issue's project.
-        Returns None when the event is not found or an error occurred.
-    """
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "Organization does not exist",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        return None
-
-    org_project_ids = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    try:
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
-
-    except Group.DoesNotExist:
-        logger.warning(
-            "Issue does not exist for organization",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        return None
-
-    serialized_group: dict = serialize(group, user=None, serializer=GroupSerializer())
-
-    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-    serialized_group["issueTypeDescription"] = group.issue_type.description
-
-    event: Event | GroupEvent | None
-    if selected_event == "oldest":
-        event = group.get_oldest_event()
-    elif selected_event == "latest":
-        event = group.get_latest_event()
-    elif selected_event == "recommended":
-        event = group.get_recommended_event()
-    else:
-        event = eventstore.backend.get_event_by_id(
-            project_id=group.project_id,
-            event_id=selected_event,
-            group_id=group.id,
-            tenant_ids={"organization_id": organization_id},
-        )
-
-    if not event:
-        logger.warning(
-            "Could not find the selected event for the issue",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": issue_id,
-                "selected_event": selected_event,
-            },
-        )
-        return None
-
-    serialized_event: IssueEventSerializerResponse = serialize(
-        event, user=None, serializer=EventSerializer()
-    )
-
-    try:
-        tags_overview = get_all_tags_overview(group)
-    except Exception:
-        logger.exception(
-            "Failed to get tags overview for issue",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
-        )
-        tags_overview = None
-
-    ts_result = _get_issue_event_timeseries(
-        organization=organization,
-        project_id=group.project_id,
-        issue_short_id=group.qualified_short_id,
-        first_seen_delta=datetime.now(UTC) - group.first_seen,
-    )
-    if ts_result:
-        timeseries, stats_period, interval = ts_result
-    else:
-        timeseries = None
-        stats_period = None
-        interval = None
-
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": stats_period,
-        "timeseries_interval": interval,
-        "tags_overview": tags_overview,
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": int(serialized_group["project"]["id"]),
-        "project_slug": serialized_group["project"]["slug"],
-    }
 
 
 def get_issue_and_event_details(

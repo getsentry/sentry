@@ -23,8 +23,9 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     get_autofix_state,
     get_coding_agent_prompt,
+    get_project_seer_preferences,
 )
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -202,6 +203,23 @@ def _launch_agents_for_repos(
         Dictionary with 'successes' and 'failures' lists
     """
 
+    # Fetch project preferences to get auto_create_pr setting from automation_handoff
+    auto_create_pr = False
+    try:
+        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
+        if preference_response and preference_response.preference:
+            if preference_response.preference.automation_handoff:
+                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "coding_agent.get_project_seer_preferences_error",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "project_id": autofix_state.request.project_id,
+            },
+        )
+
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
         if trigger_source == AutofixTriggerSource.ROOT_CAUSE
@@ -269,6 +287,7 @@ def _launch_agents_for_repos(
             prompt=prompt,
             repository=repo,
             branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
+            auto_create_pr=auto_create_pr,
         )
 
         try:
