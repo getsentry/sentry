@@ -5,8 +5,8 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.helpers.group_index.delete import schedule_group_deletion_tasks
+from sentry.audit_log.services.log.service import log_rpc_service
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
@@ -35,8 +35,9 @@ def delete_pending_groups() -> None:
     and schedules deletion tasks for them. Groups are batched by project to ensure
     efficient deletion processing.
 
-    Only processes groups where status was changed between 6 hours and 90 days ago
-    to avoid processing very recent groups (safety window) or groups past retention period.
+    Only processes groups where deletion was requested between 6 hours and 90 days ago
+    (via audit logs) to avoid processing very recent groups (safety window) or groups
+    past retention period.
     """
     statuses_to_delete = [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
 
@@ -49,19 +50,23 @@ def delete_pending_groups() -> None:
 
     now = timezone.now()
     min_last_seen = now - timedelta(days=MAX_LAST_SEEN_DAYS)
-    status_change_threshold = now - timedelta(hours=MIN_LAST_SEEN_HOURS)
+    cutoff_time = now - timedelta(hours=MIN_LAST_SEEN_HOURS)
+
+    # Query audit logs to find groups where deletion was requested in the time range
+    # (between 90 days ago and 6 hours ago)
+    non_recent_deletion_group_ids = set(
+        log_rpc_service.find_issue_deletions_before(
+            cutoff_datetime=cutoff_time,
+            min_datetime=min_last_seen,
+            limit=BATCH_LIMIT,
+        )
+    )
 
     # Group by project_id to ensure all groups in a batch belong to the same project
     groups_by_project: dict[int, list[int]] = defaultdict(list)
     for group_id, project_id, last_seen in groups:
-        if last_seen >= min_last_seen:
-            group_history = GroupHistory.objects.filter(
-                group_id=group_id,
-                status__in=[GroupHistoryStatus.DELETED],
-                date_added__lte=status_change_threshold,
-            ).first()
-            if group_history and group_history.date_added <= status_change_threshold:
-                groups_by_project[project_id].append(group_id)
+        if last_seen >= min_last_seen and group_id in non_recent_deletion_group_ids:
+            groups_by_project[project_id].append(group_id)
 
     if not groups_by_project:
         logger.info("delete_pending_groups.no_groups_in_limbo_found")
