@@ -42,7 +42,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 const REVERSED_ORDER_FIELD_SORT_LIST = ['freq', 'user'];
 
 const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
-  SpanFields.SPAN_ID,
+  SpanFields.ID,
   SpanFields.SPAN_OP,
   SpanFields.SPAN_GROUP,
   SpanFields.SPAN_DESCRIPTION,

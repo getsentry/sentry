@@ -4,5 +4,5 @@ export type DefaultDetailWidgetFields =
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_ID
+  | SpanFields.ID
   | SpanFields.SPAN_CATEGORY;
