@@ -165,7 +165,6 @@ dev = [
     "pytest-django>=4.9.0",
     "pytest-fail-slow>=0.3.0",
     "pytest-json-report>=1.5.0",
-    "pytest-rerunfailures>=15.0",
     "pytest-sentry>=0.3.0",
     "pytest-workaround-12888>=1.0.0",
     "pytest-xdist>=3.0.2",
