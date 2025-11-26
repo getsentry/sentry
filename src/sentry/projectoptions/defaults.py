@@ -64,6 +64,9 @@ register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 # Default NextJS chunk load error filter
 register(key="filters:chunk-load-error", epoch_defaults={1: "1"})
 
+# Default common errors filter
+register(key="filters:common-errors", epoch_defaults={1: "1"})
+
 # Default breakdowns config
 register(
     key="sentry:breakdowns",
