@@ -30,6 +30,7 @@ class DebugOAuthAuthorizeView(View):
         )
 
 
+@internal_region_silo_view
 class DebugOAuthAuthorizeErrorView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         return render_to_response(
