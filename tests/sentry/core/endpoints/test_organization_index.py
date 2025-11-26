@@ -184,7 +184,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         )
         OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
-    @pytest.mark.skip("flaky")
+    @pytest.mark.skip("flaky: INFRENG-210")
     def test_valid_slugs(self) -> None:
         valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for input_slug in valid_slugs:
