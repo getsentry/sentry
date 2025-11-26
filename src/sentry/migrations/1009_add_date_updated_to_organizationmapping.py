@@ -4,7 +4,7 @@ import django.db.models.functions
 import django.utils.timezone
 from django.db import migrations, models
 
-from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.migrations import CheckedMigration, SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -23,10 +23,19 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1007_cleanup_failed_safe_deletes"),
+        ("sentry", "1008_loosen_unique_title_contraint"),
     ]
 
     operations = [
+        # This migration had to be reverted after it was merged and ran in some environments.
+        # Clean up the previous attempt and try again
+        SafeRunSQL(
+            sql="""
+            ALTER TABLE "sentry_organizationmapping" DROP COLUMN IF EXISTS "date_updated";
+            """,
+            reverse_sql="",
+            hints={"tables": ["sentry_organizationmapping"]},
+        ),
         migrations.AddField(
             model_name="organizationmapping",
             name="date_updated",
