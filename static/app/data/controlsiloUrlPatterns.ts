@@ -254,6 +254,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/discord/configure/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
+  new RegExp('^plugins/github/installations/webhook/$'),
   new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
 
