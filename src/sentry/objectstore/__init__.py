@@ -70,8 +70,7 @@ def get_symbolicator_url(session: Session, key: str) -> str:
         docker_ps = subprocess.run(
             ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
         )
-        if "symbolicator" in docker_ps.stdout:
-            _IS_SYMBOLICATOR_CONTAINER = True
+        _IS_SYMBOLICATOR_CONTAINER = "symbolicator" in docker_ps.stdout
 
     if not _IS_SYMBOLICATOR_CONTAINER:
         return url
