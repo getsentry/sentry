@@ -1754,6 +1754,49 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_secondary_rate_limit_treated_as_rate_limited(self, get_jwt) -> None:
+        responses.reset()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=orjson.dumps(
+                {
+                    "resources": {
+                        "graphql": {
+                            "limit": 5000,
+                            "used": 100,
+                            "remaining": 4000,
+                            "reset": 1613064000,
+                        }
+                    }
+                }
+            ).decode(),
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "You have exceeded a secondary rate limit. Please wait a few minutes before you try again.",
+                "documentation_url": "https://docs.github.com/en/rest/overview/rate-limits-for-the-rest-api",
+            },
+            status=403,
+            content_type="application/json",
+        )
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.get_blame_for_files([self.file], extra={})
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_no_rate_limiting(self, get_jwt) -> None:
         """
         Tests that no error is thrown when GitHub isn't enforcing rate limits
