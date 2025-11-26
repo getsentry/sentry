@@ -1073,31 +1073,35 @@ def _make_get_trace_request(
                 if a.key.type == STRING:
                     attr_dict[public_alias] = {
                         "value": a.value.val_str,
-                        "type": STRING,
+                        "type": "string",
                     }
                 elif a.key.type == DOUBLE:
                     attr_dict[public_alias] = {
                         "value": a.value.val_double,
-                        "type": DOUBLE,
+                        "type": "double",
                     }
-                elif a.key.type == BOOLEAN or (
-                    a.key.type == INT and r and r.search_type == "boolean"
-                ):
+                elif a.key.type == BOOLEAN:
                     attr_dict[public_alias] = {
-                        "value": a.value.val_int == 1,
-                        "type": BOOLEAN,
+                        "value": a.value.val_bool,
+                        "type": "boolean",
                     }
                 elif a.key.type == INT:
-                    attr_dict[public_alias] = {
-                        "value": a.value.val_int,
-                        "type": INT,
-                    }
+                    if r and r.search_type == "boolean":
+                        attr_dict[public_alias] = {
+                            "value": a.value.val_int == 1,
+                            "type": "boolean",
+                        }
+                    else:
+                        attr_dict[public_alias] = {
+                            "value": a.value.val_int,
+                            "type": "integer",
+                        }
 
                     if r and r.internal_name == "sentry.project_id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
                             "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
-                            "type": STRING,
+                            "type": "string",
                         }
 
             item_dicts.append(
