@@ -68,6 +68,7 @@ def get_symbolicator_url(session: Session, key: str) -> str:
     if "symbolicator" not in docker_ps.stdout:
         return url
 
+    # Symbolicator is running in Docker, use the Docker hostname for Objectstore
     replacement = "objectstore"
     parsed = urlparse(url)
     if parsed.port:
