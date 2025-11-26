@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
+
+from django.db import router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
@@ -129,19 +132,24 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    check_id = provider.create_status_check(
-        repo=commit_comparison.head_repo_name,
-        sha=commit_comparison.head_sha,
-        status=status,
-        title=title,
-        subtitle=subtitle,
-        text=None,  # TODO(telkins): add text field support
-        summary=summary,
-        external_id=str(preprod_artifact.id),
-        target_url=target_url,
-        started_at=preprod_artifact.date_added,
-        completed_at=completed_at,
-    )
+    try:
+        check_id = provider.create_status_check(
+            repo=commit_comparison.head_repo_name,
+            sha=commit_comparison.head_sha,
+            status=status,
+            title=title,
+            subtitle=subtitle,
+            text=None,  # TODO(telkins): add text field support
+            summary=summary,
+            external_id=str(preprod_artifact.id),
+            target_url=target_url,
+            started_at=preprod_artifact.date_added,
+            completed_at=completed_at,
+        )
+    except Exception as e:
+        _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
+        raise
+
     if check_id is None:
         logger.error(
             "preprod.status_checks.create.failed",
@@ -151,7 +159,12 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
                 "organization_slug": preprod_artifact.project.organization.slug,
             },
         )
+        _update_posted_status_check(preprod_artifact, check_type="size", success=False)
         return
+
+    _update_posted_status_check(
+        preprod_artifact, check_type="size", success=True, check_id=check_id
+    )
 
     logger.info(
         "preprod.status_checks.create.success",
@@ -163,6 +176,54 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
+
+
+def _update_posted_status_check(
+    preprod_artifact: PreprodArtifact,
+    check_type: str,
+    success: bool,
+    check_id: str | None = None,
+    error: Exception | None = None,
+) -> None:
+    """Update the posted_status_checks field in the artifact's extras."""
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
+        extras = artifact.extras or {}
+
+        posted_status_checks = extras.get("posted_status_checks", {})
+
+        check_result: dict[str, Any] = {"success": success}
+        if success and check_id:
+            check_result["check_id"] = check_id
+        if not success:
+            check_result["error_type"] = _get_error_type(error).value
+
+        posted_status_checks[check_type] = check_result
+        extras["posted_status_checks"] = posted_status_checks
+        artifact.extras = extras
+        artifact.save(update_fields=["extras"])
+
+
+def _get_error_type(error: Exception | None) -> StatusCheckErrorType:
+    """Determine the error type from an exception."""
+    if error is None:
+        return StatusCheckErrorType.UNKNOWN
+    if isinstance(error, IntegrationConfigurationError):
+        return StatusCheckErrorType.INTEGRATION_ERROR
+    if isinstance(error, ApiError):
+        return StatusCheckErrorType.API_ERROR
+    return StatusCheckErrorType.UNKNOWN
+
+
+class StatusCheckErrorType(StrEnum):
+    """Error types for status check creation failures."""
+
+    UNKNOWN = "unknown"
+    """An unknown error occurred (e.g., API returned null check_id)."""
+    API_ERROR = "api_error"
+    """A retryable API error (5xx, rate limit, transient issues)."""
+    INTEGRATION_ERROR = "integration_error"
+    """An integration configuration error (permissions, invalid request, etc.)."""
 
 
 def _compute_overall_status(
