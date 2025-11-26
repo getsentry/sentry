@@ -55,17 +55,25 @@ def get_attachments_session(org: int, project: int) -> Session:
     return _ATTACHMENTS_CLIENT.session(_ATTACHMENTS_USECASE, org=org, project=project)
 
 
+_IS_SYMBOLICATOR_CONTAINER: bool | None = None
+
+
 def get_symbolicator_url(session: Session, key: str) -> str:
     """Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore."""
+    global _IS_SYMBOLICATOR_CONTAINER
 
     url = session.object_url(key)
     if not (settings.IS_DEV or in_test_environment()):
         return url
 
-    docker_ps = subprocess.run(
-        ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
-    )
-    if "symbolicator" not in docker_ps.stdout:
+    if _IS_SYMBOLICATOR_CONTAINER is None:
+        docker_ps = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
+        )
+        if "symbolicator" in docker_ps.stdout:
+            _IS_SYMBOLICATOR_CONTAINER = True
+
+    if not _IS_SYMBOLICATOR_CONTAINER:
         return url
 
     # Symbolicator is running in Docker, use the Docker hostname for Objectstore
