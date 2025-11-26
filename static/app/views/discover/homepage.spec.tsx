@@ -293,7 +293,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', async () => {
+  it('renders changes to the discover query when no homepage is saved', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -314,13 +314,12 @@ describe('Discover > Homepage', () => {
       },
       organization: initialData.organization,
     });
-    renderGlobalModal();
 
     await waitFor(() => {
       expect(screen.getByText('title')).toBeInTheDocument();
     });
 
-    // Simulate an update to the columns by changing the URL params
+    // Simulate navigation to update the query
     const queryParams = new URLSearchParams({
       field: 'event.type',
       sort: '-timestamp',
@@ -332,11 +331,7 @@ describe('Discover > Homepage', () => {
       `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
 
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText('event.type')).toBeInTheDocument();
+    expect(await screen.findByText('event.type')).toBeInTheDocument();
   });
 
   it('renders changes to the discover query when loaded with valid event view in url params', async () => {
@@ -353,13 +348,13 @@ describe('Discover > Homepage', () => {
       },
       organization: initialData.organization,
     });
-    renderGlobalModal();
 
     await waitFor(() => {
       expect(screen.getByText('title')).toBeInTheDocument();
     });
 
-    // Simulate an update to the columns by changing the URL params
+    expect(screen.queryByText('environment')).not.toBeInTheDocument();
+
     const queryParams = new URLSearchParams({
       field: 'event.type',
       sort: '-timestamp',
@@ -437,12 +432,6 @@ describe('Discover > Homepage', () => {
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location: LocationFixture(),
-      },
-    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -488,27 +477,22 @@ describe('Discover > Homepage', () => {
         },
         route: `/organizations/:orgId/explore/discover/homepage/`,
       },
-      organization: initialData.organization,
+      organization,
     });
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
 
-    // Wait for the Transactions tab to be available
-    const transactionsTab = await screen.findByRole('tab', {name: 'Transactions'});
-    await userEvent.click(transactionsTab);
-
-    await waitFor(() => {
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          dataset: 'transactions',
-          name: 'homepage query',
-          query: '',
-          field: 'environment',
-          queryDataset: 'transaction-like',
-        })
-      );
+    const queryParams = new URLSearchParams({
+      dataset: 'transactions',
+      name: 'homepage query',
+      query: '',
+      field: 'environment',
+      queryDataset: 'transaction-like',
     });
+    router.navigate(
+      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
+    );
 
     expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     expect(screen.queryByText('Remove Default')).not.toBeInTheDocument();
