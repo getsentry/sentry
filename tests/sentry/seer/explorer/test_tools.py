@@ -20,6 +20,7 @@ from sentry.seer.explorer.tools import (
     execute_timeseries_query,
     get_issue_and_event_details,
     get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
@@ -33,6 +34,7 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
@@ -1981,3 +1983,159 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ids = [item["id"] for item in result["data"]]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
+
+
+class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+
+        self.trace_id = uuid.uuid4().hex
+        # Create metrics with various attributes
+        self.metrics = [
+            self.create_trace_metric(
+                metric_name="http.request.duration",
+                metric_value=125.5,
+                metric_type="distribution",
+                metric_unit="millisecond",
+                trace_id=self.trace_id,
+                attributes={
+                    "sentry.project_id": self.project.id,
+                    "http.method": "GET",
+                    "http.status_code": 200,
+                    "my-string-attribute": "custom value",
+                    "my-boolean-attribute": True,
+                    "my-double-attribute": 1.23,
+                    "my-integer-attribute": 123,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="database.query.count",
+                metric_value=5.0,
+                metric_type="counter",
+                # No trace_id - should not be returned in trace queries
+                attributes={
+                    "sentry.project_id": self.project.id,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="http.request.duration",
+                metric_value=200.3,
+                metric_type="distribution",
+                metric_unit="millisecond",
+                trace_id=self.trace_id,
+                attributes={
+                    "sentry.project_id": self.project.id,
+                    "http.method": "POST",
+                    "http.status_code": 201,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="cache.hit.rate",
+                metric_value=0.85,
+                metric_type="gauge",
+                trace_id=self.trace_id,
+                attributes={
+                    "sentry.project_id": self.project.id,
+                    "cache.type": "redis",
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_trace_metrics(self.metrics)
+
+    @staticmethod
+    def get_id_str(item: TraceItem) -> str:
+        return item.item_id[::-1].hex()
+
+    def test_get_metric_attributes_for_trace_basic(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+        )
+        assert result is not None
+        assert len(result["data"]) == 3
+
+        # Find the first http.request.duration metric
+        http_metric_expected = self.metrics[0]
+        http_metric = None
+        for item in result["data"]:
+            if item["id"] == self.get_id_str(http_metric_expected):
+                http_metric = item
+
+        assert http_metric is not None
+        ts = datetime.fromisoformat(http_metric["timestamp"]).timestamp()
+        assert int(ts) == http_metric_expected.timestamp.seconds
+
+        for name, value, type in [
+            ("metric.name", "http.request.duration", "str"),
+            ("metric.type", "distribution", "str"),
+            ("value", 125.5, "double"),
+            ("project", self.project.slug, "str"),
+            ("project.id", self.project.id, "double"),
+            ("http.method", "GET", "str"),
+            ("http.status_code", 200, "double"),
+            ("my-string-attribute", "custom value", "str"),
+            ("my-boolean-attribute", True, "double"),
+            ("my-double-attribute", 1.23, "double"),
+            ("my-integer-attribute", 123, "double"),
+        ]:
+            assert http_metric["attributes"][name]["value"] == value, name
+            assert http_metric["attributes"][name]["type"] == type, f"{name} type mismatch"
+
+    def test_get_metric_attributes_for_trace_name_filter(self) -> None:
+        # Test substring match (fails)
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="http.",
+        )
+        assert result is not None
+        assert len(result["data"]) == 0
+
+        # Test an exact match (case-insensitive)
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="Cache.hit.rate",
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == self.get_id_str(self.metrics[3])
+
+    def test_get_metric_attributes_for_trace_limit_no_filter(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            limit=1,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] in [
+            self.get_id_str(self.metrics[0]),
+            self.get_id_str(self.metrics[2]),
+            self.get_id_str(self.metrics[3]),
+        ]
+
+    def test_get_metric_attributes_for_trace_limit_with_filter(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="http.request.duration",
+            limit=2,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.get_id_str(self.metrics[0]) in ids
+        assert self.get_id_str(self.metrics[2]) in ids
