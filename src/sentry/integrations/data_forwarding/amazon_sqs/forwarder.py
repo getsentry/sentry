@@ -9,36 +9,27 @@ import orjson
 from botocore.client import Config
 from botocore.exceptions import ClientError, ParamValidationError
 
+from sentry.api.serializers import serialize
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
-from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
 # AWS SQS maximum message size limit
 AWS_SQS_MAX_MESSAGE_SIZE = 256 * 1024  # 256 KB
 
-DESCRIPTION = """
-Send Sentry events to Amazon SQS.
-
-This integration allows you to forward Sentry events to an Amazon SQS queue for further processing.
-
-Amazon SQS is a fully managed message queuing service that enables you to decouple and scale microservices.
-"""
-
 
 class AmazonSQSForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SQS
-    rate_limit = None
-    description = DESCRIPTION
+    rate_limit = (0, 0)
 
-    @classmethod
-    def get_event_payload(cls, event: Event) -> dict[str, Any]:
-        return event.as_dict()
+    def get_event_payload(
+        self, event: Event | GroupEvent, config: dict[str, Any]
+    ) -> dict[str, Any]:
+        return serialize(event)
 
-    @classmethod
-    def is_unrecoverable_client_error(cls, error: ClientError) -> bool:
+    def is_unrecoverable_client_error(self, error: ClientError) -> bool:
         error_str = str(error)
 
         # Invalid or missing AWS credentials
@@ -70,12 +61,11 @@ class AmazonSQSForwarder(BaseDataForwarder):
 
         return False
 
-    @classmethod
-    def send_payload(
-        cls,
+    def forward_event(
+        self,
+        event: Event | GroupEvent,
         payload: dict[str, Any],
         config: dict[str, Any],
-        event: Event,
     ) -> bool:
         queue_url = config["queue_url"]
         region = config["region"]
@@ -125,7 +115,7 @@ class AmazonSQSForwarder(BaseDataForwarder):
                 payload = {"s3Url": url, "eventID": event.event_id}
 
             except ClientError as e:
-                if cls.is_unrecoverable_client_error(e):
+                if self.is_unrecoverable_client_error(e):
                     return False
                 raise
             except ParamValidationError:
@@ -141,14 +131,8 @@ class AmazonSQSForwarder(BaseDataForwarder):
         try:
             sqs_send_message(message)
         except ClientError as e:
-            if cls.is_unrecoverable_client_error(e):
+            if self.is_unrecoverable_client_error(e):
                 return False
             raise
 
         return True
-
-    @classmethod
-    def forward_event(cls, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
-        config = data_forwarder_project.get_config()
-        payload = cls.get_event_payload(event)
-        return cls.send_payload(payload, config, event)

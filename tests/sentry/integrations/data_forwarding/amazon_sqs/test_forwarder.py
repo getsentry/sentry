@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 from botocore.exceptions import ClientError
 
+from sentry.api.serializers import serialize
 from sentry.integrations.data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -29,6 +30,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project=self.project,
             is_enabled=True,
         )
+        self.forwarder = AmazonSQSForwarder()
 
     @patch("boto3.client")
     def test_simple_notification(self, mock_client):
@@ -42,9 +44,8 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
-        assert result is True
         mock_client.assert_called_once_with(
             service_name="sqs",
             region_name="us-east-1",
@@ -53,7 +54,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         )
         mock_client.return_value.send_message.assert_called_once_with(
             QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=orjson.dumps(event.as_dict(), option=orjson.OPT_UTC_Z).decode(),
+            MessageBody=orjson.dumps(serialize(event), option=orjson.OPT_UTC_Z).decode(),
         )
 
     @patch("boto3.client")
@@ -68,8 +69,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
-        assert result is False
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
     @patch("boto3.client")
     def test_message_group_error(self, mock_client):
@@ -88,8 +88,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
-        assert result is False
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
     @patch("boto3.client")
     def test_pass_message_group_id(self, mock_client):
@@ -104,9 +103,8 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
-        assert result is True
         call_args = mock_client.return_value.send_message.call_args[1]
         assert call_args["MessageGroupId"] == "my_group"
         assert "MessageDeduplicationId" in call_args
@@ -124,9 +122,8 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
+        self.forwarder.post_process(event, self.data_forwarder_project)
 
-        assert result is True
         mock_client.return_value.put_object.assert_called_once()
         put_object_call = mock_client.return_value.put_object.call_args[1]
         assert put_object_call["Bucket"] == "my_bucket"
