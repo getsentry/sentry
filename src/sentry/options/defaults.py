@@ -2393,6 +2393,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Hard timeout for webhook requests to prevent indefinite hangs
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=3.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
