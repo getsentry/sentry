@@ -296,29 +296,28 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        description={
-          query
-            ? tct(
-                'Try to modify or [clear:clear] your search to see all source maps uploads.',
-                {
-                  clear: (
-                    <Button
-                      priority="link"
-                      aria-label={t('Clear Search')}
-                      onClick={onClearSearch}
-                    />
-                  ),
-                }
-              )
-            : tct(
-                'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-                {
-                  docs: <ExternalLink href={docsLink} />,
-                }
-              )
-        }
         action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
-      />
+      >
+        {query
+          ? tct(
+              'Try to modify or [clear:clear] your search to see all source maps uploads.',
+              {
+                clear: (
+                  <Button
+                    priority="link"
+                    aria-label={t('Clear Search')}
+                    onClick={onClearSearch}
+                  />
+                ),
+              }
+            )
+          : tct(
+              'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
+              {
+                docs: <ExternalLink href={docsLink} />,
+              }
+            )}
+      </EmptyMessage>
     </Panel>
   );
 }

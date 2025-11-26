@@ -127,7 +127,7 @@ export default function FirstEventFooter({
         }}
       >
         {project?.firstEvent ? (
-          <IconCheckmark isCircled color="green400" />
+          <IconCheckmark color="green400" />
         ) : (
           <WaitingIndicator
             variants={indicatorAnimation}

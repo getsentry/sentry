@@ -22,7 +22,6 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError
@@ -80,11 +79,12 @@ class ViewSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+        def handle(*args: Any, **kwargs: Any) -> HttpResponse:
+            method, path = self._request_attrs(args, kwargs)
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
-                f"Received {request.method} request at {request.path!r} to server in "
-                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+                f"Received {method} request at {path!r} to server in "
+                f"{current_mode} mode. This view is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
                 raise self.AvailabilityError(message)
@@ -93,6 +93,15 @@ class ViewSiloLimit(SiloLimit):
                 return HttpResponseNotFound()
 
         return handle
+
+    def _request_attrs(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> tuple[str, str]:
+        for arg in args:
+            if isinstance(arg, HttpRequest):
+                return (arg.method or "unknown", arg.path)
+        for value in kwargs.values():
+            if isinstance(value, HttpRequest):
+                return (value.method or "unknown", value.path)
+        return ("unknown", "unknown")
 
     def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
@@ -118,6 +127,11 @@ region_silo_view = ViewSiloLimit(SiloMode.REGION)
 Apply to frontend views that exist in REGION Silo
 If a request is received and the application is not in REGION/MONOLITH
 mode a 404 will be returned.
+"""
+
+all_silo_view = ViewSiloLimit(SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH)
+"""
+Apply to frontend views that respond in both CONTROL and REGION mode.
 """
 
 

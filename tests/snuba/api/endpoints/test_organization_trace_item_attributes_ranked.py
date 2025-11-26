@@ -51,7 +51,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         self.store_span(
             self.create_span(
-                {"description": description or "foo", "sentry_tags": tags},
+                {
+                    "description": description or "foo",
+                    "sentry_tags": tags,
+                    "measurements": {"client_sample_rate": {"value": 0.5}},
+                },
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
@@ -89,12 +93,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         for tag, duration in tags:
             self._store_span(tags=tag, duration=duration)
 
-        response = self.do_request(
-            query={"query_1": "span.duration:<=100", "query_2": "span.duration:>100"}
-        )
+        response = self.do_request(query={"query_1": "span.duration:<=100"})
         assert response.status_code == 200, response.data
-        assert "cohort1Total" in response.data
-        assert "cohort2Total" in response.data
+        assert response.data["cohort1Total"] == 4
+        assert response.data["cohort2Total"] == 3
 
         # Verify filtering: no attributes should start with "tags[" or "sentry." (except sentry.normalized_description)
         for attr in response.data["rankedAttributes"]:

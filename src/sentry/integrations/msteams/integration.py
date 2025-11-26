@@ -19,12 +19,14 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
+from sentry.shared_integrations.exceptions import ApiError
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -86,7 +88,10 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
         self, target: IntegrationNotificationTarget, payload: AdaptiveCard
     ) -> None:
         client = self.get_client()
-        client.send_card(conversation_id=target.resource_id, card=payload)
+        try:
+            client.send_card(conversation_id=target.resource_id, card=payload)
+        except ApiError as e:
+            translate_msteams_api_error(e)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

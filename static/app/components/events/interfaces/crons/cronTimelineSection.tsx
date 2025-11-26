@@ -14,6 +14,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -55,8 +56,9 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timezone = useTimezone();
 
-  const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
+  const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth, timezone);
 
   const {data: monitorStats, isPending} = useMonitorStats({
     timeWindowConfig,

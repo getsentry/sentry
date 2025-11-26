@@ -10,7 +10,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -79,6 +79,26 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     );
   }
 
+  if (installDetails.codesigning_type === 'appstore') {
+    return (
+      <Flex direction="column" align="center" gap="xl">
+        {header}
+        <CodeSignatureInfo>
+          <Text>{t('This app cannot be installed')}</Text>
+          <br />
+          <Text size="sm" variant="muted">
+            {tct(
+              'App was signed for the App Store using the [profileName] profile and cannot be installed directly. Re-upload with an enterprise, ad-hoc, or development profile to install this app.',
+              {
+                profileName: <strong>{installDetails.profile_name}</strong>,
+              }
+            )}
+          </Text>
+        </CodeSignatureInfo>
+      </Flex>
+    );
+  }
+
   if (!installDetails.install_url) {
     if (!installDetails.is_code_signature_valid) {
       let errors = null;
@@ -88,9 +108,11 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
       ) {
         errors = (
           <CodeSignatureInfo>
-            {installDetails.code_signature_errors.map(e => (
-              <Text key={e}>{e}</Text>
-            ))}
+            <Stack gap="sm">
+              {installDetails.code_signature_errors.map((e, index) => (
+                <Text key={index}>{e}</Text>
+              ))}
+            </Stack>
           </CodeSignatureInfo>
         );
       }

@@ -30,6 +30,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   emptyMessage?: string;
   limit?: number | null;
   openInNewTab?: boolean;
+  projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
 };
@@ -75,6 +76,7 @@ export default function ConnectedMonitorsList({
   limit = DEFAULT_DETECTORS_PER_PAGE,
   query,
   openInNewTab,
+  projectIds,
   ...props
 }: Props) {
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
@@ -86,7 +88,14 @@ export default function ConnectedMonitorsList({
     isSuccess,
     getResponseHeader,
   } = useDetectorsQuery(
-    {ids: detectorIds ?? undefined, limit: limit ?? undefined, cursor, query},
+    {
+      ids: detectorIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
+      includeIssueStreamDetectors: true,
+      projects: projectIds,
+    },
     {enabled: detectorIds === null || detectorIds.length > 0}
   );
 
@@ -143,6 +152,7 @@ export default function ConnectedMonitorsList({
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
+          (detectorIds === null || detectorIds.length > 0) &&
           detectors.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>

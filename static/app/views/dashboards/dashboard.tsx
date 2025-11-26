@@ -24,6 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
@@ -80,6 +81,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
+  isEmbedded?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   newlyAddedWidget?: Widget;
@@ -103,6 +105,7 @@ function Dashboard({
   onUpdate,
   widgetLegendState,
   widgetLimitReached,
+  isEmbedded,
   isPreview,
   newWidget,
   newlyAddedWidget,
@@ -117,6 +120,7 @@ function Dashboard({
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
@@ -176,6 +180,10 @@ function Dashboard({
     );
 
     return () => {
+      if (queue) {
+        queue.abort();
+        queue.clear();
+      }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
       GroupStore.reset();
@@ -420,6 +428,7 @@ function Dashboard({
             onEdit={handleEditWidget(index)}
             onDuplicate={handleDuplicateWidget(widget)}
             onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+            isEmbedded={isEmbedded}
             isPreview={isPreview}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
             dashboardPermissions={dashboard.permissions}

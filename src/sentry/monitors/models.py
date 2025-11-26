@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -237,12 +238,6 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
-    is_muted = models.BooleanField(default=False, db_default=False)
-    """
-    Monitor is operating normally but will not produce incidents or produce
-    occurrences into the issues platform.
-    """
-
     name = models.CharField(max_length=128)
     """
     Human readable name of the monitor. Used for display purposes.
@@ -330,7 +325,7 @@ class Monitor(Model):
             "name": self.name,
             "status": self.status,
             "config": self.config,
-            "is_muted": self.is_muted,
+            "is_muted": is_monitor_muted(self),
             "slug": self.slug,
             "owner_user_id": self.owner_user_id,
             "owner_team_id": self.owner_team_id,
@@ -437,6 +432,23 @@ class Monitor(Model):
         # Generate a new UUID.
         self.guid = uuid4()
         return old_pk
+
+
+def is_monitor_muted(monitor: Monitor) -> bool:
+    """
+    A monitor is considered muted if ALL of its environments are muted.
+    If a monitor has no environments, it is considered unmuted.
+    """
+    env_counts = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
+        total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
+    )
+
+    # If no environments exist, monitor is not muted
+    if env_counts["total"] == 0:
+        return False
+
+    # Monitor is muted only if ALL environments are muted
+    return env_counts["total"] == env_counts["muted"]
 
 
 def check_organization_monitor_limit(organization_id: int) -> None:
@@ -625,7 +637,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE},
+            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
         )
 
         # recompute per-project monitor check-in rate limit quota
@@ -812,8 +824,18 @@ class MonitorEnvBrokenDetection(Model):
         db_table = "sentry_monitorenvbrokendetection"
 
 
+def get_cron_monitor(detector: Detector) -> Monitor:
+    """
+    Given a detector get the matching cron monitor.
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return Monitor.objects.get(id=int(data_source.source_id))
+
+
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
 class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -834,6 +856,7 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(Monitor, {"id": instance.source_id})]
@@ -848,3 +871,8 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
     def get_current_instance_count(org: Organization) -> int:
         # We don't have a limit at the moment, so no need to count.
         raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "monitors.monitor"

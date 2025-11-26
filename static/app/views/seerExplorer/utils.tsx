@@ -153,6 +153,39 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Excavating commit history${dateRangeStr} in ${repoName}...`
       : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
+
+  get_replay_details: (args, isLoading) => {
+    const replayId = args.replay_id || '';
+    const shortReplayId = replayId.slice(0, 8);
+    return isLoading
+      ? `Watching replay ${shortReplayId}...`
+      : `Watched replay ${shortReplayId}`;
+  },
+
+  get_profile_flamegraph: (args, isLoading) => {
+    const profileId = args.profile_id || '';
+    const shortProfileId = profileId.slice(0, 8);
+    return isLoading
+      ? `Sampling profile ${shortProfileId}...`
+      : `Sampled profile ${shortProfileId}`;
+  },
+
+  get_metric_attributes: (args, isLoading) => {
+    const metricName = args.metric_name || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
+    return isLoading
+      ? `Double-clicking on metric '${metricName}' from trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' from trace ${shortTraceId}`;
+  },
+
+  get_log_attributes: (args, isLoading) => {
+    const logMessage = args.log_message || '';
+    const timestamp = args.timestamp || '';
+    return isLoading
+      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}...`
+      : `Examined logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}`;
+  },
 };
 
 /**
@@ -189,6 +222,82 @@ export function getToolsStringFromBlock(block: Block): string[] {
   }
 
   return tools;
+}
+
+/**
+ * Converts issue short IDs in text to markdown links.
+ * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
+ * Excludes IDs that are already inside markdown code blocks, links, or URLs.
+ */
+function linkifyIssueShortIds(text: string): string {
+  // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
+  // Requires at least 2 chars before hyphen and 1+ chars after
+  // First segment must contain at least one uppercase letter (all letters must be uppercase)
+  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+
+  // Track positions that should be excluded (inside code blocks, links, or URLs)
+  const excludedRanges: Array<{end: number; start: number}> = [];
+
+  // Find all markdown code blocks (inline and block)
+  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
+  for (const codeMatch of text.matchAll(codeBlockPattern)) {
+    excludedRanges.push({
+      end: codeMatch.index + codeMatch[0].length,
+      start: codeMatch.index,
+    });
+  }
+  // Find all markdown links [text](url)
+  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  for (const linkMatch of text.matchAll(markdownLinkPattern)) {
+    excludedRanges.push({
+      end: linkMatch.index + linkMatch[0].length,
+      start: linkMatch.index,
+    });
+  }
+  // Find all URLs (http://, https://, or starting with /)
+  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  for (const urlMatch of text.matchAll(urlPattern)) {
+    excludedRanges.push({
+      end: urlMatch.index + urlMatch[0].length,
+      start: urlMatch.index,
+    });
+  }
+
+  // Sort ranges by start position for efficient checking
+  excludedRanges.sort((a, b) => a.start - b.start);
+
+  // Helper function to check if a position is within any excluded range
+  const isExcluded = (pos: number): boolean => {
+    return excludedRanges.some(range => pos >= range.start && pos < range.end);
+  };
+
+  // Replace matches, but skip those in excluded ranges
+  return text.replace(shortIdPattern, (idMatch, _content, offset) => {
+    if (isExcluded(offset)) {
+      return idMatch;
+    }
+    return `[${idMatch}](/issues/${idMatch}/)`;
+  });
+}
+
+/**
+ * Post-processes markdown text from LLM responses.
+ * Applies various transformations to enhance the text with links and formatting.
+ * Add new processing rules to this function as needed.
+ */
+export function postProcessLLMMarkdown(text: string | null | undefined): string {
+  if (!text) {
+    return '';
+  }
+
+  let processed = text;
+
+  // Convert issue short IDs to clickable links
+  processed = linkifyIssueShortIds(processed);
+
+  // Add more processing rules here as needed
+
+  return processed;
 }
 
 /**
@@ -309,6 +418,56 @@ export function buildToolLinkUrl(
       const {event_id, issue_id} = toolLink.params;
 
       return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+    }
+    case 'get_replay_details': {
+      const {replay_id} = toolLink.params;
+      if (!replay_id) {
+        return null;
+      }
+
+      return {
+        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
+    }
+    case 'get_profile_flamegraph': {
+      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} =
+        toolLink.params;
+      if (!profile_id || !project_id) {
+        return null;
+      }
+
+      // Look up project slug from project_id
+      const project = projects?.find(p => p.id === String(project_id));
+      if (!project) {
+        return null;
+      }
+
+      if (is_continuous) {
+        // Continuous profiles need start/end timestamps as query params
+        if (!start_ts || !end_ts) {
+          return null;
+        }
+
+        // Convert Unix timestamps to ISO date strings
+        const startDate = new Date(start_ts * 1000).toISOString();
+        const endDate = new Date(end_ts * 1000).toISOString();
+
+        return {
+          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
+          query: {
+            start: startDate,
+            end: endDate,
+            profilerId: profile_id,
+            ...(thread_id && {tid: thread_id}),
+          },
+        };
+      }
+
+      // Transaction profiles use profile_id in the path
+      return {
+        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        ...(thread_id && {query: {tid: thread_id}}),
+      };
     }
     default:
       return null;

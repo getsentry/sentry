@@ -23,6 +23,7 @@ import {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -133,6 +134,7 @@ interface MetricDetectorChartProps {
    * Used in anomaly detection
    */
   thresholdType: AlertRuleThresholdType | undefined;
+  extrapolationMode?: ExtrapolationMode | undefined;
 }
 
 export function MetricDetectorChart({
@@ -149,6 +151,7 @@ export function MetricDetectorChart({
   comparisonDelta,
   sensitivity,
   thresholdType,
+  extrapolationMode,
 }: MetricDetectorChartProps) {
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
@@ -167,6 +170,7 @@ export function MetricDetectorChart({
     statsPeriod: selectedTimePeriod,
     comparisonDelta,
     eventTypes,
+    extrapolationMode,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =

@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:08.101599+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2023-01-11",
@@ -45,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -76,7 +74,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app) but ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app) but ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -107,7 +105,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -136,7 +134,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -167,7 +165,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -198,7 +196,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -229,7 +227,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -260,7 +258,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -291,7 +289,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -322,7 +320,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -353,7 +351,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -384,7 +382,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -415,7 +413,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -446,7 +444,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -477,7 +475,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -508,7 +506,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -539,7 +537,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -570,7 +568,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked in-app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -601,7 +599,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -632,7 +630,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -663,7 +661,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -694,7 +692,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -725,7 +723,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -754,7 +752,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (category:system -app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:system -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -835,7 +833,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -866,7 +864,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [

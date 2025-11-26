@@ -368,7 +368,7 @@ def do_process_event(
         has_changed = True
         data = new_data
 
-    attachments = data.pop("_attachments", None)
+    attachments = data.get("_attachments", None)
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
@@ -533,7 +533,7 @@ def _do_save_event(
         event_data=data,
     )
 
-    with metrics.global_tags(event_type=event_type):
+    with metrics.global_tags(tags={"event_type": event_type}):
         if event_id is None and data is not None:
             event_id = data["event_id"]
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -329,7 +329,6 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
-        "assign_monitor_seat",
         "check_accept_monitor_checkin",
         "update_monitor_slug",
     )
@@ -605,7 +604,7 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seats(
-        self, data_category: DataCategory, seat_objects: list[SeatObject]
+        self, data_category: DataCategory, seat_objects: Sequence[SeatObject]
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.
@@ -695,7 +694,13 @@ class Quota(Service):
         """
         return True
 
-    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+    def record_seer_run(
+        self,
+        org_id: int,
+        project_id: int,
+        data_category: DataCategory,
+        seat_object: SeatObject | None = None,
+    ) -> None:
         """
         Records a seer run for an organization.
         """
@@ -726,3 +731,11 @@ class Quota(Service):
         Returns the maximum number of detectors allowed for the organization's plan type.
         """
         return -1
+
+    def check_seer_quota(
+        self, org_id: int, data_category: DataCategory, seat_object: SeatObject | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer for the given data category and seat object.
+        """
+        return True

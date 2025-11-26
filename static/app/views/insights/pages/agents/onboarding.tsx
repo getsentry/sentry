@@ -223,14 +223,16 @@ export function Onboarding() {
             {label: 'LangGraph', value: 'langgraph'},
             {label: 'LiteLLM', value: 'litellm'},
             {label: 'Pydantic AI', value: 'pydantic_ai'},
-            {label: 'Manual', value: 'manual'},
+            {label: 'Other', value: 'manual'},
           ]
         : [
             {label: 'Vercel AI SDK', value: 'vercel_ai'},
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'Manual', value: 'manual'},
+            {label: 'LangChain', value: 'langchain'},
+            {label: 'LangGraph', value: 'langgraph'},
+            {label: 'Other', value: 'manual'},
           ],
     },
   };
@@ -453,8 +455,8 @@ const Body = styled('div')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
+  min-height: 370px;
   margin-top: ${p => p.theme.space['2xl']};
-  height: 522px;
   border: 0;
 `;
 

@@ -93,6 +93,7 @@ export enum DataCategory {
   LOG_BYTE = 'logBytes',
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
+  SEER_USER = 'seerUsers',
   PREVENT_USER = 'preventUsers',
   PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
@@ -126,6 +127,7 @@ export enum DataCategoryExact {
   LOG_BYTE = 'log_byte',
   SEER_AUTOFIX = 'seer_autofix',
   SEER_SCANNER = 'seer_scanner',
+  SEER_USER = 'seer_user',
   PREVENT_USER = 'prevent_user',
   PREVENT_REVIEW = 'prevent_review',
   USER_REPORT_V2 = 'feedback',
@@ -187,6 +189,8 @@ export type PageFilters = {
   projects: number[];
 };
 
+type EmptyState = {type: 'empty'};
+
 type InitialState = {type: 'initial'};
 
 type LoadingState = {type: 'loading'};
@@ -202,6 +206,7 @@ type ErroredState = {
 };
 
 export type RequestState<T> =
+  | EmptyState
   | InitialState
   | LoadingState
   | ResolvedState<T>

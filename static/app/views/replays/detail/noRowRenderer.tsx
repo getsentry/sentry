@@ -19,7 +19,7 @@ function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
   ) : (
     <EmptyState>
       <p>{t('No results found')}</p>
-      <Button icon={<IconClose color="gray500" isCircled />} onClick={clearSearchTerm}>
+      <Button icon={<IconClose color="gray500" />} onClick={clearSearchTerm}>
         {t('Clear filters')}
       </Button>
     </EmptyState>

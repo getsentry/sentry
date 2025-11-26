@@ -1,5 +1,8 @@
 from sentry.preprod.models import PreprodArtifactSizeMetrics
-from sentry.preprod.size_analysis.compare import compare_size_analysis
+from sentry.preprod.size_analysis.compare import (
+    _should_skip_diff_item_comparison,
+    compare_size_analysis,
+)
 from sentry.preprod.size_analysis.models import (
     ComparisonResults,
     DiffType,
@@ -41,6 +44,7 @@ class CompareSizeAnalysisTest(TestCase):
             )
 
         return SizeAnalysisResults(
+            analysis_duration=1.0,
             download_size=download_size,
             install_size=install_size,
             treemap=treemap,
@@ -526,3 +530,269 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_items[2].path == "Assets.car/Primary-Light@2x.png"
         assert diff_items[2].size_diff == 802816
         assert diff_items[2].type == DiffType.ADDED
+
+
+class ShouldSkipDiffItemComparisonTest(TestCase):
+    def _create_size_analysis_results(self, analysis_version=None):
+        """Helper to create SizeAnalysisResults with specified analysis_version."""
+        return SizeAnalysisResults(
+            analysis_duration=1.0,
+            download_size=500,
+            install_size=1000,
+            treemap=None,
+            analysis_version=analysis_version,
+        )
+
+    def test_skip_on_major_version_mismatch(self):
+        """Should skip diff comparison when major versions differ."""
+        head_results = self._create_size_analysis_results(analysis_version="2.0.0")
+        base_results = self._create_size_analysis_results(analysis_version="1.0.0")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is True
+
+    def test_skip_on_minor_version_mismatch(self):
+        """Should skip diff comparison when minor versions differ."""
+        head_results = self._create_size_analysis_results(analysis_version="1.2.0")
+        base_results = self._create_size_analysis_results(analysis_version="1.1.0")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is True
+
+    def test_no_skip_on_patch_version_mismatch(self):
+        """Should NOT skip diff comparison when only patch versions differ."""
+        head_results = self._create_size_analysis_results(analysis_version="1.0.1")
+        base_results = self._create_size_analysis_results(analysis_version="1.0.0")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_on_same_versions(self):
+        """Should NOT skip diff comparison when versions are identical."""
+        head_results = self._create_size_analysis_results(analysis_version="1.2.3")
+        base_results = self._create_size_analysis_results(analysis_version="1.2.3")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_when_head_version_missing(self):
+        """Should NOT skip diff comparison when head version is None."""
+        head_results = self._create_size_analysis_results(analysis_version=None)
+        base_results = self._create_size_analysis_results(analysis_version="1.0.0")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_when_base_version_missing(self):
+        """Should NOT skip diff comparison when base version is None."""
+        head_results = self._create_size_analysis_results(analysis_version="1.0.0")
+        base_results = self._create_size_analysis_results(analysis_version=None)
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_when_both_versions_missing(self):
+        """Should NOT skip diff comparison when both versions are None."""
+        head_results = self._create_size_analysis_results(analysis_version=None)
+        base_results = self._create_size_analysis_results(analysis_version=None)
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_on_invalid_head_version(self):
+        """Should NOT skip diff comparison when head version is invalid."""
+        head_results = self._create_size_analysis_results(analysis_version="invalid-version")
+        base_results = self._create_size_analysis_results(analysis_version="1.0.0")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_on_invalid_base_version(self):
+        """Should NOT skip diff comparison when base version is invalid."""
+        head_results = self._create_size_analysis_results(analysis_version="1.0.0")
+        base_results = self._create_size_analysis_results(analysis_version="not-a-version")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_no_skip_when_both_versions_invalid(self):
+        """Should NOT skip diff comparison when both versions are invalid."""
+        head_results = self._create_size_analysis_results(analysis_version="bad-version")
+        base_results = self._create_size_analysis_results(analysis_version="also-bad")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+    def test_skip_with_prerelease_versions(self):
+        """Should skip when major/minor differ even with pre-release tags."""
+        head_results = self._create_size_analysis_results(analysis_version="2.0.0-alpha")
+        base_results = self._create_size_analysis_results(analysis_version="1.0.0-beta")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is True
+
+    def test_no_skip_with_same_major_minor_prerelease(self):
+        """Should NOT skip when major/minor match despite different pre-release tags."""
+        head_results = self._create_size_analysis_results(analysis_version="1.2.0-alpha")
+        base_results = self._create_size_analysis_results(analysis_version="1.2.0-beta")
+
+        result = _should_skip_diff_item_comparison(head_results, base_results)
+
+        assert result is False
+
+
+class CompareWithVersionSkippingTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+
+    def _create_treemap_element(self, name, size, path=None, children=None):
+        """Helper to create TreemapElement."""
+        return TreemapElement(
+            name=name,
+            size=size,
+            path=path,
+            is_dir=children is not None,
+            children=children or [],
+        )
+
+    def _create_size_analysis_results(
+        self, download_size=500, install_size=1000, treemap_root=None, analysis_version=None
+    ):
+        """Helper to create SizeAnalysisResults."""
+        treemap = None
+        if treemap_root:
+            treemap = TreemapResults(
+                root=treemap_root,
+                file_count=1,
+                category_breakdown={},
+                platform="test",
+            )
+
+        return SizeAnalysisResults(
+            analysis_duration=1.0,
+            download_size=download_size,
+            install_size=install_size,
+            treemap=treemap,
+            analysis_version=analysis_version,
+        )
+
+    def test_compare_skips_diff_items_on_major_version_mismatch(self):
+        """Integration test: diff items should be skipped when major versions differ."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=2000,
+            max_download_size=1000,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        # Create treemaps with differences
+        head_treemap = self._create_treemap_element("file.txt", 150)
+        base_treemap = self._create_treemap_element("file.txt", 100)
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, analysis_version="2.0.0"
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, analysis_version="1.0.0"
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Diff items should be empty due to version mismatch
+        assert result.diff_items == []
+        assert result.skipped_diff_item_comparison is True
+        assert result.head_analysis_version == "2.0.0"
+        assert result.base_analysis_version == "1.0.0"
+        # Size metrics should still be populated
+        assert result.size_metric_diff_item.head_install_size == 2000
+        assert result.size_metric_diff_item.base_install_size == 1500
+
+    def test_compare_skips_diff_items_on_minor_version_mismatch(self):
+        """Integration test: diff items should be skipped when minor versions differ."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=2000,
+            max_download_size=1000,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        head_treemap = self._create_treemap_element("file.txt", 150)
+        base_treemap = self._create_treemap_element("file.txt", 100)
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, analysis_version="1.2.0"
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, analysis_version="1.1.0"
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert result.diff_items == []
+        assert result.skipped_diff_item_comparison is True
+        assert result.head_analysis_version == "1.2.0"
+        assert result.base_analysis_version == "1.1.0"
+
+    def test_compare_includes_diff_items_on_patch_version_mismatch(self):
+        """Integration test: diff items should be included when only patch versions differ."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=2000,
+            max_download_size=1000,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1500,
+            max_download_size=800,
+        )
+
+        head_treemap = self._create_treemap_element("file.txt", 150)
+        base_treemap = self._create_treemap_element("file.txt", 100)
+
+        head_results = self._create_size_analysis_results(
+            treemap_root=head_treemap, analysis_version="1.0.2"
+        )
+        base_results = self._create_size_analysis_results(
+            treemap_root=base_treemap, analysis_version="1.0.1"
+        )
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        # Diff items should be present since only patch version differs
+        assert len(result.diff_items) == 1
+        assert result.skipped_diff_item_comparison is False
+        assert result.diff_items[0].size_diff == 50
+        assert result.diff_items[0].type == DiffType.INCREASED

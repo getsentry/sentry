@@ -7,7 +7,6 @@ import type {
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
-  details: React.ReactNode;
   hideCheck: boolean;
   showDetailsInOverlay: boolean;
   textValue: string;
@@ -58,6 +57,11 @@ export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
+export interface LogicFilterItem extends SelectOptionWithKey<string> {
+  type: 'logic-filter';
+  value: 'AND' | 'OR' | '(' | ')';
+}
+
 export type SearchKeyItem =
   | KeySectionItem
   | KeyItem
@@ -65,7 +69,8 @@ export type SearchKeyItem =
   | FilterValueItem
   | RawSearchFilterIsValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | LogicFilterItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -76,7 +81,8 @@ export type FilterKeyItem =
   | FilterValueItem
   | RawSearchFilterIsValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | LogicFilterItem;
 
 export type Section = {
   label: ReactNode;

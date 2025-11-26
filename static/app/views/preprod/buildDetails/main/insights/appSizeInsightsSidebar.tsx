@@ -4,10 +4,10 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text/heading';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -20,6 +20,7 @@ interface AppSizeInsightsSidebarProps {
   onClose: () => void;
   processedInsights: ProcessedInsight[];
   platform?: Platform;
+  projectType?: string | null;
 }
 
 function getInsightsDocsUrl(platform?: Platform): string {
@@ -37,6 +38,7 @@ export function AppSizeInsightsSidebar({
   isOpen,
   onClose,
   platform,
+  projectType,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
@@ -141,6 +143,7 @@ export function AppSizeInsightsSidebar({
                       isExpanded={expandedInsights.has(insight.key)}
                       onToggleExpanded={() => toggleExpanded(insight.key)}
                       platform={platform}
+                      projectType={projectType}
                       itemsPerPage={isGroupedInsight ? 10 : undefined}
                     />
                   );

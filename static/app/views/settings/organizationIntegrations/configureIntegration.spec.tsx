@@ -1,7 +1,6 @@
 import {OpsgenieIntegrationFixture} from 'sentry-fixture/opsgenieIntegration';
 import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -56,13 +55,16 @@ describe('OpsgenieMigrationButton', () => {
       method: 'PUT',
     });
 
-    render(
-      <ConfigureIntegration
-        {...RouteComponentPropsFixture()}
-        params={{integrationId, providerKey: 'opsgenie'}}
-      />,
-      {organization: org}
-    );
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/opsgenie/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
     renderGlobalModal();
     expect(await screen.findByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
 

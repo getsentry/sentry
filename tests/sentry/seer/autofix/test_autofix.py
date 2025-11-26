@@ -62,9 +62,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
-        # Should only include in_app frames from MainThread
+        # Should only include in_app frames from the selected thread (MainThread in this case)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1  # One root node
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -81,7 +82,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
     def test_convert_profile_to_execution_tree_non_main_thread(self) -> None:
-        """Test that non-MainThread samples are excluded from execution tree"""
+        """Test that the thread with in_app frames is selected (even if not MainThread)"""
         profile_data = {
             "profile": {
                 "frames": [
@@ -99,10 +100,13 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
-        # Should be empty since no MainThread samples
-        assert len(execution_tree) == 0
+        # Should include the worker thread since it has in_app frames
+        assert selected_thread_id == "2"
+        assert len(execution_tree) == 1
+        assert execution_tree[0]["function"] == "worker"
+        assert execution_tree[0]["filename"] == "worker.py"
 
     def test_convert_profile_to_execution_tree_merges_duplicate_frames(self) -> None:
         """Test that duplicate frames in different samples are merged correctly"""
@@ -126,9 +130,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should only have one node even though frame appears in multiple samples
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "main"
 
@@ -199,9 +204,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should have one root node (main)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -267,9 +273,10 @@ class TestConvertProfileToExecutionTree(TestCase):
             }
         }
 
-        execution_tree = _convert_profile_to_execution_tree(profile_data)
+        execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
         # Should have one root node (main)
+        assert selected_thread_id == "1"
         assert len(execution_tree) == 1
         root = execution_tree[0]
         assert root["function"] == "main"
@@ -939,7 +946,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         response = trigger_autofix(group=group, user=user, instruction="Test instruction")
         assert response.status_code == 202
-        mock_record_seer_run.assert_not_called()
+        mock_record_seer_run.assert_called_once()
 
 
 @requires_snuba
