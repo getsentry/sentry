@@ -11,7 +11,7 @@ from sentry.integrations.source_code_management.metrics import LinkAllReposHaltR
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -194,7 +194,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             status=400,
         )
 
-        with pytest.raises(RetryError):
+        with pytest.raises(RetryTaskError):
             link_all_repos(
                 integration_key=self.key,
                 integration_id=self.integration.id,

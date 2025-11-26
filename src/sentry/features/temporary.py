@@ -54,6 +54,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:alerts-timeseries-comparison", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anomaly detection feature for EAP spans
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable anomaly detection threshold data endpoint
+    manager.add("organizations:anomaly-detection-threshold-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate the changes to the ask seer consent flow
@@ -114,6 +116,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-prebuilt-insights-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new timeseries visualization for dashboard widgets
     manager.add("organizations:dashboards-widget-timeseries-visualization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the details widget for dashboards
+    manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -179,6 +183,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:integrations-cursor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integrations-perforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
@@ -217,6 +222,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Generate charts using detector/open period payload
     manager.add("organizations:new-metric-issue-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Normalize segment names during span enrichment
+    manager.add("organizations:normalize_segment_names_in_span_enrichment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics (experimental features)
@@ -375,6 +382,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-coding-agent-integrations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer GTM Settings page designs
+    manager.add("organizations:seer-settings-gtm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder boolean operator select feature
     manager.add("organizations:search-query-builder-add-boolean-operator-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder case insensitivity features
@@ -602,6 +611,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics in trace view UI
     manager.add("organizations:tracemetrics-traceview-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable traces page cross event querying
+    manager.add("organizations:traces-page-cross-event-querying", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable downsampled date page filter
     manager.add("organizations:downsampled-date-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 

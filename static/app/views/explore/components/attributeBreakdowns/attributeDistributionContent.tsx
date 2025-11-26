@@ -7,7 +7,6 @@ import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -15,13 +14,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {Chart} from './attributeDistributionChart';
 import {AttributeBreakdownsComponent} from './styles';
@@ -35,13 +37,17 @@ export type AttributeDistribution = Array<{
 }>;
 
 export function AttributeDistribution() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'attributeBreakdownsSearch',
+  });
   const [page, setPage] = useState(0);
 
   const query = useQueryParamsQuery();
   const dataset = useSpansDataset();
   const {selection} = usePageFilters();
   const theme = useTheme();
+  const location = useLocation();
+  const organization = useOrganization();
 
   const cohortCountEventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -60,22 +66,32 @@ export function AttributeDistribution() {
     isLoading: isAttributeBreakdownsLoading,
     isError: isAttributeBreakdownsError,
   } = useAttributeBreakdowns();
+
   const {
-    data: cohortCountData,
+    data: cohortCountResponse,
     isLoading: isCohortCountLoading,
     isError: isCohortCountError,
-  } = useSpansQuery({
-    eventView: cohortCountEventView,
-    initialData: [],
-    limit: 1,
-    trackResponseAnalytics: false,
-  });
+  } = useApiQuery<{data: Array<{'count()': number}>}>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...cohortCountEventView.getEventsAPIPayload(location),
+          per_page: 1,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+    }
+  );
 
-  const cohortCount: number = cohortCountData?.[0]?.['count()'] ?? 0;
+  const cohortCount: number = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const filteredAttributeDistribution: AttributeDistribution = useMemo(() => {
     const attributeDistribution =
@@ -123,76 +139,74 @@ export function AttributeDistribution() {
     setPage(0);
   }, [filteredAttributeDistribution]);
 
+  if (isAttributeBreakdownsError || isCohortCountError) {
+    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
+  }
+
   return (
     <Panel>
       <Flex direction="column" gap="xl" padding="xl">
-        {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-          <LoadingIndicator />
-        ) : isAttributeBreakdownsError || isCohortCountError ? (
-          <LoadingError message={t('Failed to load attribute breakdowns')} />
-        ) : (
-          <Fragment>
-            <ControlsContainer>
-              <StyledBaseSearchBar
-                placeholder={t('Search keys')}
-                onChange={q => {
-                  setSearchQuery(q);
-                }}
-                query={debouncedSearchQuery}
-                size="sm"
-              />
-              <AttributeBreakdownsComponent.FeedbackButton />
-            </ControlsContainer>
-            {filteredAttributeDistribution.length > 0 ? (
-              <Fragment>
-                <ChartsGrid>
-                  {filteredAttributeDistribution
-                    .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                    .map(attribute => (
-                      <Chart
-                        key={attribute.name}
-                        attributeDistribution={attribute}
-                        cohortCount={cohortCount}
-                        theme={theme}
-                      />
-                    ))}
-                </ChartsGrid>
-                <PaginationContainer>
-                  <ButtonBar merged gap="0">
-                    <Button
-                      icon={<IconChevron direction="left" />}
-                      aria-label={t('Previous')}
-                      size="sm"
-                      disabled={page === 0}
-                      onClick={() => {
-                        setPage(page - 1);
-                      }}
+        <Fragment>
+          <ControlsContainer>
+            <StyledBaseSearchBar
+              placeholder={t('Search keys')}
+              onChange={q => {
+                setSearchQuery(q);
+              }}
+              query={debouncedSearchQuery}
+              size="sm"
+            />
+            <AttributeBreakdownsComponent.FeedbackButton />
+          </ControlsContainer>
+          {isAttributeBreakdownsLoading || isCohortCountLoading ? (
+            <AttributeBreakdownsComponent.LoadingCharts />
+          ) : filteredAttributeDistribution.length > 0 ? (
+            <Fragment>
+              <ChartsGrid>
+                {filteredAttributeDistribution
+                  .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
+                  .map(attribute => (
+                    <Chart
+                      key={attribute.name}
+                      attributeDistribution={attribute}
+                      cohortCount={cohortCount}
+                      theme={theme}
                     />
-                    <Button
-                      icon={<IconChevron direction="right" />}
-                      aria-label={t('Next')}
-                      size="sm"
-                      disabled={
-                        page ===
-                        Math.ceil(
-                          (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
-                        ) -
-                          1
-                      }
-                      onClick={() => {
-                        setPage(page + 1);
-                      }}
-                    />
-                  </ButtonBar>
-                </PaginationContainer>
-              </Fragment>
-            ) : (
-              <NoAttributesMessage>
-                {t('No matching attributes found')}
-              </NoAttributesMessage>
-            )}
-          </Fragment>
-        )}
+                  ))}
+              </ChartsGrid>
+              <PaginationContainer>
+                <ButtonBar merged gap="0">
+                  <Button
+                    icon={<IconChevron direction="left" />}
+                    aria-label={t('Previous')}
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => {
+                      setPage(page - 1);
+                    }}
+                  />
+                  <Button
+                    icon={<IconChevron direction="right" />}
+                    aria-label={t('Next')}
+                    size="sm"
+                    disabled={
+                      page ===
+                      Math.ceil(
+                        (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
+                      ) -
+                        1
+                    }
+                    onClick={() => {
+                      setPage(page + 1);
+                    }}
+                  />
+                </ButtonBar>
+              </PaginationContainer>
+            </Fragment>
+          ) : (
+            <NoAttributesMessage>{t('No matching attributes found')}</NoAttributesMessage>
+          )}
+        </Fragment>
       </Flex>
     </Panel>
   );
@@ -201,7 +215,6 @@ export function AttributeDistribution() {
 const ControlsContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
   align-items: center;
 `;
 

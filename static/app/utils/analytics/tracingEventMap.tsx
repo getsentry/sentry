@@ -52,6 +52,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
