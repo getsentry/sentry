@@ -5,6 +5,7 @@ import invariant from 'invariant';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
+import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -56,18 +57,28 @@ export default function ReplayDetails() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const content = (
+  const content = organization.features.includes('replay-details-new-ui') ? (
     <Fragment>
       <Flex direction="column">
-        <Header>
+        <NewUIHeader>
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
-        </Header>
+        </NewUIHeader>
         <StyledFlex justify="between" align="center">
           <ReplayDetailsUserBadge readerResult={readerResult} />
           <ReplayDetailsMetadata readerResult={readerResult} />
         </StyledFlex>
       </Flex>
+      <ReplayDetailsPage readerResult={readerResult} />
+    </Fragment>
+  ) : (
+    <Fragment>
+      <Header>
+        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        <ReplayDetailsHeaderActions readerResult={readerResult} />
+        <ReplayDetailsUserBadge readerResult={readerResult} />
+        <ReplayDetailsMetadata readerResult={readerResult} />
+      </Header>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
@@ -91,7 +102,16 @@ export default function ReplayDetails() {
   );
 }
 
-const Header = styled('div')`
+const Header = styled(Layout.Header)`
+  gap: ${space(1)};
+  padding-bottom: ${space(1.5)};
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    gap: ${space(1)} ${space(3)};
+    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
+  }
+`;
+
+const NewUIHeader = styled('div')`
   padding-left: ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.lg};
   border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
