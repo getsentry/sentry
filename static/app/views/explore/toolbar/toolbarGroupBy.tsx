@@ -120,9 +120,7 @@ function ToolbarGroupByItemContent({
     numberTags,
     stringTags,
     traceItemType: TraceItemDataset.SPANS,
-  })
-    // hacking a slice here since there is no limit on the backend endpoint and we want to speed up the interactions due to the re-rendering of the dropdown while typing
-    .slice(0, 200);
+  });
 
   const loading = numberTagsLoading || stringTagsLoading;
 
