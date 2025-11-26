@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import orjson
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
+from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_SANITIZED
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 
 # Ported from Relay:
@@ -106,7 +107,7 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     }
     attributes[ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
         "type": "string",
-        "value": "sanitized",
+        "value": TRANSACTION_SOURCE_SANITIZED,
     }
     attributes[f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}"] = {
         "type": "string",
