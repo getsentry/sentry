@@ -58,23 +58,25 @@ export default function SeerAutomationSettings() {
               title: t('Default Automations for new projects'),
               fields: [
                 {
-                  name: 'defaultProjectAutofix',
+                  name: 'defaultAutofixAutomationTuning',
                   label: t('Auto-Triggered Fixes by Default'),
                   help: t(
                     'For all new projects, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
                   ),
                   type: 'boolean',
+                  // This will actually set the value to be "off" or "Moderately Actionable and Above (`medium`)"
                 },
                 {
-                  name: 'defaultProjectCreatePR',
+                  // TODO: Depends on https://github.com/getsentry/sentry/pull/104049
+                  name: 'autoOpenPrs',
                   label: t('Allow Fix PR Creation by Default'),
                   help: t(
                     'For all new projects with connected repos, Seer will be able to make a pull requests for highly actionable issues.'
                   ),
-
                   type: 'boolean',
                 },
                 {
+                  // TODO: Depends on future PR
                   name: 'allowProjectAgentDelegation',
                   label: t('Allow Delegation to Background Agents'),
                   help: tct(
