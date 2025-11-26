@@ -37,6 +37,7 @@ type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
+  search?: string;
 };
 
 type TraceItemAttributeProviderProps = {
@@ -48,11 +49,13 @@ export function TraceItemAttributeProvider({
   traceItemType,
   enabled,
   projects,
+  search,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
     traceItemType,
     enabled,
     projects,
+    search,
   });
 
   return (
@@ -66,6 +69,7 @@ function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
   projects,
+  search,
 }: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
@@ -73,6 +77,7 @@ function useTraceItemAttributeConfig({
       type: 'number',
       traceItemType,
       projects,
+      search,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -81,6 +86,7 @@ function useTraceItemAttributeConfig({
       type: 'string',
       traceItemType,
       projects,
+      search,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -106,7 +112,6 @@ function useTraceItemAttributeConfig({
       tag,
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
-
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(stringAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
@@ -117,7 +122,7 @@ function useTraceItemAttributeConfig({
       attributes: {...stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [traceItemType, stringAttributes]);
+  }, [stringAttributes, traceItemType]);
 
   return {
     number: allNumberAttributes.attributes,

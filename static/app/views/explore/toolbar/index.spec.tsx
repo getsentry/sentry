@@ -61,6 +61,29 @@ describe('ExploreToolbar', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'span.op',
+          name: 'span.op',
+          attributeSource: {source_type: 'sentry'},
+        },
+        {
+          key: 'span.description',
+          name: 'span.description',
+          attributeSource: {source_type: 'sentry'},
+        },
+        {
+          key: 'project',
+          name: 'project',
+          attributeSource: {source_type: 'sentry'},
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
   });
 
