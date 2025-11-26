@@ -404,6 +404,11 @@ class Factories:
                 category=OutboxCategory.ORGANIZATION_UPDATE,
             ).drain_shard()
 
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                # Remove the reservation now that we're done with it.
+                # print('remove slug reservation in factories')
+                OrganizationSlugReservation.objects.filter(organization_id=org.id).delete()
+
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
