@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,6 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -28,34 +30,9 @@ import {
 
 export function FlameGraphSection({event, project}: {event: Event; project: Project}) {
   const organization = useOrganization();
-  const profilerId = event.contexts?.profile?.profiler_id ?? undefined;
-  const timestamp: string | undefined = event.dateCreated ?? undefined;
-  const profileMeta = useMemo(() => {
-    if (!profilerId) {
-      return null;
-    }
-
-    // TODO if event is transaction, use transaction timestamps instead
-    if (!timestamp) {
-      return null;
-    }
-
-    // TODO: Events don't seem to have a duration, but it's required for querying the profile.
-    // We'll use a 10 second window around the event timestamp for now.
-    const start = new Date(timestamp).getTime() - 10_000;
-    const end = new Date(timestamp).getTime() + 10_000;
-    return {
-      profiler_id: profilerId,
-      start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
-    };
-  }, [profilerId, timestamp]);
+  const profileMeta = useMemo(() => getProfileMetaForEvent(event), [event]);
 
   if (!organization || !project?.slug) {
-    return null;
-  }
-
-  if (!profilerId) {
     return null;
   }
 
@@ -67,7 +44,7 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
   openTarget = generateProfileFlamechartRoute({
     organization,
     projectSlug: project.slug,
-    profileId: profilerId,
+    profileId: profileMeta.profiler_id,
   });
 
   return (
@@ -81,7 +58,8 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
           type={SectionKey.FLAME_GRAPH}
           title={
             <span>
-              {t('Aggregated Flamegraph ')}
+              {t('Aggregated Flamegraph')}
+              &nbsp;
               <QuestionTooltip
                 position="bottom"
                 size="sm"
@@ -109,7 +87,7 @@ export function FlameGraphSection({event, project}: {event: Event; project: Proj
               <ProfileGroupProvider
                 type="flamegraph"
                 input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profilerId ?? profilerId ?? ''}
+                traceID={profileMeta.profiler_id || ''}
               >
                 <FlamegraphThemeProvider>
                   <InlineFlamegraphPreview />
@@ -146,13 +124,13 @@ function InlineFlamegraphPreview() {
 
   if (profiles.type === 'errored') {
     return (
-      <p>
-        <span>
+      <Alert.Container>
+        <Alert type="warning" showIcon>
           {t(
             'A profile was attached to this event, but could not be loaded. This could be caused by the profile being dropped due to sampling.'
           )}
-        </span>
-      </p>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -178,6 +156,55 @@ function InlineFlamegraphPreview() {
       </ProfilePreviewContainer>
     </div>
   );
+}
+
+function getProfileMetaForEvent(event: Event) {
+  const profilerId = event.contexts?.profile?.profiler_id;
+
+  if (!profilerId) {
+    return null;
+  }
+
+  const timeWindow = getProfileTimeWindow(event);
+
+  if (!timeWindow) {
+    return null;
+  }
+
+  return {
+    profiler_id: profilerId,
+    start: timeWindow.start,
+    end: timeWindow.end,
+  };
+}
+
+function getProfileTimeWindow(event: Event): {end: string; start: string} | null {
+  if (event.type === EventOrGroupType.TRANSACTION) {
+    const transaction = event;
+
+    if (
+      typeof transaction.startTimestamp === 'number' &&
+      typeof transaction.endTimestamp === 'number'
+    ) {
+      return {
+        end: new Date(transaction.endTimestamp * 1000).toISOString(),
+        start: new Date(transaction.startTimestamp * 1000).toISOString(),
+      };
+    }
+  }
+
+  if (!event.dateCreated) {
+    return null;
+  }
+
+  const eventDate = new Date(event.dateCreated);
+  const eventTimeMs = eventDate.getTime();
+
+  // fallback to 10 second window around the event timestamp
+  return {
+    end: new Date(eventTimeMs + 10_000).toISOString(),
+    start: new Date(eventTimeMs - 10_000).toISOString(),
+  };
 }
 
 const ProfilePreviewContainer = styled('div')`
