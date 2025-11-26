@@ -677,6 +677,7 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
     | Pick<SpanResponse, DefaultDetailWidgetFields>
     | undefined;
 
+  // TODO: Handle this case gracefully
   if (!singleSpan) {
     return null;
   }

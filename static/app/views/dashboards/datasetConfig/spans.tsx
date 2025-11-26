@@ -317,7 +317,6 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
-
   const hasQueueFeature = organization.features.includes(
     'visibility-dashboards-async-queue'
   );
