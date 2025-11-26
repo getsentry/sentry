@@ -181,10 +181,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   get_log_attributes: (args, isLoading) => {
     const logMessage = args.log_message || '';
-    const timestamp = args.timestamp || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}...`
-      : `Examined logs matching '*${logMessage.slice(0, 20)}*' at ${timestamp}`;
+      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}...`
+      : `Examined logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}`;
   },
 };
 
