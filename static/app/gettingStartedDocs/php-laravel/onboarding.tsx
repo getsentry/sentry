@@ -33,7 +33,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () => (
     <p>
       {tct(
-        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        'This guide is for Laravel 11.0 and up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
         {
           otherVersionsLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
