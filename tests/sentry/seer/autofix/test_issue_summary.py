@@ -771,7 +771,7 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -851,7 +851,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
 
         with self.feature(
-            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
+            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": False}
         ):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
@@ -974,7 +974,7 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1080,7 +1080,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-@with_feature("projects:triage-signals-v0")
+@with_feature("organizations:triage-signals-v0-org")
 class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1096,7 +1096,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def test_alert_skips_automation_below_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger
     ):
-        """Alert automation should skip when event count < 10 with triage-signals-v0"""
+        """Alert automation should skip when event count < 10 with triage-signals-v0-org"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
