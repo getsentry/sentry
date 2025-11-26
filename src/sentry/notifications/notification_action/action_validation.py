@@ -222,7 +222,7 @@ class SentryAppActionValidatorHandler:
             )
         else:
             installations = app_service.get_many(
-                filter=dict(app_ids=[target_identifier], organization_id=self.organization.id)
+                filter=dict(app_ids=[int(target_identifier)], organization_id=self.organization.id)
             )
         if installations:
             installation = installations[0]
