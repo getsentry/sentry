@@ -3,6 +3,9 @@ import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
@@ -18,18 +21,24 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
+from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +57,53 @@ def _validate_date_params(
 
     if not stats_period and not all([bool(start), bool(end)]):
         raise ValueError("start and end must be provided together")
+
+
+def _get_full_trace_id(
+    short_trace_id: str, organization: Organization, projects: list[Project]
+) -> str | None:
+    """
+    Get full trace id if a short id is provided. Queries EAP for a single span.
+    Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
+    TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
+    This can be done with a materialized string column for the first 8 chars and a secondary index.
+    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    """
+    now = datetime.now(timezone.utc)
+    window_days = 14
+    max_days = 90
+
+    # Slide back in time in 14-day windows
+    for days_back in range(0, max_days, window_days):
+        window_end = now - timedelta(days=days_back)
+        window_start = now - timedelta(days=min(days_back + window_days, max_days))
+
+        snuba_params = SnubaParams(
+            start=window_start,
+            end=window_end,
+            projects=projects,
+            organization=organization,
+            debug=True,
+        )
+
+        subquery_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{short_trace_id}",
+            selected_columns=["trace"],
+            orderby=[],
+            offset=0,
+            limit=1,
+            referrer=Referrer.SEER_RPC,
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+        )
+
+        data = subquery_result.get("data")
+        full_trace_id = data[0].get("trace") if data else None
+        if full_trace_id:
+            return full_trace_id
+
+    return None
 
 
 def execute_table_query(
@@ -260,71 +316,16 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
 
-    # Get full trace id if a short id is provided. Queries EAP for a single span.
-    # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
-    # TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
-    # This can be done with a materialized string column for the first 8 chars and a secondary index.
-    # Alternatively we can try more consistent ways of passing the full ID to Explorer.
     if len(trace_id) < 32:
-        full_trace_id = None
-        now = datetime.now(timezone.utc)
-        window_days = 14
-        max_days = 90
-
-        # Slide back in time in 14-day windows
-        for days_back in range(0, max_days, window_days):
-            window_end = now - timedelta(days=days_back)
-            window_start = now - timedelta(days=min(days_back + window_days, max_days))
-
-            snuba_params = SnubaParams(
-                start=window_start,
-                end=window_end,
-                projects=projects,
-                organization=organization,
-                debug=True,
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "get_trace_waterfall: No full trace id found for short trace id",
+                extra={"organization_id": organization_id, "trace_id": trace_id},
             )
-
-            subquery_result = Spans.run_table_query(
-                params=snuba_params,
-                query_string=f"trace:{trace_id}",
-                selected_columns=["trace"],
-                orderby=[],
-                offset=0,
-                limit=1,
-                referrer=Referrer.SEER_RPC,
-                config=SearchResolverConfig(),
-                sampling_mode=None,
-            )
-
-            data = subquery_result.get("data")
-            if not data:
-                # Temporary debug log
-                logger.warning(
-                    "get_trace_waterfall: No data returned from short id query",
-                    extra={
-                        "organization_id": organization_id,
-                        "trace_id": trace_id,
-                        "subquery_result": subquery_result,
-                        "start": window_start.isoformat(),
-                        "end": window_end.isoformat(),
-                    },
-                )
-
-            full_trace_id = data[0].get("trace") if data else None
-            if full_trace_id:
-                break
+            return None
     else:
         full_trace_id = trace_id
-
-    if not isinstance(full_trace_id, str):
-        logger.warning(
-            "get_trace_waterfall: Trace not found from short id",
-            extra={
-                "organization_id": organization_id,
-                "trace_id": trace_id,
-            },
-        )
-        return None
 
     # Get full trace data.
     start, end = default_start_end_dates()
@@ -348,7 +349,12 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
-def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[str, Any]:
+def rpc_get_profile_flamegraph(
+    profile_id: str,
+    organization_id: int,
+    trace_id: str | None = None,
+    span_description: str | None = None,
+) -> dict[str, Any]:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -362,6 +368,8 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     Args:
         profile_id: Profile ID - can be 8 characters (prefix) or full 32 characters
         organization_id: Organization ID to search within
+        trace_id: Optional trace ID to filter profile spans more precisely
+        span_description: Optional span description to filter profile spans more precisely
 
     Returns:
         Dictionary with either:
@@ -410,10 +418,17 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             organization=organization,
         )
 
+        query_string = f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)"
+        if trace_id:
+            query_string += f" trace:{trace_id}"
+        if span_description:
+            escaped_description = UNESCAPED_QUOTE_RE.sub('\\"', span_description)
+            query_string += f' span.description:"*{escaped_description}*"'
+
         # Query with aggregation to get profile metadata
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"(profile.id:{profile_id}* OR profiler.id:{profile_id}*)",
+            query_string=query_string,
             selected_columns=[
                 "profile.id",
                 "profiler.id",
@@ -437,6 +452,9 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             extra={
                 "profile_id": profile_id,
                 "organization_id": organization_id,
+                "trace_id": trace_id,
+                "span_description": span_description,
+                "query_string": query_string,
                 "data": data,
                 "window_start": window_start.isoformat(),
                 "window_end": window_end.isoformat(),
@@ -513,7 +531,7 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
         return {"error": "Failed to fetch profile data from profiling service"}
 
     # Convert to execution tree (returns dicts, not Pydantic models)
-    execution_tree = _convert_profile_to_execution_tree(profile_data)
+    execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
 
     if not execution_tree:
         logger.warning(
@@ -526,11 +544,6 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
         )
         return {"error": "Failed to generate execution tree from profile data"}
 
-    # Extract thread_id from profile data
-    profile = profile_data.get("profile") or profile_data.get("chunk", {}).get("profile")
-    samples = profile.get("samples", []) if profile else []
-    thread_id = str(samples[0]["thread_id"]) if samples else None
-
     return {
         "execution_tree": execution_tree,
         "metadata": {
@@ -539,7 +552,7 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             "is_continuous": is_continuous,
             "start_ts": min_start_ts,
             "end_ts": max_end_ts,
-            "thread_id": thread_id,
+            "thread_id": selected_thread_id,
         },
     }
 
@@ -640,28 +653,40 @@ def _get_issue_event_timeseries(
     return data, stats_period, interval
 
 
-def get_issue_details(
+def get_issue_and_event_details(
     *,
-    issue_id: str,
     organization_id: int,
+    issue_id: str | None,
     selected_event: str,
 ) -> dict[str, Any] | None:
     """
+    Tool to get details for a Sentry issue and one of its associated events. null issue_id can be passed so the
+    is issue is looked up from the event. We assume the event is always associated with an issue, otherwise None is returned.
+
     Args:
-        issue_id: The issue/group ID (numeric) or short ID (string) to look up.
-        organization_id: The ID of the issue's organization.
-        selected_event: The event to return - "oldest", "latest", "recommended", or the event's UUID.
+        organization_id: The ID of the organization to query.
+        issue_id: The issue/group ID (numeric) or short ID (string) to look up. If None, we fill this in with the event's `group` property.
+        selected_event:
+          If issue_id is provided, this is the event to return and must exist in the issue - the options are "oldest", "latest", "recommended", or a UUID.
+          If issue_id is not provided, this must be a UUID.
 
     Returns:
         A dict containing:
+            Issue fields: aside from `issue` these are nullable if an error occurred.
             `issue`: Serialized issue details.
             `tags_overview`: A summary of all tags in the issue.
-            `event`: Serialized event details, selected according to `selected_event`.
+            `event_timeseries`: Event counts over time for the issue.
+            `timeseries_stats_period`: The stats period used for the event timeseries.
+            `timeseries_interval`: The interval used for the event timeseries.
+
+            Event fields:
+            `event`: Serialized event details.
             `event_id`: The event ID of the selected event.
-            `event_trace_id`: The trace ID of the selected event.
-            `project_id`: The ID of the issue's project.
-            `project_slug`: The slug of the issue's project.
-        Returns None when the event is not found or an error occurred.
+            `event_trace_id`: The trace ID of the selected event. Nullable.
+            `project_id`: The event and issue's project ID.
+            `project_slug`: The event and issue's project slug.
+
+        Returns None when the requested event or issue is not found, or an error occurred.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -672,57 +697,72 @@ def get_issue_details(
         )
         return None
 
-    org_project_ids = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-
-    try:
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
-
-    except Group.DoesNotExist:
-        logger.warning(
-            "Issue does not exist for organization",
-            extra={"organization_id": organization_id, "issue_id": issue_id},
+    org_project_ids = list(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
         )
+    )
+    if not org_project_ids:
         return None
 
-    serialized_group: dict = serialize(group, user=None, serializer=GroupSerializer())
+    event: Event | GroupEvent | None = None
+    group: Group
 
-    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-    serialized_group["issueTypeDescription"] = group.issue_type.description
-
-    event: Event | GroupEvent | None
-    if selected_event == "oldest":
-        event = group.get_oldest_event()
-    elif selected_event == "latest":
-        event = group.get_latest_event()
-    elif selected_event == "recommended":
-        event = group.get_recommended_event()
-    else:
-        event = eventstore.backend.get_event_by_id(
-            project_id=group.project_id,
-            event_id=selected_event,
-            group_id=group.id,
+    # Fetch the group object.
+    if issue_id is None:
+        # If issue_id is not provided, first find the event. Then use this to fetch the group.
+        uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
+        # We can't use get_event_by_id since we don't know the exact project yet.
+        events_result = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                event_ids=[selected_event],
+                organization_id=organization_id,
+                project_ids=org_project_ids,
+            ),
+            limit=1,
             tenant_ids={"organization_id": organization_id},
         )
+        if not events_result:
+            logger.warning(
+                "Could not find the requested event ID",
+                extra={
+                    "organization_id": organization_id,
+                    "issue_id": issue_id,
+                    "selected_event": selected_event,
+                },
+            )
+            return None
 
-    if not event:
-        logger.warning(
-            "Could not find the selected event for the issue",
-            extra={
-                "organization_id": organization_id,
-                "issue_id": issue_id,
-                "selected_event": selected_event,
-            },
-        )
-        return None
+        event = events_result[0]
+        assert event is not None
+        if event.group is None:
+            logger.warning(
+                "Event is not associated with a group",
+                extra={"organization_id": organization_id, "event_id": event.event_id},
+            )
+            return None
 
-    serialized_event: IssueEventSerializerResponse = serialize(
-        event, user=None, serializer=EventSerializer()
-    )
+        group = event.group
+
+    else:
+        # Fetch the group from issue_id.
+        try:
+            if issue_id.isdigit():
+                group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
+            else:
+                group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+
+        except Group.DoesNotExist:
+            logger.warning(
+                "Requested issue does not exist for organization",
+                extra={"organization_id": organization_id, "issue_id": issue_id},
+            )
+            return None
+
+    # Get the issue data, tags overview, and event count timeseries.
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
 
     try:
         tags_overview = get_all_tags_overview(group)
@@ -740,23 +780,54 @@ def get_issue_details(
         first_seen_delta=datetime.now(UTC) - group.first_seen,
     )
     if ts_result:
-        timeseries, stats_period, interval = ts_result
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
     else:
-        timeseries = None
-        stats_period = None
-        interval = None
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+
+    # Fetch event from group, if not already fetched.
+    if event is None:
+        if selected_event == "oldest":
+            event = group.get_oldest_event()
+        elif selected_event == "latest":
+            event = group.get_latest_event()
+        elif selected_event == "recommended":
+            event = group.get_recommended_event()
+        else:
+            uuid.UUID(selected_event)  # Raises ValueError if not valid UUID
+            event = eventstore.backend.get_event_by_id(
+                project_id=group.project_id,
+                event_id=selected_event,
+                group_id=group.id,
+                tenant_ids={"organization_id": organization_id},
+            )
+
+    if event is None:
+        logger.warning(
+            "Could not find the selected event.",
+            extra={
+                "organization_id": organization_id,
+                "issue_id": issue_id,
+                "selected_event": selected_event,
+            },
+        )
+        return None
+
+    # Serialize event.
+    serialized_event: IssueEventSerializerResponse = serialize(
+        event, user=None, serializer=EventSerializer()
+    )
 
     return {
         "issue": serialized_group,
         "event_timeseries": timeseries,
-        "timeseries_stats_period": stats_period,
-        "timeseries_interval": interval,
+        "timeseries_stats_period": timeseries_stats_period,
+        "timeseries_interval": timeseries_interval,
         "tags_overview": tags_overview,
         "event": serialized_event,
         "event_id": event.event_id,
         "event_trace_id": event.trace_id,
-        "project_id": int(serialized_group["project"]["id"]),
-        "project_slug": serialized_group["project"]["slug"],
+        "project_id": event.project_id,
+        "project_slug": event.project.slug,
     }
 
 
@@ -920,3 +991,280 @@ def get_trace_item_attributes(
     )
 
     return {"attributes": resp.data["attributes"]}
+
+
+def _make_get_trace_request(
+    trace_id: str,
+    trace_item_type: TraceItemType.ValueType,
+    resolver: SearchResolver,
+    limit: int | None,
+    sampling_mode: SAMPLING_MODES,
+) -> list[dict[str, Any]]:
+    """
+    Make a request to the EAP GetTrace endpoint to get all attributes for a given trace and item type.
+    Includes a short ID translation if one is provided.
+
+    Args:
+        trace_id: The trace ID to query.
+        trace_item_type: The type of trace item to query.
+        resolver: The EAP search resolver, with SnubaParams set.
+        limit: The limit to apply to the request. Passing None will use a Snuba server default.
+        sampling_mode: The sampling mode to use for the request.
+
+    Returns:
+        A list of dictionaries for each trace item, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp, Z suffix.
+        - attributes: A dictionary of dictionaries, where the keys are the attribute names.
+          - attributes[name].value: The value of the attribute (primitives only)
+          - attributes[name].type: The type of the attribute ("str", "int", "double", "bool")
+    """
+    organization = cast(Organization, resolver.params.organization)
+    projects = list(resolver.params.projects)
+
+    # Look up full trace id if a short id is provided.
+    if len(trace_id) < 32:
+        full_trace_id = _get_full_trace_id(trace_id, organization, projects)
+        if not full_trace_id:
+            logger.warning(
+                "No full trace id found for short trace id",
+                extra={"org_id": organization.id, "trace_id": trace_id},
+            )
+            return []
+    else:
+        full_trace_id = trace_id
+
+    # Build the GetTraceRequest.
+    meta = resolver.resolve_meta(referrer=Referrer.SEER_RPC, sampling_mode=sampling_mode)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=full_trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=trace_item_type,
+                attributes=None,  # Returns all attributes.
+            )
+        ],
+    )
+    if limit:
+        request.limit = limit
+
+    # Query EAP EndpointGetTrace then format the response - based on spans_rpc.Spans.run_trace_query
+    response = get_trace_rpc(request)
+
+    # Map internal names to attribute definitions for easy lookup
+    resolved_attrs_by_internal_name = {
+        c.internal_name: c for c in resolver.definitions.columns.values() if not c.secondary_alias
+    }
+
+    # Parse response, returning the public aliases.
+    for item_group in response.item_groups:
+        item_dicts: list[dict[str, Any]] = []
+
+        for item in item_group.items:
+            attr_dict: dict[str, dict[str, Any]] = {}
+            for a in item.attributes:
+                r = resolved_attrs_by_internal_name.get(a.key.name)
+                public_alias = r.public_alias if r else a.key.name
+                if public_alias == "project_id":  # Same internal name, normalize to project.id
+                    public_alias = "project.id"
+
+                # Note - custom attrs not in the definitions can only be returned as strings or doubles.
+                if a.key.type == STRING:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_str,
+                        "type": "str",
+                    }
+                elif a.key.type == DOUBLE:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_double,
+                        "type": "double",
+                    }
+                elif a.key.type == BOOLEAN:
+                    attr_dict[public_alias] = {
+                        "value": a.value.val_bool,
+                        "type": "bool",
+                    }
+                elif a.key.type == INT:
+                    if r and r.search_type == "boolean":
+                        attr_dict[public_alias] = {
+                            "value": a.value.val_int == 1,
+                            "type": "bool",
+                        }
+                    else:
+                        attr_dict[public_alias] = {
+                            "value": a.value.val_int,
+                            "type": "int",
+                        }
+
+                    if public_alias == "project.id":
+                        # Enrich with project slug, alias "project"
+                        attr_dict["project"] = {
+                            "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
+                            "type": "str",
+                        }
+
+            item_dicts.append(
+                {
+                    "id": item.id,
+                    "timestamp": item.timestamp.ToJsonString(),
+                    "attributes": attr_dict,
+                }
+            )
+
+        # We expect exactly one item group in the request/response.
+        return item_dicts
+
+    return []
+
+
+def get_log_attributes_for_trace(
+    *,
+    org_id: int,
+    trace_id: str,
+    message_substring: str = "",
+    substring_case_sensitive: bool = True,
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    limit: int | None = 50,
+) -> dict[str, Any] | None:
+    """
+    Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
+
+    Returns:
+        A list of dictionaries for each log, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp.
+        - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
+    """
+
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
+        )
+    )
+
+    snuba_params = SnubaParams(
+        start=datetime.fromisoformat(start) if start else None,
+        end=datetime.fromisoformat(end) if end else None,
+        stats_period=stats_period,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+    resolver = OurLogs.get_resolver(params=snuba_params, config=SearchResolverConfig())
+
+    items = _make_get_trace_request(
+        trace_id=trace_id,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+        resolver=resolver,
+        limit=(limit if not message_substring else None),  # Return all results if we're filtering.
+        sampling_mode=sampling_mode,
+    )
+
+    if not message_substring:
+        if limit is not None:
+            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
+        return {"data": items}
+
+    # Filter on message substring.
+    filtered_items: list[dict[str, Any]] = []
+    for item in items:
+        if limit is not None and len(filtered_items) >= limit:
+            break
+
+        message: str = item["attributes"].get("message", {}).get("value", "")
+        if (substring_case_sensitive and message_substring in message) or (
+            not substring_case_sensitive and message_substring.lower() in message.lower()
+        ):
+            filtered_items.append(item)
+
+    return {"data": filtered_items}
+
+
+def get_metric_attributes_for_trace(
+    *,
+    org_id: int,
+    trace_id: str,
+    metric_name: str = "",
+    stats_period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+    limit: int | None = 50,
+) -> dict[str, Any] | None:
+    """
+    Get all attributes for all metrics in a trace. You can optionally filter by metric name and/or project slugs.
+    The metric name is a case-insensitive exact match.
+
+    Returns:
+        A list of dictionaries for each metric event, with the keys:
+        - id: The trace item ID.
+        - timestamp: ISO 8601 timestamp.
+        - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
+    """
+
+    _validate_date_params(stats_period=stats_period, start=start, end=end)
+
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"org_id": org_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug__in": project_slugs} if project_slugs else {}),
+        )
+    )
+
+    snuba_params = SnubaParams(
+        start=datetime.fromisoformat(start) if start else None,
+        end=datetime.fromisoformat(end) if end else None,
+        stats_period=stats_period,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+    resolver = TraceMetrics.get_resolver(params=snuba_params, config=SearchResolverConfig())
+
+    items = _make_get_trace_request(
+        trace_id=trace_id,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+        resolver=resolver,
+        limit=(limit if not metric_name else None),  # Return all results if we're filtering.
+        sampling_mode=sampling_mode,
+    )
+
+    if not metric_name:
+        if limit is not None:
+            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
+        return {"data": items}
+
+    # Filter on metric name (exact case-insensitive match).
+    filtered_items: list[dict[str, Any]] = []
+    for item in items:
+        if limit is not None and len(filtered_items) >= limit:
+            break
+
+        item_metric_name: str = item["attributes"].get("metric.name", {}).get("value", "")
+        if metric_name.lower() == item_metric_name.lower():
+            filtered_items.append(item)
+
+    return {"data": filtered_items}

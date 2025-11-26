@@ -13,6 +13,8 @@ from sentry.tasks.llm_issue_detection import (
 from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_llm_detection
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+
 from sentry.utils import json
 
 
@@ -33,24 +35,37 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
 
+
+    @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
     def test_detect_llm_issues_no_transactions(self, mock_get_transactions):
+        """Test that the task returns early when there are no transactions."""
         mock_get_transactions.return_value = []
 
         detect_llm_issues_for_project(self.project.id)
 
-    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
+
+        mock_get_transactions.assert_called_once_with(
+            self.project.id, limit=50, start_time_delta={"minutes": 30}
+        )
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.detection.get_trace_for_transaction")
     @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.sample")
-    def test_detect_llm_issues_no_traces(self, mock_sample, mock_get_transactions, mock_get_trace):
+    @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
+    def test_detect_llm_issues_no_traces(self, mock_shuffle, mock_get_transactions, mock_get_trace):
+        """Test that the task continues gracefully when traces can't be fetched."""
         mock_transaction = Mock()
         mock_transaction.name = "test_tx"
         mock_transaction.project_id = self.project.id
         mock_get_transactions.return_value = [mock_transaction]
-        mock_sample.side_effect = lambda x, n: x
+        mock_shuffle.return_value = None  # shuffle modifies in place
         mock_get_trace.return_value = None
 
         detect_llm_issues_for_project(self.project.id)
+
+
+        mock_get_trace.assert_called_once_with(mock_transaction.name, mock_transaction.project_id)
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
@@ -145,11 +160,13 @@ class LLMIssueDetectionTest(TestCase):
         evidence_names = {e.name for e in occurrence.evidence_display}
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
 
-    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_evidence_trace_for_llm_detection")
-    @patch("sentry.tasks.llm_issue_detection.detection.get_transactions_for_project")
-    @patch("sentry.tasks.llm_issue_detection.detection.random.sample")
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
+    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.random.sample")
     def test_detect_llm_issues_full_flow(
         self,
         mock_sample,

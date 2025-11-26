@@ -153,7 +153,7 @@ export default function TeamProjects() {
                   <Button
                     size="sm"
                     disabled={!hasWriteAccess}
-                    icon={<IconSubtract isCircled />}
+                    icon={<IconSubtract />}
                     aria-label={t('Remove')}
                     onClick={() => {
                       handleLinkProject(project, 'remove');

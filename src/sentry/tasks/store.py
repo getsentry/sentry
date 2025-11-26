@@ -368,7 +368,7 @@ def do_process_event(
         has_changed = True
         data = new_data
 
-    attachments = data.pop("_attachments", None)
+    attachments = data.get("_attachments", None)
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
@@ -627,7 +627,7 @@ def _do_save_event(
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:
-                delete_cached_and_ratelimited_attachments(project, data, all_attachments)
+                delete_cached_and_ratelimited_attachments(project, all_attachments)
 
             if start_time:
                 metrics.timing(

@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.delete_pending_groups import (
     MAX_LAST_SEEN_DAYS,
-    MIN_LAST_SEEN_DAYS,
+    MIN_LAST_SEEN_HOURS,
     delete_pending_groups,
 )
 from sentry.testutils.cases import TestCase
@@ -16,29 +16,32 @@ from sentry.types.group import GroupSubStatus
 
 
 class DeletePendingGroupsTest(TestCase):
-    def _count_groups_in_deletion_status(self) -> int:
+    def _count_groups_in_deletion_status_and_valid_date_range(self) -> int:
         """Count groups with deletion statuses in the valid date range."""
         return Group.objects.filter(
             status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS],
             last_seen__gte=self._days_ago(MAX_LAST_SEEN_DAYS),
-            last_seen__lte=self._days_ago(MIN_LAST_SEEN_DAYS),
+            last_seen__lte=self._hours_ago(MIN_LAST_SEEN_HOURS),
         ).count()
 
     def _days_ago(self, days: int) -> datetime:
         return timezone.now() - timedelta(days=days)
 
+    def _hours_ago(self, hours: int) -> datetime:
+        return timezone.now() - timedelta(hours=hours)
+
     def test_schedules_only_groups_within_valid_date_range(self) -> None:
         """Test that only groups with last_seen between 24h-90d are scheduled for deletion."""
         project = self.create_project()
 
-        # Too recent - within 24 hours (should NOT be scheduled)
+        # Too recent - within 4 hours (should NOT be scheduled)
         too_recent = self.create_group(
-            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(0)
+            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._hours_ago(4)
         )
 
         # Valid range - should be scheduled
         valid_group = self.create_group(
-            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(2)
+            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._hours_ago(7)
         )
 
         # Too old - over 90 days (should NOT be scheduled)
@@ -55,7 +58,7 @@ class DeletePendingGroupsTest(TestCase):
         )
 
         with patch(
-            "sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async"
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_delete_task:
             delete_pending_groups()
 
@@ -65,18 +68,18 @@ class DeletePendingGroupsTest(TestCase):
             assert call_kwargs["object_ids"] == [valid_group.id]
             assert call_kwargs["project_id"] == project.id
 
-        assert self._count_groups_in_deletion_status() != 0
+        assert self._count_groups_in_deletion_status_and_valid_date_range() != 0
         with self.tasks():
             delete_pending_groups()
 
-        assert self._count_groups_in_deletion_status() == 0
+        assert self._count_groups_in_deletion_status_and_valid_date_range() == 0
         assert list(Group.objects.all().values_list("id", flat=True).order_by("id")) == [
             too_recent.id,
             too_old.id,
             wrong_status.id,
         ]
 
-    @patch("sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async")
+    @patch("sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async")
     def test_groups_by_project(self, mock_delete_task: MagicMock) -> None:
         """Test that groups are properly grouped by project when scheduling deletion."""
         project1 = self.create_project()
@@ -109,8 +112,8 @@ class DeletePendingGroupsTest(TestCase):
             elif call_kwargs["project_id"] == project2.id:
                 assert set(call_kwargs["object_ids"]) == {group3.id}
 
-    @patch("sentry.tasks.delete_pending_groups.GROUP_CHUNK_SIZE", new=10)
-    @patch("sentry.tasks.delete_pending_groups.delete_groups_for_project.apply_async")
+    @patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", 10)
+    @patch("sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async")
     @patch("sentry.tasks.delete_pending_groups.metrics.incr")
     def test_chunks_large_batches(
         self,

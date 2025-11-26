@@ -23,6 +23,7 @@ import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {
@@ -161,11 +162,12 @@ export function useMetricDetectorChart({
   const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
+  const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
-    aggregate: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
+    aggregate,
     interval: snubaQuery.timeWindow,
     query: snubaQuery.query,
     environment: snubaQuery.environment,
@@ -181,6 +183,7 @@ export function useMetricDetectorChart({
     useMetricDetectorThresholdSeries({
       conditions: detector.conditionGroup?.conditions,
       detectionType,
+      aggregate,
       comparisonSeries,
     });
 
@@ -221,30 +224,7 @@ export function useMetricDetectorChart({
     usePageDate: true,
   });
 
-  // Calculate y-axis bounds to ensure all thresholds are visible
-  const maxValue = useMemo(() => {
-    // Get max from series data
-    let seriesMax = 0;
-    if (series.length > 0) {
-      const allSeriesValues = series.flatMap(s =>
-        s.data
-          .map(point => point.value)
-          .filter(val => typeof val === 'number' && !isNaN(val))
-      );
-      seriesMax = allSeriesValues.length > 0 ? Math.max(...allSeriesValues) : 0;
-    }
-
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
-
-    const roundedMax = Math.round(combinedMax);
-
-    // Add padding to the bounds
-    const padding = roundedMax * 0.1;
-    return roundedMax + padding;
-  }, [series, thresholdMaxValue]);
+  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries];
@@ -256,18 +236,25 @@ export function useMetricDetectorChart({
   }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
 
   const yAxes = useMemo(() => {
-    const {formatYAxisLabel} = getDetectorChartFormatters({
+    const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
-      aggregate: snubaQuery.aggregate,
+      aggregate,
     });
 
+    const isPercentage = outputType === 'percentage';
+    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
+    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
+    // Start charts at 0 for non-percentage aggregates
+    const yAxisMin = isPercentage ? minValue : 0;
+
     const mainYAxis: YAXisComponentOption = {
-      max: maxValue > 0 ? maxValue : undefined,
-      min: 0,
+      max: yAxisMax,
+      min: yAxisMin,
       axisLabel: {
-        // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-        showMaxLabel: false,
-        formatter: (value: number) => formatYAxisLabel(value),
+        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        showMaxLabel: isPercentage,
+        // Format the axis labels with units
+        formatter: formatYAxisLabel,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -282,8 +269,9 @@ export function useMetricDetectorChart({
     return axes;
   }, [
     detectionType,
-    snubaQuery.aggregate,
+    aggregate,
     maxValue,
+    minValue,
     openPeriodMarkerResult.incidentMarkerYAxis,
   ]);
 
@@ -314,7 +302,7 @@ export function useMetricDetectorChart({
       tooltip: {
         valueFormatter: getDetectorChartFormatters({
           detectionType,
-          aggregate: snubaQuery.aggregate,
+          aggregate,
         }).formatTooltipValue,
       },
       ...chartZoomProps,
@@ -325,6 +313,7 @@ export function useMetricDetectorChart({
     };
   }, [
     additionalSeries,
+    aggregate,
     chartZoomProps,
     detectionType,
     error,
@@ -333,7 +322,6 @@ export function useMetricDetectorChart({
     isLoading,
     openPeriodMarkerResult,
     series,
-    snubaQuery.aggregate,
     yAxes,
   ]);
 

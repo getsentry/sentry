@@ -237,8 +237,13 @@ class Dashboard(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboard"
-        unique_together = (("organization", "title"),)
         constraints = [
+            # User-created dashboards must have unique titles within an organization, but a prebuilt one can exist with the same title
+            UniqueConstraint(
+                fields=["organization", "title"],
+                condition=Q(prebuilt_id__isnull=True),
+                name="sentry_dashboard_organization_title_uniq",
+            ),
             UniqueConstraint(
                 fields=["organization", "prebuilt_id"],
                 condition=Q(prebuilt_id__isnull=False),
