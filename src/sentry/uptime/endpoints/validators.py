@@ -464,6 +464,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 
 
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
+    enforce_single_datasource = True
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
 
     def validate_config(self, config: dict[str, Any]) -> dict[str, Any]:

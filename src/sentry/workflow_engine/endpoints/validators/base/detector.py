@@ -41,6 +41,12 @@ class DetectorQuota:
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
+    enforce_single_datasource = False
+    """
+    Set to True in subclasses to enforce that only a single data source can be configured.
+    This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
     name = serializers.CharField(
         required=True,
         max_length=200,
@@ -78,6 +84,16 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     @property
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
+
+    def validate_data_sources(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Validate data sources, enforcing single data source if configured.
+        """
+        if self.enforce_single_datasource and len(value) > 1:
+            raise serializers.ValidationError(
+                "Only one data source is allowed for this detector type."
+            )
+        return value
 
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
