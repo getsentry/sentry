@@ -1884,6 +1884,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ]
         self.store_ourlogs(self.logs)
 
+    @staticmethod
     def get_id_str(item: TraceItem) -> str:
         return item.item_id[::-1].hex()
 
