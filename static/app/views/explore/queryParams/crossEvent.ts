@@ -40,7 +40,8 @@ function isCrossEvent(value: any): value is CrossEvent {
   return (
     defined(value) &&
     typeof value === 'object' &&
+    typeof value.query === 'string' &&
     typeof value.type === 'string' &&
-    typeof value.query === 'string'
+    isCrossEventType(value.type)
   );
 }
