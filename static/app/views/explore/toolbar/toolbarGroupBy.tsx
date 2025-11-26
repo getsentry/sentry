@@ -82,7 +82,6 @@ function ToolbarGroupByItem({
   return (
     <TraceItemAttributeProvider
       enabled
-      disableDefaultAttributes
       traceItemType={TraceItemDataset.SPANS}
       search={debouncedSearch}
     >
@@ -129,7 +128,6 @@ function ToolbarGroupByItemContent({
 
   return (
     <ToolbarGroupByDropdown
-      disableSearchFilter
       column={column}
       options={options}
       loading={loading}

@@ -40,7 +40,6 @@ interface ToolbarGroupByDropdownProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
-  disableSearchFilter?: boolean;
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -55,7 +54,6 @@ export function ToolbarGroupByDropdown({
   onSearch,
   loading,
   onClose,
-  disableSearchFilter,
 }: ToolbarGroupByDropdownProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
@@ -100,7 +98,6 @@ export function ToolbarGroupByDropdown({
         onSearch={onSearch}
         onClose={onClose}
         loading={loading}
-        disableSearchFilter={disableSearchFilter}
       />
       {canDelete ? (
         <Button
