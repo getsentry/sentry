@@ -49,6 +49,8 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
 
   if (organization.features.includes('dashboards-details-widget')) {
     displayTypes[DisplayType.DETAILS] = t('Details');
+  } else {
+    delete displayTypes[DisplayType.DETAILS];
   }
 
   return (
