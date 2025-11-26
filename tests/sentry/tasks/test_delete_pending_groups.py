@@ -5,23 +5,52 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry import audit_log
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group, GroupStatus
-from sentry.tasks.delete_pending_groups import (
-    MAX_LAST_SEEN_DAYS,
-    MIN_LAST_SEEN_HOURS,
-    delete_pending_groups,
-)
+from sentry.silo.base import SiloMode
+from sentry.tasks.delete_pending_groups import PENDING_DELETION_HOURS, delete_pending_groups
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
 
 
 class DeletePendingGroupsTest(TestCase):
-    def _count_groups_in_deletion_status_and_valid_date_range(self) -> int:
-        """Count groups with deletion statuses in the valid date range."""
+    def _create_audit_log_entry(self, group: Group, hours_ago: int) -> AuditLogEntry:
+        """Create an ISSUE_DELETE audit log entry for a group."""
+        datetime_value = timezone.now() - timedelta(hours=hours_ago)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return AuditLogEntry.objects.create(
+                organization_id=group.project.organization_id,
+                target_object=group.id,
+                event=audit_log.get_event_id("ISSUE_DELETE"),
+                datetime=datetime_value,
+                actor=self.user,
+                data={"issue_id": group.id, "project_slug": group.project.slug},
+            )
+
+    def _count_groups_in_deletion_status_with_old_audit_logs(self) -> int:
+        """Count groups with deletion statuses that have audit logs older than PENDING_DELETION_HOURS."""
+        cutoff_time = timezone.now() - timedelta(hours=PENDING_DELETION_HOURS)
+        issue_delete_event_id = audit_log.get_event_id("ISSUE_DELETE")
+
+        # Get groups that have audit log entries older than cutoff
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            old_audit_log_group_ids = set(
+                AuditLogEntry.objects.filter(
+                    event=issue_delete_event_id,
+                    datetime__lt=cutoff_time,
+                )
+                .values_list("target_object", flat=True)
+                .distinct()
+            )
+
+        if not old_audit_log_group_ids:
+            return 0
+
         return Group.objects.filter(
+            id__in=old_audit_log_group_ids,
             status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS],
-            last_seen__gte=self._days_ago(MAX_LAST_SEEN_DAYS),
-            last_seen__lte=self._hours_ago(MIN_LAST_SEEN_HOURS),
         ).count()
 
     def _days_ago(self, days: int) -> datetime:
@@ -30,37 +59,41 @@ class DeletePendingGroupsTest(TestCase):
     def _hours_ago(self, hours: int) -> datetime:
         return timezone.now() - timedelta(hours=hours)
 
-    def test_schedules_only_groups_within_valid_date_range(self) -> None:
-        """Test that only groups with last_seen between 24h-90d are scheduled for deletion."""
+    def test_schedules_only_groups_with_old_audit_logs(self) -> None:
+        """Test that only groups with audit logs older than PENDING_DELETION_HOURS are scheduled."""
         project = self.create_project()
 
-        # Too recent - within 4 hours (should NOT be scheduled)
+        # Too recent - audit log within 4 hours (should NOT be scheduled)
         too_recent = self.create_group(
             project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._hours_ago(4)
         )
+        self._create_audit_log_entry(too_recent, hours_ago=4)
 
-        # Valid range - should be scheduled
+        # Valid - audit log older than 24 hours (should be scheduled)
         valid_group = self.create_group(
-            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._hours_ago(7)
+            project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._hours_ago(48)
+        )
+        self._create_audit_log_entry(valid_group, hours_ago=48)
+
+        # No audit log - should NOT be scheduled (edge case)
+        no_audit_log = self.create_group(
+            project=project, status=GroupStatus.DELETION_IN_PROGRESS, last_seen=self._days_ago(5)
         )
 
-        # Too old - over 90 days (should NOT be scheduled)
-        too_old = self.create_group(
-            project=project, status=GroupStatus.DELETION_IN_PROGRESS, last_seen=self._days_ago(91)
-        )
-
-        # Wrong status - should NOT be scheduled
+        # Wrong status - should NOT be scheduled even with old audit log
         wrong_status = self.create_group(
             project=project,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.NEW,
             last_seen=self._days_ago(5),
         )
+        self._create_audit_log_entry(wrong_status, hours_ago=48)
 
         with patch(
             "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_delete_task:
-            delete_pending_groups()
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                delete_pending_groups()
 
             # Verify only the valid group was scheduled
             mock_delete_task.assert_called_once()
@@ -68,14 +101,15 @@ class DeletePendingGroupsTest(TestCase):
             assert call_kwargs["object_ids"] == [valid_group.id]
             assert call_kwargs["project_id"] == project.id
 
-        assert self._count_groups_in_deletion_status_and_valid_date_range() != 0
+        assert self._count_groups_in_deletion_status_with_old_audit_logs() != 0
         with self.tasks():
-            delete_pending_groups()
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                delete_pending_groups()
 
-        assert self._count_groups_in_deletion_status_and_valid_date_range() == 0
+        assert self._count_groups_in_deletion_status_with_old_audit_logs() == 0
         assert list(Group.objects.all().values_list("id", flat=True).order_by("id")) == [
             too_recent.id,
-            too_old.id,
+            no_audit_log.id,
             wrong_status.id,
         ]
 
@@ -88,14 +122,20 @@ class DeletePendingGroupsTest(TestCase):
         group1 = self.create_group(
             project=project1, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(2)
         )
+        self._create_audit_log_entry(group1, hours_ago=48)
+
         group2 = self.create_group(
             project=project1, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(2)
         )
+        self._create_audit_log_entry(group2, hours_ago=48)
+
         group3 = self.create_group(
             project=project2, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(2)
         )
+        self._create_audit_log_entry(group3, hours_ago=48)
 
-        delete_pending_groups()
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            delete_pending_groups()
 
         assert mock_delete_task.call_count == 2
 
@@ -128,11 +168,13 @@ class DeletePendingGroupsTest(TestCase):
         # Create more groups than GROUP_CHUNK_SIZE (10 in this test)
         num_groups = GROUPS_MORE_THAN_CHUNK_SIZE + GROUP_CHUNK_SIZE
         for _ in range(num_groups):
-            self.create_group(
+            group = self.create_group(
                 project=project, status=GroupStatus.PENDING_DELETION, last_seen=self._days_ago(2)
             )
+            self._create_audit_log_entry(group, hours_ago=48)
 
-        delete_pending_groups()
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            delete_pending_groups()
 
         # Should be called twice: one chunk of 10 and one of 5
         assert mock_delete_task.call_count == 2
