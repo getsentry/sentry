@@ -1854,6 +1854,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                     "trace_id": self.trace_id,
                 },
                 attributes={
+                    "sentry.project_id": self.project.id,
                     "my-string-attribute": "custom value",
                     "my-boolean-attribute": True,
                     "my-double-attribute": 1.23,
@@ -1914,14 +1915,14 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         assert int(ts) == auth_log_expected.timestamp.seconds
 
         for name, value, type in [
-            ("message", "User authentication failed", "string"),
-            ("project", self.project.slug, "string"),
-            ("project.id", self.project.id, "integer"),
-            ("severity", "ERROR", "string"),
-            ("my-string-attribute", "custom value", "string"),
-            ("my-boolean-attribute", True, "boolean"),
+            ("message", "User authentication failed", "str"),
+            ("project", self.project.slug, "str"),
+            ("project.id", self.project.id, "int"),
+            ("severity", "ERROR", "str"),
+            ("my-string-attribute", "custom value", "str"),
+            ("my-boolean-attribute", True, "bool"),
             ("my-double-attribute", 1.23, "double"),
-            ("my-integer-attribute", 123, "integer"),
+            ("my-integer-attribute", 123, "int"),
         ]:
             assert auth_log["attributes"][name]["value"] == value
             assert auth_log["attributes"][name]["type"] == type
