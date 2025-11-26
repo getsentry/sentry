@@ -195,7 +195,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         sampling_mode="NORMAL",
     )
 
-    # Step 4: Build span objects
+    # Step 3: Build span objects
     spans = []
     for row in spans_result.get("data", []):
         span_id = row.get("span_id")
