@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -372,6 +372,14 @@ function AgentTags({agents}: {agents: string[]}) {
     resizeObserverRef.current = observer;
     observer.observe(containerRef.current);
   }, [showAll]);
+
+  // Cleanup the resize observer when the component unmounts
+  useEffect(() => {
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, []);
 
   return (
     <Flex
