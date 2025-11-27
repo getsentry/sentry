@@ -3,6 +3,7 @@
 ## Problem Statement
 
 In Seer Explorer, we resolve short trace IDs (8 characters) into full 32-character trace IDs. The original implementation:
+
 - Queries the **Spans** table with sliding 14-day windows (up to 7 queries)
 - Does full table scans on millions of rows
 - Takes 2-5 seconds on average (10-15s at P95)
@@ -13,6 +14,7 @@ In Seer Explorer, we resolve short trace IDs (8 characters) into full 32-charact
 **We were querying the wrong dataset!**
 
 The spans table:
+
 - Has millions of rows (~100+ spans per trace)
 - `trace_id` field is not efficiently indexed for prefix search
 - Only contains span data - misses transaction-only and error-only traces
@@ -22,8 +24,9 @@ The spans table:
 ### Query the Transactions Dataset Instead
 
 The Transactions dataset has:
+
 - ✅ `trace_id` as a **proper indexed column**
-- ✅ 10-100x fewer rows (1 transaction per trace vs 100+ spans)  
+- ✅ 10-100x fewer rows (1 transaction per trace vs 100+ spans)
 - ✅ **Works without spans** - transaction events exist independently
 - ✅ Single query over 90 days (no sliding windows needed)
 - ✅ No schema changes or storage overhead required
@@ -32,8 +35,8 @@ The Transactions dataset has:
 
 ```python
 def _get_full_trace_id_fast(
-    short_trace_id: str, 
-    organization: Organization, 
+    short_trace_id: str,
+    organization: Organization,
     projects: list[Project]
 ) -> str | None:
     """
@@ -41,7 +44,7 @@ def _get_full_trace_id_fast(
     Falls back to spans table only if needed.
     """
     from sentry.snuba import transactions
-    
+
     # Single query over 90 days on indexed trace_id column
     result = transactions.query(
         selected_columns=["trace"],
@@ -52,35 +55,35 @@ def _get_full_trace_id_fast(
         referrer="seer.explorer.trace_id_lookup",
         auto_fields=False,
     )
-    
+
     if result and result.get("data"):
         return result["data"][0].get("trace")
-    
+
     # Fallback: Query spans table only for rare edge cases
     return _get_full_trace_id_from_spans(short_trace_id, organization, projects)
 ```
 
 ## Performance Impact
 
-| Metric | Before (Spans) | After (Transactions) | Improvement |
-|--------|---------------|---------------------|-------------|
-| Avg Latency | 2-5s | 50-200ms | **10-25x faster** |
-| P95 Latency | 10-15s | 500ms-1s | **10-15x faster** |
-| Queries per lookup | 1-7 (sliding windows) | 1 | 7x fewer |
-| Rows scanned | Millions (100+ spans/trace) | Thousands (1 tx/trace) | 100x fewer |
-| Works without spans? | ❌ No | ✅ Yes | New capability |
+| Metric               | Before (Spans)              | After (Transactions)   | Improvement       |
+| -------------------- | --------------------------- | ---------------------- | ----------------- |
+| Avg Latency          | 2-5s                        | 50-200ms               | **10-25x faster** |
+| P95 Latency          | 10-15s                      | 500ms-1s               | **10-15x faster** |
+| Queries per lookup   | 1-7 (sliding windows)       | 1                      | 7x fewer          |
+| Rows scanned         | Millions (100+ spans/trace) | Thousands (1 tx/trace) | 100x fewer        |
+| Works without spans? | ❌ No                       | ✅ Yes                 | New capability    |
 
 ## Why This Works
 
 ### Dataset Comparison
 
-| Aspect | Spans Table | Transactions Table |
-|--------|-------------|-------------------|
-| **trace_id indexing** | Not indexed for prefix | ✅ Properly indexed |
-| **Rows per trace** | 100-1000+ spans | 1 transaction |
-| **Total rows** | Billions | Millions |
-| **Query performance** | Full table scan | Index lookup |
-| **Trace coverage** | Only traces with spans | All performance traces |
+| Aspect                | Spans Table            | Transactions Table     |
+| --------------------- | ---------------------- | ---------------------- |
+| **trace_id indexing** | Not indexed for prefix | ✅ Properly indexed    |
+| **Rows per trace**    | 100-1000+ spans        | 1 transaction          |
+| **Total rows**        | Billions               | Millions               |
+| **Query performance** | Full table scan        | Index lookup           |
+| **Trace coverage**    | Only traces with spans | All performance traces |
 
 ### Trace ID Storage
 
@@ -93,6 +96,7 @@ def _get_full_trace_id_fast(
 ### Traces Without Transactions
 
 The fallback `_get_full_trace_id_from_spans()` handles:
+
 - Traces that only have spans with no transaction events (rare)
 - Uses the original sliding window approach as last resort
 

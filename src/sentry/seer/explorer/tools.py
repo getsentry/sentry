@@ -64,27 +64,27 @@ def _get_full_trace_id_fast(
 ) -> str | None:
     """
     Optimized trace ID lookup using Transactions dataset query.
-    
+
     This is significantly faster than scanning spans because:
     1. Queries the Transactions dataset where trace_id is an indexed column
     2. Transactions table is much smaller than spans (1 transaction vs 100s of spans per trace)
     3. Works for traces without spans (transaction events exist independently)
     4. Uses a single query over 90 days instead of sliding windows
-    
+
     Performance: ~50-200ms vs 2-5s for span scanning approach.
     """
     from sentry.snuba import transactions
-    
+
     now = datetime.now(timezone.utc)
     max_days = 90
-    
+
     snuba_params = SnubaParams(
         start=now - timedelta(days=max_days),
         end=now,
         projects=projects,
         organization=organization,
     )
-    
+
     try:
         # Query the Transactions dataset - trace_id is indexed here
         result = transactions.query(
@@ -97,7 +97,7 @@ def _get_full_trace_id_fast(
             referrer="seer.explorer.trace_id_lookup",
             auto_fields=False,
         )
-        
+
         data = result.get("data")
         if data and len(data) > 0:
             full_trace_id = data[0].get("trace")
@@ -120,7 +120,7 @@ def _get_full_trace_id_fast(
                 "error": str(e),
             },
         )
-    
+
     # Fallback to spans query for traces that only have spans (no transaction events)
     logger.info(
         "Transactions lookup found no results, falling back to spans query",
@@ -134,11 +134,11 @@ def _get_full_trace_id_from_spans(
 ) -> str | None:
     """
     Fallback: Get full trace id by querying spans table with sliding windows.
-    
+
     This is only used when the Transactions dataset query fails (rare case of traces
     that only have spans with no transaction events). Uses sliding 14-day windows
     to avoid timeouts on large scans.
-    
+
     Note: This query does full table scans and is slow. Primary lookup should use
     the Transactions dataset which is indexed.
     """
