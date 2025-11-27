@@ -1,14 +1,18 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge/tag';
+import {Container} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout/flex';
+import {Link} from '@sentry/scraps/link';
 
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -18,6 +22,8 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {isOverflown} from 'sentry/utils/useHoverOverlay';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -60,7 +66,7 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'agents', name: t('Agents'), width: COL_WIDTH_UNDEFINED},
+  {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Root Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
@@ -267,8 +273,6 @@ const BodyCell = memo(function BodyCell({
   const {selection} = usePageFilters();
   const {openTraceViewDrawer} = useTraceViewDrawer();
 
-  const agentFlow = dataRow.agents.join(', ');
-
   switch (column.key) {
     case 'traceId':
       return (
@@ -287,33 +291,19 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isAgentDataLoading) {
         return <Placeholder width="100%" height="16px" />;
       }
-      return agentFlow.length > 0 ? (
-        <Tooltip
-          title={
-            <Flex align="start" direction="column" gap="sm" overflow="hidden">
-              {dataRow.agents.map(agent => (
-                <Tag key={agent} type="default">
-                  {agent}
-                </Tag>
-              ))}
-            </Flex>
-          }
-          maxWidth={500}
-          showOnlyOnOverflow
-          skipWrapper
-        >
-          <Flex align="start" direction="row" gap="sm" overflow="hidden">
-            {dataRow.agents.map(agent => (
-              <Tag key={agent} type="default">
-                {agent}
-              </Tag>
-            ))}
-          </Flex>
-        </Tooltip>
+      return dataRow.agents.length > 0 ? (
+        <AgentTags agents={dataRow.agents} />
       ) : (
-        <Text size="sm" variant="muted">
-          {t('(no value)')}
-        </Text>
+        <Container paddingLeft="xs">
+          <Tooltip
+            title={dataRow.transaction}
+            maxWidth={500}
+            showOnlyOnOverflow
+            skipWrapper
+          >
+            <Text ellipsis>{dataRow.transaction}</Text>
+          </Tooltip>
+        </Container>
       );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
@@ -356,6 +346,82 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
+
+function AgentTags({agents}: {agents: string[]}) {
+  const [showAll, setShowAll] = useState(false);
+  const location = useLocation();
+  const [searchQuery] = useQueryState('query', parseAsString.withDefault(''));
+  const [showToggle, setShowToggle] = useState(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleShowAll = useCallback(() => {
+    setShowAll(!showAll);
+
+    if (!containerRef.current) return;
+    // While the all tags are visible, observe the container to see if it displays more than one line (22px)
+    // so we can reset the show all state accordingly
+    const observer = new ResizeObserver(entries => {
+      const containerElement = entries[0]?.target;
+      if (!containerElement || containerElement.clientHeight > 22) return;
+      setShowToggle(false);
+      setShowAll(false);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    });
+    resizeObserverRef.current = observer;
+    observer.observe(containerRef.current);
+  }, [showAll]);
+
+  return (
+    <Flex
+      align="start"
+      direction="row"
+      gap="sm"
+      wrap={showAll ? 'wrap' : 'nowrap'}
+      overflow="hidden"
+      position="relative"
+      ref={containerRef}
+      onMouseEnter={event => {
+        setShowToggle(isOverflown(event.currentTarget));
+      }}
+      onMouseLeave={() => setShowToggle(false)}
+    >
+      {agents.map(agent => (
+        <Tooltip key={agent} title={t('Add to filter')} maxWidth={500} skipWrapper>
+          <Link
+            to={{
+              query: {
+                ...location.query,
+                query: new MutableSearch(searchQuery)
+                  .removeFilter('gen_ai.agent.name')
+                  .addFilterValues('gen_ai.agent.name', [agent])
+                  .formatString(),
+              },
+            }}
+          >
+            <Tag key={agent} type="default">
+              {agent}
+            </Tag>
+          </Link>
+        </Tooltip>
+      ))}
+      {/* Placeholder for floating button */}
+      <Container width="100px" height="20px" flexShrink={0} />
+      <Container
+        display={showToggle || showAll ? 'block' : 'none'}
+        position="absolute"
+        background="primary"
+        padding="2xs xs 0 xl"
+        style={{bottom: '0', right: '0'}}
+      >
+        <Button priority="link" size="xs" onClick={handleShowAll}>
+          {showAll ? t('Show less') : t('Show all')}
+        </Button>
+      </Container>
+    </Flex>
+  );
+}
 
 const GridEditableContainer = styled('div')`
   position: relative;
