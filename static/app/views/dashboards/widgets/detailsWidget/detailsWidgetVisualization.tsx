@@ -25,6 +25,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     return (
       <DatabaseSpanDescription
         showBorder={false}
+        shouldClipHeight={false}
         groupId={spanGroup}
         preliminaryDescription={spanDescription}
       />

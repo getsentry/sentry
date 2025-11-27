@@ -29,6 +29,7 @@ interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
   op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
+  shouldClipHeight?: boolean;
   showBorder?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
   showBorder = true,
+  shouldClipHeight = true,
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,11 +140,15 @@ export function DatabaseSpanDescription({
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
+        <QueryWrapper
+          clipHeight={500}
+          isExpanded={isExpanded}
+          shouldClipHeight={shouldClipHeight}
+        >
           <CodeBlock language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
           </CodeBlock>
-        </QueryClippedBox>
+        </QueryWrapper>
       )}
 
       {!areIndexedSpansLoading && (
@@ -166,13 +172,16 @@ export function DatabaseSpanDescription({
   );
 }
 
-function QueryClippedBox(props: any) {
-  const {isExpanded, children} = props;
+function QueryWrapper(props: any) {
+  const {isExpanded, children, shouldClipHeight} = props;
+
+  if (!shouldClipHeight) {
+    return <StyledFullBox>{children}</StyledFullBox>;
+  }
 
   if (isExpanded) {
     return children;
   }
-
   return <StyledClippedBox {...props} />;
 }
 
@@ -192,10 +201,14 @@ const WithPadding = styled('div')`
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
-  height: 100%;
-  background: ${p => p.theme.backgroundSecondary};
 
   > div > div {
     z-index: 1;
   }
+`;
+
+const StyledFullBox = styled('div')`
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
 `;
