@@ -289,7 +289,13 @@ export function generateTargetQuery({
     } else if (groupBy === 'environment' && typeof value === 'string') {
       location.query.environment = value;
     } else if (typeof value === 'string') {
-      search.setFilterValues(groupBy, [value]);
+      // TODO(nsdeschenes): Remove this once we have a proper way to handle quoted values
+      // that have square brackets included in the value
+      if (value.startsWith('[') && value.endsWith(']')) {
+        search.setFilterValues(groupBy, [`"${value}"`]);
+      } else {
+        search.setFilterValues(groupBy, [value]);
+      }
     }
   }
 
