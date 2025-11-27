@@ -83,6 +83,9 @@ function Controls({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+
+  const isPrebuiltDashboard = dashboard.prebuiltId !== undefined;
+
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar key="edit-controls">
@@ -199,6 +202,9 @@ function Controls({
     if (!hasFeature) {
       return null;
     }
+    if (isPrebuiltDashboard) {
+      return null;
+    }
     const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
     const toolTipMessage = isSaving
       ? DASHBOARD_SAVING_MESSAGE
@@ -247,7 +253,7 @@ function Controls({
                 />
               </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && (
+            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
@@ -290,7 +296,7 @@ function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
-            {hasFeature ? (
+            {hasFeature && !isPrebuiltDashboard ? (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}
