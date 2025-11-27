@@ -19,7 +19,6 @@ from django.conf import settings
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     collect_span_metrics,
-    process_attachment_chunk,
     process_event,
     process_individual_attachment,
     process_userreport,
@@ -267,34 +266,13 @@ def test_feedbacks_spawn_save_event_feedback(
 
 
 @django_db_all
-@pytest.mark.parametrize("missing_chunks", (True, False))
-def test_with_attachments(default_project, task_runner, missing_chunks, django_cache) -> None:
+def test_with_attachments(default_project, task_runner, django_cache) -> None:
     with patch("sentry.features.has", return_value=True):
         payload = get_normalized_event({"message": "hello world"}, default_project)
         event_id = payload["event_id"]
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
         project_id = default_project.id
         start_time = time.time() - 3600
-
-        if not missing_chunks:
-            process_attachment_chunk(
-                {
-                    "payload": b"Hello ",
-                    "event_id": event_id,
-                    "project_id": project_id,
-                    "id": attachment_id,
-                    "chunk_index": 0,
-                }
-            )
-            process_attachment_chunk(
-                {
-                    "payload": b"World!",
-                    "event_id": event_id,
-                    "project_id": project_id,
-                    "id": attachment_id,
-                    "chunk_index": 1,
-                }
-            )
 
         with task_runner():
             process_event(
@@ -312,7 +290,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                             "content_type": "text/plain",
                             "attachment_type": "custom.attachment",
                             "size": len(b"Hello World!"),
-                            "chunks": 2,
+                            "data": b"Hello World!",
                         }
                     ],
                 },
@@ -323,17 +301,15 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
         EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
     )
 
-    if not missing_chunks:
-        (attachment,) = persisted_attachments
-        assert attachment.content_type == "text/plain"
-        assert attachment.name == "lol.txt"
-        with attachment.getfile() as file:
-            assert file.read() == b"Hello World!"
-    else:
-        assert not persisted_attachments
+    (attachment,) = persisted_attachments
+    assert attachment.content_type == "text/plain"
+    assert attachment.name == "lol.txt"
+    with attachment.getfile() as file:
+        assert file.read() == b"Hello World!"
 
 
 @django_db_all
+@requires_objectstore
 @requires_symbolicator
 @pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
@@ -342,22 +318,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -
         do_process_view_hierarchy(default_project, task_runner)
 
 
-@django_db_all
-@requires_objectstore
-@requires_symbolicator
-@pytest.mark.symbolicator
-@thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
-    with override_options(
-        {"system.url-prefix": live_server.url, "objectstore.enable_for.cached_attachments": 1}
-    ):
-        # this stores the attachment during processing because of the feature flag above:
-        do_process_view_hierarchy(default_project, task_runner)
-        # this passes an already stored attachment to the ingest consumer:
-        do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
-
-
-def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
+def do_process_view_hierarchy(project, task_runner):
     payload = get_normalized_event(
         {
             "message": "hello world",
@@ -399,22 +360,9 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
         "size": len(attachment_payload),
     }
 
-    stored_id = None
-    if not use_objectstore:
-        process_attachment_chunk(
-            {
-                "payload": attachment_payload,
-                "event_id": event_id,
-                "project_id": project.id,
-                "id": attachment_id,
-                "chunk_index": 0,
-            }
-        )
-        attachment_metadata["chunks"] = 1
-    else:
-        session = get_attachments_session(project.organization_id, project.id)
-        stored_id = session.put(attachment_payload)
-        attachment_metadata["stored_id"] = stored_id
+    session = get_attachments_session(project.organization_id, project.id)
+    stored_id = session.put(attachment_payload)
+    attachment_metadata["stored_id"] = stored_id
 
     with task_runner():
         process_event(
@@ -438,8 +386,7 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
     assert attachment.name == "view_hierarchy.json"
     with attachment.getfile() as file:
         assert file.read() == expected_response
-    if stored_id:
-        assert session.get(stored_id).payload.read() == expected_response
+    assert session.get(stored_id).payload.read() == expected_response
 
 
 @django_db_all
@@ -518,21 +465,20 @@ def test_process_stored_attachment(
 
 
 @django_db_all
+@requires_objectstore
 @pytest.mark.parametrize("feature_enabled", [True, False], ids=["with_feature", "without_feature"])
 @pytest.mark.parametrize(
     "attachment",
     [
-        ([b"Hello ", b"World!"], "event.attachment", "application/octet-stream"),
-        ([b""], "event.attachment", "application/octet-stream"),
-        ([], "event.attachment", "application/octet-stream"),
+        (b"Hello World!", "event.attachment", "application/octet-stream"),
+        (b"", "event.attachment", "application/octet-stream"),
         (
-            [b'{"rendering_system":"flutter","windows":[]}'],
+            b'{"rendering_system":"flutter","windows":[]}',
             "event.view_hierarchy",
             "application/json",
         ),
-        (b"inline attachment", "event.attachment", "application/octet-stream"),
     ],
-    ids=["basic", "zerolen", "nochunks", "view_hierarchy", "inline"],
+    ids=["basic", "zerolen", "view_hierarchy"],
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
@@ -552,30 +498,21 @@ def test_individual_attachments(
             group_id = event.group.id
             assert group_id, "this test requires a group to work"
 
-        chunks, attachment_type, content_type = attachment
+        payload, attachment_type, content_type = attachment
+        size = len(payload)
+        stored_id = (
+            get_attachments_session(default_project.organization_id, project_id).put(payload)
+            if size
+            else None
+        )
         attachment_meta = {
             "id": attachment_id,
             "name": "foo.txt",
             "content_type": content_type,
             "attachment_type": attachment_type,
-            "chunks": len(chunks),
+            "stored_id": stored_id,
+            "size": size,
         }
-        if isinstance(chunks, bytes):
-            attachment_meta["data"] = chunks
-            expected_content = chunks
-        else:
-            for i, chunk in enumerate(chunks):
-                process_attachment_chunk(
-                    {
-                        "payload": chunk,
-                        "event_id": event_id,
-                        "project_id": project_id,
-                        "id": attachment_id,
-                        "chunk_index": i,
-                    }
-                )
-            expected_content = b"".join(chunks)
-        attachment_meta["size"] = len(expected_content)
 
         process_individual_attachment(
             {
@@ -598,7 +535,7 @@ def test_individual_attachments(
         assert attachment.content_type == content_type
 
         with attachment.getfile() as file_contents:
-            assert file_contents.read() == expected_content
+            assert file_contents.read() == payload
 
 
 @django_db_all
@@ -680,34 +617,6 @@ def test_userreport_reverse_order(django_cache, default_project) -> None:
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
     assert evtuser.name is None
-
-
-@django_db_all
-def test_individual_attachments_missing_chunks(default_project, factories) -> None:
-    with patch("sentry.features.has", return_value=True):
-        event_id = "515539018c9b4260a6f999572f1661ee"
-        attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
-        project_id = default_project.id
-
-        process_individual_attachment(
-            {
-                "type": "attachment",
-                "attachment": {
-                    "attachment_type": "event.attachment",
-                    "chunks": 123,
-                    "content_type": "application/octet-stream",
-                    "id": attachment_id,
-                    "name": "foo.txt",
-                },
-                "event_id": event_id,
-                "project_id": project_id,
-            },
-            project=default_project,
-        )
-
-    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
-
-    assert not attachments
 
 
 @django_db_all

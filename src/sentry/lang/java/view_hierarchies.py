@@ -7,7 +7,6 @@ from sentry.attachments import (
     get_attachments_for_event,
     store_attachments_for_event,
 )
-from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.models.project import Project
 
 
@@ -55,19 +54,16 @@ class ViewHierarchies:
             _deobfuscate_view_hierarchy(view_hierarchy, class_names)
             new_attachments.append(
                 CachedAttachment(
-                    key=attachment.key,
-                    id=attachment.id,
                     type=attachment.type,
                     name=attachment.name,
                     content_type=attachment.content_type,
                     data=orjson.dumps(view_hierarchy),
-                    chunks=None,
                     stored_id=attachment.stored_id,
                 )
             )
 
         attachments = self._other_attachments + new_attachments
-        store_attachments_for_event(self._project, self._event, attachments, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(self._project, self._event, attachments)
 
 
 def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):

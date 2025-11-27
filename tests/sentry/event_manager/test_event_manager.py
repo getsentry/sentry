@@ -20,7 +20,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry import nodestore, tsdb
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.attachments import CachedAttachment
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
 from sentry.dynamic_sampling import (
@@ -2244,7 +2244,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
 
             cache_key = cache_key_for_event(manager.get_data())
-            attachment_cache.set(cache_key, attachments=[a1, a2])
 
             mock_track_outcome = mock.Mock(wraps=track_outcome)
             with (
@@ -2291,7 +2290,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a1 = CachedAttachment(name="a1", data=b"hello", type="event.minidump")
         a2 = CachedAttachment(name="a2", data=b"world")
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2322,7 +2320,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
 
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with mock.patch(
@@ -2369,11 +2366,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
 
         a1 = CachedAttachment(name="a1", data=b"hello")
-        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2405,11 +2400,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Disable storing all crash reports, which will drop the minidump but save the other
         a1 = CachedAttachment(name="a1", data=b"minidump", type="event.minidump")
-        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()

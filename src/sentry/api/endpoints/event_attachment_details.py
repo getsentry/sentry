@@ -1,8 +1,5 @@
-import contextlib
 import posixpath
-from typing import IO, ContextManager
 
-import sentry_sdk
 from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,11 +14,10 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
-from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
-from sentry.utils import metrics
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -65,35 +61,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         name = posixpath.basename(" ".join(attachment.name.split()))
 
         def stream_attachment():
-            attachment_file = attachment.getfile()
-            doublewrite_file: IO[bytes] | ContextManager[None] = contextlib.nullcontext()
-            blob_path = attachment.blob_path or ""
-            blob_path = blob_path.startswith(V1_PREFIX) and blob_path.removeprefix(V1_PREFIX) or ""
-            if blob_path.startswith(V2_PREFIX):
-                try:
-                    # We force the attachment model to use the objectstore backend
-                    # by changing its prefix. Its a big hack, but hey why not.
-                    attachment.blob_path = blob_path
-                    doublewrite_file = attachment.getfile()
-                    metrics.incr("storage.attachments.double_write.read")
-                except Exception:
-                    sentry_sdk.capture_exception()
-
             # TODO: We should pass along the `Accept-Encoding`, so we can avoid
             # decompressing on the API side, and just transfer the already
             # compressed bytes to the client as it indicated it can handle it.
-            with attachment_file as af, doublewrite_file as df:
-                while filestore_chunk := af.read(4096):
-                    if df:
-                        try:
-                            objectstore_chunk = df.read(4096)
-                            assert filestore_chunk == objectstore_chunk
-                        except Exception:
-                            # If we have encountered one error, clear the reference
-                            # to avoid spamming more errors for all the remaining chunks.
-                            df = None
-                            sentry_sdk.capture_exception()
-                    yield filestore_chunk
+            with attachment.getfile() as attachment_file:
+                while chunk := attachment_file.read(4096):
+                    yield chunk
 
         response = StreamingHttpResponse(
             stream_attachment(),

@@ -14,7 +14,6 @@ from sentry.utils import metrics
 from .processors import (
     IngestMessage,
     Retriable,
-    process_attachment_chunk,
     process_event,
     process_individual_attachment,
     process_userreport,
@@ -31,7 +30,6 @@ def decode_and_process_chunks(
 
     - Decode the Kafka payload which is in msgpack format and has a bit of
       metadata like `type` and `project_id`.
-    - Process and save `attachment_chunk`s.
     """
     raw_payload = raw_message.payload.value
     metrics.distribution(
@@ -43,12 +41,6 @@ def decode_and_process_chunks(
 
     try:
         message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
-
-        if message["type"] == "attachment_chunk":
-            if not reprocess_only_stuck_events:
-                process_attachment_chunk(message)
-            return None
-
         return message
     except Exception as exc:
         # If the retriable exception was raised, we should not DLQ
