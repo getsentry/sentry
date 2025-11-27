@@ -7,24 +7,21 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconMegaphone} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {
-  InvoiceItemType,
-  type Charge,
-  type Invoice,
-  type InvoiceItem,
-  type Plan,
-  type PreviewData,
-  type PreviewInvoiceItem,
+import type {
+  Charge,
+  Invoice,
+  InvoiceItem,
+  Plan,
+  PreviewData,
+  PreviewInvoiceItem,
 } from 'getsentry/types';
 import {
   displayBudgetName,
@@ -192,7 +189,7 @@ function ScheduledChanges({
         </Flex>
       )}
       {products.map(item => {
-        const addOn = utils.invoiceItemTypeToAddOn(item.type);
+        const addOn = utils.reservedInvoiceItemTypeToAddOn(item.type);
         if (!addOn) {
           return null;
         }
@@ -217,7 +214,7 @@ function ScheduledChanges({
       })}
       {fees.map(item => {
         const adjustedAmount =
-          item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
+          item.type === 'balance_change' ? item.amount * -1 : item.amount;
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
@@ -235,7 +232,7 @@ function ScheduledChanges({
       )}
       {credits.map(item => {
         const adjustedAmount =
-          item.type === InvoiceItemType.BALANCE_CHANGE ? item.amount * -1 : item.amount;
+          item.type === 'balance_change' ? item.amount * -1 : item.amount;
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
@@ -512,19 +509,17 @@ function CheckoutSuccess({
   const invoiceItems = isImmediateCharge
     ? invoice.items
     : (previewData?.invoiceItems ?? []);
-  const planItem = invoiceItems.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const planItem = invoiceItems.find(item => item.type === 'subscription');
   const reservedVolume = invoiceItems.filter(
     item => item.type.startsWith('reserved_') && !item.type.endsWith('_budget')
   );
-  // TODO(prevent): This needs to be updated once we determine how to display Prevent enablement and PAYG changes on this page
-  const products = invoiceItems.filter(
-    item => item.type === InvoiceItemType.RESERVED_SEER_BUDGET
-  );
+  // TODO(seer): This needs to be updated once we determine how to display Seer enablement and PAYG changes on this page
+  const products = invoiceItems.filter(item => item.type === 'reserved_seer_budget');
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
-  // TODO(isabella): PreviewData never has the InvoiceItemType.BALANCE_CHANGE type
-  // and instead populates creditApplied with the value of the InvoiceItemType.CREDIT_APPLIED type
+  // TODO(isabella): PreviewData never has the 'balance_change' type
+  // and instead populates creditApplied with the value of the 'credit_applied' type
   // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
   const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
@@ -577,8 +572,6 @@ function CheckoutSuccess({
           date: effectiveDate,
         });
 
-  const openFeedbackForm = useFeedbackForm();
-
   return (
     <Flex
       padding="2xl"
@@ -610,25 +603,18 @@ function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            {openFeedbackForm ? (
-              <Button
-                icon={<IconMegaphone />}
-                onClick={() => {
-                  openFeedbackForm({
-                    formTitle: t('Give feedback'),
-                    messagePlaceholder: t(
-                      'How can we make the checkout experience better for you?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'checkout_success',
-                      ['feedback.owner']: 'billing',
-                    },
-                  });
-                }}
-              >
-                {t('Give feedback')}
-              </Button>
-            ) : null}
+            <FeedbackButton
+              feedbackOptions={{
+                formTitle: t('Give feedback'),
+                messagePlaceholder: t(
+                  'How can we make the checkout experience better for you?'
+                ),
+                tags: {
+                  ['feedback.source']: 'checkout_success',
+                  ['feedback.owner']: 'billing',
+                },
+              }}
+            />
           </Flex>
         </Flex>
       </Flex>

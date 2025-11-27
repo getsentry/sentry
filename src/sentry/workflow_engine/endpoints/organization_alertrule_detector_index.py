@@ -16,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.alertrule_detector_serializer import (
     AlertRuleDetectorSerializer,
@@ -24,6 +25,7 @@ from sentry.workflow_engine.endpoints.validators.alertrule_detector import (
     AlertRuleDetectorValidator,
 )
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.detector import Detector
 
 
 @region_silo_endpoint
@@ -69,7 +71,28 @@ class OrganizationAlertRuleDetectorIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(rule_id=rule_id)
 
         alert_rule_detector = queryset.first()
-        if not alert_rule_detector:
-            raise ResourceDoesNotExist
 
-        return Response(serialize(alert_rule_detector, request.user))
+        if alert_rule_detector:
+            return Response(serialize(alert_rule_detector, request.user))
+
+        # Fallback: if alert_rule_id was provided but no AlertRuleDetector was found,
+        # try looking up Detector directly using calculated detector_id
+        if alert_rule_id:
+            try:
+                calculated_detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+                detector = Detector.objects.get(
+                    id=calculated_detector_id, project__organization=organization
+                )
+
+                if detector:
+                    return Response(
+                        {
+                            "detectorId": str(detector.id),
+                            "alertRuleId": str(alert_rule_id),
+                            "ruleId": None,
+                        }
+                    )
+            except (ValueError, Detector.DoesNotExist):
+                pass
+
+        raise ResourceDoesNotExist

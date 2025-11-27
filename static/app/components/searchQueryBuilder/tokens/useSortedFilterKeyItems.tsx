@@ -11,6 +11,7 @@ import {
   createAskSeerItem,
   createFilterValueItem,
   createItem,
+  createLogicFilterItem,
   createRawSearchFilterContainsValueItem,
   createRawSearchFilterIsValueItem,
   createRawSearchItem,
@@ -18,7 +19,7 @@ import {
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {FieldKey} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -26,7 +27,7 @@ type FilterKeySearchItem = {
   description: string;
   item: Tag;
   keywords: string[];
-  type: 'value' | 'key';
+  type: 'value' | 'key' | 'logic';
   key?: string;
   value?: string;
 };
@@ -44,6 +45,35 @@ const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   includeScore: true,
   distance: 1000,
 };
+
+// Note: we don't need to add in the parentheses because when typed they are
+// automatically handled by the parser and tokens created.
+const LOGIC_FILTER_ITEMS: FilterKeySearchItem[] = [
+  {
+    key: 'AND',
+    type: 'logic',
+    description: 'AND logical operator',
+    keywords: [],
+    item: {
+      key: 'AND',
+      name: 'AND',
+      kind: FieldKind.FIELD,
+      secondaryAliases: [],
+    },
+  },
+  {
+    key: 'OR',
+    type: 'logic',
+    description: 'OR logical operator',
+    keywords: [],
+    item: {
+      key: 'OR',
+      name: 'OR',
+      kind: FieldKind.FIELD,
+      secondaryAliases: [],
+    },
+  },
+];
 
 function isQuoted(inputValue: string) {
   return inputValue.startsWith('"') && inputValue.endsWith('"');
@@ -150,6 +180,9 @@ export function useSortedFilterKeyItems({
   const hasAskSeerConsentFlowChanges = organization.features.includes(
     'gen-ai-consent-flow-removal'
   );
+  const hasConditionalsInCombobox = organization.features.includes(
+    'search-query-builder-conditionals-combobox-menus'
+  );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -170,11 +203,12 @@ export function useSortedFilterKeyItems({
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
+        ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
       ];
     }
 
-    return searchKeyItems;
-  }, [flatKeys, getFieldDefinition, includeSuggestions]);
+    return [...searchKeyItems, ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : [])];
+  }, [flatKeys, getFieldDefinition, hasConditionalsInCombobox, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
@@ -199,10 +233,26 @@ export function useSortedFilterKeyItems({
     const searched = search.search(filterValue);
 
     const keyItems = searched
-      .map(({item}) => item)
-      .filter(item => item.type === 'key' && filterKeys[item.item.key])
-      .map(({item}) => {
-        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
+      .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
+      .filter(
+        filterSearchKeyItem =>
+          (filterSearchKeyItem.type === 'key' &&
+            filterKeys[filterSearchKeyItem.item.key]) ||
+          filterSearchKeyItem.type === 'logic'
+      )
+      .map(filterSearchKeyItem => {
+        if (
+          filterSearchKeyItem.type === 'logic' &&
+          (filterSearchKeyItem.key === 'AND' ||
+            filterSearchKeyItem.key === 'OR' ||
+            filterSearchKeyItem.key === '(' ||
+            filterSearchKeyItem.key === ')')
+        ) {
+          return createLogicFilterItem({value: filterSearchKeyItem.key});
+        }
+
+        const {key} = filterSearchKeyItem.item;
+        return createItem(filterKeys[key]!, getFieldDefinition(key));
       });
 
     const askSeerItem = [];

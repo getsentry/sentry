@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
     TimeSeries,
     TimeSeriesRequest,
+    TimeSeriesResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
@@ -105,6 +106,18 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
             if row[axis] and row[axis] != 0:
                 return True
     return False
+
+
+def log_rpc_request(message: str, rpc_request):
+    rpc_debug_json = json.loads(MessageToJson(rpc_request))
+    logger.info(
+        message,
+        extra={
+            "rpc_query": rpc_debug_json,
+            "referrer": rpc_request.meta.referrer,
+            "trace_item_type": rpc_request.meta.trace_item_type,
+        },
+    )
 
 
 class RPCBase:
@@ -263,6 +276,9 @@ class RPCBase:
             stripped_orderby = orderby_column.lstrip("-")
             if stripped_orderby in orderby_aliases:
                 resolved_column = orderby_aliases[stripped_orderby]
+            # If this orderby isn't in the aliases, check if its a selected column
+            elif stripped_orderby not in query.selected_columns:
+                raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
             resolved_orderby.append(
@@ -318,7 +334,14 @@ class RPCBase:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
-        rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+        log_rpc_request("Running a table query with debug on", rpc_request)
+        try:
+            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
         sentry_sdk.set_tag(
             "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
         )
@@ -516,6 +539,19 @@ class RPCBase:
             return ts_filter, params
         else:
             raise InvalidSearchQuery("start, end and interval are required")
+
+    @classmethod
+    def _run_timeseries_rpc(
+        self, debug: bool, rpc_request: TimeSeriesRequest
+    ) -> TimeSeriesResponse:
+        log_rpc_request("Running a timeseries query with debug on", rpc_request)
+        try:
+            return snuba_rpc.timeseries_rpc([rpc_request])[0]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
 
     @classmethod
     def process_timeseries_list(cls, timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
@@ -771,10 +807,18 @@ class RPCBase:
             requests.append(other_request)
 
         """Run the query"""
-        timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
-        rpc_response = timeseries_rpc_response[0]
-        if len(timeseries_rpc_response) > 1:
-            other_response = timeseries_rpc_response[1]
+        for rpc_request in requests:
+            log_rpc_request("Running a top events query with debug on", rpc_request)
+        try:
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+            rpc_response = timeseries_rpc_response[0]
+            if len(timeseries_rpc_response) > 1:
+                other_response = timeseries_rpc_response[1]
+        except Exception as e:
+            # add the rpc to the error so we can include it in the response
+            if params.debug:
+                setattr(e, "debug", MessageToJson(rpc_request))
+            raise
 
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)

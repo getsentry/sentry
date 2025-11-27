@@ -946,6 +946,45 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
+    @patch("sentry.search.snuba.executors.PostgresSnubaQueryExecutor.calculate_hits")
+    def test_hits_capped_when_overestimated(self, mock_calculate_hits: MagicMock) -> None:
+        """
+        Test that when sampling overestimates the hit count and all results fit on one page,
+        the X-Hits header is capped to the actual number of results returned.
+
+        This prevents UI bugs like showing "(6-11) of 11" when there are only 6 results.
+        """
+        self.login_as(user=self.user)
+
+        # Create 6 groups
+        groups = []
+        for i in range(6):
+            event = self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+            groups.append(event.group)
+
+        # Mock calculate_hits to return an overestimate (simulating sampling inaccuracy)
+        # This would happen when Snuba thinks there are 11 groups but Postgres only has 6
+        mock_calculate_hits.return_value = 11
+
+        # Make a request that returns all 6 groups on one page
+        response = self.get_success_response(limit=25, query="is:unresolved")
+
+        # Should return all 6 groups
+        assert len(response.data) == 6
+
+        # X-Hits should be corrected to 6, not the overestimated 11
+        assert response["X-Hits"] == "6"
+
+        # Verify no next page exists (we have all results)
+        links = self._parse_links(response["Link"])
+        assert links["next"]["results"] == "false"
+
     def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
         groups = []
@@ -2047,36 +2086,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event2.group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         self.login_as(user=self.user)
-        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event1.group.id]
-
-    def test_default_search_with_priority(self) -> None:
-        event1 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event1.group.priority = PriorityLevel.HIGH
-        event1.group.save()
-        event2 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
-            project_id=self.project.id,
-        )
-        event2.group.status = GroupStatus.RESOLVED
-        event2.group.substatus = None
-        event2.group.priority = PriorityLevel.HIGH
-        event2.group.save()
-
-        event3 = self.store_event(
-            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        event3.group.priority = PriorityLevel.LOW
-        event3.group.save()
-
-        self.login_as(user=self.user)
-        sleep(1)
-
         response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]

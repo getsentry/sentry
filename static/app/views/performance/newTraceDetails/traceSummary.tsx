@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {IconLightning} from 'sentry/icons/iconLightning';
 import {IconStats} from 'sentry/icons/iconStats';
@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -72,7 +71,7 @@ function useTraceSummary(traceSlug: string) {
 
 export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
   const traceContent = useTraceSummary(traceSlug);
-  const openFeedbackForm = useFeedbackForm();
+  const {feedback} = useFeedbackSDKIntegration();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -84,25 +83,16 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
     return (
       <ErrorContainer>
         <div>{t('Error loading Trace Summary')}</div>
-        {openFeedbackForm && (
-          <Button
-            size="xs"
-            icon={<IconMegaphone size="xs" />}
-            onClick={() =>
-              openFeedbackForm({
-                messagePlaceholder: t(
-                  'How can we make the trace summary better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'trace-summary',
-                  ['feedback.owner']: 'ml-ai',
-                },
-              })
-            }
-          >
-            {t('Give Feedback')}
-          </Button>
-        )}
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make the trace summary better for you?'),
+            tags: {
+              ['feedback.source']: 'trace-summary',
+              ['feedback.owner']: 'ml-ai',
+            },
+          }}
+        />
       </ErrorContainer>
     );
   }
@@ -165,25 +155,18 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
         <SectionContent text="" />
       )}
 
-      {openFeedbackForm && (
+      {feedback && (
         <FeedbackButtonContainer>
-          <Button
+          <FeedbackButton
             size="xs"
-            icon={<IconMegaphone size="xs" />}
-            onClick={() =>
-              openFeedbackForm({
-                messagePlaceholder: t(
-                  'How can we make the trace summary better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'trace-summary',
-                  ['feedback.owner']: 'ml-ai',
-                },
-              })
-            }
-          >
-            {t('Give Feedback')}
-          </Button>
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make the trace summary better for you?'),
+              tags: {
+                ['feedback.source']: 'trace-summary',
+                ['feedback.owner']: 'ml-ai',
+              },
+            }}
+          />
         </FeedbackButtonContainer>
       )}
     </SummaryContainer>

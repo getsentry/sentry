@@ -1,4 +1,5 @@
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -89,3 +90,33 @@ class OrganizationAlertRuleDetectorIndexGetTest(OrganizationAlertRuleDetectorAPI
 
     def test_get_without_any_filter(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
+
+    def test_fallback_with_fake_alert_rule_id(self) -> None:
+        """
+        Test that when an alert rule doesn't exist, the endpoint falls back to looking up
+        the Detector by subtracting 10^9 from the alert_rule_id.
+        """
+        # Create a detector with no AlertRuleDetector mapping
+        detector = self.create_detector(project=self.project)
+
+        # Calculate the fake alert_rule_id
+        fake_alert_rule_id = get_fake_id_from_object_id(detector.id)
+
+        # Query using the fake alert_rule_id
+        response = self.get_success_response(
+            self.organization.slug, alert_rule_id=str(fake_alert_rule_id)
+        )
+
+        # Should return a fake AlertRuleDetector response
+        assert response.data == {
+            "detectorId": str(detector.id),
+            "alertRuleId": str(fake_alert_rule_id),
+            "ruleId": None,
+        }
+
+    def test_fallback_with_nonexistent_detector(self) -> None:
+        # Use a fake alert_rule_id that won't map to any real detector
+        nonexistent_fake_id = get_fake_id_from_object_id(999999)
+        self.get_error_response(
+            self.organization.slug, alert_rule_id=str(nonexistent_fake_id), status_code=404
+        )

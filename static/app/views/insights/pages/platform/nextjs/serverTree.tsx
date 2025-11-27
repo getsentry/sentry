@@ -200,7 +200,7 @@ export function ServerTree() {
       {treeRequest.isLoading ? (
         <LoadingIndicator />
       ) : hasData ? null : (
-        <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
+        <EmptyMessage size="lg" icon={<IconSearch />}>
           {t('No results found')}
         </EmptyMessage>
       )}

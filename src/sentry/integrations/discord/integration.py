@@ -21,6 +21,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
+from sentry.integrations.discord.utils.metrics import translate_discord_api_error
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
@@ -87,7 +88,10 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
         self, target: IntegrationNotificationTarget, payload: DiscordRenderable
     ) -> None:
         client = self.get_client()
-        client.send_message(channel_id=target.resource_id, message=payload)
+        try:
+            client.send_message(channel_id=target.resource_id, message=payload)
+        except ApiError as e:
+            translate_discord_api_error(e)
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove

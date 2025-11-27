@@ -8,8 +8,8 @@ export function AttributeBreakdownsContent() {
   if (chartSelection) {
     return (
       <CohortComparison
-        boxSelectOptions={chartSelection.boxSelectOptions}
-        chartInfo={chartSelection.chartInfo}
+        selection={chartSelection.selection}
+        chartIndex={chartSelection.chartIndex}
       />
     );
   }

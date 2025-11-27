@@ -25,6 +25,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 logger = logging.getLogger(__name__)
 
 TRANSACTION_PREFIX = "cleanup"
+DELETES_BY_PROJECT_CHUNK_SIZE = 100
 
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
@@ -85,27 +86,14 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
 
-    from sentry.utils.imports import import_string
-
     logger = logging.getLogger("sentry.cleanup")
 
     from sentry.runner import configure
 
     configure()
 
-    from sentry import deletions, models, options, similarity
+    from sentry import options
     from sentry.utils import metrics
-
-    skip_child_relations_models = [
-        # Handled by other parts of cleanup
-        models.EventAttachment,
-        models.UserReport,
-        models.Group,
-        models.GroupEmailThread,
-        models.GroupRuleStatus,
-        # Handled by TTL
-        similarity,
-    ]
 
     while True:
         j = task_queue.get()
@@ -124,21 +112,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             with sentry_sdk.start_transaction(
                 op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
             ):
-                model = import_string(model_name)
-                task = deletions.get(
-                    model=model,
-                    query={"id__in": chunk},
-                    skip_models=skip_child_relations_models,
-                    transaction_id=uuid4().hex,
-                )
-
-                while True:
-                    debug_output(f"Processing chunk of {len(chunk)} {model_name} objects")
-                    metrics.incr(
-                        "cleanup.chunk_processed", tags={"model": model_name}, amount=len(chunk)
-                    )
-                    if not task.chunk(apply_filter=True):
-                        break
+                task_execution(model_name, chunk)
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -152,6 +126,37 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 logger.exception("Error processing chunk of %s objects", model_name)
         finally:
             task_queue.task_done()
+
+
+def task_execution(model_name: str, chunk: tuple[int, ...]) -> None:
+    from sentry import deletions, models, similarity
+    from sentry.utils import metrics
+    from sentry.utils.imports import import_string
+
+    skip_child_relations_models = [
+        # Handled by other parts of cleanup
+        models.EventAttachment,
+        models.UserReport,
+        models.Group,
+        models.GroupEmailThread,
+        models.GroupRuleStatus,
+        # Handled by TTL
+        similarity,
+    ]
+
+    model = import_string(model_name)
+    task = deletions.get(
+        model=model,
+        query={"id__in": chunk},
+        skip_models=skip_child_relations_models,
+        transaction_id=uuid4().hex,
+    )
+
+    while True:
+        debug_output(f"Processing chunk of {len(chunk)} {model_name} objects")
+        metrics.incr("cleanup.chunk_processed", tags={"model": model_name}, amount=len(chunk))
+        if not task.chunk(apply_filter=True):
+            break
 
 
 @click.command()
@@ -739,13 +744,6 @@ def run_bulk_deletes_by_project(
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
-        # Count total projects for progress tracking
-        total_projects = project_deletion_query.count()
-        debug_output(f"Processing {total_projects} project(s)")
-
-        processed_count = 0
-        last_reported_percentage = 0
-
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
             result_value_getter=lambda item: item,
@@ -767,7 +765,7 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    for chunk in q.iterator(chunk_size=100):
+                    for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
                         task_queue.put((imp, chunk))
                 except Exception:
                     capture_exception(
@@ -779,17 +777,6 @@ def run_bulk_deletes_by_project(
                         tags={"model": model_tp.__name__, "type": "bulk_delete_by_project"},
                         sample_rate=1.0,
                     )
-
-            # Update progress tracking after processing all models for this project
-            processed_count += 1
-            current_percentage = int((processed_count / total_projects) * 100)
-
-            # Report progress every 5% to avoid excessive output
-            if current_percentage >= last_reported_percentage + 5:
-                debug_output(
-                    f"Progress: {current_percentage}% ({processed_count}/{total_projects} projects processed) (last_project_id: {project_id_for_deletion})"
-                )
-                last_reported_percentage = current_percentage
 
     # Ensure all tasks are completed before exiting
     task_queue.join()

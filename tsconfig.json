@@ -1,7 +1,8 @@
 {
   "extends": "./config/tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": true
+    "allowJs": true,
+    "checkJs": true,
   },
   "include": [
     "*.config.mjs",
@@ -9,6 +10,7 @@
     "static/app",
     "static/gsApp",
     "static/gsAdmin",
+    "static/eslint",
     "tests/js",
     "config",
     "scripts"

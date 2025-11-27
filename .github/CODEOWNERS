@@ -708,3 +708,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
 /tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
 # End of Conduit
+
+# Foundational Storage
+/src/sentry/objectstore/                              @getsentry/foundational-storage
+/tests/sentry/objectstore/                            @getsentry/foundational-storage
+# End of Foundational Storage

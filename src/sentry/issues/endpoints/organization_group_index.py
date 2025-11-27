@@ -208,7 +208,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
-            "A default query of `is:unresolved issue.priority:[high,medium]` is applied. "
+            "A default query of `is:unresolved` is applied. "
             "To return all results, use an empty query value (i.e. ``?query=`). "
         ),
         parameters=[
@@ -388,6 +388,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
             context = [r for r in context if "status" not in r or r["status"] in status_labels]
+
+        # Sanity check: if we're on the first and last page with no more results,
+        # the estimated hits from sampling may be too high due to Snuba/Postgres
+        # data inconsistency. Cap hits to match the actual number of results.
+        if (
+            cursor_result.hits is not None
+            and cursor_result.next.has_results is False
+            and not request.GET.get("cursor")
+        ):
+            actual_count = len(context)
+            if cursor_result.hits > actual_count:
+                cursor_result.hits = actual_count
 
         response = Response(context)
 

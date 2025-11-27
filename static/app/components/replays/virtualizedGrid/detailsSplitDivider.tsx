@@ -34,7 +34,7 @@ export default function DetailsSplitDivider({
         <Button
           aria-label={t('Hide details')}
           borderless
-          icon={<IconClose isCircled size="sm" color="subText" />}
+          icon={<IconClose size="sm" color="subText" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
             onClose();

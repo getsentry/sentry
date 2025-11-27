@@ -15,8 +15,9 @@ from sentry.notifications.notification_action.registry import action_validator_r
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
 from sentry.rules.actions.sentry_apps.utils import validate_sentry_app_action
-from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
+from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
@@ -205,24 +206,74 @@ class SentryAppActionValidatorHandler:
         self.validated_data = validated_data
         self.organization = organization
 
+    def _get_sentry_app_installation(
+        self, sentry_app_identifier: SentryAppIdentifier, target_identifier: str
+    ) -> RpcSentryAppInstallation | None:
+        """
+        Get the sentry app installation based on whether the target identifier is an installation id or sentry app id
+        We do not want to accept SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID long term, this is temporary until we migrate the data over
+        """
+        installations = None
+        installation = None
+
+        if sentry_app_identifier == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID:
+            installations = app_service.get_many(
+                filter=dict(uuids=[target_identifier], organization_id=self.organization.id)
+            )
+        else:
+            installations = app_service.get_many(
+                filter=dict(app_ids=[int(target_identifier)], organization_id=self.organization.id)
+            )
+        if installations:
+            installation = installations[0]
+
+        return installation
+
     def clean_data(self) -> dict[str, Any]:
-        is_sentry_app_installation = (
-            SentryAppIdentifier(self.validated_data["config"]["sentry_app_identifier"])
-            == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+        sentry_app_identifier = SentryAppIdentifier(
+            self.validated_data["config"]["sentry_app_identifier"]
         )
+        target_identifier = self.validated_data["config"]["target_identifier"]
+        installation = self._get_sentry_app_installation(sentry_app_identifier, target_identifier)
+        if not installation:
+            raise ValidationError("Sentry app installation not found.")
+
+        if sentry_app_identifier == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID:
+            # convert to use sentry_app_id until we can migrate all the data
+            self.validated_data["config"][
+                "sentry_app_identifier"
+            ] = SentryAppIdentifier.SENTRY_APP_ID
+            self.validated_data["config"]["target_identifier"] = str(installation.sentry_app.id)
+
+        settings = self.validated_data["data"].get("settings", [])
         action = {
-            "settings": self.validated_data["data"]["settings"],
-            "sentryAppInstallationUuid": (
-                self.validated_data["config"]["target_identifier"]
-                if is_sentry_app_installation
-                else None
-            ),
+            "settings": settings,
+            "sentryAppInstallationUuid": installation.uuid,
         }
-        try:
-            validate_sentry_app_action(action)
-            return self.validated_data
-        except SentryAppBaseError as e:
-            raise ValidationError(e.message) from e
+
+        if not settings:
+            # XXX: it's only ok to not pass settings if there is no sentry app schema
+            # this means the app doesn't expect any settings
+            components = app_service.find_app_components(app_id=installation.sentry_app.id)
+            if any(
+                component.app_schema
+                for component in components
+                if component.type == "alert-rule-action"
+            ):
+                raise ValidationError("'settings' is a required property")
+
+        else:
+            # Sentry app config blob expects value to be a string
+            for setting in settings:
+                if setting.get("value") is not None and not isinstance(setting["value"], str):
+                    setting["value"] = json.dumps(setting["value"])
+            try:
+                # Only call creator for Sentry Apps with UI Components (settings) for actions
+                validate_sentry_app_action(action)
+            except SentryAppBaseError as e:
+                raise ValidationError(e.message) from e
+
+        return self.validated_data
 
 
 @action_validator_registry.register(Action.Type.WEBHOOK)

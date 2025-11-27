@@ -50,6 +50,7 @@ from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_delete_detectors,
     can_edit_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -506,7 +507,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
 
         # Check if the user has edit permissions for all detectors
-        if not can_edit_detectors(queryset, request):
+        if not can_delete_detectors(queryset, request):
             raise PermissionDenied
 
         for detector in queryset:
