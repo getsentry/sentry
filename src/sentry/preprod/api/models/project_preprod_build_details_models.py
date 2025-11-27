@@ -270,25 +270,26 @@ def transform_preprod_artifact_to_build_details(
         raw_checks = artifact.extras["posted_status_checks"]
         size_check: StatusCheckResult | None = None
 
-        if "size" in raw_checks:
+        if isinstance(raw_checks, dict) and "size" in raw_checks:
             raw_size = raw_checks["size"]
-            if raw_size.get("success"):
-                check_id = raw_size.get("check_id")
-                size_check = StatusCheckResultSuccess(check_id=check_id)
-            else:
-                error_type_str = raw_size.get("error_type")
-                if error_type_str:
-                    try:
-                        error_type = StatusCheckErrorType(error_type_str)
-                        size_check = StatusCheckResultFailure(error_type=error_type)
-                    except ValueError:
-                        logger.warning(
-                            "preprod.build_details.invalid_error_type",
-                            extra={
-                                "artifact_id": artifact.id,
-                                "error_type": error_type_str,
-                            },
-                        )
+            if isinstance(raw_size, dict):
+                if raw_size.get("success"):
+                    check_id = raw_size.get("check_id")
+                    size_check = StatusCheckResultSuccess(check_id=check_id)
+                else:
+                    error_type_str = raw_size.get("error_type")
+                    if error_type_str:
+                        try:
+                            error_type = StatusCheckErrorType(error_type_str)
+                            size_check = StatusCheckResultFailure(error_type=error_type)
+                        except ValueError:
+                            logger.warning(
+                                "preprod.build_details.invalid_error_type",
+                                extra={
+                                    "artifact_id": artifact.id,
+                                    "error_type": error_type_str,
+                                },
+                            )
 
         if size_check is not None:
             posted_status_checks = PostedStatusChecks(size=size_check)
