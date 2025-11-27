@@ -15,6 +15,7 @@ import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons'
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -122,58 +123,8 @@ function Controls({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
-  const navigate = useNavigate();
 
-  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
-    useDuplicatePrebuiltDashboard({
-      onSuccess: (newDashboard: DashboardDetails) => {
-        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
-      },
-    });
-
-  if (dashboardState === DashboardState.PREBUILT) {
-    return (
-      <StyledButtonBar key="prebuilt-controls">
-        {starButton}
-        <DashboardCreateLimitWrapper>
-          {({
-            hasReachedDashboardLimit,
-            isLoading: isLoadingDashboardsLimit,
-            limitMessage,
-          }) => {
-            const isLoading =
-              isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
-            return (
-              <Tooltip
-                title={t('Duplicate Dashboard')}
-                disabled={isLoading || hasReachedDashboardLimit}
-              >
-                <Button
-                  data-test-id="dashboard-duplicate"
-                  aria-label={t('duplicate-dashboard')}
-                  onClick={e => {
-                    e.preventDefault();
-                    openConfirmModal({
-                      message: t('Are you sure you want to duplicate this dashboard?'),
-                      priority: 'primary',
-                      onConfirm: () => duplicatePrebuiltDashboard(dashboard.prebuiltId),
-                    });
-                  }}
-                  icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
-                  disabled={isLoading || hasReachedDashboardLimit}
-                  title={limitMessage}
-                  priority="default"
-                  size="sm"
-                >
-                  {t('Duplicate Dashboard')}
-                </Button>
-              </Tooltip>
-            );
-          }}
-        </DashboardCreateLimitWrapper>
-      </StyledButtonBar>
-    );
-  }
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -291,6 +242,9 @@ function Controls({
     if (!hasFeature) {
       return null;
     }
+    if (isPrebuiltDashboard) {
+      return null;
+    }
     const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
     const toolTipMessage = isSaving
       ? DASHBOARD_SAVING_MESSAGE
@@ -339,7 +293,7 @@ function Controls({
                 />
               </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && (
+            {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
@@ -382,7 +336,7 @@ function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
-            {hasFeature ? (
+            {hasFeature && !isPrebuiltDashboard ? (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}
