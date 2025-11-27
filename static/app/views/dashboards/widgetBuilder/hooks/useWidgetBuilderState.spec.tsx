@@ -890,6 +890,29 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
+    it('resets the display type to table when switching from SPANS with DETAILS to a dataset that does not support DETAILS', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {dataset: WidgetType.SPANS, displayType: DisplayType.DETAILS},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.DETAILS);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+    });
+
     it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
