@@ -8,8 +8,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.constants import ENABLED_CONSOLE_PLATFORMS_DEFAULT
 from sentry.models.organization import Organization
+from sentry.utils.console_platforms import organization_has_console_platform_access
 
 
 def normalize_symbol_source(key, source):
@@ -19,23 +19,6 @@ def normalize_symbol_source(key, source):
         "name": source["name"],
         "hidden": bool(source.get("hidden")),
     }
-
-
-def organization_has_console_platform_access(organization: Organization, platform: str) -> bool:
-    """
-    Check if an organization has access to a specific console platform.
-
-    Args:
-        organization: The organization to check
-        platform: The console platform (e.g., 'nintendo-switch', 'playstation', 'xbox')
-
-    Returns:
-        True if the organization has access to the console platform, False otherwise
-    """
-    enabled_console_platforms = organization.get_option(
-        "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
-    )
-    return platform in enabled_console_platforms
 
 
 @region_silo_endpoint

@@ -1,5 +1,22 @@
+from django.test import override_settings
+
 from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.testutils.cases import TestCase
+
+# Mock SENTRY_BUILTIN_SOURCES with a platform-restricted source for testing
+SENTRY_BUILTIN_SOURCES_TEST = {
+    "nintendo": {
+        "id": "sentry:nintendo",
+        "name": "Nintendo SDK",
+        "type": "s3",
+        "bucket": "nintendo-symbols",
+        "region": "us-east-1",
+        "access_key": "test-key",
+        "secret_key": "test-secret",
+        "layout": {"type": "native"},
+        "platforms": ["nintendo-switch"],
+    },
+}
 
 
 class SetDefaultSymbolSourcesTest(TestCase):
@@ -75,6 +92,7 @@ class PlatformRestrictedSymbolSourcesTest(TestCase):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     def test_nintendo_switch_with_org_access(self):
         """Nintendo Switch project should get nintendo source if org has access"""
         # Grant org access to nintendo-switch console platform
@@ -87,6 +105,7 @@ class PlatformRestrictedSymbolSourcesTest(TestCase):
         assert sources is not None
         assert "nintendo" in sources
 
+    @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     def test_nintendo_switch_without_org_access(self):
         """Nintendo Switch project should NOT get nintendo source if org lacks access"""
         # Org has no enabled console platforms (default is empty list)
@@ -94,8 +113,8 @@ class PlatformRestrictedSymbolSourcesTest(TestCase):
         set_default_symbol_sources(project, self.organization)
 
         sources = project.get_option("sentry:builtin_symbol_sources")
-        # Should be None or empty since no sources are available
-        assert sources is None or sources == []
+        # Should be empty since no sources are available (nintendo is restricted)
+        assert sources == []
 
     def test_unity_not_affected_by_console_restrictions(self):
         """Unity projects should get sources regardless of console platform access"""
