@@ -27,13 +27,13 @@ const typeIcons = {
   [DisplayType.DETAILS]: <IconSettings key="details" />,
 };
 
-const displayTypes: Partial<Record<DisplayType, string>> = {
+const BASE_DISPLAY_TYPES: Partial<Record<DisplayType, string>> = {
   [DisplayType.AREA]: t('Area'),
   [DisplayType.BAR]: t('Bar'),
   [DisplayType.LINE]: t('Line'),
   [DisplayType.TABLE]: t('Table'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
-};
+} as const;
 
 interface WidgetBuilderTypeSelectorProps {
   error?: Record<string, any>;
@@ -47,10 +47,9 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
 
+  const displayTypes = {...BASE_DISPLAY_TYPES};
   if (organization.features.includes('dashboards-details-widget')) {
     displayTypes[DisplayType.DETAILS] = t('Details');
-  } else {
-    delete displayTypes[DisplayType.DETAILS];
   }
 
   return (
