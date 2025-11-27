@@ -58,17 +58,15 @@ function FilterSelector({
   onRemoveFilter,
   onUpdateFilter,
 }: FilterSelectorProps) {
-  const {dataset, tag} = globalFilter;
   const {selection} = usePageFilters();
 
-  const fieldDefinition = useMemo(
-    () => getFieldDefinitionForDataset(tag, dataset),
-    [tag, dataset]
-  );
-  const filterToken = useMemo(
-    () => getFilterToken(globalFilter, fieldDefinition),
-    [globalFilter, fieldDefinition]
-  );
+  const {fieldDefinition, filterToken} = useMemo(() => {
+    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
+    return {
+      fieldDefinition: fieldDef,
+      filterToken: getFilterToken(globalFilter, fieldDef),
+    };
+  }, [globalFilter]);
 
   // Get initial selected values from the filter token
   const initialValues = useMemo(() => {
@@ -83,19 +81,33 @@ function FilterSelector({
   }, [filterToken, globalFilter.value]);
 
   // Get operator info from the filter token
-  const operatorInfo = useMemo(() => {
+  const {initialOperator, operatorDropdownItems} = useMemo(() => {
     if (!filterToken) {
-      return null;
+      return {
+        initialOperator: TermOperator.DEFAULT,
+        operatorDropdownItems: [],
+      };
     }
-    return getOperatorInfo({
+
+    const operatorInfo = getOperatorInfo({
       filterToken,
       hasWildcardOperators: true,
       fieldDefinition,
     });
-  }, [filterToken, fieldDefinition]);
 
-  const operatorOptions = operatorInfo?.options ?? [];
-  const initialOperator = operatorInfo?.operator ?? TermOperator.DEFAULT;
+    return {
+      initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
+      operatorDropdownItems: (operatorInfo?.options ?? []).map(option => ({
+        ...option,
+        key: option.value,
+        label: option.label,
+        textValue: option.textValue,
+        onClick: () => {
+          setStagedOperator(option.value);
+        },
+      })),
+    };
+  }, [filterToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
   const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
@@ -109,7 +121,7 @@ function FilterSelector({
 
   // Retrieve full tag definition to check if it has predefined values
   const datasetFilterKeys = searchBarData.getFilterKeys();
-  const fullTag = datasetFilterKeys[tag.key];
+  const fullTag = datasetFilterKeys[globalFilter.tag.key];
 
   const canSelectMultipleValues = filterToken
     ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
@@ -135,8 +147,13 @@ function FilterSelector({
     : true;
 
   const baseQueryKey = useMemo(
-    () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
-    [tag, selection, searchQuery]
+    () => [
+      'global-dashboard-filters-tag-values',
+      globalFilter.tag.key,
+      selection,
+      searchQuery,
+    ],
+    [globalFilter.tag.key, selection, searchQuery]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
@@ -145,7 +162,7 @@ function FilterSelector({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey,
     queryFn: async () => {
-      const result = await searchBarData.getTagValues(tag, searchQuery);
+      const result = await searchBarData.getTagValues(globalFilter.tag, searchQuery);
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -297,7 +314,9 @@ function FilterSelector({
           setStagedFilterValues([]);
         }}
         menuTitle={
-          <MenuTitleWrapper>{t('%s Filter', getDatasetLabel(dataset))}</MenuTitleWrapper>
+          <MenuTitleWrapper>
+            {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
+          </MenuTitleWrapper>
         }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
         triggerProps={{
@@ -350,15 +369,7 @@ function FilterSelector({
                   </Button>
                 </WildcardButton>
               )}
-              items={operatorOptions.map(option => ({
-                ...option,
-                key: option.value,
-                label: option.label,
-                textValue: option.textValue,
-                onClick: () => {
-                  setStagedOperator(option.value);
-                },
-              }))}
+              items={operatorDropdownItems}
             />
           </OperatorFlex>
         </MenuTitleWrapper>
