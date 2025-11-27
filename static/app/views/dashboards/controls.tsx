@@ -82,47 +82,18 @@ function Controls({
     );
   }
 
-  const starButton = (
-    <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-      <Button
-        size="sm"
-        aria-label={t('star-dashboard')}
-        icon={
-          <IconStar
-            color={isFavorited ? 'yellow300' : 'gray500'}
-            isSolid={isFavorited}
-            aria-label={isFavorited ? t('Unstar') : t('Star')}
-            data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-          />
-        }
-        onClick={async () => {
-          try {
-            setIsFavorited(!isFavorited);
-            await updateDashboardFavorite(
-              api,
-              queryClient,
-              organization,
-              dashboard.id,
-              !isFavorited
-            );
-            trackAnalytics('dashboards_manage.toggle_favorite', {
-              organization,
-              dashboard_id: dashboard.id,
-              favorited: !isFavorited,
-            });
-          } catch (error) {
-            // If the api call fails, revert the state
-            setIsFavorited(isFavorited);
-          }
-        }}
-      />
-    </Tooltip>
-  );
-
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+  const navigate = useNavigate();
+
+  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
+    useDuplicatePrebuiltDashboard({
+      onSuccess: (newDashboard: DashboardDetails) => {
+        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+      },
+    });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
 
@@ -336,7 +307,7 @@ function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
-            {hasFeature && !isPrebuiltDashboard ? (
+            {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}
@@ -355,7 +326,48 @@ function Controls({
                   position="bottom-end"
                 />
               </Tooltip>
-            ) : null}
+            )}
+            {hasFeature && isPrebuiltDashboard && (
+              <DashboardCreateLimitWrapper>
+                {({
+                  hasReachedDashboardLimit,
+                  isLoading: isLoadingDashboardsLimit,
+                  limitMessage,
+                }) => {
+                  const isLoading =
+                    isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
+                  return (
+                    <Tooltip
+                      title={t('Duplicate Dashboard')}
+                      disabled={isLoading || hasReachedDashboardLimit}
+                    >
+                      <Button
+                        data-test-id="dashboard-duplicate"
+                        aria-label={t('duplicate-dashboard')}
+                        onClick={e => {
+                          e.preventDefault();
+                          openConfirmModal({
+                            message: t(
+                              'Are you sure you want to duplicate this dashboard?'
+                            ),
+                            priority: 'primary',
+                            onConfirm: () =>
+                              duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                          });
+                        }}
+                        icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
+                        disabled={isLoading || hasReachedDashboardLimit}
+                        title={limitMessage}
+                        priority="default"
+                        size="sm"
+                      >
+                        {t('Duplicate Dashboard')}
+                      </Button>
+                    </Tooltip>
+                  );
+                }}
+              </DashboardCreateLimitWrapper>
+            )}
           </Fragment>
         )}
       </DashboardEditFeature>

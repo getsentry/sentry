@@ -70,7 +70,7 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
       try {
         const newDashboard = cloneDashboard(prebuiltDashboard);
         delete newDashboard.prebuiltId;
-        newDashboard.title = `${newDashboard.title} (Copy)`;
+        newDashboard.title = `${newDashboard.title} copy`;
         newDashboard.widgets.map(widget => (widget.id = undefined));
         setIsLoading(true);
         const copiedDashboard = await createDashboard(
