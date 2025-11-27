@@ -7,18 +7,12 @@ import {Heading} from '@sentry/scraps/text';
 import {IconClock, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
-import {
-  AddOnCategory,
-  OnDemandBudgetMode,
-  type CustomerUsage,
-  type Subscription,
-} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   checkIsAddOn,
   displayBudgetName,
@@ -39,14 +33,12 @@ import {
   ProductTrialCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
+import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
 function PanelHeader({
   selectedProduct,
   subscription,
-}: {
-  selectedProduct: DataCategory | AddOnCategory;
-  subscription: Subscription;
-}) {
+}: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription'>) {
   const {onDemandBudgets: paygBudgets} = subscription;
   let displayName = '';
   let billedCategory = null;
@@ -123,12 +115,7 @@ function ProductBreakdownPanel({
   selectedProduct,
   subscription,
   usageData,
-}: {
-  organization: Organization;
-  selectedProduct: DataCategory | AddOnCategory;
-  subscription: Subscription;
-  usageData: CustomerUsage;
-}) {
+}: BreakdownPanelProps) {
   const {layout: navLayout} = useNavContext();
   const isMobile = navLayout === NavLayout.MOBILE;
 

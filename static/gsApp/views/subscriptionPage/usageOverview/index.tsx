@@ -5,29 +5,20 @@ import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
-import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 import {checkIsAddOn} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
-interface UsageOverviewProps {
-  organization: Organization;
-  subscription: Subscription;
-}
-
-function UsageOverview({
-  subscription,
-  organization,
-  usageData,
-}: UsageOverviewProps & {usageData: CustomerUsage}) {
+function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
   const [selectedProduct, setSelectedProduct] = useState<DataCategory | AddOnCategory>(
     DataCategory.ERRORS
   );

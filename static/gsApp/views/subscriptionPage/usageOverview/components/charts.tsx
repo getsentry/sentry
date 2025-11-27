@@ -4,12 +4,10 @@ import OptionSelector from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
 
-import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/types';
 import {addBillingStatTotals, checkIsAddOn, isAm2Plan} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -21,6 +19,7 @@ import {
   ProductUsageChart,
   selectedTransform,
 } from 'getsentry/views/subscriptionPage/reservedUsageChart';
+import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
@@ -29,12 +28,7 @@ function UsageCharts({
   usageData,
   subscription,
   organization,
-}: {
-  organization: Organization;
-  selectedProduct: DataCategory | AddOnCategory;
-  subscription: Subscription;
-  usageData: CustomerUsage;
-}) {
+}: BreakdownPanelProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const transform = selectedTransform(location);

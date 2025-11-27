@@ -26,6 +26,33 @@ import {
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
+interface BaseProps {
+  activeProductTrial: ProductTrial | null;
+  subscription: Subscription;
+}
+
+interface UsageBreakdownInfoProps extends BaseProps {
+  formattedAdditionalReserved: React.ReactNode | null;
+  formattedGifted: React.ReactNode | null;
+  formattedPlatformReserved: React.ReactNode | null;
+  formattedSoftCapType: React.ReactNode | null;
+  paygCategoryBudget: number | null;
+  paygSpend: number;
+  plan: Plan;
+  platformReservedField: React.ReactNode;
+  productCanUsePayg: boolean;
+  recurringReservedSpend: number;
+}
+
+interface DataCategoryUsageBreakdownInfoProps extends BaseProps {
+  category: DataCategory;
+  metricHistory: BillingMetricHistory;
+}
+
+interface ReservedBudgetUsageBreakdownInfoProps extends BaseProps {
+  reservedBudget: ReservedBudget;
+}
+
 function UsageBreakdownField({
   field,
   value,
@@ -61,20 +88,7 @@ function UsageBreakdownInfo({
   productCanUsePayg,
   activeProductTrial,
   formattedSoftCapType,
-}: {
-  activeProductTrial: ProductTrial | null;
-  formattedAdditionalReserved: React.ReactNode | null;
-  formattedGifted: React.ReactNode | null;
-  formattedPlatformReserved: React.ReactNode | null;
-  formattedSoftCapType: React.ReactNode | null;
-  paygCategoryBudget: number | null;
-  paygSpend: number;
-  plan: Plan;
-  platformReservedField: React.ReactNode;
-  productCanUsePayg: boolean;
-  recurringReservedSpend: number;
-  subscription: Subscription;
-}) {
+}: UsageBreakdownInfoProps) {
   const canUsePayg = productCanUsePayg && supportsPayg(subscription);
   const shouldShowIncludedVolume =
     !!activeProductTrial ||
@@ -166,12 +180,7 @@ function DataCategoryUsageBreakdownInfo({
   category,
   metricHistory,
   activeProductTrial,
-}: {
-  activeProductTrial: ProductTrial | null;
-  category: DataCategory;
-  metricHistory: BillingMetricHistory;
-  subscription: Subscription;
-}) {
+}: DataCategoryUsageBreakdownInfoProps) {
   const {planDetails: plan} = subscription;
   const productCanUsePayg = plan.onDemandCategories.includes(category);
   const platformReserved =
@@ -232,11 +241,7 @@ function ReservedBudgetUsageBreakdownInfo({
   subscription,
   reservedBudget,
   activeProductTrial,
-}: {
-  activeProductTrial: ProductTrial | null;
-  reservedBudget: ReservedBudget;
-  subscription: Subscription;
-}) {
+}: ReservedBudgetUsageBreakdownInfoProps) {
   const {planDetails: plan, categories: metricHistories} = subscription;
   const productCanUsePayg = reservedBudget.dataCategories.every(category =>
     plan.onDemandCategories.includes(category)

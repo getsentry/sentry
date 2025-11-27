@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 
 import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 import {getBilledCategory, supportsPayg} from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import UsageOverviewTableRow from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
+import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
 function UsageOverviewTable({
   organization,
@@ -18,13 +17,7 @@ function UsageOverviewTable({
   onRowClick,
   selectedProduct,
   usageData,
-}: {
-  onRowClick: (category: DataCategory | AddOnCategory) => void;
-  organization: Organization;
-  selectedProduct: DataCategory | AddOnCategory;
-  subscription: Subscription;
-  usageData: CustomerUsage;
-}) {
+}: UsageOverviewTableProps) {
   const addOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
   ).flatMap(addOnInfo => addOnInfo.dataCategories);

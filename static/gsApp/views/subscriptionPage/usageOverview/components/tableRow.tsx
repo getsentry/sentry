@@ -8,13 +8,12 @@ import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 import {
   checkIsAddOn,
   formatReservedWithUnits,
@@ -37,6 +36,19 @@ import {
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
+import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
+
+interface ChildProductRowProps {
+  isChildProduct: true;
+  parentProduct: DataCategory | AddOnCategory;
+  product: DataCategory;
+}
+
+interface ParentProductRowProps {
+  product: DataCategory | AddOnCategory;
+  isChildProduct?: false;
+  parentProduct?: never;
+}
 
 function UsageOverviewTableRow({
   organization,
@@ -47,24 +59,7 @@ function UsageOverviewTableRow({
   isChildProduct,
   parentProduct,
   usageData,
-}: {
-  onRowClick: (category: DataCategory | AddOnCategory) => void;
-  organization: Organization;
-  selectedProduct: DataCategory | AddOnCategory;
-  subscription: Subscription;
-  usageData: CustomerUsage;
-} & (
-  | {
-      isChildProduct: true;
-      parentProduct: DataCategory | AddOnCategory;
-      product: DataCategory;
-    }
-  | {
-      product: DataCategory | AddOnCategory;
-      isChildProduct?: false;
-      parentProduct?: never;
-    }
-)) {
+}: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
   const {layout: navLayout} = useNavContext();
   const isMobile = navLayout === NavLayout.MOBILE;
