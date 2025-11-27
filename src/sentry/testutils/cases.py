@@ -2289,11 +2289,67 @@ class ReplaysSnubaTestCase(TestCase):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
-    def store_replays(self, replay):
-        response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+    def create_replay(
+        self,
+        timestamp: datetime,
+        project: Project | None = None,
+        replay_id: str | None = None,
+        trace_id: str | None = None,
+    ) -> TraceItem:
+        if project is None:
+            project = self.project
+        if replay_id is None:
+            replay_id = uuid4().hex
+        if trace_id is None:
+            trace_id = uuid4().hex
+        rpc_timestamp = Timestamp()
+        rpc_timestamp.FromDatetime(timestamp)
+        return TraceItem(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=rpc_timestamp,
+            trace_id=trace_id,
+            item_id=int(replay_id, 16).to_bytes(
+                16,
+                byteorder="little",
+                signed=False,
+            ),
+            received=rpc_timestamp,
+            retention_days=90,
+            attributes={},
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
         )
-        assert response.status_code == 200
+
+    def store_replay(self, replay):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files={"item_0": replay.SerializeToString()},
+            ).status_code
+            == 200
+        )
+
+    def store_replays(self, replays, is_eap=False):
+        """Trying to deprecate the single replay store functionality here with `store_replay` so when is_eap is True
+        this function will attempt to store multiple replays"""
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                    files={
+                        f"item_{index}": replay.SerializeToString()
+                        for index, replay in enumerate(replays)
+                    },
+                ).status_code
+                == 200
+            )
+        else:
+            response = requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replays]
+            )
+            assert response.status_code == 200
 
     def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
         event = self.store_event(
