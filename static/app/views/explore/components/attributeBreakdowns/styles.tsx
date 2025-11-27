@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
-import {IconSad, IconSearch, IconTimer} from 'sentry/icons';
+import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -147,7 +147,7 @@ const StyledIconSearch = styled(IconSearch)`
   color: ${p => p.theme.subText};
 `;
 
-const StyledIconSad = styled(IconSad)`
+const StyledIconWarning = styled(IconWarning)`
   color: ${p => p.theme.subText};
 `;
 
@@ -175,7 +175,7 @@ const ERROR_STATE_CONFIG: Record<
   },
   default: {
     title: t('Failed to load attribute breakdowns'),
-    icon: <StyledIconSad size="xl" />,
+    icon: <StyledIconWarning size="xl" />,
     subtitle: tct('Seeing this often? [feedbackLink]', {
       feedbackLink: <FeedbackLink />,
     }),
