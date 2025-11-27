@@ -34,6 +34,7 @@ USER_COUNT = 2
 
 class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
     def add_event(self, fingerprint: str, backend: Backend, event_type: str = "error") -> None:
+        event: Event | GroupEvent | None
         if event_type == "performance":
             event = self.create_performance_issue()
         elif event_type == "generic":
@@ -47,9 +48,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
             assert group_info is not None
             group = group_info.group
-            event: Event | GroupEvent | None = group.get_latest_event()
+            event = group.get_latest_event()
         else:
-            event: Event | GroupEvent = self.store_event(
+            event = self.store_event(
                 data={
                     "message": "oh no",
                     "timestamp": before_now(days=1).isoformat(),
