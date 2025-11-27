@@ -97,13 +97,12 @@ from django.conf import settings
 from django.db import router
 
 from sentry import models, nodestore, options
-from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
+from sentry.attachments import CachedAttachment, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
 from sentry.objectstore import get_attachments_session
-from sentry.options.rollout import in_random_rollout
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
@@ -209,7 +208,6 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
 
 
 def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
-    from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
     reprocessable_event = pull_event_data(project_id, event_id)
@@ -222,23 +220,13 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     # consider minidumps because filestore just stays as-is after reprocessing
     # (we simply update group_id on the EventAttachment models in post_process)
     project = Project.objects.get_from_cache(id=project_id)
-    cache_key = cache_key_for_event(data)
-    attachment_objects = []
-    for attachment_id, attachment in enumerate(attachments):
-        with sentry_sdk.start_span(op="reprocess_event._maybe_copy_attachment_into_cache") as span:
-            span.set_data("attachment_id", attachment.id)
-            attachment_objects.append(
-                _maybe_copy_attachment_into_cache(
-                    project=project,
-                    attachment_id=attachment_id,
-                    attachment=attachment,
-                    cache_key=cache_key,
-                    cache_timeout=CACHE_TIMEOUT,
-                )
-            )
+    attachment_objects = [
+        _ensure_stored_attachment(project=project, attachment=attachment)
+        for attachment in attachments
+    ]
 
     if attachment_objects:
-        store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(project, data, attachment_objects)
 
     # Step 2: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
@@ -249,7 +237,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     event_processing_store.store(data)
 
     preprocess_event_from_reprocessing(
-        cache_key=cache_key,
+        cache_key=cache_key_for_event(data),
         start_time=start_time,
         event_id=event_id,
         data=data,
@@ -399,68 +387,31 @@ def buffered_delete_old_primary_hash(
         )
 
 
-def _maybe_copy_attachment_into_cache(
-    project: Project,
-    attachment_id: int,
-    attachment: EventAttachment,
-    cache_key: str,
-    cache_timeout: int,
-) -> CachedAttachment:
-    stored_id = None
-    chunks = None
-
-    if in_random_rollout("objectstore.enable_for.attachments"):
-        blob_path = attachment.blob_path or ""
-        if blob_path.startswith(V2_PREFIX):
-            # in case the attachment is already stored in objectstore, there is nothing to do
-            stored_id = blob_path.removeprefix(V2_PREFIX)
-        else:
-            # otherwise, we store it in objectstore
-            with attachment.getfile() as fp:
-                stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
-            # but we then also make that storage permanent, as otherwise
-            # the codepaths won’t be cleaning up this stored file.
-            # essentially this means we are moving the file from the previous storage
-            # into objectstore at this point.
-            attachment.blob_path = V2_PREFIX + stored_id
-            attachment.save()
-            if blob_path.startswith(V1_PREFIX):
-                storage = get_storage()
-                storage.delete(blob_path)
-
+def _ensure_stored_attachment(project: Project, attachment: EventAttachment) -> CachedAttachment:
+    blob_path = attachment.blob_path or ""
+    if blob_path.startswith(V2_PREFIX):
+        # in case the attachment is already stored in objectstore, there is nothing to do
+        stored_id = blob_path.removeprefix(V2_PREFIX)
     else:
-        # when not using objectstore, store chunks in the attachment cache
+        # otherwise, we store it in objectstore
         with attachment.getfile() as fp:
-            chunk_index = 0
-            size = 0
-            while True:
-                chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
-                if not chunk:
-                    break
-
-                size += len(chunk)
-
-                attachment_cache.set_chunk(
-                    key=cache_key,
-                    id=attachment_id,
-                    chunk_index=chunk_index,
-                    chunk_data=chunk,
-                    timeout=cache_timeout,
-                )
-                chunk_index += 1
-
-        assert size == attachment.size
-        chunks = chunk_index
+            stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
+        # but we then also make that storage permanent, as otherwise
+        # the codepaths won’t be cleaning up this stored file.
+        # essentially this means we are moving the file from the previous storage
+        # into objectstore at this point.
+        attachment.blob_path = V2_PREFIX + stored_id
+        attachment.save()
+        if blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            storage.delete(blob_path)
 
     return CachedAttachment(
-        key=cache_key,
-        id=attachment_id,
         name=attachment.name,
         content_type=attachment.content_type,
         type=attachment.type,
         size=attachment.size,
         stored_id=stored_id,
-        chunks=chunks,
     )
 
 

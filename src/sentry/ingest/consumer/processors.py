@@ -11,7 +11,7 @@ from django.core.cache import cache
 from usageaccountant import UsageUnit
 
 from sentry import features
-from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
+from sentry.attachments import CachedAttachment, store_attachments_for_event
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -182,7 +182,7 @@ def process_event(
             for attachment in attachments
         ]
         if attachment_objects:
-            store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
+            store_attachments_for_event(project, data, attachment_objects)
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = processing_store.store(data)
@@ -276,20 +276,6 @@ def process_event(
         raise Retriable(exc)
 
 
-@trace_func(name="ingest_consumer.process_attachment_chunk")
-@metrics.wraps("ingest_consumer.process_attachment_chunk")
-def process_attachment_chunk(message: IngestMessage) -> None:
-    payload = message["payload"]
-    event_id = message["event_id"]
-    project_id = message["project_id"]
-    id = message["id"]
-    chunk_index = message["chunk_index"]
-    cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
-    attachment_cache.set_chunk(
-        key=cache_key, id=id, chunk_index=chunk_index, chunk_data=payload, timeout=CACHE_TIMEOUT
-    )
-
-
 @trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message: IngestMessage, project: Project) -> None:
@@ -336,11 +322,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
     attachment_msg = message["attachment"]
     attachment_type = attachment_msg.pop("attachment_type")
 
-    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline,
-    # or if the attachment has already been stored with a `stored_id`.
-    attachment = attachment_cache.get_from_chunks(
-        key=cache_key, type=attachment_type, **attachment_msg
-    )
+    attachment = CachedAttachment(type=attachment_type, **attachment_msg)
 
     if attachment_type in ("event.attachment", "event.view_hierarchy"):
         save_attachment(
@@ -354,8 +336,6 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         )
     else:
         logger.error("invalid individual attachment type: %s", attachment_type)
-
-    attachment.delete()
 
 
 @trace_func(name="ingest_consumer.process_userreport")

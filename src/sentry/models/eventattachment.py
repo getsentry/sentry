@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import mimetypes
-from dataclasses import dataclass
-from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
@@ -12,16 +10,13 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.files.utils import get_size_and_checksum, get_storage
+from sentry.models.files.utils import get_storage
 from sentry.objectstore import get_attachments_session
 from sentry.objectstore.metrics import measure_storage_operation
-from sentry.options.rollout import in_random_rollout
-from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -44,24 +39,6 @@ def event_attachment_screenshot_filter(
     return queryset.filter(models.Q(name__icontains="screenshot"))
 
 
-@dataclass(frozen=True)
-class PutfileResult:
-    content_type: str
-    size: int
-    sha1: str
-    blob_path: str | None = None
-
-
-def can_store_inline(data: bytes) -> bool:
-    """
-    Determines whether `data` can be stored inline
-
-    That is the case when it is shorter than 192 bytes,
-    and all the bytes are non-NULL ASCII.
-    """
-    return len(data) < 192 and all(byte > 0x00 and byte < 0x7F for byte in data)
-
-
 @region_silo_model
 class EventAttachment(Model):
     """
@@ -71,7 +48,7 @@ class EventAttachment(Model):
     - When the attachment is empty (0-size), `blob_path is None`.
     - When the `blob_path` field has a `:` prefix:
       It is saved inline in `blob_path` following the `:` prefix.
-      This happens for "small" and ASCII-only (see `can_store_inline`) attachments.
+      This happens for "small" and ASCII-only attachments.
     - When the `blob_path` field has a `eventattachments/v1/` prefix:
       In this case, the default :func:`get_storage` is used as the backing store.
       The attachment data is not chunked or deduplicated in this case.
@@ -117,9 +94,11 @@ class EventAttachment(Model):
             cache.delete(get_crashreport_key(self.group_id))
 
         if self.blob_path:
+            # TODO: its possible to remove this codepath >30days after full rollout of objectstore
             if self.blob_path.startswith(":"):
                 pass  # nothing to do for inline-stored attachments
 
+            # TODO: its possible to remove this codepath >30days after full rollout of objectstore
             elif self.blob_path.startswith(V1_PREFIX):
                 storage = get_storage()
                 with measure_storage_operation("delete", "attachments"):
@@ -151,9 +130,11 @@ class EventAttachment(Model):
         if not self.blob_path:
             return BytesIO(b"")
 
+        # TODO: its possible to remove this codepath >30days after full rollout of objectstore
         if self.blob_path.startswith(":"):
             return BytesIO(self.blob_path[1:].encode())
 
+        # TODO: its possible to remove this codepath >30days after full rollout of objectstore
         elif self.blob_path.startswith(V1_PREFIX):
             storage = get_storage()
             with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
@@ -173,54 +154,6 @@ class EventAttachment(Model):
             return response.payload
 
         raise NotImplementedError()
-
-    @classmethod
-    def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        content_type = normalize_content_type(attachment.content_type, attachment.name)
-        if attachment.size == 0:
-            return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
-        if attachment.stored_id is not None:
-            checksum = sha1().hexdigest()  # TODO: can we just remove the checksum requirement?
-            blob_path = V2_PREFIX + attachment.stored_id
-            return PutfileResult(
-                content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
-            )
-
-        data = attachment.load_data()
-        blob = BytesIO(data)
-        size, checksum = get_size_and_checksum(blob)
-
-        if can_store_inline(data):
-            blob_path = ":" + data.decode()
-
-        elif not in_random_rollout("objectstore.enable_for.attachments"):
-            from sentry.models.files import FileBlob
-
-            object_key = FileBlob.generate_unique_path()
-            blob_path = V1_PREFIX
-            if in_random_rollout("objectstore.double_write.attachments"):
-                try:
-                    organization_id = _get_organization(project_id)
-                    get_attachments_session(organization_id, project_id).put(data, key=object_key)
-                    metrics.incr("storage.attachments.double_write")
-                    blob_path += V2_PREFIX
-                except Exception:
-                    sentry_sdk.capture_exception()
-            blob_path += object_key
-
-            storage = get_storage()
-            with measure_storage_operation("put", "attachments", size) as metric_emitter:
-                compressed_blob = zstandard.compress(data)
-                metric_emitter.record_compressed_size(len(compressed_blob), "zstd")
-                storage.save(blob_path, BytesIO(compressed_blob))
-
-        else:
-            organization_id = _get_organization(project_id)
-            blob_path = V2_PREFIX + get_attachments_session(organization_id, project_id).put(data)
-
-        return PutfileResult(
-            content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
-        )
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:

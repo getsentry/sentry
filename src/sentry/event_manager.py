@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from hashlib import sha1
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
@@ -32,7 +33,7 @@ from sentry import (
     reprocessing2,
     tsdb,
 )
-from sentry.attachments import CachedAttachment, MissingAttachmentChunks
+from sentry.attachments import CachedAttachment
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -91,7 +92,13 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashrepor
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
-from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventattachment import (
+    CRASH_REPORT_TYPES,
+    V2_PREFIX,
+    EventAttachment,
+    get_crashreport_key,
+    normalize_content_type,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -2382,22 +2389,6 @@ def save_attachment(
     else:
         timestamp = datetime.now(timezone.utc)
 
-    try:
-        attachment.stored_id or attachment.load_data(project)
-    except MissingAttachmentChunks:
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.INVALID,
-            reason="missing_chunks",
-            timestamp=timestamp,
-            event_id=event_id,
-            category=DataCategory.ATTACHMENT,
-        )
-
-        logger.exception("Missing chunks for cache_key=%s", cache_key)
-        return
     from sentry import ratelimits as ratelimiter
 
     is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
@@ -2432,7 +2423,10 @@ def save_attachment(
         )
         return
 
-    file = EventAttachment.putfile(project.id, attachment)
+    content_type = normalize_content_type(attachment.content_type, attachment.name)
+    # TODO: either calculate the sha1 within relay, or remove its usage completely
+    checksum = sha1().hexdigest()
+    blob_path = None if attachment.size == 0 else V2_PREFIX + str(attachment.stored_id)
 
     EventAttachment.objects.create(
         # lookup:
@@ -2442,11 +2436,11 @@ def save_attachment(
         # metadata:
         type=attachment.type,
         name=attachment.name,
-        content_type=file.content_type,
-        size=file.size,
-        sha1=file.sha1,
+        content_type=content_type,
+        size=attachment.size,
+        sha1=checksum,
         # storage:
-        blob_path=file.blob_path,
+        blob_path=blob_path,
     )
 
     track_outcome(

@@ -26,10 +26,7 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentType
-from sentry.ingest.consumer.processors import (
-    process_attachment_chunk,
-    process_individual_attachment,
-)
+from sentry.ingest.consumer.processors import process_individual_attachment
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
@@ -1246,14 +1243,6 @@ def create_mock_attachment(event_id, project):
     with open(attachment_path, "rb") as f:
         payload = f.read()
 
-    attachment_chunk = {
-        "type": "attachment_chunk",
-        "payload": payload,
-        "event_id": event_id,
-        "project_id": project.id,
-        "id": attachment_id,
-        "chunk_index": 0,
-    }
     attachment_event = {
         "type": "attachment",
         "event_id": event_id,
@@ -1263,13 +1252,12 @@ def create_mock_attachment(event_id, project):
             "name": "screenshot.png",
             "content_type": "application/png",
             "attachment_type": "event.attachment",
-            "chunks": 1,
+            "data": payload,
             "size": len(payload),
             "rate_limited": False,
         },
     }
 
-    process_attachment_chunk(attachment_chunk)
     process_individual_attachment(attachment_event, project)
 
 
@@ -1373,5 +1361,7 @@ def main(
             mocks_loaded.send(project=project, sender=__name__)
 
     create_mock_user_feedback(project_map["Wind"])
+    create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
+    create_system_time_series()
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
     create_system_time_series()
