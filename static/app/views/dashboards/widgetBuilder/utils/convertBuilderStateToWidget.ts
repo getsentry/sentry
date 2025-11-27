@@ -7,7 +7,6 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   serializeSorts,
   type WidgetBuilderState,
@@ -70,7 +69,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     };
   });
 
-  const limit = isChartDisplayType(state.displayType) ? state.limit : undefined;
+  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
+    state.displayType ?? DisplayType.TABLE
+  )
+    ? undefined
+    : state.limit;
+
   return {
     title: state.title ?? '',
     description: state.description,
