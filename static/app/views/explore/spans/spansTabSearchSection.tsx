@@ -2,6 +2,7 @@ import {useMemo, type Key} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -71,15 +72,20 @@ function CrossEventQueryingDropdown() {
   };
 
   return (
-    <DropdownMenu
-      triggerProps={{
-        size: 'md',
-        showChevron: false,
-        icon: <IconAdd />,
-      }}
-      items={crossEventDropdownItems}
-      onAction={onAction}
-    />
+    <Tooltip
+      title={t('For more targeted results, you can also cross reference other datasets')}
+    >
+      <DropdownMenu
+        onAction={onAction}
+        items={crossEventDropdownItems}
+        isDisabled={crossEvents?.length === 2}
+        triggerProps={{
+          size: 'md',
+          showChevron: false,
+          icon: <IconAdd />,
+        }}
+      />
+    </Tooltip>
   );
 }
 
