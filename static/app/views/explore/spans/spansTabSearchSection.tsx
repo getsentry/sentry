@@ -65,7 +65,8 @@ function CrossEventQueryingDropdown() {
 
     if (!crossEvents || crossEvents.length === 0) {
       setCrossEvents([{query: '', type: key}]);
-      return;
+    } else {
+      setCrossEvents([...crossEvents, {query: '', type: key}]);
     }
   };
 
