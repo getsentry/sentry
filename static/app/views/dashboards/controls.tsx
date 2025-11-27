@@ -4,26 +4,28 @@ import styled from '@emotion/styled';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Confirm from 'sentry/components/confirm';
+import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
+import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -79,10 +81,100 @@ function Controls({
     );
   }
 
+  const starButton = (
+    <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+      <Button
+        size="sm"
+        aria-label={t('star-dashboard')}
+        icon={
+          <IconStar
+            color={isFavorited ? 'yellow300' : 'gray500'}
+            isSolid={isFavorited}
+            aria-label={isFavorited ? t('Unstar') : t('Star')}
+            data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+          />
+        }
+        onClick={async () => {
+          try {
+            setIsFavorited(!isFavorited);
+            await updateDashboardFavorite(
+              api,
+              queryClient,
+              organization,
+              dashboard.id,
+              !isFavorited
+            );
+            trackAnalytics('dashboards_manage.toggle_favorite', {
+              organization,
+              dashboard_id: dashboard.id,
+              favorited: !isFavorited,
+            });
+          } catch (error) {
+            // If the api call fails, revert the state
+            setIsFavorited(isFavorited);
+          }
+        }}
+      />
+    </Tooltip>
+  );
+
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+  const navigate = useNavigate();
+
+  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
+    useDuplicatePrebuiltDashboard({
+      onSuccess: (newDashboard: DashboardDetails) => {
+        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+      },
+    });
+
+  if (dashboardState === DashboardState.PREBUILT) {
+    return (
+      <StyledButtonBar key="prebuilt-controls">
+        {starButton}
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => {
+            const isLoading =
+              isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
+            return (
+              <Tooltip
+                title={t('Duplicate Dashboard')}
+                disabled={isLoading || hasReachedDashboardLimit}
+              >
+                <Button
+                  data-test-id="dashboard-duplicate"
+                  aria-label={t('duplicate-dashboard')}
+                  onClick={e => {
+                    e.preventDefault();
+                    openConfirmModal({
+                      message: t('Are you sure you want to duplicate this dashboard?'),
+                      priority: 'primary',
+                      onConfirm: () => duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                    });
+                  }}
+                  icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
+                  disabled={isLoading || hasReachedDashboardLimit}
+                  title={limitMessage}
+                  priority="default"
+                  size="sm"
+                >
+                  {t('Duplicate Dashboard')}
+                </Button>
+              </Tooltip>
+            );
+          }}
+        </DashboardCreateLimitWrapper>
+      </StyledButtonBar>
+    );
+  }
+
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar key="edit-controls">

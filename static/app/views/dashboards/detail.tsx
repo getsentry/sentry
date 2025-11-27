@@ -186,7 +186,9 @@ function getDashboardLocation({
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
-    dashboardState: this.props.initialState,
+    dashboardState: this.props.dashboard.prebuiltId
+      ? DashboardState.PREBUILT
+      : this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
     setData: data => {

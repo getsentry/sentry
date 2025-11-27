@@ -215,6 +215,7 @@ export type DashboardDetails = {
 };
 
 export enum DashboardState {
+  PREBUILT = 'prebuilt',
   VIEW = 'view',
   EDIT = 'edit',
   INLINE_EDIT = 'inline_edit',
