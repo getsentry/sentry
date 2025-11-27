@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
@@ -262,6 +263,7 @@ class Spans(rpc_dataset_common.RPCBase):
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
@@ -283,6 +285,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 StatsType(
                     attribute_distributions=AttributeDistributionsRequest(
                         max_buckets=75,
+                        attributes=attributes,
                     )
                 )
             )
