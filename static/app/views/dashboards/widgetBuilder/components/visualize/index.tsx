@@ -41,6 +41,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -277,9 +278,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
 
-  const isChartWidget =
-    state.displayType !== DisplayType.TABLE &&
-    state.displayType !== DisplayType.BIG_NUMBER;
+  const isChartWidget = isChartDisplayType(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
   const {tags: numericSpanTags} = useTraceItemTags('number');

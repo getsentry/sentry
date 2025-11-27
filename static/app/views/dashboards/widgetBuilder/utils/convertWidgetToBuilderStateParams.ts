@@ -5,6 +5,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   serializeFields,
   serializeThresholds,
@@ -37,15 +38,12 @@ export function convertWidgetToBuilderStateParams(
   const firstWidgetQuery = widget.queries[0];
   let yAxis = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'aggregates') : [];
   let field: string[] = [];
-  if (
-    widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER
-  ) {
+  if (isChartDisplayType(widget.displayType)) {
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
+  } else {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
     yAxis = [];
     legendAlias = [];
-  } else {
-    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   }
 
   return {

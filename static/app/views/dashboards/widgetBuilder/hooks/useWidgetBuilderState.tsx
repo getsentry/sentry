@@ -23,6 +23,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -32,11 +33,21 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
 const REVERSED_ORDER_FIELD_SORT_LIST = ['freq', 'user'];
+
+const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
+  SpanFields.ID,
+  SpanFields.SPAN_OP,
+  SpanFields.SPAN_GROUP,
+  SpanFields.SPAN_DESCRIPTION,
+  SpanFields.SPAN_CATEGORY,
+] as const;
 
 export const MAX_NUM_Y_AXES = 3;
 
@@ -296,6 +307,16 @@ function useWidgetBuilderState(): {
             // Columns are ignored for big number widgets because there is no grouping
             setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])], options);
             setQuery(query?.slice(0, 1), options);
+          } else if (action.payload === DisplayType.DETAILS) {
+            setLimit(undefined, options);
+            setSort([], options);
+            setYAxis([], options);
+            setLegendAlias([], options);
+            setFields(
+              DETAIL_WIDGET_FIELDS.map(field => ({field, kind: FieldValueKind.FIELD})),
+              options
+            );
+            setQuery(query?.slice(0, 1), options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -344,10 +365,16 @@ function useWidgetBuilderState(): {
             config.defaultWidgetQuery.fields?.map(field => explodeField({field})),
             options
           );
-          if (
-            nextDisplayType === DisplayType.TABLE ||
-            nextDisplayType === DisplayType.BIG_NUMBER
-          ) {
+          if (isChartDisplayType(nextDisplayType)) {
+            setFields([], options);
+            setYAxis(
+              config.defaultWidgetQuery.aggregates?.map(aggregate =>
+                explodeField({field: aggregate})
+              ),
+              options
+            );
+            setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
+          } else {
             setYAxis([], options);
             setFields(
               config.defaultWidgetQuery.fields?.map(field => explodeField({field})),
@@ -359,15 +386,6 @@ function useWidgetBuilderState(): {
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
             );
-          } else {
-            setFields([], options);
-            setYAxis(
-              config.defaultWidgetQuery.aggregates?.map(aggregate =>
-                explodeField({field: aggregate})
-              ),
-              options
-            );
-            setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
           }
 
           setThresholds(undefined, options);
