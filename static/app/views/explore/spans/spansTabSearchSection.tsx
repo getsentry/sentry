@@ -83,6 +83,7 @@ function CrossEventQueryingDropdown() {
           size: 'md',
           showChevron: false,
           icon: <IconAdd />,
+          'aria-label': t('Add a cross event query'),
         }}
       />
     </Tooltip>
