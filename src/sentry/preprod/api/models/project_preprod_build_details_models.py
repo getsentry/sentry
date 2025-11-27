@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,32 @@ class BuildDetailsVcsInfo(BaseModel):
     head_ref: str | None = None
     base_ref: str | None = None
     pr_number: int | None = None
+
+
+class StatusCheckResultSuccess(BaseModel):
+    """Result of a successfully posted status check."""
+
+    success: Literal[True] = True
+    check_id: str
+
+
+class StatusCheckResultFailure(BaseModel):
+    """Result of a failed status check post."""
+
+    success: Literal[False] = False
+    error_type: StatusCheckErrorType
+
+
+StatusCheckResult = Annotated[
+    StatusCheckResultSuccess | StatusCheckResultFailure,
+    Field(discriminator="success"),
+]
+
+
+class PostedStatusChecks(BaseModel):
+    """Status checks that have been posted to the VCS provider."""
+
+    size: StatusCheckResult | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):
@@ -101,6 +128,7 @@ class BuildDetailsApiResponse(BaseModel):
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
     size_info: SizeInfo | None = None
+    posted_status_checks: PostedStatusChecks | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
@@ -237,10 +265,40 @@ def transform_preprod_artifact_to_build_details(
         pr_number=(artifact.commit_comparison.pr_number if artifact.commit_comparison else None),
     )
 
+    posted_status_checks = None
+    if artifact.extras and "posted_status_checks" in artifact.extras:
+        raw_checks = artifact.extras["posted_status_checks"]
+        size_check: StatusCheckResult | None = None
+
+        if "size" in raw_checks:
+            raw_size = raw_checks["size"]
+            if raw_size.get("success"):
+                check_id = raw_size.get("check_id")
+                if check_id:
+                    size_check = StatusCheckResultSuccess(check_id=check_id)
+            else:
+                error_type_str = raw_size.get("error_type")
+                if error_type_str:
+                    try:
+                        error_type = StatusCheckErrorType(error_type_str)
+                        size_check = StatusCheckResultFailure(error_type=error_type)
+                    except ValueError:
+                        logger.warning(
+                            "preprod.build_details.invalid_error_type",
+                            extra={
+                                "artifact_id": artifact.id,
+                                "error_type": error_type_str,
+                            },
+                        )
+
+        if size_check is not None:
+            posted_status_checks = PostedStatusChecks(size=size_check)
+
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
         app_info=app_info,
         vcs_info=vcs_info,
         size_info=size_info,
+        posted_status_checks=posted_status_checks,
     )

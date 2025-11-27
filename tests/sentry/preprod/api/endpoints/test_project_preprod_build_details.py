@@ -275,3 +275,50 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["app_info"]["android_app_info"]["has_proguard_mapping"] is False
         assert resp_data["app_info"]["apple_app_info"] is None
+
+    def test_posted_status_checks_success(self) -> None:
+        """Test that successfully posted status checks are returned."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": True, "check_id": "12345"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is True
+        assert resp_data["posted_status_checks"]["size"]["check_id"] == "12345"
+
+    def test_posted_status_checks_failure(self) -> None:
+        """Test that failed status check posts are returned."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": False, "error_type": "api_error"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] == "api_error"
+
+    def test_posted_status_checks_none_when_not_present(self) -> None:
+        """Test that posted_status_checks is None when not in extras."""
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is None
