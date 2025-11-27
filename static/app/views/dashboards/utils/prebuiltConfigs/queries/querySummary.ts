@@ -104,7 +104,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [SpanFields.TRANSACTION],
           fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
           conditions: '',
-          orderby: `-${SpanFields.TRANSACTION}`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           onDemand: [],
           isHidden: false,
           linkedDashboards: [],
