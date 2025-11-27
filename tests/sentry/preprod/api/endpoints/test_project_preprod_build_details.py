@@ -338,3 +338,66 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["posted_status_checks"] is not None
         assert resp_data["posted_status_checks"]["size"]["success"] is True
         assert resp_data["posted_status_checks"]["size"]["check_id"] is None
+
+    def test_posted_status_checks_with_corrupted_checks_structure(self) -> None:
+        """Test that corrupted posted_status_checks structure doesn't crash."""
+        self.preprod_artifact.extras = {"posted_status_checks": "not_a_dict"}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_with_corrupted_size_structure(self) -> None:
+        """Test that corrupted size check structure doesn't crash."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": "not_a_dict"}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        # Corrupted size data is skipped, so posted_status_checks should be None
+        assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_failure_without_error_type(self) -> None:
+        """Test that failed status checks without error_type are still exposed."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": False}}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] is None
+
+    def test_posted_status_checks_failure_with_invalid_error_type(self) -> None:
+        """Test that failed status checks with invalid error_type are still exposed."""
+        self.preprod_artifact.extras = {
+            "posted_status_checks": {"size": {"success": False, "error_type": "not_valid"}}
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is False
+        assert resp_data["posted_status_checks"]["size"]["error_type"] is None

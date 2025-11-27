@@ -64,7 +64,7 @@ class StatusCheckResultFailure(BaseModel):
     """Result of a failed status check post."""
 
     success: Literal[False] = False
-    error_type: StatusCheckErrorType
+    error_type: StatusCheckErrorType | None = None
 
 
 StatusCheckResult = Annotated[
@@ -277,11 +277,11 @@ def transform_preprod_artifact_to_build_details(
                     check_id = raw_size.get("check_id")
                     size_check = StatusCheckResultSuccess(check_id=check_id)
                 else:
+                    error_type: StatusCheckErrorType | None = None
                     error_type_str = raw_size.get("error_type")
                     if error_type_str:
                         try:
                             error_type = StatusCheckErrorType(error_type_str)
-                            size_check = StatusCheckResultFailure(error_type=error_type)
                         except ValueError:
                             logger.warning(
                                 "preprod.build_details.invalid_error_type",
@@ -290,6 +290,7 @@ def transform_preprod_artifact_to_build_details(
                                     "error_type": error_type_str,
                                 },
                             )
+                    size_check = StatusCheckResultFailure(error_type=error_type)
 
         if size_check is not None:
             posted_status_checks = PostedStatusChecks(size=size_check)
