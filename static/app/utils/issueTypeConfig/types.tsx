@@ -101,6 +101,10 @@ export type IssueTypeConfig = {
    */
   mergedIssues: DisabledWithReasonConfig;
   /**
+   *
+   */
+  metricDetectorTriggered: DisabledWithReasonConfig;
+  /**
    * Configuration for the event/occurrence content pages (formerly tabs)
    */
   pages: {
