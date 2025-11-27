@@ -59,23 +59,39 @@ _IS_SYMBOLICATOR_CONTAINER: bool | None = None
 
 
 def get_symbolicator_url(session: Session, key: str) -> str:
-    """Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore."""
-    global _IS_SYMBOLICATOR_CONTAINER
+    """
+    Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore.
+
+    In prod, this is simply the `object_url` returned by `objectstore_client`, as both Sentry and Symbolicator
+    will talk to Objectstore using the same hostname.
+
+    While in development or testing, we might need to replace the hostname, depending on how Symbolicator is running.
+    This function runs a `docker ps` to automatically return the correct URL in the following 2 cases:
+        - Symbolicator running in Docker (possibly via `devservices`): This is the scenario that mirrors `sentry`'s CI.
+          If this is detected, we replace Objectstore's hostname with the one reachable in the Docker network.
+
+          Note that this approach doesn't work if Objectstore is running both locally and in Docker, as we'll always
+          rewrite the URL to the Docker one, so Sentry and Symbolicator might attempt to talk to 2 different Objectstores.
+        - Symbolicator running locally: we don't need to rewrite the URL in that case.
+    """
+    global _IS_SYMBOLICATOR_CONTAINER  # Cached to avoid running `docker ps` multiple times
 
     url = session.object_url(key)
     if not (settings.IS_DEV or in_test_environment()):
         return url
 
     if _IS_SYMBOLICATOR_CONTAINER is None:
-        docker_ps = subprocess.run(
-            ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
-        )
-        _IS_SYMBOLICATOR_CONTAINER = "symbolicator" in docker_ps.stdout
+        try:
+            docker_ps = subprocess.run(
+                ["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True
+            )
+            _IS_SYMBOLICATOR_CONTAINER = "symbolicator" in docker_ps.stdout
+        except Exception:
+            _IS_SYMBOLICATOR_CONTAINER = False
 
     if not _IS_SYMBOLICATOR_CONTAINER:
         return url
 
-    # Symbolicator is running in Docker, use the Docker hostname for Objectstore
     replacement = "objectstore"
     parsed = urlparse(url)
     if parsed.port:
