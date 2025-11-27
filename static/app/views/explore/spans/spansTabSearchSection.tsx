@@ -71,14 +71,17 @@ function CrossEventQueryingDropdown() {
     }
   };
 
+  const isDisabled = crossEvents?.length === 2;
+  const tooltipTitle = isDisabled
+    ? t('Maximum of 2 cross event queries allowed.')
+    : t('For more targeted results, you can also cross reference other datasets.');
+
   return (
-    <Tooltip
-      title={t('For more targeted results, you can also cross reference other datasets')}
-    >
+    <Tooltip title={tooltipTitle}>
       <DropdownMenu
         onAction={onAction}
         items={crossEventDropdownItems}
-        isDisabled={crossEvents?.length === 2}
+        isDisabled={isDisabled}
         triggerProps={{
           size: 'md',
           showChevron: false,
