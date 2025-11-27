@@ -79,8 +79,11 @@ export function ScreenLoadSpansContent() {
       <HeaderContainer>
         <ToolRibbon>
           <FilterContainer>
-            <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
-            <ReleaseComparisonSelector />
+            <ModulePageFilterBar
+              moduleName={ModuleName.SCREEN_LOAD}
+              disableProjectFilter
+            />
+            <ReleaseComparisonSelector moduleName={ModuleName.SCREEN_LOAD} />
           </FilterContainer>
         </ToolRibbon>
 
