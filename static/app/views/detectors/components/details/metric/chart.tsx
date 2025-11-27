@@ -30,6 +30,7 @@ import {
   useIncidentMarkers,
   type IncidentPeriod,
 } from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
@@ -156,6 +157,7 @@ export function useMetricDetectorChart({
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
   const location = useLocation();
+
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -179,6 +181,34 @@ export function useMetricDetectorChart({
     end,
   });
 
+  const metricTimestamps = useMemo(() => {
+    const firstSeries = series[0];
+    if (!firstSeries?.data.length) {
+      return {start: undefined, end: undefined};
+    }
+    const data = firstSeries.data;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+
+    if (!firstPoint || !lastPoint) {
+      return {start: undefined, end: undefined};
+    }
+
+    const firstTimestamp =
+      typeof firstPoint.name === 'number'
+        ? firstPoint.name
+        : new Date(firstPoint.name).getTime();
+    const lastTimestamp =
+      typeof lastPoint.name === 'number'
+        ? lastPoint.name
+        : new Date(lastPoint.name).getTime();
+
+    return {
+      start: Math.floor(firstTimestamp / 1000),
+      end: Math.floor(lastTimestamp / 1000),
+    };
+  }, [series]);
+
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions: detector.conditionGroup?.conditions,
@@ -186,6 +216,13 @@ export function useMetricDetectorChart({
       aggregate,
       comparisonSeries,
     });
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detector.id,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series,
+  });
 
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [
@@ -227,13 +264,17 @@ export function useMetricDetectorChart({
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...anomalyThresholdSeries];
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
 
     return baseSeries;
-  }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
+  }, [
+    thresholdAdditionalSeries,
+    anomalyThresholdSeries,
+    openPeriodMarkerResult.incidentMarkerSeries,
+  ]);
 
   const yAxes = useMemo(() => {
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
