@@ -125,7 +125,10 @@ def update_alert_rule(
         partial=True,
     )
     if validator.is_valid():
-        if data.get("dataset") == Dataset.EventsAnalyticsPlatform.value:
+        if (
+            data.get("dataset", alert_rule.snuba_query.dataset)
+            == Dataset.EventsAnalyticsPlatform.value
+        ):
             if data.get("extrapolation_mode"):
                 old_extrapolation_mode = ExtrapolationMode(
                     alert_rule.snuba_query.extrapolation_mode
