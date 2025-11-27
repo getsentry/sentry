@@ -29,7 +29,6 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   Dataset,
-  ExtrapolationMode,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -48,7 +47,7 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
-import {getFilter, getPeriodInterval} from './utils';
+import {getFilter, getIsMigratedExtrapolationMode, getPeriodInterval} from './utils';
 
 interface MetricDetailsBodyProps {
   timePeriod: TimePeriodType;
@@ -144,11 +143,9 @@ export default function MetricDetailsBody({
   const deprecateTransactionsAlertsWarning =
     ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
-  const showExtrapolationModeWarning = !!(
-    rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-    rule.extrapolationMode &&
-    (rule.extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
-      rule.extrapolationMode === ExtrapolationMode.NONE)
+  const showExtrapolationModeWarning = getIsMigratedExtrapolationMode(
+    rule.extrapolationMode,
+    rule.dataset
   );
 
   return (

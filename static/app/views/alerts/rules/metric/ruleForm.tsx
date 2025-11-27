@@ -50,6 +50,7 @@ import {
 } from 'sentry/utils/onDemandMetrics/features';
 import withProjects from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import {OnDemandThresholdChecker} from 'sentry/views/alerts/rules/metric/onDemandThresholdChecker';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -1377,11 +1378,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
-    const showExtrapolationModeChangeWarning = !!(
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-      extrapolationMode &&
-      (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
-        extrapolationMode === ExtrapolationMode.NONE)
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset
     );
 
     // Rendering the main form body
