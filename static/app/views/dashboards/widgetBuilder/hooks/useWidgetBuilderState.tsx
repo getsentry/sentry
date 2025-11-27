@@ -308,7 +308,7 @@ function useWidgetBuilderState(): {
             setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])], options);
             setQuery(query?.slice(0, 1), options);
           } else if (action.payload === DisplayType.DETAILS) {
-            setLimit(undefined, options);
+            setLimit(1, options);
             setSort([], options);
             setYAxis([], options);
             setLegendAlias([], options);
