@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -28,15 +29,20 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 function UsageBreakdownField({
   field,
   value,
+  help,
 }: {
   field: React.ReactNode;
   value: React.ReactNode;
+  help?: React.ReactNode;
 }) {
   return (
     <Flex direction="column" gap="sm">
-      <Text variant="muted" bold uppercase size="sm">
-        {field}
-      </Text>
+      <Flex gap="sm">
+        <Text variant="muted" bold uppercase size="sm">
+          {field}
+        </Text>
+        {help && <QuestionTooltip title={help} size="xs" />}
+      </Flex>
       <Text size="lg">{value}</Text>
     </Flex>
   );
@@ -132,12 +138,21 @@ function UsageBreakdownInfo({
                   )}
                 </Fragment>
               }
+              help={tct(
+                "The amount of [budgetTerm] you've used so far on this product in the current month.",
+                {
+                  budgetTerm: displayBudgetName(plan),
+                }
+              )}
             />
           )}
           {subscription.canSelfServe && (
             <UsageBreakdownField
               field={t('Reserved spend')}
               value={displayPriceWithCents({cents: recurringReservedSpend})}
+              help={t(
+                'The amount you spend on additional reserved volume for this product per billing cycle.'
+              )}
             />
           )}
         </Flex>
