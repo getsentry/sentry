@@ -9,6 +9,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
@@ -3409,6 +3410,28 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not appear in the fields of the query" in response.content
+
+    def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 409
+        assert "Cannot delete prebuilt Dashboards." in response.content.decode()
+
+    def test_cannot_edit_prebuilt_insights_dashboard(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Frontend Session Health",
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+        )
+        response = self.do_request(
+            "put", self.url(dashboard.id), data={"title": "Frontend Session Health Edited"}
+        )
+        assert response.status_code == 409
+        assert "Cannot edit prebuilt Dashboards." in response.content.decode()
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
