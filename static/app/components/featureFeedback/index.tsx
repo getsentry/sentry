@@ -12,8 +12,12 @@ type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   secondaryAction?: React.ReactNode;
 };
 
-// Provides a button that, when clicked, opens a modal with a form that,
-// when filled and submitted, will send feedback to Sentry (feedbacks project).
+/**
+ * Provides a button that, when clicked, opens a modal with a form that,
+ * when filled and submitted, will send feedback to Sentry (feedbacks project).
+ *
+ * @deprecated Use `<FeedbackButton/>` instead.
+ */
 export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props

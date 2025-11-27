@@ -121,7 +121,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
-      makePreventAiField(organization),
+      makePreventAiField(),
     ];
     return formsConfig;
   }, [access, organization]);

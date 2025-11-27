@@ -52,7 +52,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleTriggerType,
+  Dataset,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {
   isEapAlertType,
@@ -265,7 +269,7 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" isCircled />
+                  <IconCheckmark color="successText" />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
@@ -475,7 +479,9 @@ export default function MetricChart({
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
         rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-          ? SAMPLING_MODE.NORMAL
+          ? rule.extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
           : undefined,
     },
     {enabled: !shouldUseSessionsStats}

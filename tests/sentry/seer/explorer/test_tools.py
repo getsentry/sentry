@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
@@ -15,9 +16,11 @@ from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
-    execute_trace_query_chart,
-    execute_trace_query_table,
-    get_issue_details,
+    execute_table_query,
+    execute_timeseries_query,
+    get_issue_and_event_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
@@ -27,9 +30,11 @@ from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
+    OurLogTestCase,
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
@@ -37,13 +42,28 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@pytest.mark.django_db(databases=["default", "control"])
-class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    databases = {"default", "control"}
+def _get_utc_iso_without_timezone(dt: datetime) -> str:
+    """Seer and Sentry UI pass iso timestamps in this format."""
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "")
+
+
+class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+    default_span_fields = [
+        "id",
+        "span.op",
+        "span.description",
+        "span.duration",
+        "transaction",
+        "timestamp",
+        "project",
+        "trace",
+    ]
 
     def setUp(self):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
+        self.two_mins_ago = before_now(minutes=2)
+        self.one_min_ago = before_now(minutes=1)
 
         # Create spans using the exact pattern from working tests
         spans = [
@@ -76,17 +96,18 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
                     "description": "Redis GET user:123",
                     "sentry_tags": {"op": "cache.get", "transaction": "api/user/profile"},
                 },
-                start_ts=self.ten_mins_ago,
+                start_ts=self.one_min_ago,
                 duration=25,
             ),
         ]
 
         self.store_spans(spans, is_eap=True)
 
-    def test_execute_trace_query_chart_count_metric(self):
-        """Test chart query with count() metric using real data"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_count_metric(self):
+        """Test timeseries query with count() metric using real data"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
@@ -104,10 +125,51 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 4
 
-    def test_execute_trace_query_chart_multiple_metrics(self):
-        """Test chart query with multiple metrics"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_count_metric_start_end_filter(self):
+        """Test timeseries query with count() metric using real data, filtered by start and end"""
+        # Since this is a small range, we need to specify the interval. The event endpoint's
+        # get_rollup fx doesn't go below 15m when calculating from date range.
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
+            query="",
+            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+            end=_get_utc_iso_without_timezone(self.two_mins_ago),
+            interval="1m",
+            y_axes=["count()"],
+        )
+
+        assert result is not None
+        # Result is now dict from events-stats endpoint
+        assert "count()" in result
+        assert "data" in result["count()"]
+
+        data_points = result["count()"]["data"]
+        assert len(data_points) > 0
+
+        # Each data point is [timestamp, [{"count": value}]]
+        total_count = sum(point[1][0]["count"] for point in data_points if point[1])
+        assert total_count == 3  # Should exclude the span created at 1 minute ago
+
+    def test_spans_timeseries_count_metric_start_end_errors_with_stats_period(self):
+        with pytest.raises(
+            ValueError, match="stats_period and start/end cannot be provided together"
+        ):
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                query="",
+                stats_period="1h",
+                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+                end=_get_utc_iso_without_timezone(self.two_mins_ago),
+                y_axes=["count()"],
+            )
+
+    def test_spans_timeseries_multiple_metrics(self):
+        """Test timeseries query with multiple metrics"""
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()", "avg(span.duration)"],
@@ -135,10 +197,12 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         ]
         assert len(duration_values) > 0
 
-    def test_execute_trace_query_table_basic_query(self):
+    def test_spans_table_basic_query(self):
         """Test table query returns actual span data"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-timestamp",
@@ -147,7 +211,6 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         assert len(rows) == 4  # Should find all 4 spans we created
@@ -162,13 +225,57 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         cache_rows = [row for row in rows if row.get("span.op") == "cache.get"]
         assert len(cache_rows) == 1  # One cache span
 
-    def test_execute_trace_query_table_specific_operation(self):
-        """Test table query filtering by specific operation"""
-        result = execute_trace_query_table(
+    def test_spans_table_query_start_end_filter(self):
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+            end=_get_utc_iso_without_timezone(self.two_mins_ago),
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "data" in result
+
+        rows = result["data"]
+        assert len(rows) == 3  # Should exclude the span created at 1 minute ago
+
+        # Verify span data
+        db_rows = [row for row in rows if row.get("span.op") == "db"]
+        assert len(db_rows) == 2  # Two database spans
+
+        http_rows = [row for row in rows if row.get("span.op") == "http.client"]
+        assert len(http_rows) == 1  # One HTTP span
+
+    def test_spans_table_query_start_end_errors_with_stats_period(self):
+        with pytest.raises(
+            ValueError, match="stats_period and start/end cannot be provided together"
+        ):
+            execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=self.default_span_fields,
+                query="",
+                stats_period="1h",
+                start=_get_utc_iso_without_timezone(self.ten_mins_ago),
+                end=_get_utc_iso_without_timezone(self.two_mins_ago),
+                sort="-timestamp",
+                per_page=10,
+            )
+
+    def test_spans_table_specific_operation(self):
+        """Test table query filtering by specific operation"""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="span.op:http.client",
             stats_period="1h",
             sort="-timestamp",
+            per_page=10,
         )
 
         assert result is not None
@@ -182,10 +289,11 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         descriptions = [row.get("span.description", "") for row in http_rows]
         assert any("api.external.com" in desc for desc in descriptions)
 
-    def test_execute_trace_query_chart_empty_results(self):
-        """Test chart query with query that returns no results"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_empty_results(self):
+        """Test timeseries query with query that returns no results"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.op:nonexistent",
             stats_period="1h",
             y_axes=["count()"],
@@ -201,23 +309,27 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             total_count = sum(point[1][0]["count"] for point in data_points if point[1])
             assert total_count == 0
 
-    def test_execute_trace_query_table_empty_results(self):
+    def test_spans_table_empty_results(self):
         """Test table query with query that returns no results"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="span.op:nonexistent",
             stats_period="1h",
             sort="-timestamp",
+            per_page=10,
         )
 
         assert result is not None
         assert "data" in result
         assert len(result["data"]) == 0
 
-    def test_execute_trace_query_chart_duration_filtering(self):
-        """Test chart query with duration filter"""
-        result = execute_trace_query_chart(
+    def test_spans_timeseries_duration_filtering(self):
+        """Test timeseries query with duration filter"""
+        result = execute_timeseries_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.duration:>100ms",  # Should match spans > 100ms
             stats_period="1h",
             y_axes=["count()"],
@@ -233,10 +345,12 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3
 
-    def test_execute_trace_query_table_duration_stats(self):
+    def test_spans_table_duration_stats(self):
         """Test table query with duration statistics"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-span.duration",
@@ -257,28 +371,107 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             # Allow for some tolerance in duration matching
             assert any(abs(d - expected) < 10 for d in durations)
 
-    def test_execute_trace_query_nonexistent_organization(self):
+    def test_spans_table_appends_sort(self):
+        """Test sort is automatically appended to selected fields if not provided."""
+        for sort in ["timestamp", "-timestamp"]:
+            result = execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=["id"],
+                stats_period="1h",
+                sort=sort,
+                per_page=1,
+            )
+
+            assert result is not None
+            rows = result["data"]
+            assert "id" in rows[0]
+            assert "timestamp" in rows[0]
+
+    def test_spans_query_nonexistent_organization(self):
         """Test queries handle nonexistent organization gracefully"""
-        chart_result = execute_trace_query_chart(
+        timeseries_result = execute_timeseries_query(
             org_id=99999,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
         )
-        assert chart_result is None
+        assert timeseries_result is None
 
-        table_result = execute_trace_query_table(
+        table_result = execute_table_query(
             org_id=99999,
+            dataset="spans",
+            fields=self.default_span_fields,
             query="",
             stats_period="1h",
             sort="-count",
+            per_page=10,
         )
         assert table_result is None
 
-    def test_execute_trace_query_chart_with_groupby(self):
-        """Test chart query with group_by parameter for aggregates"""
-        result = execute_trace_query_chart(
+    @patch("sentry.seer.explorer.tools.client.get")
+    def test_spans_table_query_error_handling(self, mock_client_get):
+        """Test error handling for API errors: 400 errors return error dict, non-400 errors are re-raised"""
+        # Test 400 error with dict body containing detail
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="invalid_field:value",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_detail_msg
+        assert "data" not in result
+
+        # Test 400 error with string body
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="malformed query",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_body
+        assert "data" not in result
+
+        # Test non-400 errors are re-raised
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_table_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                fields=self.default_span_fields,
+                query="",
+                stats_period="1h",
+                sort="-timestamp",
+                per_page=10,
+            )
+
+        assert exc_info.value.status_code == 500
+
+    def test_spans_timeseries_with_groupby(self):
+        """Test timeseries query with group_by parameter for aggregates"""
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             y_axes=["count()"],
@@ -305,22 +498,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             data_points = metrics["count()"]["data"]
             assert isinstance(data_points, list)
 
-    def test_execute_trace_query_table_with_groupby(self):
+    def test_spans_table_aggregates_groupby(self):
         """Test table query with group_by for aggregates mode"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
+            fields=["span.op", "count()"],
             query="",
             stats_period="1h",
             sort="-count()",
-            group_by=["span.op"],
-            y_axes=["count()"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have one row per unique span.op value
@@ -331,21 +522,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             assert "span.op" in row
             assert "count()" in row
 
-    def test_execute_trace_query_table_aggregates_mode_basic(self):
+    def test_spans_table_aggregates_basic(self):
         """Test table query in aggregates mode without group_by"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="",
             stats_period="1h",
             sort="-count()",
-            y_axes=["count()", "avg(span.duration)"],
+            fields=["count()", "avg(span.duration)"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have aggregate results
@@ -356,21 +546,20 @@ class TestTraceQueryChartTable(APITransactionTestCase, SnubaTestCase, SpanTestCa
             assert "count()" in row
             assert "avg(span.duration)" in row
 
-    def test_execute_trace_query_table_aggregates_mode_multiple_functions(self):
+    def test_spans_table_aggregates_multiple_functions(self):
         """Test table query in aggregates mode with multiple aggregate functions"""
-        result = execute_trace_query_table(
+        result = execute_table_query(
             org_id=self.organization.id,
+            dataset="spans",
             query="span.op:db",  # Filter to only database operations
             stats_period="1h",
             sort="-sum(span.duration)",
-            y_axes=["count()", "sum(span.duration)", "avg(span.duration)"],
+            fields=["count()", "sum(span.duration)", "avg(span.duration)"],
             per_page=10,
-            mode="aggregates",
         )
 
         assert result is not None
         assert "data" in result
-        assert "meta" in result
 
         rows = result["data"]
         # Should have aggregate results for database spans
@@ -617,7 +806,7 @@ class _IssueMetadata(BaseModel):
     priority: str | None
     type: str
     issueType: str
-    issueTypeDescription: str  # Extra field added by get_issue_details.
+    issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -641,7 +830,7 @@ class _SentryEventData(BaseModel):
     tags: list[dict[str, str | None]] | None = None
 
 
-class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+class TestGetIssueAndEventDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
     def _validate_event_timeseries(self, timeseries: dict):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
@@ -658,11 +847,11 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def _test_get_issue_details_success(
+    def _test_get_ie_details_basic(
         self,
         mock_get_tags,
         mock_get_recommended_event,
-        use_short_id: bool,
+        issue_id_type: Literal["int_id", "short_id", "none"],
     ):
         """Test the queries and response format for a group of error events, and multiple event types."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
@@ -690,23 +879,44 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert events[1].group_id == group.id
         assert events[2].group_id == group.id
 
-        for selected_event in [
-            "oldest",
-            "latest",
-            "recommended",
-            events[1].event_id,
-            events[1].event_id[:8],
-        ]:
-            result = get_issue_details(
-                issue_id=group.qualified_short_id if use_short_id else str(group.id),
+        issue_id_param = (
+            group.qualified_short_id
+            if issue_id_type == "short_id"
+            else str(group.id) if issue_id_type == "int_id" else None
+        )
+
+        if issue_id_param is None:
+            valid_selected_events = [
+                uuid.UUID(events[1].event_id).hex,  # no dashes
+                str(uuid.UUID(events[1].event_id)),  # with dashes
+            ]
+            invalid_selected_events = [
+                "oldest",
+                "latest",
+                "recommended",
+                events[1].event_id[:8],
+                "potato",
+            ]
+
+        else:
+            valid_selected_events = [
+                "oldest",
+                "latest",
+                "recommended",
+                uuid.UUID(events[1].event_id).hex,  # no dashes
+                str(uuid.UUID(events[1].event_id)),  # with dashes
+            ]
+            invalid_selected_events = [
+                events[1].event_id[:8],
+                "potato",
+            ]
+
+        for selected_event in valid_selected_events:
+            result = get_issue_and_event_details(
+                issue_id=issue_id_param,
                 organization_id=self.organization.id,
                 selected_event=selected_event,
             )
-
-            # Short event IDs not supported.
-            if len(selected_event) == 8:
-                assert result is None
-                continue
 
             assert result is not None
             assert result["project_id"] == self.project.id
@@ -733,7 +943,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
                     event_dict["id"] == mock_get_recommended_event.return_value.event_id
                 ), selected_event
             else:
-                assert event_dict["id"] == selected_event, selected_event
+                assert (
+                    uuid.UUID(event_dict["id"]).hex == uuid.UUID(selected_event).hex
+                ), selected_event
 
             # Check event_trace_id matches mocked trace context.
             if event_dict["id"] == events[0].event_id:
@@ -745,13 +957,24 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             # Validate timeseries dict structure.
             self._validate_event_timeseries(result["event_timeseries"])
 
-    def test_get_issue_details_success_int_id(self):
-        self._test_get_issue_details_success(use_short_id=False)
+        for selected_event in invalid_selected_events:
+            with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
+                get_issue_and_event_details(
+                    issue_id=issue_id_param,
+                    organization_id=self.organization.id,
+                    selected_event=selected_event,
+                )
 
-    def test_get_issue_details_success_short_id(self):
-        self._test_get_issue_details_success(use_short_id=True)
+    def test_get_ie_details_basic_int_id(self):
+        self._test_get_ie_details_basic(issue_id_type="int_id")
 
-    def test_get_issue_details_nonexistent_organization(self):
+    def test_get_ie_details_basic_short_id(self):
+        self._test_get_ie_details_basic(issue_id_type="short_id")
+
+    def test_get_ie_details_basic_null_issue_id(self):
+        self._test_get_ie_details_basic(issue_id_type="none")
+
+    def test_get_ie_details_nonexistent_organization(self):
         """Test returns None when organization doesn't exist."""
         # Create a valid group.
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -761,17 +984,17 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert isinstance(group, Group)
 
         # Call with nonexistent organization ID.
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=99999,
             selected_event="latest",
         )
         assert result is None
 
-    def test_get_issue_details_nonexistent_group(self):
-        """Test returns None when group doesn't exist."""
-        # Call with nonexistent group ID.
-        result = get_issue_details(
+    def test_get_ie_details_nonexistent_issue(self):
+        """Test returns None when the requested issue doesn't exist."""
+        # Call with nonexistent issue ID.
+        result = get_issue_and_event_details(
             issue_id="99999",
             organization_id=self.organization.id,
             selected_event="latest",
@@ -781,15 +1004,16 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
     @patch("sentry.models.group.get_oldest_or_latest_event")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_no_event_found(
+    def test_get_ie_details_no_event_found(
         self, mock_get_tags, mock_get_recommended_event, mock_get_oldest_or_latest_event
     ):
+        """Test returns None when issue is found but selected_event is not."""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         mock_get_recommended_event.return_value = None
         mock_get_oldest_or_latest_event.return_value = None
 
         # Create events with shared stacktrace (should have same group)
-        for i in range(3):
+        for i in range(2):
             data = load_data("python", timestamp=before_now(minutes=5 - i))
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             event = self.store_event(data=data, project_id=self.project.id)
@@ -797,16 +1021,26 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         group = event.group
         assert isinstance(group, Group)
 
-        for et in ["oldest", "latest", "recommended"]:
-            result = get_issue_details(
+        for et in ["oldest", "latest", "recommended", uuid.uuid4().hex]:
+            result = get_issue_and_event_details(
                 issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event=et,
             )
             assert result is None, et
 
+    def test_get_ie_details_no_event_found_null_issue_id(self):
+        """Test returns None when issue_id is not provided and selected_event is not found."""
+        _ = self.project  # Create an active project.
+        result = get_issue_and_event_details(
+            issue_id=None,
+            organization_id=self.organization.id,
+            selected_event=uuid.uuid4().hex,
+        )
+        assert result is None
+
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_tags_exception(self, mock_get_tags):
+    def test_get_ie_details_tags_exception(self, mock_get_tags):
         mock_get_tags.side_effect = Exception("Test exception")
         """Test other fields are returned with null tags_overview when tag util fails."""
         # Create a valid group.
@@ -816,7 +1050,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         group = event.group
         assert isinstance(group, Group)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="latest",
@@ -831,7 +1065,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_with_assigned_user(
+    def test_get_ie_details_with_assigned_user(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -847,7 +1081,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         # Create assignee.
         GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="recommended",
@@ -863,7 +1097,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
+    def test_get_ie_details_with_assigned_team(self, mock_get_tags, mock_get_recommended_event):
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
         data = load_data("python", timestamp=before_now(minutes=5))
         event = self.store_event(data=data, project_id=self.project.id)
@@ -875,7 +1109,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         # Create assignee.
         GroupAssignee.objects.create(group=group, project=self.project, team=self.team)
 
-        result = get_issue_details(
+        result = get_issue_and_event_details(
             issue_id=str(group.id),
             organization_id=self.organization.id,
             selected_event="recommended",
@@ -892,7 +1126,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
     @patch("sentry.seer.explorer.tools.client")
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_issue_details_timeseries_resolution(
+    def test_get_ie_details_timeseries_resolution(
         self,
         mock_get_tags,
         mock_get_recommended_event,
@@ -926,7 +1160,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             assert isinstance(group, Group)
             assert group.first_seen == first_seen
 
-            result = get_issue_details(
+            result = get_issue_and_event_details(
                 issue_id=str(group.id),
                 organization_id=self.organization.id,
                 selected_event="recommended",
@@ -948,7 +1182,6 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
             group.delete()
 
 
-@pytest.mark.django_db(databases=["default", "control"])
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self):
         """Test successful repository lookup"""
@@ -1181,7 +1414,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
 
         # Mock the profile data fetch and conversion
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "main", "module": "app"}]
+        mock_convert_tree.return_value = ([{"function": "main", "module": "app"}], "1")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1218,7 +1451,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         mock_fetch_profile.return_value = {
             "chunk": {"profile": {"frames": [], "stacks": [], "samples": []}}
         }
-        mock_convert_tree.return_value = [{"function": "worker", "module": "tasks"}]
+        mock_convert_tree.return_value = ([{"function": "worker", "module": "tasks"}], "2")
 
         result = rpc_get_profile_flamegraph(profiler_id_8char, self.organization.id)
 
@@ -1255,7 +1488,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans(spans, is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "test", "module": "test"}]
+        mock_convert_tree.return_value = ([{"function": "test", "module": "test"}], "3")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1292,7 +1525,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans([span], is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "old_function", "module": "old"}]
+        mock_convert_tree.return_value = ([{"function": "old_function", "module": "old"}], "4")
 
         result = rpc_get_profile_flamegraph(profile_id_8char, self.organization.id)
 
@@ -1317,7 +1550,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         self.store_spans([span], is_eap=True)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
-        mock_convert_tree.return_value = [{"function": "handler", "module": "server"}]
+        mock_convert_tree.return_value = ([{"function": "handler", "module": "server"}], "5")
 
         result = rpc_get_profile_flamegraph(full_profile_id, self.organization.id)
 
@@ -1536,3 +1769,366 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
+
+
+class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+        self.default_fields = [
+            "id",
+            "message",
+            "message.template",
+            "project.id",
+            "trace",
+            "severity_number",
+            "severity",
+            "timestamp",
+            "timestamp_precise",
+            "observed_timestamp",
+        ]
+
+    def test_logs_table_basic(self) -> None:
+        # Create logs with various attributes
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "User authentication failed",
+                    "severity_text": "ERROR",
+                    "severity_number": 17,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Request processed successfully",
+                    "severity_text": "INFO",
+                    "severity_number": 9,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="logs",
+            fields=self.default_fields,
+            per_page=10,
+            stats_period="1h",
+            project_slugs=[self.project.slug],
+        )
+        assert result is not None
+        assert "data" in result
+        data = result["data"]
+        assert len(data) == len(logs)
+
+        for log in data:
+            for field in self.default_fields:
+                assert field in log, field
+
+
+class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+
+        self.trace_id = uuid.uuid4().hex
+        # Create logs with various attributes
+        self.logs = [
+            self.create_ourlog(
+                {
+                    "body": "User authentication failed",
+                    "severity_text": "ERROR",
+                    "severity_number": 17,
+                    "trace_id": self.trace_id,
+                },
+                attributes={
+                    "my-string-attribute": "custom value",
+                    "my-boolean-attribute": True,
+                    "my-double-attribute": 1.23,
+                    "my-integer-attribute": 123,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Request processed successfully",
+                    "severity_text": "INFO",
+                    "severity_number": 9,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                    "trace_id": self.trace_id,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {
+                    "body": "Another database connection timeout",
+                    "severity_text": "WARN",
+                    "severity_number": 13,
+                    "trace_id": self.trace_id,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(self.logs)
+
+    @staticmethod
+    def get_id_str(item: TraceItem) -> str:
+        return item.item_id[::-1].hex()
+
+    def test_get_log_attributes_for_trace_basic(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+        )
+        assert result is not None
+        assert len(result["data"]) == 3
+
+        auth_log_expected = self.logs[0]
+        auth_log = None
+        for item in result["data"]:
+            if item["id"] == self.get_id_str(auth_log_expected):
+                auth_log = item
+
+        assert auth_log is not None
+        ts = datetime.fromisoformat(auth_log["timestamp"]).timestamp()
+        assert int(ts) == auth_log_expected.timestamp.seconds
+
+        for name, value, type in [
+            ("message", "User authentication failed", "str"),
+            ("project", self.project.slug, "str"),
+            ("project.id", self.project.id, "int"),
+            ("severity", "ERROR", "str"),
+            ("my-string-attribute", "custom value", "str"),
+            ("my-boolean-attribute", True, "double"),
+            ("my-double-attribute", 1.23, "double"),
+            ("my-integer-attribute", 123, "double"),
+        ]:
+            assert auth_log["attributes"][name]["value"] == value, name
+            assert auth_log["attributes"][name]["type"] == type, f"{name} type mismatch"
+
+    def test_get_log_attributes_for_trace_substring_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            substring_case_sensitive=False,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.get_id_str(self.logs[2]) in ids
+        assert self.get_id_str(self.logs[3]) in ids
+
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            substring_case_sensitive=True,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == self.get_id_str(self.logs[3])
+
+    def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            limit=1,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] in [
+            self.get_id_str(self.logs[0]),
+            self.get_id_str(self.logs[2]),
+            self.get_id_str(self.logs[3]),
+        ]
+
+    def test_get_log_attributes_for_trace_limit_with_filter(self) -> None:
+        result = get_log_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            message_substring="database",
+            substring_case_sensitive=False,
+            limit=2,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.get_id_str(self.logs[2]) in ids
+        assert self.get_id_str(self.logs[3]) in ids
+
+
+class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+        self.nine_mins_ago = before_now(minutes=9)
+
+        self.trace_id = uuid.uuid4().hex
+        # Create metrics with various attributes
+        self.metrics = [
+            self.create_trace_metric(
+                metric_name="http.request.duration",
+                metric_value=125.5,
+                metric_type="distribution",
+                metric_unit="millisecond",
+                trace_id=self.trace_id,
+                attributes={
+                    "http.method": "GET",
+                    "http.status_code": 200,
+                    "my-string-attribute": "custom value",
+                    "my-boolean-attribute": True,
+                    "my-double-attribute": 1.23,
+                    "my-integer-attribute": 123,
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="database.query.count",
+                metric_value=5.0,
+                metric_type="counter",
+                # No trace_id - should not be returned in trace queries
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="http.request.duration",
+                metric_value=200.3,
+                metric_type="distribution",
+                metric_unit="millisecond",
+                trace_id=self.trace_id,
+                attributes={
+                    "http.method": "POST",
+                    "http.status_code": 201,
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_trace_metric(
+                metric_name="cache.hit.rate",
+                metric_value=0.85,
+                metric_type="gauge",
+                trace_id=self.trace_id,
+                attributes={
+                    "cache.type": "redis",
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_trace_metrics(self.metrics)
+
+    @staticmethod
+    def get_id_str(item: TraceItem) -> str:
+        return item.item_id[::-1].hex()
+
+    def test_get_metric_attributes_for_trace_basic(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+        )
+        assert result is not None
+        assert len(result["data"]) == 3
+
+        # Find the first http.request.duration metric
+        http_metric_expected = self.metrics[0]
+        http_metric = None
+        for item in result["data"]:
+            if item["id"] == self.get_id_str(http_metric_expected):
+                http_metric = item
+
+        assert http_metric is not None
+        ts = datetime.fromisoformat(http_metric["timestamp"]).timestamp()
+        assert int(ts) == http_metric_expected.timestamp.seconds
+
+        for name, value, type in [
+            ("metric.name", "http.request.duration", "str"),
+            ("metric.type", "distribution", "str"),
+            ("value", 125.5, "double"),
+            ("project", self.project.slug, "str"),
+            ("project.id", self.project.id, "int"),
+            ("http.method", "GET", "str"),
+            ("http.status_code", 200, "double"),
+            ("my-string-attribute", "custom value", "str"),
+            ("my-boolean-attribute", True, "double"),
+            ("my-double-attribute", 1.23, "double"),
+            ("my-integer-attribute", 123, "double"),
+        ]:
+            assert http_metric["attributes"][name]["value"] == value, name
+            assert http_metric["attributes"][name]["type"] == type, f"{name} type mismatch"
+
+    def test_get_metric_attributes_for_trace_name_filter(self) -> None:
+        # Test substring match (fails)
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="http.",
+        )
+        assert result is not None
+        assert len(result["data"]) == 0
+
+        # Test an exact match (case-insensitive)
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="Cache.hit.rate",
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == self.get_id_str(self.metrics[3])
+
+    def test_get_metric_attributes_for_trace_limit_no_filter(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            limit=1,
+        )
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] in [
+            self.get_id_str(self.metrics[0]),
+            self.get_id_str(self.metrics[2]),
+            self.get_id_str(self.metrics[3]),
+        ]
+
+    def test_get_metric_attributes_for_trace_limit_with_filter(self) -> None:
+        result = get_metric_attributes_for_trace(
+            org_id=self.organization.id,
+            trace_id=self.trace_id,
+            stats_period="1d",
+            metric_name="http.request.duration",
+            limit=2,
+        )
+        assert result is not None
+        assert len(result["data"]) == 2
+        ids = [item["id"] for item in result["data"]]
+        assert self.get_id_str(self.metrics[0]) in ids
+        assert self.get_id_str(self.metrics[2]) in ids

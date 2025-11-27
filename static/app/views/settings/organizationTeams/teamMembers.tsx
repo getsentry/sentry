@@ -145,6 +145,7 @@ function AddMemberDropdown({
       menuWidth={250}
       options={items}
       onClose={() => setMemberQuery('')}
+      value={undefined}
       onChange={
         canAddMembers
           ? addTeamMember
@@ -345,7 +346,7 @@ export default function TeamMembers() {
       });
     }
     return (
-      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+      <EmptyMessage icon={<IconUser />} size="lg">
         {t('This team has no members')}
       </EmptyMessage>
     );

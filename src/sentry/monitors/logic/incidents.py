@@ -113,8 +113,8 @@ def try_incident_threshold(
 
     # Only create an occurrence if:
     # - We have an active incident and fingerprint
-    # - The monitor and env are not muted
-    if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
+    # - The environment is not muted
+    if not monitor_env.is_muted and incident:
         checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
         for checkin in checkins:
             dispatch_incident_occurrence(checkin, checkins, incident, received, clock_tick)

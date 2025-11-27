@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout/container';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -11,34 +13,32 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconEllipsis, IconNext, IconPrevious} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   projectSlug: string;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseActions({
-  location,
-  organization,
-  projectSlug,
-  release,
-  releaseMeta,
-  refetchData,
-}: Props) {
+function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const openFeedbackForm = useFeedbackForm();
+
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
@@ -46,7 +46,7 @@ function ReleaseActions({
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(
+      navigate(
         makeReleasesPathname({
           organization,
           path: '/',
@@ -188,6 +188,24 @@ function ReleaseActions({
 
   return (
     <ButtonBar>
+      {openFeedbackForm ? (
+        <Container display={{'2xs': 'none', xs: 'block'}}>
+          <Button
+            size="sm"
+            icon={<IconMegaphone />}
+            onClick={() =>
+              openFeedbackForm({
+                messagePlaceholder: t('How can we improve the Releases experience?'),
+                tags: {
+                  ['feedback.source']: 'release-detail',
+                },
+              })
+            }
+          >
+            {t('Give Feedback')}
+          </Button>
+        </Container>
+      ) : null}
       <ButtonBar merged gap="0">
         <LinkButton
           size="sm"

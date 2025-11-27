@@ -179,7 +179,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       renderError={() => null}
       renderThrottled={() => null}
       renderLoading={() =>
-        replayRecord ? badge : <Placeholder width="30%" height="66px" />
+        replayRecord ? badge : <Placeholder width="30%" height="68px" />
       }
       renderMissing={() => null}
       renderProcessingError={() => badge}

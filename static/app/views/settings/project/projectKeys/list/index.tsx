@@ -149,10 +149,9 @@ export default function ProjectKeys() {
   const renderEmpty = () => {
     return (
       <Panel>
-        <EmptyMessage
-          icon={<IconFlag size="xl" />}
-          description={t('There are no keys active for this project.')}
-        />
+        <EmptyMessage icon={<IconFlag />}>
+          {t('There are no keys active for this project.')}
+        </EmptyMessage>
       </Panel>
     );
   };
@@ -197,7 +196,7 @@ export default function ProjectKeys() {
             onClick={() => handleCreateKeyMutation.mutate()}
             size="sm"
             priority="primary"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             disabled={!hasAccess}
           >
             {t('Generate New Key')}

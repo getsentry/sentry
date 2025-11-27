@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.dashboards.endpoints.organization_dashboards import PREBUILT_DASHBOARDS
+from sentry.dashboards.endpoints.organization_dashboards import (
+    PREBUILT_DASHBOARDS,
+    PrebuiltDashboardId,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -1890,6 +1893,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 201
 
+    @patch("sentry.quotas.backend.get_dashboard_limit")
+    def test_dashboard_limit_does_not_count_prebuilt_dashboards(
+        self, mock_get_dashboard_limit
+    ) -> None:
+        mock_get_dashboard_limit.return_value = 2
+
+        Dashboard.objects.create(
+            organization=self.organization,
+            title="Prebuilt Dashboard 1",
+            created_by_id=None,
+            prebuilt_id=1,
+        )
+        Dashboard.objects.create(
+            organization=self.organization,
+            title="Prebuilt Dashboard 2",
+            created_by_id=None,
+            prebuilt_id=2,
+        )
+
+        # 2 prebuilt + 2 user dashboards
+        response = self.do_request("post", self.url, data={"title": "Dashboard at Limit"})
+        assert response.status_code == 400
+        assert response.data == "You may not exceed 2 dashboards on your current plan."
+
+        self.dashboard.delete()
+
+        # 2 prebuilt + 1 user dashboard
+        response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Prebuilt"})
+        assert response.status_code == 201
+
     def test_prebuilt_dashboard_is_shown_when_favorites_pinned_and_no_dashboards(self) -> None:
         # The prebuilt dashboard should not show up when filtering by owned dashboards
         # because it is not created by the user
@@ -1991,3 +2024,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, prebuilt_id__isnull=False
         ).count()
         assert prebuilt_count == 0
+
+    def test_get_with_prebuilt_ids(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request(
+                "get", self.url, {"prebuiltId": [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]}
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH

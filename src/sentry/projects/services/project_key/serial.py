@@ -7,4 +7,6 @@ def serialize_project_key(project_key: ProjectKey) -> RpcProjectKey:
         project_id=project_key.project_id,
         dsn_public=project_key.dsn_public,
         status=project_key.status,
+        public_key=project_key.public_key,
+        integration_endpoint=project_key.integration_endpoint,
     )

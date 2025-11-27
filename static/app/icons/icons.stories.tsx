@@ -371,6 +371,13 @@ const SECTIONS: TSection[] = [
         name: 'Teamwork',
         defaultProps: {},
       },
+      {
+        id: 'linear',
+        groups: ['logo'],
+        keywords: ['tickets', 'issues', 'project', 'linear'],
+        name: 'Linear',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -390,10 +397,9 @@ const SECTIONS: TSection[] = [
           'previous',
           'west',
         ],
-        additionalProps: ['isCircled', 'direction', 'isDouble'],
+        additionalProps: ['direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'left',
           isDouble: false,
         },
@@ -413,7 +419,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'right',
         },
       },
@@ -423,7 +428,6 @@ const SECTIONS: TSection[] = [
         keywords: ['up', 'point', 'direct', 'move', 'arrow', 'top', 'north', 'collapse'],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'up',
         },
       },
@@ -442,7 +446,6 @@ const SECTIONS: TSection[] = [
         ],
         name: 'Chevron',
         defaultProps: {
-          isCircled: false,
           direction: 'down',
         },
       },
@@ -721,13 +724,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'dead',
-        groups: ['status'],
-        keywords: ['dead', 'face', 'x', 'eyes', 'emotion'],
-        name: 'Dead',
-        defaultProps: {},
-      },
-      {
         id: 'diamond',
         groups: ['status'],
         keywords: ['shape', 'alert', 'diamond', 'gem', 'precious'],
@@ -763,10 +759,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'slow',
+        id: 'bot',
         groups: ['status'],
-        keywords: ['frame', 'mobile', 'snail', 'performance', 'lag'],
-        name: 'Slow',
+        keywords: ['bot', 'ai'],
+        name: 'Bot',
         defaultProps: {},
       },
     ],
@@ -779,41 +775,29 @@ const SECTIONS: TSection[] = [
         id: 'add',
         groups: ['action'],
         keywords: ['plus', 'create', 'new', 'insert', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Add',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
-        additionalProps: ['isCircled'],
         name: 'Subtract',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'checkmark',
         groups: ['action'],
         keywords: ['done', 'finish', 'success', 'confirm', 'resolve'],
-        additionalProps: ['isCircled'],
         name: 'Checkmark',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
-        additionalProps: ['isCircled'],
         name: 'Close',
-        defaultProps: {
-          isCircled: false,
-        },
+        defaultProps: {},
       },
       {
         id: 'divide',
@@ -1053,7 +1037,18 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
-        defaultProps: {},
+        defaultProps: {
+          rotated: false,
+        },
+      },
+      {
+        id: 'sort',
+        groups: ['action'],
+        keywords: ['order', 'arrange', 'organize', 'rank'],
+        name: 'Sort',
+        defaultProps: {
+          rotated: true,
+        },
       },
       {
         id: 'case',
@@ -1147,21 +1142,9 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'sliders-direction-left',
-        groups: ['action'],
-        keywords: ['settings', 'slide', 'adjust', 'controls', 'config'],
-        additionalProps: ['direction'],
+        id: 'sliders',
         name: 'Sliders',
-        defaultProps: {
-          direction: 'left',
-        },
-      },
-      {
-        id: 'sliders-direction-up',
-        name: 'Sliders',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {},
       },
       {
         id: 'fix',
@@ -1295,16 +1278,17 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'good'],
+        id: 'thumb-direction-up',
+        keywords: ['feedback', 'good', 'like', 'approve'],
         additionalProps: ['direction'],
         name: 'Thumb',
-        defaultProps: {},
+        defaultProps: {
+          direction: 'up',
+        },
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'bad', 'poor'],
-        additionalProps: ['direction'],
+        id: 'thumb-direction-down',
+        keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
         name: 'Thumb',
         defaultProps: {
           direction: 'down',
@@ -1507,6 +1491,20 @@ const SECTIONS: TSection[] = [
         groups: ['device'],
         keywords: ['image', 'photo', 'screenshot', 'picture', 'media'],
         name: 'Image',
+        defaultProps: {},
+      },
+      {
+        id: 'creditCard',
+        groups: ['device'],
+        keywords: ['creditCard', 'card', 'payment'],
+        name: 'CreditCard',
+        defaultProps: {},
+      },
+      {
+        id: 'receipt',
+        groups: ['device'],
+        keywords: ['receipt', 'invoice', 'payment'],
+        name: 'Receipt',
         defaultProps: {},
       },
     ],
@@ -1892,7 +1890,7 @@ function propsToVariant(props: Record<string, unknown>): string | null {
     if (['type', 'direction', 'variant'].includes(key)) {
       return typeof value === 'string' ? value : null;
     }
-    // isSolid, isCircled, isZoomIn
+    // isSolid, isZoomIn
     if (key.startsWith('is') && value) {
       return lowerFirst(key.replace('is', ''));
     }
