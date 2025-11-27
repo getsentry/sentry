@@ -43,6 +43,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Searched for issues${projectInfo}: '${question}'`;
     }
 
+    if (dataset === 'errors') {
+      return isLoading
+        ? `Searching for errors${projectInfo}: '${question}'...`
+        : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
     // Default to spans
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
@@ -339,6 +345,43 @@ export function buildToolLinkUrl(
 
         return {
           pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'errors') {
+        const queryParams: Record<string, any> = {
+          dataset: 'errors',
+          queryDataset: 'error-events',
+          query: query || '',
+          project: null,
+        };
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        const {y_axes} = toolLink.params;
+        if (y_axes) {
+          queryParams.yAxis = y_axes;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
           query: queryParams,
         };
       }
