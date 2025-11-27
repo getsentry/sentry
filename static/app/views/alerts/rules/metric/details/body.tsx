@@ -21,6 +21,7 @@ import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/feat
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -28,6 +29,7 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   Dataset,
+  ExtrapolationMode,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -69,10 +71,6 @@ export default function MetricDetailsBody({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
-    useState(
-      organization.features.includes('performance-transaction-deprecation-banner')
-    );
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
@@ -146,6 +144,13 @@ export default function MetricDetailsBody({
   const deprecateTransactionsAlertsWarning =
     ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
+  const showExtrapolationModeWarning = !!(
+    rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    rule.extrapolationMode &&
+    (rule.extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
+      rule.extrapolationMode === ExtrapolationMode.NONE)
+  );
+
   return (
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
@@ -173,33 +178,12 @@ export default function MetricDetailsBody({
               )}
             </Alert.Container>
           )}
-          {deprecateTransactionsAlertsWarning && showTransactionsDeprecationAlert && (
-            <Alert.Container>
-              <Alert
-                type="warning"
-                trailingItems={
-                  <StyledCloseButton
-                    icon={<IconClose size="sm" />}
-                    aria-label={t('Close')}
-                    onClick={() => {
-                      setShowTransactionsDeprecationAlert(false);
-                    }}
-                    size="zero"
-                    borderless
-                  />
-                }
-              >
-                {tctCode(
-                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
-                  {
-                    FAQLink: (
-                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
-                    ),
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
+          <TransactionsDeprecationAlert isEnabled={deprecateTransactionsAlertsWarning} />
+          <MigratedAlertWarning
+            isEnabled={showExtrapolationModeWarning}
+            rule={rule}
+            project={project}
+          />
           <StyledSubHeader>
             <StyledTimeRangeSelector
               relative={timePeriod.period ?? ''}
@@ -299,6 +283,79 @@ export default function MetricDetailsBody({
       </Layout.Body>
     </Fragment>
   );
+}
+
+function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
+  const organization = useOrganization();
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
+
+  if (isEnabled && showTransactionsDeprecationAlert) {
+    return (
+      <Alert.Container>
+        <Alert
+          type="warning"
+          trailingItems={
+            <StyledCloseButton
+              icon={<IconClose size="sm" />}
+              aria-label={t('Close')}
+              onClick={() => {
+                setShowTransactionsDeprecationAlert(false);
+              }}
+              size="zero"
+              borderless
+            />
+          }
+        >
+          {tctCode(
+            'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+            {
+              FAQLink: (
+                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+  return null;
+}
+
+function MigratedAlertWarning({
+  isEnabled,
+  rule,
+  project,
+}: {
+  isEnabled: boolean;
+  rule: MetricRule;
+  project?: Project;
+}) {
+  const organization = useOrganization();
+  const editLink = rule
+    ? makeAlertsPathname({
+        path: `/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`,
+        organization,
+      })
+    : '#';
+
+  if (isEnabled) {
+    return (
+      <Alert.Container>
+        <Alert type="warning">
+          {tctCode(
+            'This alert has been migrated from a transaction-based alert to a span-based alert. We have set a different extrapolation mode to mimic the previous alert behavior but this mode will be deprecated. Please [editLink:edit] the thresholds to match the regular extrapolation mode.',
+            {
+              editLink: <Link to={editLink} />,
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+  return null;
 }
 
 const DetailWrapper = styled('div')`

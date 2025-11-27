@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
@@ -23,8 +25,10 @@ import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
+import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
@@ -87,14 +91,6 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  ExtrapolationMode,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
-} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -102,7 +98,13 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  ExtrapolationMode,
   TimeWindow,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -1320,6 +1322,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      extrapolationMode,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1373,6 +1376,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
+
+    const showExtrapolationModeChangeWarning = !!(
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      extrapolationMode &&
+      (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
+        extrapolationMode === ExtrapolationMode.NONE)
+    );
 
     // Rendering the main form body
     return (
@@ -1471,8 +1481,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
                     eventTypes={eventTypes}
+                    extrapolationMode={extrapolationMode}
                   />
-                  <AlertListItem>{t('Set thresholds')}</AlertListItem>
+
+                  <AlertListItem>
+                    {
+                      <HeadingContainer>
+                        {t('Set thresholds')}
+                        {showExtrapolationModeChangeWarning && (
+                          <WarningIcon
+                            title={t(
+                              'Your thresholds may need to be adjusted after the change in extrapolation mode'
+                            )}
+                            id="thresholds-warning-icon"
+                          />
+                        )}
+                      </HeadingContainer>
+                    }
+                  </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
@@ -1527,6 +1553,14 @@ function getTimeWindowFromDataset(
   return defaultWindow;
 }
 
+function WarningIcon({title, id}: {id: string; title: ReactNode}) {
+  return (
+    <Tooltip title={title} skipWrapper>
+      <StyledIconWarning id={id} size="md" color="warning" />
+    </Tooltip>
+  );
+}
+
 const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
@@ -1561,6 +1595,16 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const HeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 export default withProjects(RuleFormContainer);

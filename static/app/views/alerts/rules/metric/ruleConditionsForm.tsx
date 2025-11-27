@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -83,8 +85,13 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
-import type {EventTypes} from './types';
-import {AlertRuleComparisonType, Dataset, Datasource} from './types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  Datasource,
+  ExtrapolationMode,
+  type EventTypes,
+} from './types';
 
 type Props = {
   aggregate: string;
@@ -109,6 +116,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isLowConfidenceChartData?: boolean;
@@ -554,6 +562,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isLowConfidenceChartData,
       isOnDemandLimitReached,
       eventTypes,
+      extrapolationMode,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -574,6 +583,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization.features.includes('performance-transaction-deprecation-banner') &&
       DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
 
+    const showExtrapolationModeChangeWarning = !!(
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      extrapolationMode &&
+      (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
+        extrapolationMode === ExtrapolationMode.NONE)
+    );
+
     return (
       <Fragment>
         {deprecateTransactionsAlertsWarning && (
@@ -590,6 +606,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             </Alert>
           </Alert.Container>
         )}
+        {showExtrapolationModeChangeWarning && (
+          <Alert.Container>
+            <Alert type="info">
+              {tct(
+                'This chart may look different from the alert details chart. This is expected as the extrapolation mode has been changed. Once the alert has been saved, your alert will be switched to use the extrapolation mode represented here. To be alerted correctly, please edit your [thresholdsLink:thresholds]. For more information, check out this FAQ!',
+                {
+                  thresholdsLink: (
+                    <Button
+                      priority="link"
+                      aria-label="Go to thresholds"
+                      onClick={() => {
+                        document
+                          .getElementById('thresholds-warning-icon')
+                          ?.scrollIntoView({behavior: 'smooth'});
+                      }}
+                    />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
