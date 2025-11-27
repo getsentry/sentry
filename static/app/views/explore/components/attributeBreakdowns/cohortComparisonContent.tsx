@@ -20,7 +20,6 @@ import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './cohortComparisonChart';
 import {AttributeBreakdownsComponent} from './styles';
@@ -29,7 +28,6 @@ type SortingMethod = 'rrr';
 
 const CHARTS_COLUMN_COUNT = 3;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
-const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
   selection,
@@ -107,26 +105,11 @@ export function CohortComparison({
       .format('MMM D YYYY h:mm A z');
     const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
-    // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
-    const yAxisLower = yAxis.toLowerCase();
-    const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
-      yAxisLower.startsWith(prefix)
-    );
-
-    const formattedFunction = prettifyAggregation(yAxis) ?? yAxis;
-
     return {
-      selection: isPercentileFunction
-        ? t(
-            `Selection is data between %s - %s and is greater than or equal to %s`,
-            startDate,
-            endDate,
-            formattedFunction
-          )
-        : t(`Selection is data between %s - %s`, startDate, endDate),
+      selection: t(`Selection is data between %s - %s`, startDate, endDate),
       baseline: t('Baseline is all other spans from your query'),
     };
-  }, [selection, yAxis]);
+  }, [selection]);
 
   if (isError) {
     return <LoadingError message={t('Failed to load attribute breakdowns')} />;
