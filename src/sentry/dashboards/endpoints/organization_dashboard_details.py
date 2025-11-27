@@ -127,6 +127,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         num_dashboards = Dashboard.objects.filter(organization=organization).count()
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
+        if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
+            return self.respond({"Cannot delete prebuilt Dashboards."}, status=409)
+
         if isinstance(dashboard, dict):
             if num_dashboards > 0:
                 DashboardTombstone.objects.get_or_create(
@@ -169,6 +172,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
             return Response(status=404)
 
         self.check_object_permissions(request, dashboard)
+
+        if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
+            return self.respond({"Cannot edit prebuilt Dashboards."}, status=409)
 
         tombstone = None
         if isinstance(dashboard, dict):
