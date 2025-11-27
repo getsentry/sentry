@@ -44,14 +44,42 @@ function UsageOverview({
   useEffect(() => {
     const productFromQuery = location.query.product as string;
     if (productFromQuery) {
-      const selection = checkIsAddOn(productFromQuery)
+      const isAddOn = checkIsAddOn(productFromQuery);
+      const selection = isAddOn
         ? (productFromQuery as AddOnCategory)
         : (productFromQuery as DataCategory);
       if (selectedProduct !== selection) {
-        setSelectedProduct(selection);
+        const isSelectable = isAddOn
+          ? selection in subscription.planDetails.addOnCategories
+          : selection in subscription.planDetails.categories;
+        if (isSelectable) {
+          setSelectedProduct(selection);
+        } else {
+          // if the query is an unselectable product, reset the query to the existing selected product
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                product: selectedProduct,
+              },
+            },
+            {
+              replace: true,
+            }
+          );
+        }
       }
     }
-  }, [location.query.product, selectedProduct]);
+  }, [
+    location.query.product,
+    selectedProduct,
+    location.pathname,
+    location.query,
+    navigate,
+    subscription.planDetails.addOnCategories,
+    subscription.planDetails.categories,
+  ]);
 
   return (
     <Grid

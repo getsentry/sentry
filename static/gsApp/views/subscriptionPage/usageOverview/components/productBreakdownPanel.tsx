@@ -151,7 +151,9 @@ function Cta({
     <Grid
       background="secondary"
       padding="xl"
-      columns={{'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'}}
+      columns={
+        buttons ? {'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'} : '1fr'
+      }
       gap="3xl"
       borderBottom={hasContentBelow ? 'primary' : undefined}
       radius={hasContentBelow ? undefined : '0 0 md md'}
@@ -291,15 +293,17 @@ function UpgradeCta({
               }),
       })}
       buttons={
-        <Fragment>
-          <LinkButton
-            priority="primary"
-            href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
-          >
-            {t('Upgrade now')}
-          </LinkButton>
-          <FindOutMoreButton href="https://docs.sentry.io/pricing/#pricing-by-product-and-data-category" />
-        </Fragment>
+        subscription.canSelfServe ? (
+          <Fragment>
+            <LinkButton
+              priority="primary"
+              href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
+            >
+              {t('Upgrade now')}
+            </LinkButton>
+            <FindOutMoreButton href="https://docs.sentry.io/pricing/#pricing-by-product-and-data-category" />
+          </Fragment>
+        ) : undefined
       }
       hasContentBelow={false}
     />
