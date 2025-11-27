@@ -1,10 +1,12 @@
 from django.http import HttpRequest
 
 from sentry.types.activity import ActivityType
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import ActivityMailDebugView, get_random, make_message
 
 
+@internal_region_silo_view
 class DebugNoteEmailView(ActivityMailDebugView):
     def get_activity(self, request: HttpRequest, event):
         random = get_random(request)
