@@ -774,6 +774,61 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
         assert result is None
 
+    def test_get_trace_waterfall_fast_path_with_transaction(self) -> None:
+        """Test that the optimized fast path finds traces with transactions efficiently"""
+        transaction_name = "api/users/profile"
+        trace_id = uuid.uuid4().hex
+        five_days_ago = before_now(days=5)
+
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "sentry_tags": {"transaction": transaction_name},
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,  # First span is a transaction
+                },
+                start_ts=five_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should find the trace using fast path (transaction-only query)
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
+    def test_get_trace_waterfall_fallback_without_transaction(self) -> None:
+        """Test that fallback sliding window works for traces without transaction spans"""
+        trace_id = uuid.uuid4().hex
+        five_days_ago = before_now(days=5)
+
+        # Create spans without any marked as transactions (is_segment=False)
+        spans: list[dict] = []
+        for i in range(3):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}",
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": False,  # No transactions
+                },
+                start_ts=five_days_ago + timedelta(minutes=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans, is_eap=True)
+
+        # Should still find the trace using fallback sliding window
+        result = get_trace_waterfall(trace_id[:8], self.organization.id)
+        assert isinstance(result, EAPTrace)
+        assert result.trace_id == trace_id
+        assert result.org_id == self.organization.id
+
 
 class _Project(BaseModel):
     id: int
