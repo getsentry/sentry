@@ -138,9 +138,11 @@ function ProductTrialCta({
   organization,
   subscription,
   selectedProduct,
+  showBottomBorder,
 }: {
   organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
+  showBottomBorder: boolean;
   subscription: Subscription;
 }) {
   const [trialButtonBusy, setTrialButtonBusy] = useState(false);
@@ -178,9 +180,10 @@ function ProductTrialCta({
     <Grid
       background="secondary"
       padding="xl"
-      columns={{xs: 'repeat(2, 1fr)', lg: 'fit-content auto'}}
+      columns={{'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'}}
       gap="3xl"
-      borderBottom="primary"
+      borderBottom={showBottomBorder ? 'primary' : undefined}
+      radius={showBottomBorder ? undefined : '0 0 md md'}
     >
       <Flex direction="column" gap="sm">
         <Text bold textWrap="balance">
@@ -410,6 +413,7 @@ function ProductBreakdownPanel({
         organization={organization}
         subscription={subscription}
         selectedProduct={selectedProduct}
+        showBottomBorder={isEnabled}
       />
       {isEnabled && (
         <Fragment>

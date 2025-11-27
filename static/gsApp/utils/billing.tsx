@@ -6,6 +6,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {IconSize} from 'sentry/utils/theme';
 
 import {
@@ -163,7 +164,7 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
 
-  if (!options.useUnitScaling || dataCategory === DataCategory.ATTACHMENTS) {
+  if (!options.useUnitScaling) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
         ? {...options, isAbbreviated: false}
@@ -187,7 +188,7 @@ export function formatUsageWithUnits(
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
   if (isByteCategory(dataCategory)) {
-    if (options.useUnitScaling && dataCategory !== DataCategory.ATTACHMENTS) {
+    if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
 
@@ -622,7 +623,9 @@ export function hasAccessToSubscriptionOverview(
  */
 export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
   if (metricHistory.softCapType) {
-    return titleCase(metricHistory.softCapType.replace(/_/g, ' '));
+    return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
+      allowInnerUpperCase: true,
+    }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
   }
   if (metricHistory.trueForward) {
     return 'True Forward';
@@ -889,11 +892,11 @@ export function getBilledCategory(
       budget => budget.apiName === reservedBudgetCategory
     );
     return reservedBudget
-      ? dataCategories.find(dataCategory =>
+      ? (dataCategories.find(dataCategory =>
           subscription.planDetails.planCategories[dataCategory]?.find(
             bucket => bucket.events === RESERVED_BUDGET_QUOTA
           )
-        )!
+        ) ?? dataCategories[0]!)
       : dataCategories[0]!;
   }
 

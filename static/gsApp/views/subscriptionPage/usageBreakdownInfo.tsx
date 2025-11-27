@@ -5,6 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -18,6 +19,7 @@ import type {
 import {
   displayBudgetName,
   formatReservedWithUnits,
+  getSoftCapType,
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
@@ -52,11 +54,13 @@ function UsageBreakdownInfo({
   recurringReservedSpend,
   productCanUsePayg,
   activeProductTrial,
+  formattedSoftCapType,
 }: {
   activeProductTrial: ProductTrial | null;
   formattedAdditionalReserved: React.ReactNode | null;
   formattedGifted: React.ReactNode | null;
   formattedPlatformReserved: React.ReactNode | null;
+  formattedSoftCapType: React.ReactNode | null;
   paygCategoryBudget: number | null;
   paygSpend: number;
   plan: Plan;
@@ -71,7 +75,12 @@ function UsageBreakdownInfo({
     !!formattedPlatformReserved ||
     !!formattedAdditionalReserved ||
     !!formattedGifted;
-  const shouldShowAdditionalSpend = subscription.canSelfServe || canUsePayg;
+  const shouldShowAdditionalSpend =
+    subscription.canSelfServe || canUsePayg || defined(formattedSoftCapType);
+
+  if (!shouldShowIncludedVolume && !shouldShowAdditionalSpend) {
+    return null;
+  }
 
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
@@ -101,6 +110,12 @@ function UsageBreakdownInfo({
       {shouldShowAdditionalSpend && (
         <Flex direction="column" gap="lg">
           <Text bold>{t('Additional spend')}</Text>
+          {formattedSoftCapType && (
+            <UsageBreakdownField
+              field={t('Soft cap type')}
+              value={formattedSoftCapType}
+            />
+          )}
           {canUsePayg && (
             <UsageBreakdownField
               field={displayBudgetName(plan, {title: true})}
@@ -193,6 +208,7 @@ function DataCategoryUsageBreakdownInfo({
       recurringReservedSpend={recurringReservedSpend}
       productCanUsePayg={productCanUsePayg}
       activeProductTrial={activeProductTrial}
+      formattedSoftCapType={getSoftCapType(metricHistory)}
     />
   );
 }
@@ -249,6 +265,7 @@ function ReservedBudgetUsageBreakdownInfo({
       recurringReservedSpend={recurringReservedSpend}
       productCanUsePayg={productCanUsePayg}
       activeProductTrial={activeProductTrial}
+      formattedSoftCapType={null} // Reserved budgets don't have soft caps, the individual categories in the budget may
     />
   );
 }

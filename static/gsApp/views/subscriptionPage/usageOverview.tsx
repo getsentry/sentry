@@ -47,6 +47,7 @@ import {
   getPercentage,
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
+  getSoftCapType,
   MILLISECONDS_IN_HOUR,
   productIsEnabled,
   supportsPayg,
@@ -92,7 +93,7 @@ function ProductTrialRibbon({
     : tn('%s day left', '%s days left', trialDaysLeft);
 
   return (
-    <Flex position="absolute" style={{left: '-1px', top: '14px'}} z-index="1000">
+    <RibbonContainer>
       <RibbonBase ribbonColor={ribbonColor}>
         <Tooltip title={tooltipContent}>
           {activeProductTrial ? (
@@ -106,7 +107,7 @@ function ProductTrialRibbon({
         <TopRibbonEdge ribbonColor={ribbonColor} />
         <BottomRibbonEdge ribbonColor={ribbonColor} />
       </Flex>
-    </Flex>
+    </RibbonContainer>
   );
 }
 
@@ -161,11 +162,19 @@ function ProductRow({
     return null;
   }
 
+  const activeProductTrial = isChildProduct
+    ? null
+    : getActiveProductTrial(subscription.productTrials ?? null, billedCategory);
+  const potentialProductTrial = isChildProduct
+    ? null
+    : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory);
+
   let displayName = '';
   let percentUsed = 0;
   let formattedUsage = '';
   let formattedPrepaid = null;
   let paygSpend = 0;
+  let isUnlimited = false;
 
   if (isAddOn) {
     const addOnInfo = subscription.addOns?.[(parentProduct ?? product) as AddOnCategory];
@@ -181,6 +190,7 @@ function ProductRow({
         })
       : toTitleCase(productName, {allowInnerUpperCase: true});
 
+    isUnlimited = !!activeProductTrial;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
       (parentProduct ?? product) as AddOnCategory
     );
@@ -188,7 +198,7 @@ function ProductRow({
       budget => budget.apiName === reservedBudgetCategory
     );
     percentUsed = reservedBudget
-      ? getPercentage(metricHistory.usage, reservedBudget.reservedBudget)
+      ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
       : 0;
     formattedUsage = reservedBudget
       ? isChildProduct
@@ -201,8 +211,12 @@ function ProductRow({
           useUnitScaling: true,
         });
 
-    if (reservedBudget) {
-      formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
+    if (isUnlimited) {
+      formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
+    } else {
+      if (reservedBudget) {
+        formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
+      }
     }
 
     paygSpend = isChildProduct
@@ -218,7 +232,7 @@ function ProductRow({
     });
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
     const {prepaid} = metricHistory;
-    const isUnlimited = prepaid === UNLIMITED_RESERVED;
+    isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
     const rawPrepaid = isUnlimited
       ? prepaid
       : isByteCategory(billedCategory)
@@ -248,12 +262,12 @@ function ProductRow({
   const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend;
 
-  const activeProductTrial = isChildProduct
-    ? null
-    : getActiveProductTrial(subscription.productTrials ?? null, billedCategory);
-  const potentialProductTrial = isChildProduct
-    ? null
-    : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory);
+  const formattedSoftCapType =
+    isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;
+  if (formattedSoftCapType) {
+    displayName = `${displayName} (${formattedSoftCapType})`;
+  }
+
   const usageExceeded = subscription.categories[billedCategory]?.usageExceeded ?? false;
   const isPaygOnly =
     !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
@@ -264,8 +278,8 @@ function ProductRow({
   return (
     <Fragment>
       <TableRow
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => isClickable && setIsHovered(true)}
+        onMouseLeave={() => isClickable && setIsHovered(false)}
         isClickable={isClickable}
         isSelected={isSelected}
         onClick={() => (isClickable ? onRowClick(product) : undefined)}
@@ -284,43 +298,53 @@ function ProductRow({
             potentialProductTrial={potentialProductTrial}
           />
         )}
-        <Flex
-          paddingLeft={
-            activeProductTrial || potentialProductTrial
-              ? 'lg'
-              : isChildProduct
-                ? '2xl'
-                : undefined
-          }
-          gap="sm"
-          align="center"
-        >
-          <Text variant={isEnabled ? 'primary' : 'muted'}>{displayName}</Text>
-          {!isEnabled && <IconLock size="sm" locked color="disabled" />}
-        </Flex>
+        <td>
+          <Flex
+            paddingLeft={
+              activeProductTrial || potentialProductTrial
+                ? 'lg'
+                : isChildProduct
+                  ? '2xl'
+                  : undefined
+            }
+            gap="sm"
+            align="center"
+          >
+            <Text variant={isEnabled ? 'primary' : 'muted'} textWrap="balance">
+              {displayName}
+            </Text>
+            {!isEnabled && <IconLock size="sm" locked color="disabled" />}
+          </Flex>
+        </td>
         {isEnabled && (
           <Fragment>
-            <Flex align="center" gap="xs">
-              {usageExceeded ? (
-                <IconWarning size="sm" color="danger" />
-              ) : isPaygOnly ||
-                isChildProduct ||
-                reserved === UNLIMITED_RESERVED ? null : (
-                <ProgressRing
-                  value={percentUsed}
-                  progressColor={
-                    !usageExceeded && percentUsed === 100 ? theme.warningFocus : undefined
-                  }
-                />
-              )}
-              <Text>
-                {isPaygOnly || isChildProduct || !formattedPrepaid
-                  ? formattedUsage
-                  : `${formattedUsage} / ${formattedPrepaid}`}
-              </Text>
-            </Flex>
+            <td>
+              <Flex align="center" gap="xs" wrap="wrap">
+                {usageExceeded ? (
+                  <IconWarning size="sm" color="danger" />
+                ) : isPaygOnly || isChildProduct || isUnlimited ? null : (
+                  <ProgressRing
+                    value={percentUsed}
+                    progressColor={
+                      !usageExceeded && percentUsed === 100
+                        ? theme.warningFocus
+                        : undefined
+                    }
+                  />
+                )}
+                <Text textWrap="balance">
+                  {isPaygOnly || isChildProduct || !formattedPrepaid
+                    ? formattedUsage
+                    : `${formattedUsage} / ${formattedPrepaid}`}
+                </Text>
+              </Flex>
+            </td>
             {showAdditionalSpendColumn && (
-              <Text align="right">{displayPriceWithCents({cents: additionalSpend})}</Text>
+              <td>
+                <Text align="right">
+                  {displayPriceWithCents({cents: additionalSpend})}
+                </Text>
+              </td>
             )}
           </Fragment>
         )}
@@ -357,106 +381,109 @@ function UsageOverviewTable({
     subscription.canSelfServe || supportsPayg(subscription);
 
   return (
-    <Grid
-      columns="max-content auto max-content"
-      background="primary"
-      borderTop="primary"
-      radius="0 0 md md"
-      gap="0 3xl"
-      width="100%"
-    >
-      <TableHeader>
-        <Text bold variant="muted" uppercase>
-          {t('Feature')}
-        </Text>
-        <Text bold variant="muted" uppercase>
-          {t('Usage')}
-        </Text>
-        {showAdditionalSpendColumn && (
-          <Text bold variant="muted" align="right" uppercase>
-            {t('Additional spend')}
-          </Text>
-        )}
-      </TableHeader>
-      {sortedCategories
-        .filter(
-          categoryInfo =>
-            // filter out data categories that are part of add-ons
-            // unless they are unlimited
-            !addOnDataCategories.includes(categoryInfo.category) ||
-            categoryInfo.reserved === UNLIMITED_RESERVED
-        )
-        .map(categoryInfo => {
-          const {category} = categoryInfo;
+    <Table>
+      <thead>
+        <TableHeaderRow>
+          <th>
+            <Text bold variant="muted" uppercase>
+              {t('Feature')}
+            </Text>
+          </th>
+          <th>
+            <Text bold variant="muted" uppercase>
+              {t('Usage')}
+            </Text>
+          </th>
+          {showAdditionalSpendColumn && (
+            <th>
+              <Text bold variant="muted" align="right" uppercase>
+                {t('Additional spend')}
+              </Text>
+            </th>
+          )}
+        </TableHeaderRow>
+      </thead>
+      <tbody>
+        {sortedCategories
+          .filter(
+            categoryInfo =>
+              // filter out data categories that are part of add-ons
+              // unless they are unlimited
+              !addOnDataCategories.includes(categoryInfo.category) ||
+              categoryInfo.reserved === UNLIMITED_RESERVED
+          )
+          .map(categoryInfo => {
+            const {category} = categoryInfo;
 
-          return (
-            <ProductRow
-              key={category}
-              product={category}
-              selectedProduct={selectedProduct}
-              onRowClick={onRowClick}
-              subscription={subscription}
-              usageData={usageData}
-              organization={organization}
-            />
-          );
-        })}
-      {Object.values(subscription.planDetails.addOnCategories)
-        .filter(
-          // show add-ons regardless of whether they're enabled
-          // as long as they're launched for the org
-          // and none of their sub-categories are unlimited
-          // Also do not show Seer if the legacy Seer add-on is enabled
-          addOnInfo =>
-            (!addOnInfo.billingFlag ||
-              organization.features.includes(addOnInfo.billingFlag)) &&
-            !addOnInfo.dataCategories.some(
-              category =>
-                subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-            ) &&
-            (addOnInfo.apiName !== AddOnCategory.SEER ||
-              !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
-        )
-        .map(addOnInfo => {
-          const {apiName, dataCategories} = addOnInfo;
-          const billedCategory = getBilledCategory(subscription, apiName);
-          if (!billedCategory) {
-            return null;
-          }
-
-          return (
-            <Fragment key={apiName}>
+            return (
               <ProductRow
-                product={apiName}
+                key={category}
+                product={category}
                 selectedProduct={selectedProduct}
                 onRowClick={onRowClick}
                 subscription={subscription}
                 usageData={usageData}
                 organization={organization}
               />
-              {sortedCategories
-                .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
-                .map(categoryInfo => {
-                  const {category} = categoryInfo;
+            );
+          })}
+        {Object.values(subscription.planDetails.addOnCategories)
+          .filter(
+            // show add-ons regardless of whether they're enabled
+            // as long as they're launched for the org
+            // and none of their sub-categories are unlimited
+            // Also do not show Seer if the legacy Seer add-on is enabled
+            addOnInfo =>
+              (!addOnInfo.billingFlag ||
+                organization.features.includes(addOnInfo.billingFlag)) &&
+              !addOnInfo.dataCategories.some(
+                category =>
+                  subscription.categories[category]?.reserved === UNLIMITED_RESERVED
+              ) &&
+              (addOnInfo.apiName !== AddOnCategory.SEER ||
+                !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
+          )
+          .map(addOnInfo => {
+            const {apiName, dataCategories} = addOnInfo;
+            const billedCategory = getBilledCategory(subscription, apiName);
+            if (!billedCategory) {
+              return null;
+            }
 
-                  return (
-                    <ProductRow
-                      key={category}
-                      product={category}
-                      selectedProduct={selectedProduct}
-                      onRowClick={onRowClick}
-                      subscription={subscription}
-                      isChildProduct
-                      parentProduct={apiName}
-                      usageData={usageData}
-                      organization={organization}
-                    />
-                  );
-                })}
-            </Fragment>
-          );
-        })}
-    </Grid>
+            return (
+              <Fragment key={apiName}>
+                <ProductRow
+                  product={apiName}
+                  selectedProduct={selectedProduct}
+                  onRowClick={onRowClick}
+                  subscription={subscription}
+                  usageData={usageData}
+                  organization={organization}
+                />
+                {sortedCategories
+                  .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
+                  .map(categoryInfo => {
+                    const {category} = categoryInfo;
+
+                    return (
+                      <ProductRow
+                        key={category}
+                        product={category}
+                        selectedProduct={selectedProduct}
+                        onRowClick={onRowClick}
+                        subscription={subscription}
+                        isChildProduct
+                        parentProduct={apiName}
+                        usageData={usageData}
+                        organization={organization}
+                      />
+                    );
+                  })}
+              </Fragment>
+            );
+          })}
+      </tbody>
+    </Table>
   );
 }
 
@@ -637,10 +664,30 @@ function UsageOverview({
 
 export default UsageOverview;
 
-const TableHeader = styled('th')`
+const Table = styled('table')`
   display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
+  grid-template-columns: max-content auto max-content;
+  background: ${p => p.theme.background};
+  border-top: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  gap: 0 ${p => p.theme.space['3xl']};
+  width: 100%;
+  margin: 0;
+
+  thead,
+  tbody,
+  tr {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(3, auto);
+  }
+`;
+
+const TableHeaderRow = styled('tr')`
   background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   text-transform: uppercase;
@@ -650,9 +697,6 @@ const TableHeader = styled('th')`
 const TableRow = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
   position: relative;
   background: ${p => (p.isSelected ? p.theme.backgroundSecondary : p.theme.background)};
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
   padding: ${p => p.theme.space.xl};
   cursor: pointer;
 
@@ -663,6 +707,8 @@ const TableRow = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
   &:last-child {
     border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
+
+  cursor: default;
 
   ${p =>
     p.isClickable &&
@@ -675,7 +721,7 @@ const TableRow = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
     `}
 `;
 
-const SelectedPill = styled('div')<{isSelected: boolean}>`
+const SelectedPill = styled('td')<{isSelected: boolean}>`
   position: absolute;
   right: -1px;
   top: 14px;
@@ -684,6 +730,14 @@ const SelectedPill = styled('div')<{isSelected: boolean}>`
   border-radius: 2px;
   background: ${p =>
     p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+`;
+
+const RibbonContainer = styled('td')`
+  display: flex;
+  position: absolute;
+  left: -1px;
+  top: 14px;
+  z-index: 1000;
 `;
 
 const RibbonBase = styled('div')<{ribbonColor: string}>`
