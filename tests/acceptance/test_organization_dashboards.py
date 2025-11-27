@@ -123,7 +123,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
-            self.page.wait_until_loaded()
             self.page.enter_edit_state()
 
             # Drag to the right
@@ -317,7 +316,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
-            self.page.wait_until_loaded()
             self.page.enter_edit_state()
 
             # Resize existing widget
@@ -483,7 +481,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
-            self.page.wait_until_loaded()
 
             # Hover over the widget to show widget actions
             self.browser.move_to('[aria-label="Widget panel"]')

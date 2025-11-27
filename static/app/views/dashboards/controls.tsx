@@ -15,6 +15,7 @@ import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -84,7 +85,7 @@ function Controls({
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
 
-  const isPrebuiltDashboard = dashboard.prebuiltId !== undefined;
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
