@@ -33,7 +33,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: 'span.system',
           kind: FieldKind.TAG,
         },
-        value: 'span.system:postgresql',
+        value: '',
       },
       {
         dataset: WidgetType.SPANS,
@@ -126,7 +126,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
             `sum(${SpanFields.SPAN_SELF_TIME})`,
           ],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           fieldAliases: [
             t('Query Description'),
             `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
