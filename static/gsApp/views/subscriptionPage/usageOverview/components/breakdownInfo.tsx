@@ -41,7 +41,7 @@ interface UsageBreakdownInfoProps extends BaseProps {
   plan: Plan;
   platformReservedField: React.ReactNode;
   productCanUsePayg: boolean;
-  recurringReservedSpend: number;
+  recurringReservedSpend: number | null;
 }
 
 interface DataCategoryUsageBreakdownInfoProps extends BaseProps {
@@ -160,7 +160,7 @@ function UsageBreakdownInfo({
               )}
             />
           )}
-          {subscription.canSelfServe && (
+          {subscription.canSelfServe && defined(recurringReservedSpend) && (
             <UsageBreakdownField
               field={t('Reserved spend')}
               value={displayPriceWithCents({cents: recurringReservedSpend})}
@@ -190,10 +190,12 @@ function DataCategoryUsageBreakdownInfo({
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
   const reserved = metricHistory.reserved ?? 0;
   const isUnlimited = reserved === UNLIMITED_RESERVED;
+
   const addOnDataCategories = Object.values(plan.addOnCategories).flatMap(
     addOn => addOn.dataCategories
   );
   const isAddOnChildCategory = addOnDataCategories.includes(category) && !isUnlimited;
+
   const shouldShowAdditionalReserved =
     !isAddOnChildCategory && !isUnlimited && subscription.canSelfServe;
   const formattedPlatformReserved = isAddOnChildCategory
@@ -206,6 +208,7 @@ function DataCategoryUsageBreakdownInfo({
   const formattedAdditionalReserved = shouldShowAdditionalReserved
     ? formatReservedWithUnits(additionalReserved, category)
     : null;
+
   const gifted = metricHistory.free ?? 0;
   const formattedGifted = isAddOnChildCategory
     ? null
@@ -215,7 +218,7 @@ function DataCategoryUsageBreakdownInfo({
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
 
   const recurringReservedSpend = isAddOnChildCategory
-    ? 0
+    ? null
     : (plan.planCategories[category]?.find(bucket => bucket.events === reserved)?.price ??
       0);
 
@@ -247,6 +250,7 @@ function ReservedBudgetUsageBreakdownInfo({
     plan.onDemandCategories.includes(category)
   );
   const onTrialOrSponsored = isTrialPlan(subscription.plan) || subscription.isSponsored;
+
   const platformReservedField = onTrialOrSponsored
     ? tct('[planName] plan', {planName: plan.name})
     : tct('[productName] monthly credits', {
@@ -257,11 +261,13 @@ function ReservedBudgetUsageBreakdownInfo({
   const formattedPlatformReserved = displayPriceWithCents({
     cents: reservedBudget.reservedBudget,
   });
+
   const formattedAdditionalReserved = null;
-  const formattedGift = displayPriceWithCents({cents: reservedBudget.freeBudget});
+  const formattedGifted = displayPriceWithCents({cents: reservedBudget.freeBudget});
   const paygSpend = reservedBudget.dataCategories.reduce((acc, category) => {
     return acc + (metricHistories[category]?.onDemandSpendUsed ?? 0);
   }, 0);
+
   const billedCategory = reservedBudget.dataCategories[0]!;
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
@@ -279,7 +285,7 @@ function ReservedBudgetUsageBreakdownInfo({
       platformReservedField={platformReservedField}
       formattedPlatformReserved={formattedPlatformReserved}
       formattedAdditionalReserved={formattedAdditionalReserved}
-      formattedGifted={formattedGift}
+      formattedGifted={formattedGifted}
       paygSpend={paygSpend}
       paygCategoryBudget={null}
       recurringReservedSpend={recurringReservedSpend}

@@ -2,11 +2,13 @@ import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -16,6 +18,7 @@ import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {AddOnCategory} from 'getsentry/types';
 import {
   checkIsAddOn,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -196,6 +199,11 @@ function UsageOverviewTableRow({
 
   const isClickable = !!potentialProductTrial || isEnabled;
   const isSelected = selectedProduct === product;
+  const disabledTooltipText = isAddOn
+    ? t('Requires purchase')
+    : tct('Requires [budgetTerm]', {
+        budgetTerm: displayBudgetName(subscription.planDetails),
+      });
 
   return (
     <Fragment>
@@ -230,12 +238,15 @@ function UsageOverviewTableRow({
                   : undefined
             }
             gap="sm"
-            align="center"
           >
             <Text variant={isEnabled ? 'primary' : 'muted'} textWrap="balance">
               {displayName}
             </Text>
-            {!isEnabled && <IconLock size="sm" locked color="disabled" />}
+            {!isEnabled && (
+              <Tooltip title={disabledTooltipText}>
+                <IconLock size="xs" locked color="disabled" />
+              </Tooltip>
+            )}
           </Flex>
         </td>
         {isEnabled && (
@@ -273,12 +284,16 @@ function UsageOverviewTableRow({
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </Row>
       {isMobile && isSelected && (
-        <ProductBreakdownPanel
-          organization={organization}
-          selectedProduct={selectedProduct}
-          subscription={subscription}
-          usageData={usageData}
-        />
+        <tr>
+          <MobilePanelContainer>
+            <ProductBreakdownPanel
+              organization={organization}
+              selectedProduct={selectedProduct}
+              subscription={subscription}
+              usageData={usageData}
+            />
+          </MobilePanelContainer>
+        </tr>
       )}
     </Fragment>
   );
@@ -311,6 +326,12 @@ const Row = styled('tr')<{isClickable: boolean; isSelected: boolean}>`
         background: ${p.theme.backgroundSecondary};
       }
     `}
+`;
+
+const MobilePanelContainer = styled('td')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
 `;
 
 const SelectedPill = styled('td')<{isSelected: boolean}>`

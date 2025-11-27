@@ -36,15 +36,20 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
     const productFromQuery = location.query.product as string;
     if (productFromQuery) {
       const isAddOn = checkIsAddOn(productFromQuery);
-      const selection = isAddOn
-        ? (productFromQuery as AddOnCategory)
-        : (productFromQuery as DataCategory);
-      if (selectedProduct !== selection) {
+      if (selectedProduct !== productFromQuery) {
         const isSelectable = isAddOn
-          ? selection in subscription.planDetails.addOnCategories
-          : selection in subscription.planDetails.categories;
+          ? Object.keys(subscription.planDetails.addOnCategories).includes(
+              productFromQuery
+            )
+          : subscription.planDetails.categories.includes(
+              productFromQuery as DataCategory
+            );
         if (isSelectable) {
-          setSelectedProduct(selection);
+          setSelectedProduct(
+            isAddOn
+              ? (productFromQuery as AddOnCategory)
+              : (productFromQuery as DataCategory)
+          );
         } else {
           // if the query is an unselectable product, reset the query to the existing selected product
           navigate(
