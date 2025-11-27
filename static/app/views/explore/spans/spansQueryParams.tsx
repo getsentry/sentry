@@ -8,6 +8,7 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
+import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
 import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
@@ -49,6 +50,7 @@ const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
 const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 const SPANS_ID_KEY = ID_KEY;
 const SPANS_TITLE_KEY = TITLE_KEY;
+const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
 
 export function useSpansDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
@@ -84,6 +86,8 @@ export function getReadableQueryParamsFromLocation(
   const id = getIdFromLocation(location, SPANS_ID_KEY);
   const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
 
+  const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
+
   return new ReadableQueryParams({
     extrapolate,
     mode,
@@ -99,6 +103,8 @@ export function getReadableQueryParamsFromLocation(
 
     id,
     title,
+
+    crossEvents,
   });
 }
 
@@ -146,6 +152,14 @@ export function getTargetWithReadableQueryParams(
       : writableQueryParams.aggregateSortBys?.map(
           sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
         )
+  );
+
+  updateNullableLocation(
+    target,
+    SPANS_CROSS_EVENTS_KEY,
+    writableQueryParams?.crossEvents === null
+      ? null
+      : JSON.stringify(writableQueryParams.crossEvents)
   );
 
   return target;
