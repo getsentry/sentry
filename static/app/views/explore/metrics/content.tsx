@@ -1,15 +1,12 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,38 +23,11 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-  return (
-    <Button
-      size="xs"
-      aria-label="trace-metrics-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm?.({
-          messagePlaceholder: t('How can we make metrics work better for you?'),
-          tags: {
-            ['feedback.source']: 'metrics-listing',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  );
-}
-
 export default function MetricsContent() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRACE_METRICS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
@@ -122,9 +92,16 @@ function MetricsHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
-          <FeedbackButton />
-        </ButtonBar>
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make metrics work better for you?'),
+            tags: {
+              ['feedback.source']: 'metrics-listing',
+              ['feedback.owner']: 'performance',
+            },
+          }}
+        />
       </Layout.HeaderActions>
     </Layout.Header>
   );

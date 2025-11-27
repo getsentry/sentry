@@ -115,7 +115,7 @@ export function ScreenSummaryContentPage() {
       <HeaderContainer>
         <ToolRibbon>
           <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
-          <ReleaseComparisonSelector />
+          <ReleaseComparisonSelector moduleName={ModuleName.APP_START} />
           <StartTypeSelector />
         </ToolRibbon>
         <MobileMetricsRibbon

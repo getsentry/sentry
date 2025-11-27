@@ -10,7 +10,6 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -98,10 +97,8 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
-    organization,
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 

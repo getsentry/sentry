@@ -457,6 +457,7 @@ describe('Cart', () => {
         },
         name: 'partner',
       },
+      paymentSource: null,
     });
 
     render(
@@ -471,7 +472,9 @@ describe('Cart', () => {
     );
 
     // wait for preview to be loaded
-    await screen.findByRole('button', {name: 'Confirm and pay'});
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeEnabled()
+    );
     screen.getByText(/you will be billed by Partner/);
   });
 

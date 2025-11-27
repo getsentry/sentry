@@ -28,29 +28,21 @@ export function useFindAdjacentTrace({
 } {
   const {
     projectId,
-    environment,
     currentTraceId,
-    currentSpanId,
     adjacentTraceId,
     adjacentTraceSpanId,
     hasAdjacentTraceLink,
     adjacentTraceSampled,
   } = useMemo(() => {
     let _projectId: number | undefined = undefined;
-    let _environment: string | undefined = undefined;
     let _currentTraceId: string | undefined;
-    let _currentSpanId: string | undefined;
     let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
 
     for (const a of attributes ?? []) {
       if (a.name === 'project_id' && a.type === 'int') {
         _projectId = a.value;
-      } else if (a.name === 'environment' && a.type === 'str') {
-        _environment = a.value;
       } else if (a.name === 'trace' && a.type === 'str') {
         _currentTraceId = a.value;
-      } else if (a.name === 'transaction.span_id' && a.type === 'str') {
-        _currentSpanId = a.value;
       } else if (a.name === 'previous_trace' && a.type === 'str') {
         _adjacentTraceAttribute = a;
       }
@@ -72,9 +64,7 @@ export function useFindAdjacentTrace({
 
     return {
       projectId: _projectId,
-      environment: _environment,
       currentTraceId: _currentTraceId,
-      currentSpanId: _currentSpanId,
       hasAdjacentTraceLink: _hasAdjacentTraceLink,
       adjacentTraceSampled: _adjacentTraceSampledFlag === '1',
       adjacentTraceId: _adjacentTraceId,
@@ -84,7 +74,12 @@ export function useFindAdjacentTrace({
 
   const searchQuery =
     direction === 'next'
-      ? `sentry.previous_trace:${currentTraceId}-${currentSpanId}-1`
+      ? // relaxed the next trace lookup to match spans containing only the
+        // traceId and not the spanId of the current trace root. We can't
+        // always be sure that the current trace root is indeed the span the
+        // next span would link towards, because sometimes the root might be a web
+        // vital span instead of the actual intial span from the SDK's perspective.
+        `sentry.previous_trace:${currentTraceId}-*-1`
       : `id:${adjacentTraceSpanId} trace:${adjacentTraceId}`;
 
   const enabled =
@@ -103,7 +98,7 @@ export function useFindAdjacentTrace({
       enabled,
       projectIds: projectId ? [projectId] : [],
       pageFilters: {
-        environments: environment ? [environment] : [],
+        environments: [],
         projects: projectId ? [projectId] : [],
         datetime: {
           start: adjacentTraceStartTimestamp
