@@ -28,7 +28,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    parser_classes = []  # accept arbitrary data and don't attempt to parse it
+    parser_classes = []  # don't attempt to parse request data, so we can access it raw
 
     def get(
         self, request: Request, organization: Organization, path: str
@@ -74,35 +74,33 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
-        body_stream = None
+        data = None
         if method in ("PUT", "POST"):
-            wsgi_input = request._request.META.get("wsgi.input")
-            assert wsgi_input
-            stream_func = wsgi_input._read
-            body_stream = ChunkedStreamDecoder(stream_func)
+            wsgi_input = request.META.get("wsgi.input")
+            if not wsgi_input:
+                return Response("Expected a request body", status=400)
+            data = ChunkedEncodingWrapper(wsgi_input._read)
 
         response = requests.request(
             method,
             url=target_url,
             headers=headers,
-            data=body_stream,
+            data=data,
             params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
         )
-        response.raise_for_status()
-
         return stream_response(response)
 
 
-class ChunkedStreamDecoder:
+class ChunkedEncodingWrapper:
     """
-    Decodes HTTP chunked transfer encoding on-the-fly without buffering.
-    Implements file-like interface for streaming to requests library.
+    Wrapper around a read function returning chunked transfer encoded data.
+    Provides a file-like interface to the decoded data stream.
     """
 
-    def __init__(self, read_func: Callable[[int], bytes]):
-        self._read = read_func
+    def __init__(self, read: Callable[[int], bytes]):
+        self._read = read
         self._done = False
         self._current_chunk_remaining = 0
 
@@ -110,47 +108,47 @@ class ChunkedStreamDecoder:
         if self._done:
             return b""
 
-        result = []
-        bytes_read = 0
-        target_size = size if size > 0 else 8192
+        target = size if size > 0 else 8192
+        read = 0
+        buffer = []
 
-        while bytes_read < target_size:
-            if self._current_chunk_remaining > 0:
-                to_read = min(self._current_chunk_remaining, target_size - bytes_read)
-                chunk = self._read(to_read)
-                if not chunk:
-                    self._done = True
-                    break
-                result.append(chunk)
-                bytes_read += len(chunk)
-                self._current_chunk_remaining -= len(chunk)
-
-                if self._current_chunk_remaining == 0:
-                    self._read(2)  # Read trailing \r\n
-            else:
+        while read < target:
+            if self._current_chunk_remaining == 0:
                 # Read next chunk size line
                 size_line = b""
                 while not size_line.endswith(b"\r\n"):
                     byte = self._read(1)
                     if not byte:
                         self._done = True
-                        return b"".join(result)
+                        return b"".join(buffer)
                     size_line += byte
 
                 try:
                     chunk_size = int(size_line.strip(), 16)
                 except ValueError:
                     self._done = True
-                    return b"".join(result)
+                    return b"".join(buffer)
 
                 if chunk_size == 0:
                     self._read(2)  # Read trailing \r\n
                     self._done = True
-                    return b"".join(result)
+                    return b"".join(buffer)
 
                 self._current_chunk_remaining = chunk_size
+            else:
+                to_read = min(self._current_chunk_remaining, target - read)
+                chunk = self._read(to_read)
+                if not chunk:
+                    self._done = True
+                    break
+                buffer.append(chunk)
+                read += len(chunk)
+                self._current_chunk_remaining -= len(chunk)
 
-        return b"".join(result)
+                if self._current_chunk_remaining == 0:
+                    self._read(2)  # Read trailing \r\n
+
+        return b"".join(buffer)
 
 
 def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
