@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button/button';
 import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text/text';
 
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
@@ -146,69 +148,80 @@ export function AttributeDistribution() {
   return (
     <Panel>
       <Flex direction="column" gap="xl" padding="xl">
-        <Fragment>
-          <ControlsContainer>
-            <StyledBaseSearchBar
-              placeholder={t('Search keys')}
-              onChange={q => {
-                setSearchQuery(q);
-              }}
-              query={debouncedSearchQuery}
-              size="sm"
-            />
-            <AttributeBreakdownsComponent.FeedbackButton />
-          </ControlsContainer>
-          {isAttributeBreakdownsLoading || isCohortCountLoading ? (
-            <AttributeBreakdownsComponent.LoadingCharts />
-          ) : filteredAttributeDistribution.length > 0 ? (
-            <Fragment>
-              <ChartsGrid>
-                {filteredAttributeDistribution
-                  .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
-                  .map(attribute => (
-                    <Chart
-                      key={attribute.name}
-                      attributeDistribution={attribute}
-                      cohortCount={cohortCount}
-                      theme={theme}
-                    />
-                  ))}
-              </ChartsGrid>
-              <PaginationContainer>
-                <ButtonBar merged gap="0">
-                  <Button
-                    icon={<IconChevron direction="left" />}
-                    aria-label={t('Previous')}
-                    size="sm"
-                    disabled={page === 0}
-                    onClick={() => {
-                      setPage(page - 1);
-                    }}
+        <ChartSelectionAlert />
+        <ControlsContainer>
+          <StyledBaseSearchBar
+            placeholder={t('Search keys')}
+            onChange={q => {
+              setSearchQuery(q);
+            }}
+            query={debouncedSearchQuery}
+            size="sm"
+          />
+          <AttributeBreakdownsComponent.FeedbackButton />
+        </ControlsContainer>
+        {isAttributeBreakdownsLoading || isCohortCountLoading ? (
+          <AttributeBreakdownsComponent.LoadingCharts />
+        ) : filteredAttributeDistribution.length > 0 ? (
+          <Fragment>
+            <ChartsGrid>
+              {filteredAttributeDistribution
+                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
+                .map(attribute => (
+                  <Chart
+                    key={attribute.name}
+                    attributeDistribution={attribute}
+                    cohortCount={cohortCount}
+                    theme={theme}
                   />
-                  <Button
-                    icon={<IconChevron direction="right" />}
-                    aria-label={t('Next')}
-                    size="sm"
-                    disabled={
-                      page ===
-                      Math.ceil(
-                        (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
-                      ) -
-                        1
-                    }
-                    onClick={() => {
-                      setPage(page + 1);
-                    }}
-                  />
-                </ButtonBar>
-              </PaginationContainer>
-            </Fragment>
-          ) : (
-            <NoAttributesMessage>{t('No matching attributes found')}</NoAttributesMessage>
-          )}
-        </Fragment>
+                ))}
+            </ChartsGrid>
+            <PaginationContainer>
+              <ButtonBar merged gap="0">
+                <Button
+                  icon={<IconChevron direction="left" />}
+                  aria-label={t('Previous')}
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => {
+                    setPage(page - 1);
+                  }}
+                />
+                <Button
+                  icon={<IconChevron direction="right" />}
+                  aria-label={t('Next')}
+                  size="sm"
+                  disabled={
+                    page ===
+                    Math.ceil(
+                      (filteredAttributeDistribution?.length ?? 0) / CHARTS_PER_PAGE
+                    ) -
+                      1
+                  }
+                  onClick={() => {
+                    setPage(page + 1);
+                  }}
+                />
+              </ButtonBar>
+            </PaginationContainer>
+          </Fragment>
+        ) : (
+          <NoAttributesMessage>{t('No matching attributes found')}</NoAttributesMessage>
+        )}
       </Flex>
     </Panel>
+  );
+}
+
+function ChartSelectionAlert() {
+  return (
+    <Alert type="info">
+      <Text>
+        {t(
+          'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'
+        )}
+      </Text>
+    </Alert>
   );
 }
 
