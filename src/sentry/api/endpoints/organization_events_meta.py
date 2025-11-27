@@ -147,8 +147,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", name="filter_creation"):
                 projects = self.get_projects(request, organization)
+                # Filter out None values from environments
+                environments = [e for e in snuba_params.environments if e is not None]
                 query_kwargs = build_query_params_from_request(
-                    request, organization, projects, snuba_params.environments
+                    request, organization, projects, environments
                 )
                 query_kwargs["limit"] = 5
                 try:
@@ -200,11 +202,13 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         with handle_query_errors():
             if use_eap:
-                result = get_eap_span_samples(request, snuba_params, orderby)
+                result: EAPResponse | EventsResponse = get_eap_span_samples(
+                    request, snuba_params, orderby
+                )
                 dataset = Spans
             else:
                 result = get_span_samples(request, snuba_params, orderby)
-                dataset = spans_indexed
+                dataset = spans_indexed  # type: ignore[assignment]
 
         return Response(
             self.handle_results_with_meta(
@@ -287,7 +291,7 @@ def get_span_samples(
         user_query = request.query_params.get("query") or ""
         query = f"span_id:[{','.join(span_ids)}] {user_query}"
     else:
-        query = request.query_params.get("query")
+        query = request.query_params.get("query") or ""
 
     return spans_indexed.query(
         selected_columns=selected_columns,
