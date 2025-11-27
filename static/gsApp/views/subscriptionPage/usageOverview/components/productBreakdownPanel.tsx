@@ -22,8 +22,10 @@ import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usage
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import {
   AddOnCategory,
+  BillingType,
   OnDemandBudgetMode,
   type CustomerUsage,
+  type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -52,7 +54,7 @@ import {
 import {
   DataCategoryUsageBreakdownInfo,
   ReservedBudgetUsageBreakdownInfo,
-} from 'getsentry/views/subscriptionPage/usageBreakdownInfo';
+} from 'getsentry/views/subscriptionPage/usageOverview/components/usageBreakdownInfo';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
@@ -134,13 +136,71 @@ function PanelHeader({
   );
 }
 
+function Cta({
+  title,
+  subtitle,
+  buttons,
+  hasContentBelow,
+}: {
+  hasContentBelow: boolean;
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+  buttons?: React.ReactNode;
+}) {
+  return (
+    <Grid
+      background="secondary"
+      padding="xl"
+      columns={{'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'}}
+      gap="3xl"
+      borderBottom={hasContentBelow ? 'primary' : undefined}
+      radius={hasContentBelow ? undefined : '0 0 md md'}
+    >
+      <Flex direction="column" gap="sm">
+        <Text bold textWrap="balance">
+          {title}
+        </Text>
+        <Text variant="muted" size="sm" textWrap="balance">
+          {subtitle}
+        </Text>
+      </Flex>
+      {buttons && (
+        <Flex direction="column" gap="lg">
+          {buttons}
+        </Flex>
+      )}
+    </Grid>
+  );
+}
+
+function FindOutMoreButton({
+  href,
+  to,
+}:
+  | {
+      href: string;
+      to?: never;
+    }
+  | {
+      to: string;
+      href?: never;
+    }) {
+  return (
+    <LinkButton icon={<IconOpen />} priority="link" size="sm" href={href} to={to ?? ''}>
+      {t('Find out more')}
+    </LinkButton>
+  );
+}
+
 function ProductTrialCta({
   organization,
   subscription,
   selectedProduct,
   showBottomBorder,
+  potentialProductTrial,
 }: {
   organization: Organization;
+  potentialProductTrial: ProductTrial;
   selectedProduct: DataCategory | AddOnCategory;
   showBottomBorder: boolean;
   subscription: Subscription;
@@ -148,15 +208,6 @@ function ProductTrialCta({
   const [trialButtonBusy, setTrialButtonBusy] = useState(false);
   const billedCategory = getBilledCategory(subscription, selectedProduct);
   if (!billedCategory) {
-    return null;
-  }
-
-  const potentialProductTrial = getPotentialProductTrial(
-    subscription.productTrials ?? null,
-    billedCategory
-  );
-
-  if (!potentialProductTrial) {
     return null;
   }
 
@@ -177,53 +228,81 @@ function ProductTrialCta({
       });
 
   return (
-    <Grid
-      background="secondary"
-      padding="xl"
-      columns={{'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'}}
-      gap="3xl"
-      borderBottom={showBottomBorder ? 'primary' : undefined}
-      radius={showBottomBorder ? undefined : '0 0 md md'}
-    >
-      <Flex direction="column" gap="sm">
-        <Text bold textWrap="balance">
-          {tct('Try unlimited [productName], free for 14 days', {productName})}
-        </Text>
-        <Text variant="muted" size="sm" textWrap="balance">
-          {t('Trial starts immediately, no usage will be billed during this period.')}
-        </Text>
-      </Flex>
-      <Flex direction="column" gap="lg">
-        <StartTrialButton
-          size="md"
-          icon={<IconLightning />}
-          organization={organization}
-          source="usage-overview"
-          requestData={{
-            productTrial: {
-              category: potentialProductTrial.category,
-              reasonCode: potentialProductTrial.reasonCode,
-            },
-          }}
-          priority="primary"
-          handleClick={() => setTrialButtonBusy(true)}
-          onTrialStarted={() => setTrialButtonBusy(true)}
-          onTrialFailed={() => setTrialButtonBusy(false)}
-          busy={trialButtonBusy}
-          disabled={trialButtonBusy}
-        >
-          {t('Activate free trial')}
-        </StartTrialButton>
-        <LinkButton
-          icon={<IconOpen />}
-          priority="link"
-          size="sm"
-          href="https://docs.sentry.io/pricing/#product-trials"
-        >
-          {t('Find out more')}
-        </LinkButton>
-      </Flex>
-    </Grid>
+    <Cta
+      title={tct('Try unlimited [productName], free for 14 days', {productName})}
+      subtitle={t(
+        'Trial starts immediately, no usage will be billed during this period.'
+      )}
+      buttons={
+        <Fragment>
+          <StartTrialButton
+            size="md"
+            icon={<IconLightning />}
+            organization={organization}
+            source="usage-overview"
+            requestData={{
+              productTrial: {
+                category: potentialProductTrial.category,
+                reasonCode: potentialProductTrial.reasonCode,
+              },
+            }}
+            priority="primary"
+            handleClick={() => setTrialButtonBusy(true)}
+            onTrialStarted={() => setTrialButtonBusy(true)}
+            onTrialFailed={() => setTrialButtonBusy(false)}
+            busy={trialButtonBusy}
+            disabled={trialButtonBusy}
+          >
+            {t('Activate free trial')}
+          </StartTrialButton>
+          <FindOutMoreButton href="https://docs.sentry.io/pricing/#product-trials" />
+        </Fragment>
+      }
+      hasContentBelow={showBottomBorder}
+    />
+  );
+}
+
+function UpgradeCta({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
+  const isSalesAccount =
+    // Invoiced subscriptions are managed by sales
+    subscription.type === BillingType.INVOICED ||
+    // Custom-priced subscriptions (price > 0) are managed by sales
+    (subscription.customPrice !== null && subscription.customPrice > 0);
+
+  return (
+    <Cta
+      title={t('Upgrade required')}
+      subtitle={tct('You currently do not have access to this feature. [action]', {
+        action: subscription.canSelfServe
+          ? t('Upgrade your plan to enable it.')
+          : isSalesAccount
+            ? tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
+                mailto: <a href="mailto:sales@sentry.io" />,
+              })
+            : tct('Contact us at [mailto:support@sentry.io] to upgrade.', {
+                mailto: <a href="mailto:support@sentry.io" />,
+              }),
+      })}
+      buttons={
+        <Fragment>
+          <LinkButton
+            priority="primary"
+            href={`/checkout/${organization.slug}/?referrer=product-breakdown-panel`}
+          >
+            {t('Upgrade now')}
+          </LinkButton>
+          <FindOutMoreButton href="https://docs.sentry.io/pricing/#pricing-by-product-and-data-category" />
+        </Fragment>
+      }
+      hasContentBelow={false}
+    />
   );
 }
 
@@ -356,6 +435,10 @@ function ProductBreakdownPanel({
     subscription.productTrials ?? null,
     billedCategory
   );
+  const potentialProductTrial = getPotentialProductTrial(
+    subscription.productTrials ?? null,
+    billedCategory
+  );
 
   if (isAddOn) {
     const addOnInfo = subscription.addOns?.[selectedProduct as AddOnCategory];
@@ -394,6 +477,8 @@ function ProductBreakdownPanel({
     );
   }
 
+  const isEmpty = !potentialProductTrial && !isEnabled;
+
   return (
     <Container
       background="primary"
@@ -409,12 +494,15 @@ function ProductBreakdownPanel({
       }
     >
       <PanelHeader selectedProduct={selectedProduct} subscription={subscription} />
-      <ProductTrialCta
-        organization={organization}
-        subscription={subscription}
-        selectedProduct={selectedProduct}
-        showBottomBorder={isEnabled}
-      />
+      {potentialProductTrial && (
+        <ProductTrialCta
+          organization={organization}
+          subscription={subscription}
+          selectedProduct={selectedProduct}
+          showBottomBorder={isEnabled}
+          potentialProductTrial={potentialProductTrial}
+        />
+      )}
       {isEnabled && (
         <Fragment>
           {breakdownInfo}
@@ -426,6 +514,7 @@ function ProductBreakdownPanel({
           />
         </Fragment>
       )}
+      {isEmpty && <UpgradeCta organization={organization} subscription={subscription} />}
     </Container>
   );
 }

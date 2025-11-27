@@ -868,7 +868,9 @@ export function formatOnDemandDescription(
 /**
  * Given a DataCategory or AddOnCategory, returns true if it is an add-on, false otherwise.
  */
-export function checkIsAddOn(selectedProduct: DataCategory | AddOnCategory): boolean {
+export function checkIsAddOn(
+  selectedProduct: DataCategory | AddOnCategory | string
+): boolean {
   return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
 }
 

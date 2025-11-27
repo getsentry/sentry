@@ -1,43 +1,20 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
-import {
-  IconClock,
-  IconDownload,
-  IconEllipsis,
-  IconLightning,
-  IconLock,
-  IconTable,
-  IconWarning,
-} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {IconLock, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
-import {
-  AddOnCategory,
-  type CustomerUsage,
-  type ProductTrial,
-  type Subscription,
-} from 'getsentry/types';
+import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/types';
 import {
   checkIsAddOn,
   formatReservedWithUnits,
@@ -58,58 +35,9 @@ import {
   isContinuousProfiling,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/productBreakdownPanel';
-
-interface UsageOverviewProps {
-  organization: Organization;
-  subscription: Subscription;
-}
-
-function ProductTrialRibbon({
-  activeProductTrial,
-  potentialProductTrial,
-}: {
-  activeProductTrial: ProductTrial | null;
-  potentialProductTrial: ProductTrial | null;
-}) {
-  const theme = useTheme();
-  const iconProps = {
-    size: 'xs' as const,
-    color: 'white' as const,
-  };
-  const ribbonColor = activeProductTrial
-    ? theme.tokens.graphics.promotion
-    : theme.tokens.graphics.accent;
-
-  if (!activeProductTrial && !potentialProductTrial) {
-    return null;
-  }
-
-  const trialDaysLeft = -1 * getDaysSinceDate(activeProductTrial?.endDate ?? '');
-  const tooltipContent = potentialProductTrial
-    ? t('Trial available')
-    : tn('%s day left', '%s days left', trialDaysLeft);
-
-  return (
-    <RibbonContainer>
-      <RibbonBase ribbonColor={ribbonColor}>
-        <Tooltip title={tooltipContent}>
-          {activeProductTrial ? (
-            <IconClock {...iconProps} />
-          ) : (
-            <IconLightning {...iconProps} />
-          )}
-        </Tooltip>
-      </RibbonBase>
-      <Flex direction="column" position="relative">
-        <TopRibbonEdge ribbonColor={ribbonColor} />
-        <BottomRibbonEdge ribbonColor={ribbonColor} />
-      </Flex>
-    </RibbonContainer>
-  );
-}
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/productBreakdownPanel';
+import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 
 function ProductRow({
   organization,
@@ -368,9 +296,11 @@ function UsageOverviewTable({
   onRowClick,
   selectedProduct,
   usageData,
-}: UsageOverviewProps & {
+}: {
   onRowClick: (category: DataCategory | AddOnCategory) => void;
+  organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
+  subscription: Subscription;
   usageData: CustomerUsage;
 }) {
   const addOnDataCategories = Object.values(
@@ -487,182 +417,7 @@ function UsageOverviewTable({
   );
 }
 
-function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
-
-  const {currentHistory, isPending, isError} = useCurrentBillingHistory();
-  const hasBillingPerms = organization.access.includes('org:billing');
-  if (!hasBillingPerms) {
-    return null;
-  }
-
-  const buttons: Array<{
-    icon: React.ReactNode;
-    label: string;
-    disabled?: boolean;
-    onClick?: () => void;
-    to?: string;
-  }> = [
-    {
-      label: t('View all usage'),
-      to: '/settings/billing/usage/',
-      icon: <IconTable />,
-    },
-    {
-      label: t('Download as CSV'),
-      icon: <IconDownload />,
-      onClick: () => {
-        trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
-          organization,
-          reportType: 'summary',
-        });
-        if (currentHistory) {
-          window.open(currentHistory.links.csv, '_blank');
-        }
-      },
-      disabled: isPending || isError,
-    },
-  ];
-
-  if (isMobile) {
-    return (
-      <DropdownMenu
-        triggerProps={{
-          'aria-label': t('More Actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'sm',
-        }}
-        items={buttons.map(buttonInfo => ({
-          key: buttonInfo.label,
-          label: buttonInfo.label,
-          onAction: buttonInfo.onClick,
-          to: buttonInfo.to,
-          disabled: buttonInfo.disabled,
-        }))}
-      />
-    );
-  }
-
-  return (
-    <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
-      {buttons.map(buttonInfo =>
-        buttonInfo.to ? (
-          <LinkButton
-            key={buttonInfo.label}
-            icon={buttonInfo.icon}
-            priority="default"
-            to={buttonInfo.to}
-          >
-            {buttonInfo.label}
-          </LinkButton>
-        ) : (
-          <Button
-            key={buttonInfo.label}
-            icon={buttonInfo.icon}
-            priority="default"
-            onClick={buttonInfo.onClick}
-            disabled={buttonInfo.disabled}
-          >
-            {buttonInfo.label}
-          </Button>
-        )
-      )}
-    </Flex>
-  );
-}
-
-function UsageOverview({
-  subscription,
-  organization,
-  usageData,
-}: UsageOverviewProps & {usageData: CustomerUsage}) {
-  const [selectedProduct, setSelectedProduct] = useState<DataCategory | AddOnCategory>(
-    DataCategory.ERRORS
-  );
-  const navigate = useNavigate();
-  const location = useLocation();
-  const {isCollapsed: navIsCollapsed} = useNavContext();
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
-
-  const startDate = moment(subscription.onDemandPeriodStart);
-  const endDate = moment(subscription.onDemandPeriodEnd);
-  const startsAndEndsSameYear = startDate.year() === endDate.year();
-
-  useEffect(() => {
-    if (location.query.product) {
-      const productFromQuery = location.query.product as DataCategory;
-      if (selectedProduct !== productFromQuery) {
-        setSelectedProduct(productFromQuery);
-      }
-    }
-  }, [location.query.product, selectedProduct]);
-
-  return (
-    <Grid
-      columns={{xs: '1fr', md: navIsCollapsed ? `3fr 2fr` : '1fr', lg: '3fr 2fr'}}
-      gap="lg"
-      align="start"
-    >
-      <Container radius="md" border="primary" background="primary" width="100%">
-        <Flex
-          justify="between"
-          align={{xs: 'start', sm: 'center'}}
-          padding="lg xl"
-          gap="xl"
-          direction={{xs: 'column', sm: 'row'}}
-        >
-          <Flex direction="column" gap="sm">
-            <Heading as="h3" size="lg">
-              {tct('Usage: [period]', {
-                period: `${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`,
-              })}
-            </Heading>
-          </Flex>
-          <UsageOverviewActions organization={organization} />
-        </Flex>
-        <UsageOverviewTable
-          subscription={subscription}
-          organization={organization}
-          onRowClick={product => {
-            setSelectedProduct(product);
-            trackGetsentryAnalytics('subscription_page.usage_overview.row_clicked', {
-              organization,
-              subscription,
-              ...(Object.values(AddOnCategory).includes(product as AddOnCategory)
-                ? {addOnCategory: product as AddOnCategory}
-                : {dataCategory: product as DataCategory}),
-            });
-            navigate(
-              {
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  product,
-                },
-              },
-              {replace: true}
-            );
-          }}
-          selectedProduct={selectedProduct}
-          usageData={usageData}
-        />
-      </Container>
-      {!isMobile && (
-        <ProductBreakdownPanel
-          organization={organization}
-          selectedProduct={selectedProduct}
-          subscription={subscription}
-          usageData={usageData}
-        />
-      )}
-    </Grid>
-  );
-}
-
-export default UsageOverview;
+export default UsageOverviewTable;
 
 const Table = styled('table')`
   display: grid;
@@ -730,36 +485,4 @@ const SelectedPill = styled('td')<{isSelected: boolean}>`
   border-radius: 2px;
   background: ${p =>
     p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
-`;
-
-const RibbonContainer = styled('td')`
-  display: flex;
-  position: absolute;
-  left: -1px;
-  top: 14px;
-  z-index: 1000;
-`;
-
-const RibbonBase = styled('div')<{ribbonColor: string}>`
-  width: 20px;
-  height: 22px;
-  background: ${p => p.ribbonColor};
-  padding: ${p => `${p.theme.space['2xs']} ${p.theme.space.xs}`};
-`;
-
-const BottomRibbonEdge = styled('div')<{ribbonColor: string}>`
-  position: absolute;
-  top: auto;
-  bottom: 0;
-  width: 0px;
-  height: 0px;
-  border-style: solid;
-  border-color: transparent transparent ${p => p.ribbonColor} transparent;
-  border-width: 11px 5.5px 11px 0px;
-`;
-
-const TopRibbonEdge = styled(BottomRibbonEdge)`
-  transform: scaleY(-1);
-  top: 0;
-  bottom: auto;
 `;
