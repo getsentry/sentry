@@ -289,10 +289,10 @@ function FilterSelector({
     </Flex>
   );
 
-  const renderFilterSelectorTrigger = () => (
+  const renderFilterSelectorTrigger = (filterValues: string[]) => (
     <FilterSelectorTrigger
       globalFilter={globalFilter}
-      activeFilterValues={stagedFilterValues}
+      activeFilterValues={filterValues}
       operator={stagedOperator}
       options={options}
       queryResult={queryResult}
@@ -320,7 +320,7 @@ function FilterSelector({
         }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
         triggerProps={{
-          children: renderFilterSelectorTrigger(),
+          children: renderFilterSelectorTrigger(activeFilterValues),
         }}
       />
     );
@@ -376,7 +376,7 @@ function FilterSelector({
       }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
       triggerProps={{
-        children: renderFilterSelectorTrigger(),
+        children: renderFilterSelectorTrigger(stagedFilterValues),
       }}
     />
   );
