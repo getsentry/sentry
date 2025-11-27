@@ -176,9 +176,6 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
-# Should tempest fetch dumps for this project
-register(key="sentry:tempest_fetch_dumps", default=False)
-
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
 
