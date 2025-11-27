@@ -277,6 +277,9 @@ class OrganizationReplayCountEndpointTest(
                 "replay": {"replay_id": "z" * 32},  # a replay id that doesn't exist
             },
         )
+        assert issue1.group is not None
+        assert issue2.group is not None
+        assert issue3.group is not None
 
         query = {
             "query": f"issue.id:[{issue1.group.id}, {issue2.group.id}, {issue3.group.id}]",

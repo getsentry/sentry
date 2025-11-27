@@ -14,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.analytics import (
@@ -46,9 +47,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
             assert group_info is not None
             group = group_info.group
-            event = group.get_latest_event()
+            event: Event | GroupEvent | None = group.get_latest_event()
         else:
-            event = self.store_event(
+            event: Event | GroupEvent = self.store_event(
                 data={
                     "message": "oh no",
                     "timestamp": before_now(days=1).isoformat(),

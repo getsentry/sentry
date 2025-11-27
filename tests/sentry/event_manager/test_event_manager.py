@@ -68,7 +68,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -2786,6 +2786,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
+            assert isinstance(event, GroupEvent)
             assert event.occurrence
             assert event.occurrence.evidence_display == [
                 IssueEvidence(
@@ -2945,7 +2946,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
-        def attempt_to_generate_slow_db_issue() -> Event:
+        def attempt_to_generate_slow_db_issue() -> GroupEvent:
             return self.create_performance_issue(
                 event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
