@@ -71,8 +71,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
             if result["latest_id"] is None:
                 # If there are no crashes in the CRS we want to communicate that back to the
                 # customer so that they are not surprised about no crashes arriving.
-                credentials.message = "No crashes found"
-                credentials.message_type = MessageType.ERROR
+                credentials.message = "Connection successful. No crashes found in the crash report system yet. New crashes will appear here automatically when they occur."
+                credentials.message_type = MessageType.WARNING
                 credentials.save(update_fields=["message", "message_type"])
                 return
             else:
