@@ -16,7 +16,6 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
       initialData={{
         tempestFetchScreenshots: project.tempestFetchScreenshots,
-        tempestFetchDumps: project.tempestFetchDumps,
       }}
       saveOnBlur
       hideFooter
@@ -31,12 +30,6 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
                 type: 'boolean',
                 label: t('Attach Screenshots'),
                 help: t('Attach screenshots to issues.'),
-              },
-              {
-                name: 'tempestFetchDumps',
-                type: 'boolean',
-                label: t('Attach Dumps'),
-                help: t('Attach dumps to issues.'),
               },
             ],
           },
