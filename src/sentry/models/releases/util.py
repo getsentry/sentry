@@ -24,7 +24,19 @@ logger = logging.getLogger(__name__)
 
 
 class SemverVersion(
-    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+    namedtuple(
+        "SemverVersion",
+        "major minor patch revision prerelease_case prerelease",
+    )
+):
+    pass
+
+
+class SemverVersionWithBuildCode(
+    namedtuple(
+        "SemverVersionWithBuildCode",
+        "major minor patch revision prerelease_case prerelease build_code_case build_number build_code",
+    )
 ):
     pass
 
@@ -38,7 +50,7 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
         by prerelease. We treat an empty (but not null) prerelease as higher than any
@@ -47,6 +59,23 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def annotate_build_code_column(self) -> Self:
+        """
+        Adds a `build_code_case` column to the queryset which is used to properly sort
+        by build code to match compare_version behavior:
+        - Alphanumeric builds (NULL build_number, non-NULL build_code): case=2 (highest)
+        - Numeric builds (non-NULL build_number): case=1 (middle)
+        - No build metadata (NULL build_number, NULL build_code): case=0 (lowest)
+        """
+        return self.annotate(
+            build_code_case=Case(
+                When(build_number__isnull=True, build_code__isnull=False, then=2),
+                When(build_number__isnull=False, then=1),
+                default=0,
+                output_field=models.IntegerField(),
             )
         )
 
@@ -65,7 +94,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         negated: bool = False,
     ) -> Self:
         """
-        Filters released by build. If the passed `build` is a numeric string, we'll filter on
+        Filters releases by build. If the passed `build` is a numeric string, we'll filter on
         `build_number` and make use of the passed operator.
         If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
         wildcard only at the end of this string, so that we can filter efficiently via the index.
