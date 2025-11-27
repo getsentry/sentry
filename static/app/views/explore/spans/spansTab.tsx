@@ -1,10 +1,13 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, type Key} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Grid} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -22,6 +25,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
+import {IconAdd} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -48,7 +52,6 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
   ExploreControlSection,
-  ExploreFilterSection,
   ExploreSchemaHintsSection,
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -62,6 +65,7 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsCrossEvents,
   useQueryParamsExtrapolate,
   useQueryParamsFields,
   useQueryParamsId,
@@ -69,8 +73,10 @@ import {
   useQueryParamsQuery,
   useQueryParamsVisualizes,
   useSetQueryParams,
+  useSetQueryParamsCrossEvents,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
@@ -173,6 +179,40 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
+const crossEventDropdownItems: DropdownMenuProps['items'] = [
+  {key: 'spans', label: t('Spans')},
+  {key: 'logs', label: t('Logs')},
+  {key: 'metrics', label: t('Metrics')},
+];
+
+function CrossEventQueryingDropdown() {
+  const crossEvents = useQueryParamsCrossEvents();
+  const setCrossEvents = useSetQueryParamsCrossEvents();
+
+  const onAction = (key: Key) => {
+    if (typeof key !== 'string' || !isCrossEventType(key)) {
+      return;
+    }
+
+    if (!crossEvents || crossEvents.length === 0) {
+      setCrossEvents([{query: '', type: key}]);
+      return;
+    }
+  };
+
+  return (
+    <DropdownMenu
+      triggerProps={{
+        size: 'md',
+        showChevron: false,
+        icon: <IconAdd />,
+      }}
+      items={crossEventDropdownItems}
+      onAction={onAction}
+    />
+  );
+}
+
 interface SpanTabSearchSectionProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -201,6 +241,9 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const organization = useOrganization();
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const hasCrossEventQuerying = organization.features.includes(
+    'traces-page-cross-event-querying'
+  );
 
   const {
     tags: numberTags,
@@ -300,7 +343,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
           position="bottom"
           margin={-8}
         >
-          <ExploreFilterSection>
+          <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -309,7 +352,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
             <SpansSearchBar
               eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
             />
-          </ExploreFilterSection>
+            {hasCrossEventQuerying ? <CrossEventQueryingDropdown /> : null}
+          </Grid>
           <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={
