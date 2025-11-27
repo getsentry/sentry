@@ -35,7 +35,7 @@ import {
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/productBreakdownPanel';
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 
 function UsageOverviewTableRow({

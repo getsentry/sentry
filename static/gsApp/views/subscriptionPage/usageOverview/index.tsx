@@ -15,7 +15,7 @@ import {AddOnCategory, type CustomerUsage, type Subscription} from 'getsentry/ty
 import {checkIsAddOn} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/productBreakdownPanel';
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 interface UsageOverviewProps {
