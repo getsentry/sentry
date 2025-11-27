@@ -11,7 +11,10 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    StatusCheckErrorType,
+    create_preprod_status_check_task,
+)
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -988,3 +991,165 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert (
             ios_artifact.id not in sibling_ids_from_ios_new
         ), "Old iOS artifact should be deduplicated (not the triggering artifact)"
+
+    def test_posted_status_check_success(self):
+        """Test that successful status check posts are recorded in artifact extras."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            preprod_artifact
+        )
+        mock_provider.create_status_check.return_value = "check_12345"
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(preprod_artifact.id)
+
+        preprod_artifact.refresh_from_db()
+        assert preprod_artifact.extras is not None
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_12345"
+
+    def test_posted_status_check_failure_null_check_id(self):
+        """Test that failed status check posts (null check_id) are recorded in artifact extras."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            preprod_artifact
+        )
+        mock_provider.create_status_check.return_value = None  # Simulate API returning no check_id
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(preprod_artifact.id)
+
+        preprod_artifact.refresh_from_db()
+        assert preprod_artifact.extras is not None
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
+        assert (
+            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
+            == StatusCheckErrorType.UNKNOWN.value
+        )
+
+    @responses.activate
+    def test_posted_status_check_failure_integration_error(self):
+        """Test that integration errors during status check creation are recorded in artifact extras."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-integration-error",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=403,
+            json={
+                "message": "Resource not accessible by integration",
+                "documentation_url": "https://docs.github.com/rest/checks/runs#create-a-check-run",
+            },
+        )
+
+        with self.tasks():
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+            except IntegrationConfigurationError:
+                pass  # Expected
+
+        preprod_artifact.refresh_from_db()
+        assert preprod_artifact.extras is not None
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
+        assert (
+            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
+            == StatusCheckErrorType.INTEGRATION_ERROR.value
+        )
+
+    def test_posted_status_check_preserves_existing_extras(self):
+        """Test that recording status check result preserves other fields in extras."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+        preprod_artifact.extras = {"existing_field": "existing_value", "another_field": 123}
+        preprod_artifact.save()
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            preprod_artifact
+        )
+        mock_provider.create_status_check.return_value = "check_67890"
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(preprod_artifact.id)
+
+        preprod_artifact.refresh_from_db()
+        assert preprod_artifact.extras is not None
+        # Verify existing fields are preserved
+        assert preprod_artifact.extras["existing_field"] == "existing_value"
+        assert preprod_artifact.extras["another_field"] == 123
+        # Verify new field is added
+        assert "posted_status_checks" in preprod_artifact.extras
+        assert "size" in preprod_artifact.extras["posted_status_checks"]
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
+        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_67890"

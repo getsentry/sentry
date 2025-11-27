@@ -101,14 +101,24 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
+interface CursorIntegration {
+  id: string;
+  name: string;
+  provider: string;
+}
+
 function CodingAgentSettings({
   preference,
   handleAutoCreatePrChange,
+  handleIntegrationChange,
   canWriteProject,
   isAutomationOn,
+  cursorIntegrations,
 }: {
   canWriteProject: boolean;
+  cursorIntegrations: CursorIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
+  handleIntegrationChange: (integrationId: number) => void;
   preference: ProjectSeerPreferences | null | undefined;
   isAutomationOn?: boolean;
 }) {
@@ -116,36 +126,63 @@ function CodingAgentSettings({
     return null;
   }
 
-  const initialValue = preference?.automation_handoff?.auto_create_pr ?? false;
+  const autoCreatePrValue = preference?.automation_handoff?.auto_create_pr ?? false;
+  const selectedIntegrationId = preference?.automation_handoff?.integration_id;
+
+  const integrationOptions = cursorIntegrations.map(integration => ({
+    value: integration.id,
+    label: `${integration.name} (${integration.id})`,
+  }));
+
+  const fields: FieldObject[] = [];
+
+  // Only show integration selector if there are multiple integrations
+  if (cursorIntegrations.length > 1) {
+    fields.push({
+      name: 'integration_id',
+      label: t('Select Configuration'),
+      help: t(
+        'You have multiple configurations installed. Select which one to use for hand off.'
+      ),
+      type: 'choice',
+      options: integrationOptions,
+      saveOnBlur: true,
+      getData: () => ({}),
+      getValue: () => String(selectedIntegrationId),
+      disabled: !canWriteProject,
+      onChange: (value: string) => handleIntegrationChange(parseInt(value, 10)),
+    } satisfies FieldObject);
+  }
+
+  fields.push({
+    name: 'auto_create_pr',
+    label: t('Auto-Create Pull Requests'),
+    help: t(
+      'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+    ),
+    saveOnBlur: true,
+    type: 'boolean',
+    getData: () => ({}),
+    getValue: () => autoCreatePrValue,
+    disabled: !canWriteProject,
+    onChange: handleAutoCreatePrChange,
+  } satisfies FieldObject);
 
   return (
     <Form
-      key={`coding-agent-settings-${initialValue}`}
+      key={`coding-agent-settings-${autoCreatePrValue}-${selectedIntegrationId}`}
       apiMethod="POST"
       saveOnBlur
       initialData={{
-        auto_create_pr: initialValue,
+        auto_create_pr: autoCreatePrValue,
+        integration_id: String(selectedIntegrationId),
       }}
     >
       <JsonForm
         forms={[
           {
             title: t('Cursor Agent Settings'),
-            fields: [
-              {
-                name: 'auto_create_pr',
-                label: t('Auto-Create Pull Requests'),
-                help: t(
-                  'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
-                ),
-                saveOnBlur: true,
-                type: 'boolean',
-                getData: () => ({}),
-                getValue: () => initialValue,
-                disabled: !canWriteProject,
-                onChange: handleAutoCreatePrChange,
-              } satisfies FieldObject,
-            ],
+            fields,
           },
         ]}
       />
@@ -163,9 +200,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
-  const cursorIntegration = codingAgentIntegrations?.integrations.find(
-    integration => integration.provider === 'cursor'
-  );
+  const cursorIntegrations =
+    codingAgentIntegrations?.integrations.filter(
+      integration => integration.provider === 'cursor'
+    ) ?? [];
+
+  // For backwards compatibility, use the first cursor integration as default
+  const cursorIntegration = cursorIntegrations[0];
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -224,6 +265,23 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         automation_handoff: {
           ...preference.automation_handoff,
           auto_create_pr: value,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
+  );
+
+  const handleIntegrationChange = useCallback(
+    (integrationId: number) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          integration_id: integrationId,
         },
       });
     },
@@ -372,7 +430,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         preference={preference}
         handleAutoCreatePrChange={handleAutoCreatePrChange}
         isAutomationOn={automationTuning && automationTuning !== 'off'}
+        handleIntegrationChange={handleIntegrationChange}
         canWriteProject={canWriteProject}
+        cursorIntegrations={cursorIntegrations}
       />
     </Fragment>
   );

@@ -24,6 +24,7 @@ export enum DisplayType {
   LINE = 'line',
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
+  DETAILS = 'details',
   TOP_N = 'top_n',
 }
 
@@ -168,6 +169,7 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {

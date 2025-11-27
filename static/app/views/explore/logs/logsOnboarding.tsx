@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -50,6 +51,59 @@ type OnboardingProps = {
   project: Project;
 };
 
+const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
+  'node-cloudflare-pages': {
+    name: 'Cloudflare',
+    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+  },
+  'node-cloudflare-workers': {
+    name: 'Cloudflare',
+    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+  },
+};
+
+function LogDrainsLink({project}: {project: Project}) {
+  const platformDoc = project.platform
+    ? LOG_DRAIN_PLATFORM_DOCS[project.platform]
+    : undefined;
+
+  return (
+    <LogDrainsLinkWrapper>
+      <BodyTitle>{t('Log Drains and Forwarders')}</BodyTitle>
+      <SubTitle>
+        {platformDoc
+          ? tct(
+              'You can use [link:Log Drains] to send logs from platforms like [platformLink], or via the [otlpLink:OpenTelemetry Collector].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
+                platformLink: (
+                  <ExternalLink href={platformDoc.url}>{platformDoc.name}</ExternalLink>
+                ),
+                otlpLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                ),
+              }
+            )
+          : tct(
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
+                vercelLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
+                ),
+                herokuLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
+                ),
+                otlpLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                ),
+              }
+            )}
+      </SubTitle>
+    </LogDrainsLinkWrapper>
+  );
+}
+
 function OnboardingPanel({
   project,
   children,
@@ -82,7 +136,10 @@ function OnboardingPanel({
             </HeaderWrapper>
             <Divider />
             <Body>
-              <Setup>{children}</Setup>
+              <Setup>
+                {children}
+                <LogDrainsLink project={project} />
+              </Setup>
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
                 <Arcade
@@ -284,6 +341,10 @@ function Onboarding({organization, project}: OnboardingProps) {
 
 const SubTitle = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const LogDrainsLinkWrapper = styled('div')`
+  padding-top: ${space(2)};
 `;
 
 const Title = styled('div')`
