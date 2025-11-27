@@ -59,6 +59,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 project_id=self.project.id,
             )
 
+        assert event is not None
         backend.add(
             self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
         )
