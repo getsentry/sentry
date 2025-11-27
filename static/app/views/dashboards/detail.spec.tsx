@@ -2305,7 +2305,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      await userEvent.click(await screen.findByText('14D'));
+      await userEvent.click(await screen.findByText('24H'));
       await userEvent.click(screen.getByText('Last 7 days'));
       await screen.findByText('7D');
 
