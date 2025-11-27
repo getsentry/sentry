@@ -73,10 +73,10 @@ function FilterSelector({
     if (!filterToken) {
       return [];
     }
-    const iniitalValue = globalFilter.value
+    const initialValue = globalFilter.value
       ? getInitialInputValue(filterToken, true)
       : '';
-    const selectedValues = getSelectedValuesFromText(iniitalValue, {escaped: false});
+    const selectedValues = getSelectedValuesFromText(initialValue, {escaped: false});
     return selectedValues.map(item => item.value);
   }, [filterToken, globalFilter.value]);
 
