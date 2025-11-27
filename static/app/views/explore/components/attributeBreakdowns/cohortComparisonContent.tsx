@@ -88,7 +88,7 @@ export function CohortComparison({
     setPage(0);
   }, [filteredRankedAttributes]);
 
-  const selectionHint = useMemo(() => {
+  const selectedRangeToDates = useMemo(() => {
     if (!selection) {
       return null;
     }
@@ -100,14 +100,12 @@ export function CohortComparison({
     startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
 
     const userTimezone = getUserTimezone() || moment.tz.guess();
-    const startDate = moment
-      .tz(startTimestamp, userTimezone)
-      .format('MMM D YYYY h:mm A z');
-    const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
+    const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
+    const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     return {
-      selection: t(`Selection is data between %s - %s`, startDate, endDate),
-      baseline: t('Baseline is all other spans from your query'),
+      start,
+      end,
     };
   }, [selection]);
 
@@ -133,12 +131,18 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.LoadingCharts />
         ) : (
           <Fragment>
-            {selectionHint && (
+            {selectedRangeToDates && (
               <SelectionHintContainer>
                 <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
-                  {selectionHint.selection}
+                  {t(
+                    'Selection is data between %s - %s',
+                    selectedRangeToDates.start,
+                    selectedRangeToDates.end
+                  )}
                 </SelectionHint>
-                <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
+                <SelectionHint color="#A29FAA">
+                  {t('Baseline is all other spans from your query')}
+                </SelectionHint>
               </SelectionHintContainer>
             )}
             {filteredRankedAttributes.length > 0 ? (
