@@ -1017,7 +1017,6 @@ def _make_get_trace_request(
         - timestamp: ISO 8601 timestamp, Z suffix.
         - attributes: A dictionary of dictionaries, where the keys are the attribute names.
           - attributes[name].value: The value of the attribute (primitives only)
-          - attributes[name].type: The type of the attribute ("str", "int", "double", "bool")
     """
     organization = cast(Organization, resolver.params.organization)
     projects = list(resolver.params.projects)
@@ -1073,35 +1072,29 @@ def _make_get_trace_request(
                 if a.key.type == STRING:
                     attr_dict[public_alias] = {
                         "value": a.value.val_str,
-                        "type": "str",
                     }
                 elif a.key.type == DOUBLE:
                     attr_dict[public_alias] = {
                         "value": a.value.val_double,
-                        "type": "double",
                     }
                 elif a.key.type == BOOLEAN:
                     attr_dict[public_alias] = {
                         "value": a.value.val_bool,
-                        "type": "bool",
                     }
                 elif a.key.type == INT:
                     if r and r.search_type == "boolean":
                         attr_dict[public_alias] = {
                             "value": a.value.val_int == 1,
-                            "type": "bool",
                         }
                     else:
                         attr_dict[public_alias] = {
                             "value": a.value.val_int,
-                            "type": "int",
                         }
 
                     if public_alias == "project.id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
                             "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
-                            "type": "str",
                         }
 
             item_dicts.append(
