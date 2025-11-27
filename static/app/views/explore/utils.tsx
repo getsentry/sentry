@@ -11,7 +11,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -289,7 +289,13 @@ export function generateTargetQuery({
     } else if (groupBy === 'environment' && typeof value === 'string') {
       location.query.environment = value;
     } else if (typeof value === 'string') {
-      search.setFilterValues(groupBy, [value]);
+      // TODO(nsdeschenes): Remove this once we have a proper way to handle quoted values
+      // that have square brackets included in the value
+      if (value.startsWith('[') && value.endsWith(']')) {
+        search.setFilterValues(groupBy, [`"${escapeDoubleQuotes(value)}"`]);
+      } else {
+        search.setFilterValues(groupBy, [value]);
+      }
     }
   }
 
