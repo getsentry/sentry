@@ -39,7 +39,10 @@ import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
@@ -110,7 +113,7 @@ export default function MetricDetailsBody({
     );
   }
 
-  const {dataset, aggregate, query} = rule;
+  const {dataset, aggregate, query, eventTypes, extrapolationMode} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
   const queryWithTypeFilter =
@@ -143,9 +146,12 @@ export default function MetricDetailsBody({
   const deprecateTransactionsAlertsWarning =
     ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
   const showExtrapolationModeWarning = getIsMigratedExtrapolationMode(
-    rule.extrapolationMode,
-    rule.dataset
+    extrapolationMode,
+    dataset,
+    traceItemType
   );
 
   return (

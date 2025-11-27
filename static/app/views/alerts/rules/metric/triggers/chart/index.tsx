@@ -46,6 +46,7 @@ import {
 import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
   AlertRuleComparisonType,
   Dataset,
@@ -603,14 +604,20 @@ class TriggersChart extends PureComponent<Props, State> {
       partial: false,
       sampling:
         dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-        this.props.traceItemType === TraceItemDataset.SPANS
-          ? extrapolationMode === ExtrapolationMode.NONE
-            ? SAMPLING_MODE.HIGH_ACCURACY
-            : SAMPLING_MODE.NORMAL
+        traceItemType === TraceItemDataset.SPANS
+          ? getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
+            ? SAMPLING_MODE.NORMAL
+            : extrapolationMode === ExtrapolationMode.NONE
+              ? SAMPLING_MODE.HIGH_ACCURACY
+              : SAMPLING_MODE.NORMAL
           : undefined,
 
+      // we want to show the regular extrapolated chart as we are changing the extrapolation to this
+      // once a migrated alert is saved
       extrapolationMode: extrapolationMode
-        ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+        ? getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
+          ? EAP_EXTRAPOLATION_MODE_MAP[ExtrapolationMode.UNKNOWN]
+          : EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
         : undefined,
     };
 

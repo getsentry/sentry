@@ -17,6 +17,7 @@ import {
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Incident} from 'sentry/views/alerts/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
  * Retrieve start/end date of a metric alert incident for the events graph
@@ -130,10 +131,12 @@ export function getViableDateRange({
 
 export function getIsMigratedExtrapolationMode(
   extrapolationMode: ExtrapolationMode | undefined,
-  dataset: Dataset
+  dataset: Dataset,
+  traceItemType: TraceItemDataset | undefined | null
 ) {
   return !!(
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    traceItemType === TraceItemDataset.SPANS &&
     extrapolationMode &&
     (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
       extrapolationMode === ExtrapolationMode.NONE)

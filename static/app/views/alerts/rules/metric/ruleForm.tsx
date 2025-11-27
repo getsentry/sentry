@@ -792,6 +792,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
+        const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
         const [data, , resp] = await addOrUpdateRule(
@@ -820,7 +821,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
             detectionType,
-            extrapolationMode: this.isDuplicateRule ? undefined : extrapolationMode,
+            // We want to change the extrapolation mode to unknown once a migrated alert rule is edited
+            extrapolationMode: this.isDuplicateRule
+              ? undefined
+              : getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
+                ? ExtrapolationMode.UNKNOWN
+                : extrapolationMode,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -1378,9 +1384,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
     const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
       extrapolationMode,
-      dataset
+      dataset,
+      traceItemType
     );
 
     // Rendering the main form body
