@@ -23,15 +23,6 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
         value: '',
       },
-      {
-        dataset: WidgetType.ISSUE,
-        tag: {
-          key: 'message',
-          name: 'message',
-          kind: FieldKind.EVENT_FIELD,
-        },
-        value: '',
-      },
     ],
   },
   widgets: [
@@ -54,13 +45,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 3,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
+      layout: {w: 2, h: 1, x: 2, y: 0, minH: 1},
     },
     {
       id: 'metrics-duration',
@@ -81,13 +66,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 4,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
+      layout: {w: 2, h: 1, x: 0, y: 0, minH: 1},
     },
     {
       id: 'metrics-time-spent',
@@ -108,44 +87,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 5,
-        minH: 1,
-        w: 1,
-        h: 1,
-        y: 0,
-      },
-    },
-    {
-      id: 'related-issues',
-      title: 'Related Issues',
-      description: '',
-      displayType: DisplayType.TABLE,
-      thresholds: null,
-      interval: '1h',
-      queries: [
-        {
-          name: '',
-          fields: ['issue', 'assignee', 'title'],
-          aggregates: [],
-          columns: ['issue', 'assignee', 'title'],
-          fieldAliases: ['', '', ''],
-          conditions:
-            'issue.type:[performance_slow_db_query,performance_n_plus_one_db_queries]',
-          orderby: 'date',
-          onDemand: [],
-          isHidden: false,
-          linkedDashboards: [],
-        },
-      ],
-      widgetType: WidgetType.ISSUE,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        h: 2,
-        y: 1,
-      },
+      layout: {w: 2, h: 1, x: 4, y: 0, minH: 1},
     },
     {
       id: 'transactions-with-query',
@@ -162,20 +104,14 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [SpanFields.TRANSACTION],
           fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
           conditions: '',
-          orderby: `-${SpanFields.TRANSACTION}`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           onDemand: [],
           isHidden: false,
           linkedDashboards: [],
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 6,
-        h: 2,
-        y: 5,
-      },
+      layout: {w: 6, h: 2, x: 0, y: 3, minH: 2},
     },
     {
       id: 'metrics-throughput-line',
@@ -186,7 +122,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: QUERIES_PER_MINUTE_TEXT,
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
@@ -199,13 +135,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {
-        x: 0,
-        minH: 2,
-        w: 3,
-        h: 2,
-        y: 3,
-      },
+      layout: {w: 3, h: 2, x: 0, y: 1, minH: 2},
     },
     {
       id: 'metrics-duration-line',
@@ -217,7 +147,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       interval: '1h',
       queries: [
         {
-          name: '',
+          name: AVERAGE_DURATION_TEXT,
           fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
@@ -228,13 +158,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           isHidden: false,
         },
       ],
-      layout: {
-        x: 3,
-        minH: 2,
-        w: 3,
-        h: 2,
-        y: 3,
-      },
+      layout: {w: 3, h: 2, x: 3, y: 1, minH: 2},
     },
   ],
 };
