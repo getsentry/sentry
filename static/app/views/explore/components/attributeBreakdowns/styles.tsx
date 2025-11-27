@@ -8,8 +8,10 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
+import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 function FeedbackButton() {
@@ -106,7 +108,7 @@ function LoadingCharts() {
   }, []);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="2xl">
       {showMessage && (
         <Text size="md" variant="muted">
           {t(
@@ -119,6 +121,96 @@ function LoadingCharts() {
           <LoadingChart key={index} />
         ))}
       </ChartsGrid>
+    </Flex>
+  );
+}
+
+function FeedbackLink() {
+  const openForm = useFeedbackForm();
+
+  if (!openForm) {
+    return (
+      <a href="mailto:support@sentry.io?subject=Attribute%20breakdowns%20failed%20to%20load">
+        {t('Send us feedback')}
+      </a>
+    );
+  }
+
+  return (
+    <a href="#" onClick={() => openForm?.()}>
+      {t('Send us feedback')}
+    </a>
+  );
+}
+
+const StyledIconSearch = styled(IconSearch)`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledIconTimer = styled(IconTimer)`
+  color: ${p => p.theme.subText};
+`;
+
+const ERROR_STATE_CONFIG: Record<
+  number | 'default',
+  {
+    icon: React.ReactNode;
+    subtitle: React.ReactNode;
+    title: string;
+  }
+> = {
+  504: {
+    title: t('Query timed out'),
+    icon: <StyledIconTimer size="xl" />,
+    subtitle: tct(
+      'You can try narrowing the time range. Seeing this often? [feedbackLink]',
+      {
+        feedbackLink: <FeedbackLink />,
+      }
+    ),
+  },
+  default: {
+    title: t('Failed to load attribute breakdowns'),
+    icon: <StyledIconWarning size="xl" />,
+    subtitle: tct('Seeing this often? [feedbackLink]', {
+      feedbackLink: <FeedbackLink />,
+    }),
+  },
+};
+
+function ErrorState({error}: {error: RequestError}) {
+  const config =
+    ERROR_STATE_CONFIG[error?.status ?? 'default'] ?? ERROR_STATE_CONFIG.default;
+
+  return (
+    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+      {config.icon}
+      <Text size="xl" variant="muted">
+        {config.title}
+      </Text>
+      <Text size="md" variant="muted">
+        {config.subtitle}
+      </Text>
+    </Flex>
+  );
+}
+
+function EmptySearchState() {
+  return (
+    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+      <StyledIconSearch size="xl" />
+      <Text size="xl" variant="muted">
+        {t('No matching attributes found')}
+      </Text>
+      <Text size="md" variant="muted">
+        {tct('Expecting results? [feedbackLink]', {
+          feedbackLink: <FeedbackLink />,
+        })}
+      </Text>
     </Flex>
   );
 }
@@ -187,4 +279,6 @@ const StyledFeedbackButton = styled(Button)`
 export const AttributeBreakdownsComponent = {
   FeedbackButton,
   LoadingCharts,
+  ErrorState,
+  EmptySearchState,
 };

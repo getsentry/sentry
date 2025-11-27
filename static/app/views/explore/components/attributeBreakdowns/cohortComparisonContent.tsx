@@ -9,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -40,7 +39,7 @@ export function CohortComparison({
 
   const yAxis = visualizes[chartIndex]?.yAxis ?? '';
 
-  const {data, isLoading, isError} = useAttributeBreakdownComparison({
+  const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
   });
@@ -109,13 +108,9 @@ export function CohortComparison({
     };
   }, [selection]);
 
-  if (isError) {
-    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
-  }
-
   return (
     <Panel data-explore-chart-selection-region>
-      <Flex direction="column" gap="xl" padding="xl">
+      <Flex direction="column" gap="2xl" padding="xl">
         <ControlsContainer>
           <StyledBaseSearchBar
             placeholder={t('Search keys')}
@@ -129,6 +124,8 @@ export function CohortComparison({
         </ControlsContainer>
         {isLoading ? (
           <AttributeBreakdownsComponent.LoadingCharts />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
           <Fragment>
             {selectedRangeToDates && (
@@ -187,9 +184,7 @@ export function CohortComparison({
                 </PaginationContainer>
               </Fragment>
             ) : (
-              <NoAttributesMessage>
-                {t('No matching attributes found')}
-              </NoAttributesMessage>
+              <AttributeBreakdownsComponent.EmptySearchState />
             )}
           </Fragment>
         )}
@@ -206,13 +201,6 @@ const ControlsContainer = styled('div')`
 
 const StyledBaseSearchBar = styled(BaseSearchBar)`
   flex: 1;
-`;
-
-const NoAttributesMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
 `;
 
 const ChartsGrid = styled('div')`
