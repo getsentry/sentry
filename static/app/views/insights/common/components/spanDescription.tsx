@@ -29,6 +29,7 @@ interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
   op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
+  showBorder?: boolean;
 }
 
 const formatter = new SQLishFormatter();
@@ -36,6 +37,7 @@ const formatter = new SQLishFormatter();
 export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
+  showBorder = true,
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,7 +132,7 @@ export function DatabaseSpanDescription({
   }, [preliminaryDescription, indexedSpan, system]);
 
   return (
-    <Frame>
+    <Frame showBorder={showBorder}>
       {areIndexedSpansLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
@@ -174,9 +176,12 @@ function QueryClippedBox(props: any) {
   return <StyledClippedBox {...props} />;
 }
 
-const Frame = styled('div')`
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+const Frame = styled('div')<{showBorder: boolean}>`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.border}` : 'none')};
+  border-radius: ${p => (p.showBorder ? p.theme.borderRadius : '0')};
   overflow: hidden;
 `;
 
@@ -187,6 +192,8 @@ const WithPadding = styled('div')`
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
+  height: 100%;
+  background: ${p => p.theme.backgroundSecondary};
 
   > div > div {
     z-index: 1;
