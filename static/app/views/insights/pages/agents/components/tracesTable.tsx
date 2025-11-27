@@ -1,9 +1,18 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Link} from '@sentry/scraps/link';
 
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -13,15 +22,14 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {isOverflown} from 'sentry/utils/useHoverOverlay';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {
-  OverflowEllipsisTextContainer,
-  TextAlignRight,
-} from 'sentry/views/insights/common/components/textAlign';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -40,6 +48,7 @@ import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/Du
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
+  agents: string[];
   duration: number;
   errors: number;
   llmCalls: number;
@@ -49,6 +58,7 @@ interface TableData {
   totalTokens: number;
   traceId: string;
   transaction: string;
+  isAgentDataLoading?: boolean;
   isSpanDataLoading?: boolean;
 }
 
@@ -56,7 +66,7 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'transaction', name: t('Trace Root'), width: COL_WIDTH_UNDEFINED},
+  {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Root Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
@@ -112,9 +122,31 @@ export function TracesTable() {
     Referrer.TRACES_TABLE
   );
 
+  const agentsRequest = useSpans(
+    {
+      search: `span.op:gen_ai.invoke_agent has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      fields: ['trace', 'gen_ai.agent.name', 'timestamp'],
+      sorts: [{field: 'timestamp', kind: 'asc'}],
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+    },
+    Referrer.TRACES_TABLE
+  );
+
+  const traceAgents = useMemo<Map<string, Set<string>>>(() => {
+    if (!agentsRequest.data) {
+      return new Map();
+    }
+    return agentsRequest.data.reduce((acc, span) => {
+      const agentsSet = acc.get(span.trace) ?? new Set();
+      agentsSet.add(span['gen_ai.agent.name']);
+      acc.set(span.trace, agentsSet);
+      return acc;
+    }, new Map<string, Set<string>>());
+  }, [agentsRequest.data]);
+
   const traceErrorRequest = useSpans(
     {
-      // Get all spans with error status
       search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
@@ -175,6 +207,8 @@ export function TracesTable() {
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
       totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
+      agents: Array.from(traceAgents.get(span.trace) ?? []),
+      isAgentDataLoading: agentsRequest.isLoading,
       isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
   }, [
@@ -182,6 +216,8 @@ export function TracesTable() {
     spanDataMap,
     spansRequest.isLoading,
     traceErrorRequest.isLoading,
+    traceAgents,
+    agentsRequest.isLoading,
   ]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
@@ -189,7 +225,7 @@ export function TracesTable() {
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'transaction' && <CellExpander />}
+        {column.key === 'agents' && <CellExpander />}
       </HeadCell>
     );
   }, []);
@@ -208,9 +244,9 @@ export function TracesTable() {
           isLoading={tracesRequest.isPending}
           error={tracesRequest.error}
           data={tableData}
+          stickyHeader
           columnOrder={columnOrder}
           columnSortBy={EMPTY_ARRAY}
-          stickyHeader
           grid={{
             renderBodyCell,
             renderHeadCell,
@@ -251,13 +287,23 @@ const BodyCell = memo(function BodyCell({
           </TraceIdButton>
         </span>
       );
-    case 'transaction':
-      return (
-        <Tooltip title={dataRow.transaction} showOnlyOnOverflow skipWrapper>
-          <OverflowEllipsisTextContainer>
-            {dataRow.transaction}
-          </OverflowEllipsisTextContainer>
-        </Tooltip>
+    case 'agents':
+      if (dataRow.isAgentDataLoading) {
+        return <Placeholder width="100%" height="16px" />;
+      }
+      return dataRow.agents.length > 0 ? (
+        <AgentTags agents={dataRow.agents} />
+      ) : (
+        <Container paddingLeft="xs">
+          <Tooltip
+            title={dataRow.transaction}
+            maxWidth={500}
+            showOnlyOnOverflow
+            skipWrapper
+          >
+            <Text ellipsis>{dataRow.transaction}</Text>
+          </Tooltip>
+        </Container>
       );
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
@@ -300,6 +346,90 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
+
+function AgentTags({agents}: {agents: string[]}) {
+  const [showAll, setShowAll] = useState(false);
+  const location = useLocation();
+  const [searchQuery] = useQueryState('query', parseAsString.withDefault(''));
+  const [showToggle, setShowToggle] = useState(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleShowAll = useCallback(() => {
+    setShowAll(!showAll);
+
+    if (!containerRef.current) return;
+    // While the all tags are visible, observe the container to see if it displays more than one line (22px)
+    // so we can reset the show all state accordingly
+    const observer = new ResizeObserver(entries => {
+      const containerElement = entries[0]?.target;
+      if (!containerElement || containerElement.clientHeight > 22) return;
+      setShowToggle(false);
+      setShowAll(false);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    });
+    resizeObserverRef.current = observer;
+    observer.observe(containerRef.current);
+  }, [showAll]);
+
+  // Cleanup the resize observer when the component unmounts
+  useEffect(() => {
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, []);
+
+  return (
+    <Flex
+      align="start"
+      direction="row"
+      gap="sm"
+      wrap={showAll ? 'wrap' : 'nowrap'}
+      overflow="hidden"
+      position="relative"
+      ref={containerRef}
+      onMouseEnter={event => {
+        setShowToggle(isOverflown(event.currentTarget));
+      }}
+      onMouseLeave={() => setShowToggle(false)}
+    >
+      {agents.map(agent => (
+        <Tooltip key={agent} title={t('Add to filter')} maxWidth={500} skipWrapper>
+          <Link
+            to={{
+              query: {
+                ...location.query,
+                query: new MutableSearch(searchQuery)
+                  .removeFilter('gen_ai.agent.name')
+                  .addFilterValues('gen_ai.agent.name', [agent])
+                  .formatString(),
+              },
+            }}
+          >
+            <Tag key={agent} type="default">
+              {agent}
+            </Tag>
+          </Link>
+        </Tooltip>
+      ))}
+      {/* Placeholder for floating button */}
+      <Container width="100px" height="20px" flexShrink={0} />
+      <Container
+        display={showToggle || showAll ? 'block' : 'none'}
+        position="absolute"
+        background="primary"
+        padding="2xs xs 0 xl"
+        style={{bottom: '0', right: '0'}}
+      >
+        <Button priority="link" size="xs" onClick={handleShowAll}>
+          {showAll ? t('Show less') : t('Show all')}
+        </Button>
+      </Container>
+    </Flex>
+  );
+}
 
 const GridEditableContainer = styled('div')`
   position: relative;
