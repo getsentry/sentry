@@ -6,10 +6,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.users.models.user import User
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import render_preview_email_for_notification
 
 
+@internal_region_silo_view
 class DebugCodeOwnersAutoSyncFailureView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="petal", name="Petal")

@@ -9,11 +9,11 @@ from sentry.web.frontend.base import BaseView, ViewSiloLimit
 
 class ViewSiloLimitTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
-        @ViewSiloLimit(endpoint_mode)
+        @ViewSiloLimit([endpoint_mode])
         def view_func(request):
             pass
 
-        @ViewSiloLimit(endpoint_mode)
+        @ViewSiloLimit([endpoint_mode])
         class DummyView(BaseView):
             def get(self, request):
                 return Response("dummy-view", 200)
@@ -43,3 +43,23 @@ class ViewSiloLimitTest(APITestCase):
     def test_with_monolith_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
+
+    def test_sets_silo_limit_on_function(self) -> None:
+        @ViewSiloLimit([SiloMode.CONTROL])
+        def view_func(request):
+            pass
+
+        assert view_func.silo_limit, "Should have silo_limit set"
+        assert view_func.silo_limit.modes, "Should have silo_limit.modes set"
+        assert not view_func.silo_limit.internal, "Not internal by default"
+
+    def test_internal_attribute(self) -> None:
+        @ViewSiloLimit([SiloMode.REGION], internal=True)
+        def view_func(request):
+            pass
+
+        assert view_func.silo_limit, "Should have silo_limit set"
+        assert view_func.silo_limit.modes, "Should have silo_limit.modes set"
+        assert len(view_func.silo_limit.modes) == 1
+        assert SiloMode.REGION in view_func.silo_limit.modes
+        assert view_func.silo_limit.internal, "Should be marked as internal"
