@@ -24,6 +24,7 @@ import {
 } from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -153,7 +154,7 @@ export function TimeRangeSelector({
   showRelative = true,
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
-  maxPickableDays = 90,
+  maxPickableDays,
   maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
@@ -166,6 +167,9 @@ export function TimeRangeSelector({
 }: TimeRangeSelectorProps) {
   const router = useRouter();
   const organization = useOrganization({allowNull: true});
+
+  const defaultMaxPickableDays = useDefaultMaxPickableDays();
+  maxPickableDays = maxPickableDays ?? defaultMaxPickableDays;
 
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
