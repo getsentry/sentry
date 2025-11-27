@@ -28,7 +28,6 @@ export function useFindAdjacentTrace({
 } {
   const {
     projectId,
-    environment,
     currentTraceId,
     adjacentTraceId,
     adjacentTraceSpanId,
@@ -36,15 +35,12 @@ export function useFindAdjacentTrace({
     adjacentTraceSampled,
   } = useMemo(() => {
     let _projectId: number | undefined = undefined;
-    let _environment: string | undefined = undefined;
     let _currentTraceId: string | undefined;
     let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
 
     for (const a of attributes ?? []) {
       if (a.name === 'project_id' && a.type === 'int') {
         _projectId = a.value;
-      } else if (a.name === 'environment' && a.type === 'str') {
-        _environment = a.value;
       } else if (a.name === 'trace' && a.type === 'str') {
         _currentTraceId = a.value;
       } else if (a.name === 'previous_trace' && a.type === 'str') {
@@ -68,7 +64,6 @@ export function useFindAdjacentTrace({
 
     return {
       projectId: _projectId,
-      environment: _environment,
       currentTraceId: _currentTraceId,
       hasAdjacentTraceLink: _hasAdjacentTraceLink,
       adjacentTraceSampled: _adjacentTraceSampledFlag === '1',
@@ -103,7 +98,7 @@ export function useFindAdjacentTrace({
       enabled,
       projectIds: projectId ? [projectId] : [],
       pageFilters: {
-        environments: environment ? [environment] : [],
+        environments: [],
         projects: projectId ? [projectId] : [],
         datetime: {
           start: adjacentTraceStartTimestamp
