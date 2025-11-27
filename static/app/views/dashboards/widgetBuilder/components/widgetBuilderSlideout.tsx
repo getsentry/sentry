@@ -28,6 +28,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -122,9 +123,9 @@ function WidgetBuilderSlideout({
     : isEditing
       ? t('Edit Widget')
       : t('Custom Widget Builder');
-  const isChartWidget =
-    state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.TABLE;
+  const isChartWidget = isChartDisplayType(state.displayType);
+
+  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
 
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
@@ -340,9 +341,11 @@ function WidgetBuilderSlideout({
                   <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
                 </Section>
               )}
-              <Section>
-                <Visualize error={error} setError={setError} />
-              </Section>
+              {showVisualizeSection && (
+                <Section>
+                  <Visualize error={error} setError={setError} />
+                </Section>
+              )}
               <Section>
                 <WidgetBuilderQueryFilterBuilder
                   onQueryConditionChange={onQueryConditionChange}
