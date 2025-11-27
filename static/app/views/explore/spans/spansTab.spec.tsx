@@ -66,6 +66,7 @@ describe('SpansTabContent', () => {
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
         'search-query-builder-case-insensitivity',
+        'traces-page-cross-event-querying',
       ],
     },
   });
@@ -527,6 +528,80 @@ describe('SpansTabContent', () => {
       await waitFor(() => {
         expect(askSeerInput).toHaveValue('span.duration is greater than 10ms random ');
       });
+    });
+  });
+
+  describe('cross events', () => {
+    it('displays the cross events dropdown', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
+    });
+
+    it('adds a cross event query', async () => {
+      const {router} = render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
+
+      await waitFor(() =>
+        expect(router.location.query.crossEvents).toEqual(
+          JSON.stringify([{query: '', type: 'spans'}])
+        )
+      );
+    });
+
+    it('disables dropdown when there are 2 cross events', () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/explore/traces/',
+              query: {
+                crossEvents: JSON.stringify([
+                  {query: '', type: 'spans'},
+                  {query: '', type: 'logs'},
+                ]),
+              },
+            },
+          },
+        }
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      ).toBeDisabled();
     });
   });
 });
