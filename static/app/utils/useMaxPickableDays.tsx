@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
  *
  * Use this as the default when there is not known data category.
  */
-export function useDefaultMaxPickableDays() {
+export function useDefaultMaxPickableDays(): number {
   const useDefaultMaxPickableDaysHook =
     HookStore.get('react-hook:use-default-max-pickable-days')[0] ??
     useDefaultMaxPickableDaysImpl;
