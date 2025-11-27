@@ -7,17 +7,19 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {
   FieldKind,
   FieldValueType,
-  getFieldDefinition,
   prettifyTagKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
+import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
@@ -29,8 +31,9 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ISSUE, t('Issues')],
 ]);
 
-const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION, FieldKind.MEASUREMENT];
-const SUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
+const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
+const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
+const IGNORE_DEFAULT_VALUES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
@@ -66,29 +69,18 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       )
     : {};
 
+  // Maps filter keys to their field definitions
+  const fieldDefinitionMap = new Map<string, FieldDefinition | null>();
+
   // Get filter keys for the selected dataset
   const filterKeyOptions = selectedDataset
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
-        const fieldType = (datasetType: WidgetType) => {
-          switch (datasetType) {
-            case WidgetType.SPANS:
-              return 'span';
-            case WidgetType.LOGS:
-              return 'log';
-            default:
-              return 'event';
-          }
-        };
-        const fieldDefinition = getFieldDefinition(
-          tag.key,
-          fieldType(selectedDataset),
-          tag.kind
-        );
+        const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
         const valueType = fieldDefinition?.valueType;
-
-        if (!valueType || !SUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+        if (valueType && UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
           return [];
         }
+        fieldDefinitionMap.set(tag.key, fieldDefinition);
 
         return {
           value: tag.key,
@@ -134,10 +126,22 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           onClick={() => {
             if (!selectedFilterKey || !selectedDataset) return;
 
+            let defaultFilterValue = '';
+            const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+            const valueType = fieldDefinition?.valueType;
+
+            if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
+              defaultFilterValue = getInitialFilterText(
+                selectedFilterKey.key,
+                fieldDefinition,
+                false
+              );
+            }
+
             const newFilter: GlobalFilter = {
               dataset: selectedDataset,
               tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
-              value: '',
+              value: defaultFilterValue,
             };
             onAddFilter(newFilter);
             setIsSelectingFilterKey(false);
@@ -174,7 +178,14 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       size="md"
       menuWidth="300px"
       menuTitle={
-        isSelectingFilterKey ? t('Select Filter Tag') : t('Select Filter Dataset')
+        <MenuTitleWrapper>
+          {isSelectingFilterKey
+            ? t(
+                'Select %s Tag',
+                selectedDataset ? getDatasetLabel(selectedDataset) : 'Filter'
+              )
+            : t('Select Filter Dataset')}
+        </MenuTitleWrapper>
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
@@ -193,10 +204,10 @@ export default AddFilter;
 const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+ gap:${p => p.theme.space.xl}
 
   /* If there's FooterMessage above */
   &:not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;

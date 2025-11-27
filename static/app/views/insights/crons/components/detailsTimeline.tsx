@@ -31,12 +31,16 @@ import {CronServiceIncidents} from './serviceIncidents';
 interface Props {
   monitor: Monitor;
   /**
+   * Called when an environment is updated (muted/unmuted/deleted).
+   */
+  onEnvironmentUpdated?: () => void;
+  /**
    * Called when monitor stats have been loaded for this timeline.
    */
   onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
-export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
+export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
@@ -62,7 +66,9 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
     organization,
     monitor.project.slug,
     monitor.slug,
-    {...location.query}
+    {
+      environment: location.query.environment,
+    }
   );
 
   const {data: monitorStats} = useMonitorStats({
@@ -89,6 +95,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
           }
         : undefined;
     });
+
+    onEnvironmentUpdated?.();
   };
 
   const handleToggleMuteEnvironment = async (env: string, isMuted: boolean) => {
@@ -104,21 +112,10 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       return;
     }
 
-    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
-      return oldMonitorDetails
-        ? {
-            ...oldMonitorDetails,
-            environments: oldMonitorDetails.environments.map(monitorEnv =>
-              monitorEnv.name === env
-                ? {
-                    ...monitorEnv,
-                    isMuted,
-                  }
-                : monitorEnv
-            ),
-          }
-        : undefined;
-    });
+    // Invalidate the query to refetch the monitor with updated environment data
+    queryClient.invalidateQueries({queryKey: monitorDetailsQueryKey});
+
+    onEnvironmentUpdated?.();
   };
 
   return (

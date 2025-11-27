@@ -4,7 +4,11 @@ import type {Series} from 'sentry/types/echarts';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
@@ -18,10 +22,11 @@ interface UseMetricDetectorSeriesProps {
   projectId: string;
   query: string;
   comparisonDelta?: number;
-  end?: string;
+  end?: string | null;
+  extrapolationMode?: ExtrapolationMode;
   options?: Partial<UseApiQueryOptions<any>>;
-  start?: string;
-  statsPeriod?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
 }
 
 interface UseMetricDetectorSeriesResult {
@@ -29,6 +34,14 @@ interface UseMetricDetectorSeriesResult {
   error: RequestError | null;
   isLoading: boolean;
   series: Series[];
+}
+
+function applySharedSeriesOptions(series: Series[]): Series[] {
+  return series.map(s => ({
+    ...s,
+    // Disable mouse hover emphasis effect on series points
+    emphasis: {disabled: true},
+  }));
 }
 
 /**
@@ -48,6 +61,7 @@ export function useMetricDetectorSeries({
   end,
   comparisonDelta,
   options,
+  extrapolationMode,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(
@@ -67,6 +81,7 @@ export function useMetricDetectorSeries({
     start,
     end,
     comparisonDelta,
+    extrapolationMode,
   });
 
   const {data, isLoading, error} = useApiQuery<
@@ -99,8 +114,8 @@ export function useMetricDetectorSeries({
         : [];
 
     return {
-      series: transformedSeries,
-      comparisonSeries: transformedComparisonSeries,
+      series: applySharedSeriesOptions(transformedSeries),
+      comparisonSeries: applySharedSeriesOptions(transformedComparisonSeries),
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 

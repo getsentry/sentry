@@ -16,6 +16,7 @@ import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackI
 import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -146,6 +147,19 @@ export default function FeedbackListPage() {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={{
+                  messagePlaceholder: t(
+                    'How can we improve the User Feedback experience?'
+                  ),
+                  tags: {
+                    ['feedback.source']: 'feedback-list',
+                  },
+                }}
+              />
+            </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>

@@ -56,6 +56,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/launchpad.git
         mode: containerized
+    uptime-checker:
+      description: Service powering Sentry's uptime detection features
+      remote:
+        repo_name: uptime-checker
+        branch: main
+        repo_link: https://github.com/getsentry/uptime-checker.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
@@ -163,7 +170,8 @@ x-sentry-service-config:
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
-    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
+    backend-ci:
+      [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
@@ -246,6 +254,21 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
       ]
     minimal: [postgres, snuba]
+    # The minimal set of services Symbolicator needs to run
+    # Sentry integration tests.
+    symbolicator-tests: [postgres, snuba, objectstore]
+    uptime:
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        uptime-checker,
+        uptime-results,
+      ]
     ingest-all:
       [
         billing-metrics-consumer,
@@ -301,6 +324,7 @@ x-sentry-service-config:
         ingest-metrics,
         ingest-generic-metrics,
         billing-metrics-consumer,
+        uptime-checker,
         uptime-results,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,

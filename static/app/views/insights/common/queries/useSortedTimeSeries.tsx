@@ -1,5 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useEffectEvent} from '@react-aria/utils';
+import {useEffect, useEffectEvent, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
@@ -125,13 +124,17 @@ export const useSortedTimeSeries = <
     useIsSampled(0.1, key) &&
     organization.features.includes('explore-events-time-series-spot-check');
 
+  const groupBy = fields?.filter(
+    field => !(yAxis as unknown as string[]).includes(field)
+  );
+
   const timeSeriesResult = useFetchEventsTimeSeries(
     dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
       query: search,
       topEvents,
-      groupBy: fields as unknown as any,
+      groupBy,
       pageFilters: pageFilters.selection,
       sort: decodeSorts(orderby)[0],
       interval,

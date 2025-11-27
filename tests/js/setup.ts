@@ -3,7 +3,12 @@
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
-import {TextDecoder, TextEncoder} from 'node:util';
+import {
+  // @ts-expect-error structuredClone is available in Node 17+ but types don't like it
+  structuredClone as nodeStructuredClone,
+  TextDecoder,
+  TextEncoder,
+} from 'node:util';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -219,6 +224,15 @@ jest.mock('@sentry/react', function sentryReact() {
         end: jest.fn(),
       }),
     }),
+    logger: {
+      warn: jest.fn(),
+      error: jest.fn(),
+      fatal: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+      trace: jest.fn(),
+      fmt: jest.fn(),
+    },
   };
 });
 
@@ -326,3 +340,7 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = nodeStructuredClone;
+}

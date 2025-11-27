@@ -7,18 +7,12 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
-export const makePreventAiField = (organization: Organization): FieldObject => {
-  const regionData = getRegionDataFromOrganization(organization);
-  const isUSOrg = regionData?.name?.toLowerCase() === 'us';
+export const makePreventAiField = (): FieldObject => {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  const isDisabled = isSelfHosted || !isUSOrg;
-  const disabledReason = isSelfHosted
-    ? t('This feature is not available for self-hosted instances')
-    : t('This feature is only available in the US region');
+  const isDisabled = isSelfHosted;
+  const disabledReason = t('This feature is not available for self-hosted instances');
 
   return {
     name: 'enablePrReviewTestGeneration',
@@ -43,14 +37,11 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         )}
       </Flex>
     ),
-    help: tct(
-      'Use AI to review, find bugs, and generate tests in pull requests [link:Learn more]',
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
-        ),
-      }
-    ),
+    help: tct('Use AI to review and find bugs in pull requests [link:Learn more]', {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+      ),
+    }),
     visible: ({model}) => {
       // Show field when AI features are enabled (hideAiFeatures is false)
       const hideAiFeatures = model.getValue('hideAiFeatures');

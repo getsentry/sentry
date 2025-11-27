@@ -5,7 +5,6 @@ from copy import copy
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
-from django import forms
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
@@ -104,10 +103,8 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT, PREVENT_AI_CONFIG_SCHEMA
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -186,12 +183,6 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "githubOpenPRBot",
-        "sentry:github_open_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "githubNudgeInvite",
         "sentry:github_nudge_invite",
         bool,
@@ -200,12 +191,6 @@ ORG_OPTIONS = (
     (
         "gitlabPRBot",
         "sentry:gitlab_pr_bot",
-        bool,
-        GITLAB_COMMENT_BOT_DEFAULT,
-    ),
-    (
-        "gitlabOpenPRBot",
-        "sentry:gitlab_open_pr_bot",
         bool,
         GITLAB_COMMENT_BOT_DEFAULT,
     ),
@@ -236,12 +221,6 @@ ORG_OPTIONS = (
         "sentry:default_seer_scanner_automation",
         bool,
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ),
-    (
-        "preventAiConfigGithub",
-        "sentry:prevent_ai_config_github",
-        dict,
-        PREVENT_AI_CONFIG_GITHUB_DEFAULT,
     ),
     (
         "enablePrReviewTestGeneration",
@@ -319,11 +298,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
-    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -348,7 +325,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
-    preventAiConfigGithub = serializers.JSONField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
@@ -457,14 +433,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
-        return value
-
-    def validate_preventAiConfigGithub(self, value):
-        """Validate the structure using JSON Schema - generic error for invalid configs."""
-        try:
-            validate_json_schema(value, PREVENT_AI_CONFIG_SCHEMA)
-        except forms.ValidationError:
-            raise serializers.ValidationError("Prevent AI config option is invalid")
         return value
 
     def validate(self, attrs):
@@ -742,7 +710,6 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
-        "preventAiConfigGithub",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]
@@ -910,10 +877,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
         required=False,
     )
-    githubOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
-        required=False,
-    )
     githubNudgeInvite = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
         required=False,
@@ -922,10 +885,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # gitlab features
     gitlabPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
-        required=False,
-    )
-    gitlabOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
         required=False,
     )
 
@@ -1171,10 +1130,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.TRANSACTIONS
-        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-            "organizations:dynamic-sampling-spans", organization
-        ):
-            measure = SamplingMeasure.SPANS
+        if options.get("dynamic-sampling.check_span_feature_flag"):
+            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+            if org_id in span_org_ids:
+                measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(

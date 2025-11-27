@@ -72,8 +72,11 @@ interface WidgetQueryOnDemand {
 }
 
 export type LinkedDashboard = {
+  // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // Used for static dashboards that are not saved to the database
+  staticDashboardId?: PrebuiltDashboardId;
 };
 
 /**
@@ -165,16 +168,20 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
+  // temporary filters are filters that are not saved to the dashboard, they occur when you link from one dashboard to another
+  TEMPORARY_FILTERS = 'temporaryFilters',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
   [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+  [DashboardFilterKeys.TEMPORARY_FILTERS]?: GlobalFilter[];
 };
 
 export type GlobalFilter = {

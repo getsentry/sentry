@@ -22,7 +22,6 @@ describe('getIssueFieldRenderer', () => {
   beforeEach(() => {
     context = initializeOrg({
       organization,
-      router: {},
       projects: [ProjectFixture()],
     });
     organization = context.organization;

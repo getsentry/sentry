@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Select} from 'sentry/components/core/select';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';

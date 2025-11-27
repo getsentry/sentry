@@ -1,12 +1,37 @@
 import hashlib
 import hmac
+from copy import deepcopy
 from unittest.mock import patch
 
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.prevent.models import PreventAIConfiguration
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.testutils.silo import assume_test_silo_mode
+
+VALID_ORG_CONFIG = {
+    "schema_version": "v1",
+    "org_defaults": {
+        "bug_prediction": {
+            "enabled": True,
+            "sensitivity": "medium",
+            "triggers": {"on_command_phrase": True, "on_ready_for_review": True},
+        },
+        "test_generation": {
+            "enabled": False,
+            "triggers": {"on_command_phrase": True, "on_ready_for_review": False},
+        },
+        "vanilla": {
+            "enabled": False,
+            "sensitivity": "medium",
+            "triggers": {"on_command_phrase": True, "on_ready_for_review": False},
+        },
+    },
+    "repo_overrides": {},
+}
 
 
 class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
@@ -30,93 +55,220 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_missing_required_params_returns_400(self):
+    def test_missing_sentry_org_id_returns_400(self):
+        """Test that missing sentryOrgId parameter returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
         auth = self._auth_header_for_get(url, {}, "test-secret")
         resp = self.client.get(url, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
+        assert "sentryOrgId" in resp.data["detail"]
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_invalid_org_id_not_found(self):
+    def test_invalid_sentry_org_id_returns_400(self):
+        """Test that invalid sentryOrgId (non-integer) returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": "999999"}
+        params = {"sentryOrgId": "not-a-number", "gitOrgName": "test-org", "provider": "github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
+        assert "must be a valid integer" in resp.data["detail"]
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_invalid_org_id_non_numeric(self):
+    def test_negative_sentry_org_id_returns_400(self):
+        """Test that negative sentryOrgId returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": "abc"}
+        params = {"sentryOrgId": "-123", "gitOrgName": "test-org", "provider": "github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
+        assert "must be a positive integer" in resp.data["detail"]
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_success_returns_default_config(self):
-        org = self.create_organization()
+    def test_zero_sentry_org_id_returns_400(self):
+        """Test that zero sentryOrgId returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": str(org.id)}
+        params = {"sentryOrgId": "0", "gitOrgName": "test-org", "provider": "github"}
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 200
-        assert resp.data == PREVENT_AI_CONFIG_GITHUB_DEFAULT
+        assert resp.status_code == 400
+        assert "must be a positive integer" in resp.data["detail"]
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
-    def test_success_returns_custom_config(self):
+    def test_missing_git_org_name_returns_400(self):
+        """Test that missing gitOrgName parameter returns 400."""
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "123"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "gitOrgName" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_missing_provider_returns_400(self):
+        """Test that missing provider parameter returns 400."""
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "123", "gitOrgName": "test-org"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "provider" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_default_when_no_config(self):
+        """Test that default config is returned when no configuration exists."""
         org = self.create_organization()
-        custom_config = {
-            "schema_version": "v1",
-            "default_org_config": {
-                "org_defaults": {
-                    "bug_prediction": {
-                        "enabled": False,
-                        "sensitivity": "high",
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": True,
-                        },
-                    },
-                    "test_generation": {
-                        "enabled": False,
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                    "vanilla": {
-                        "enabled": False,
-                        "sensitivity": "medium",
-                        "triggers": {
-                            "on_command_phrase": False,
-                            "on_ready_for_review": False,
-                        },
-                    },
-                },
-                "repo_overrides": {},
-            },
-            "github_organizations": {},
+        git_org_name = "test-github-org"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org,
+                provider="github",
+                name=git_org_name,
+                external_id=f"github:{git_org_name}",
+                status=ObjectStatus.ACTIVE,
+            )
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {
+            "sentryOrgId": str(org.id),
+            "gitOrgName": git_org_name,
+            "provider": "github",
         }
-        org.update_option("sentry:prevent_ai_config_github", custom_config)
-
-        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
-        params = {"sentryOrgId": str(org.id)}
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == custom_config
+        assert resp.data == PREVENT_AI_CONFIG_DEFAULT
+        assert resp.data["organization"] == {}
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_config_when_exists(self):
+        """Test that saved configuration is returned when it exists."""
+        org = self.create_organization()
+        git_org_name = "test-github-org"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                name=git_org_name,
+                external_id=f"github:{git_org_name}",
+                status=ObjectStatus.ACTIVE,
+            )
+
+        PreventAIConfiguration.objects.create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            data=VALID_ORG_CONFIG,
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {
+            "sentryOrgId": str(org.id),
+            "gitOrgName": git_org_name,
+            "provider": "github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert resp.data["organization"] == VALID_ORG_CONFIG
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_returns_404_when_integration_not_found(self):
+        """Test that 404 is returned when GitHub integration doesn't exist."""
+        org = self.create_organization()
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {
+            "sentryOrgId": str(org.id),
+            "gitOrgName": "nonexistent-org",
+            "provider": "github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 404
+        assert resp.data["detail"] == "GitHub integration not found"
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_config_with_repo_overrides(self):
+        """Test that configuration with repo overrides is properly retrieved."""
+        org = self.create_organization()
+        git_org_name = "test-github-org"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=org,
+                provider="github",
+                name=git_org_name,
+                external_id=f"github:{git_org_name}",
+                status=ObjectStatus.ACTIVE,
+            )
+
+        config_with_overrides = deepcopy(VALID_ORG_CONFIG)
+        config_with_overrides["repo_overrides"] = {
+            "my-repo": {
+                "bug_prediction": {
+                    "enabled": True,
+                    "sensitivity": "high",
+                    "triggers": {"on_command_phrase": True, "on_ready_for_review": False},
+                },
+                "test_generation": {
+                    "enabled": True,
+                    "triggers": {"on_command_phrase": True, "on_ready_for_review": True},
+                },
+                "vanilla": {
+                    "enabled": False,
+                    "sensitivity": "low",
+                    "triggers": {"on_command_phrase": False, "on_ready_for_review": False},
+                },
+            }
+        }
+
+        PreventAIConfiguration.objects.create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            data=config_with_overrides,
+        )
+
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {
+            "sentryOrgId": str(org.id),
+            "gitOrgName": git_org_name,
+            "provider": "github",
+        }
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 200
+        assert (
+            resp.data["organization"]["repo_overrides"]["my-repo"]["bug_prediction"]["sensitivity"]
+            == "high"
+        )
 
 
 class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
@@ -192,29 +344,30 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         params = {"repoId": repo_id}
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 200
-        # Should return both orgs with their consent status
-        expected_orgs = [
-            {
-                "org_id": org_with_consent.id,
-                "org_slug": org_with_consent.slug,
-                "org_name": org_with_consent.name,
-                "has_consent": True,
-            },
-            {
-                "org_id": org_without_consent.id,
-                "org_slug": org_without_consent.slug,
-                "org_name": org_without_consent.name,
-                "has_consent": False,
-            },
-        ]
-        # Sort both lists by org_id to ensure consistent comparison
-        expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
-        actual_data = {
-            "organizations": sorted(resp.data["organizations"], key=lambda x: x["org_id"])
-        }
-        assert actual_data == {"organizations": expected_orgs}
+        with self.feature("organizations:gen-ai-features"):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+            assert resp.status_code == 200
+            # Should return both orgs with their consent status
+            expected_orgs = [
+                {
+                    "org_id": org_with_consent.id,
+                    "org_slug": org_with_consent.slug,
+                    "org_name": org_with_consent.name,
+                    "has_consent": True,
+                },
+                {
+                    "org_id": org_without_consent.id,
+                    "org_slug": org_without_consent.slug,
+                    "org_name": org_without_consent.name,
+                    "has_consent": False,
+                },
+            ]
+            # Sort both lists by org_id to ensure consistent comparison
+            expected_orgs = sorted(expected_orgs, key=lambda x: x["org_id"])
+            actual_data = {
+                "organizations": sorted(resp.data["organizations"], key=lambda x: x["org_id"])
+            }
+            assert actual_data == {"organizations": expected_orgs}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -242,7 +395,8 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         params = {"repoId": repo_id}
         auth = self._auth_header_for_get(url, params, "test-secret")
 
-        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 200
-        # Should return empty list as the repository is inactive
-        assert resp.data == {"organizations": []}
+        with self.feature("organizations:gen-ai-features"):
+            resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+            assert resp.status_code == 200
+            # Should return empty list as the repository is inactive
+            assert resp.data == {"organizations": []}

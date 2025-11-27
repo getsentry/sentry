@@ -157,6 +157,7 @@ function ReleaseHeader({
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (
@@ -173,12 +174,10 @@ function ReleaseHeader({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          organization={organization}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
-          location={location}
         />
       </Layout.HeaderActions>
 

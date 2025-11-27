@@ -22,12 +22,30 @@ class Span(BaseModel):
     span_description: str | None
 
 
+class EvidenceSpan(BaseModel):
+    span_id: str | None = None
+    parent_span_id: str | None = None
+    timestamp: float | None = None
+    op: str | None = None
+    description: str | None = None
+    exclusive_time: float | None = None  # duration in milliseconds
+    data: dict[str, Any] | None = None
+
+
 class TraceData(BaseModel):
     trace_id: str
     project_id: int
     transaction_name: str
     total_spans: int
     spans: list[Span]
+
+
+class EvidenceTraceData(BaseModel):
+    trace_id: str
+    project_id: int
+    transaction_name: str
+    total_spans: int
+    spans: list[EvidenceSpan]
 
 
 class EAPTrace(BaseModel):
@@ -58,7 +76,6 @@ class ExecutionTreeNode(BaseModel):
 
 class ProfileData(BaseModel):
     profile_id: str
-    span_id: str
     transaction_name: str | None
     execution_tree: list[ExecutionTreeNode]
     project_id: int

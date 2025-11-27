@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -105,7 +104,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
             <SimpleTable.RowCell>
               <Duration seconds={seconds} abbreviation />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="flex-end">
+            <SimpleTable.RowCell justify="end">
               <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
                 {t('Zoom')}
               </Button>
@@ -134,7 +133,7 @@ function OpenPeriodsSubTableSkeleton() {
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="50%" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell justify="flex-end">
+          <SimpleTable.RowCell justify="end">
             <Placeholder height="24px" width="48px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -270,19 +269,17 @@ export function DetectorDetailsOpenPeriodIssues({
 
   return (
     <Section
-      title={
-        <Flex justify="between" align="center">
-          {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
-          <LinkButton
-            size="xs"
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: issueSearchQueryParams,
-            }}
-          >
-            {t('View All')}
-          </LinkButton>
-        </Flex>
+      title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: issueSearchQueryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
       }
     >
       <ErrorBoundary mini>

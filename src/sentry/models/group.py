@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, features, options, tagstore
+from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -370,32 +370,27 @@ class GroupManager(BaseManager["Group"]):
         groups = list(base_group_queryset.filter(short_id_lookup))
         group_lookup: set[int] = {group.short_id for group in groups}
 
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        has_insensitive_lookup = features.has(
-            "organizations:group-case-insensitive-short-id-lookup", organization
-        )
-
         # If any requested short_ids are missing after the exact slug match,
         # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
-        if has_insensitive_lookup:
-            missing_by_slug = defaultdict(list)
-            for sid in short_ids:
-                if sid.short_id not in group_lookup:
-                    missing_by_slug[sid.project_slug].append(sid.short_id)
+        # Handles legacy project slugs that may not be entirely lowercase.
+        missing_by_slug = defaultdict(list)
+        for sid in short_ids:
+            if sid.short_id not in group_lookup:
+                missing_by_slug[sid.project_slug].append(sid.short_id)
 
-            if len(missing_by_slug) > 0:
-                ci_short_id_lookup = reduce(
-                    or_,
-                    [
-                        Q(project__slug__iexact=slug, short_id__in=sids)
-                        for slug, sids in missing_by_slug.items()
-                    ],
-                )
+        if len(missing_by_slug) > 0:
+            ci_short_id_lookup = reduce(
+                or_,
+                [
+                    Q(project__slug__iexact=slug, short_id__in=sids)
+                    for slug, sids in missing_by_slug.items()
+                ],
+            )
 
-                fallback_groups = list(base_group_queryset.filter(ci_short_id_lookup))
+            fallback_groups = list(base_group_queryset.filter(ci_short_id_lookup))
 
-                groups.extend(fallback_groups)
-                group_lookup.update(group.short_id for group in fallback_groups)
+            groups.extend(fallback_groups)
+            group_lookup.update(group.short_id for group in fallback_groups)
 
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
@@ -568,7 +563,7 @@ class GroupManager(BaseManager["Group"]):
                         extra={"group_id": group.id},
                     )
                     continue
-                update_incident_based_on_open_period_status_change(group, status, detector_id)
+                update_incident_based_on_open_period_status_change(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -807,9 +802,9 @@ class Group(Model):
             return cached_has_replays
 
         data_source = (
-            Dataset.IssuePlatform
-            if self.issue_category == GroupCategory.PERFORMANCE
-            else Dataset.Discover
+            Dataset.Discover
+            if self.issue_category == GroupCategory.ERROR
+            else Dataset.IssuePlatform
         )
 
         counts = get_replay_counts(

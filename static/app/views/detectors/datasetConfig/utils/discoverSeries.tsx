@@ -3,6 +3,11 @@ import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {
+  EAP_EXTRAPOLATION_MODE_MAP,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 /**
  * Transform EventsStats API response into Series format for AreaChart
@@ -80,18 +85,19 @@ interface DiscoverSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
+  end?: string | null;
   /**
    * Extra query parameters to pass
    */
   extra?: {
     useOnDemandMetrics: 'true';
   };
-  start?: string;
+  extrapolationMode?: ExtrapolationMode;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 export function getDiscoverSeriesQueryOptions({
@@ -106,6 +112,7 @@ export function getDiscoverSeriesQueryOptions({
   comparisonDelta,
   start,
   end,
+  extrapolationMode,
 }: DiscoverSeriesQueryOptions): ApiQueryKey {
   return [
     `/organizations/${organization.slug}/events-stats/`,
@@ -121,6 +128,13 @@ export function getDiscoverSeriesQueryOptions({
         statsPeriod,
         start,
         end,
+        sampling:
+          extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
+        extrapolationMode: extrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+          : undefined,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),

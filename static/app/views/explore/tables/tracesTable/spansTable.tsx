@@ -16,8 +16,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useQueryParamsQuery} from 'sentry/views/explore//queryParams/context';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {FIELDS, SORTS, type Field} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
@@ -183,7 +183,7 @@ function useSpans({query, trace}: UseSpansOptions): {
   isPending: boolean;
 } {
   const {selection} = usePageFilters();
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
 
   const eventView = useMemo(() => {
     const fields = [

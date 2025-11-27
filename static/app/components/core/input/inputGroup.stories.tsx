@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import types from '!!type-loader!sentry/components/core/input/inputGroup';
+import documentation from '!!type-loader!sentry/components/core/input/inputGroup';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {InputGroup} from './inputGroup';
 
 export default Storybook.story('InputGroup', (story, APIReference) => {
-  APIReference(types.InputGroup);
+  APIReference(documentation.props.InputGroup);
 
   story('Default', () => {
     return (

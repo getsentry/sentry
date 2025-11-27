@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import {
   updateDashboardFavorite,
@@ -27,6 +28,7 @@ import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -229,7 +231,11 @@ function DashboardTable({
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
         </BodyCellContainer>
       ) : (
-        <ActivityAvatar type="system" size={26} />
+        <BodyCellContainer>
+          <Tooltip title="Sentry">
+            <ActivityAvatar type="system" size={26} />
+          </Tooltip>
+        </BodyCellContainer>
       );
     }
 
@@ -253,6 +259,7 @@ function DashboardTable({
           dashboard={dataRow}
           onChangeEditAccess={onChangeEditAccess}
           listOnly
+          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
         />
       );
     }
@@ -309,7 +316,14 @@ function DashboardTable({
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={dashboards && dashboards.length <= 1}
+              disabled={
+                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
+              }
+              title={
+                defined(dataRow.prebuiltId)
+                  ? t('Prebuilt dashboards cannot be deleted')
+                  : undefined
+              }
             />
           </Flex>
         </BodyCellContainer>
@@ -323,8 +337,6 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
-      // necessary for edit access dropdown
-      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -336,9 +348,10 @@ function DashboardTable({
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
           };
+
           if (isHeader) {
             return [
-              <StyledIconStar
+              <IconStar
                 color="yellow300"
                 isSolid
                 aria-label={t('Star Column')}
@@ -388,8 +401,4 @@ const BodyCellContainer = styled('div')`
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
-`;
-
-const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.25)};
 `;

@@ -20,7 +20,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 100,
+        highThreshold: 100,
+        resolutionThreshold: undefined,
         thresholdSuffix: '%',
       });
 
@@ -33,7 +34,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.LESS,
-        conditionValue: 50,
+        highThreshold: 50,
+        resolutionThreshold: undefined,
         thresholdSuffix: 'ms',
       });
 
@@ -46,12 +48,41 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 100,
+        highThreshold: 100,
+        resolutionThreshold: undefined,
         thresholdSuffix: '',
       });
 
       expect(result).toBe(
         'Issue will be resolved when the query value is less than 100.'
+      );
+    });
+
+    it('uses resolutionThreshold instead of highThreshold when provided for GREATER condition', () => {
+      const result = getResolutionDescription({
+        detectionType: 'static',
+        conditionType: DataConditionType.GREATER,
+        highThreshold: 100,
+        resolutionThreshold: 75,
+        thresholdSuffix: '%',
+      });
+
+      expect(result).toBe(
+        'Issue will be resolved when the query value is less than 75%.'
+      );
+    });
+
+    it('uses resolutionThreshold instead of highThreshold when provided for LESS condition', () => {
+      const result = getResolutionDescription({
+        detectionType: 'static',
+        conditionType: DataConditionType.LESS,
+        highThreshold: 50,
+        resolutionThreshold: 80,
+        thresholdSuffix: 'ms',
+      });
+
+      expect(result).toBe(
+        'Issue will be resolved when the query value is more than 80ms.'
       );
     });
   });
@@ -61,7 +92,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 25,
+        highThreshold: 25,
+        resolutionThreshold: undefined,
         comparisonDelta: 3600, // 1 hour
         thresholdSuffix: '%',
       });
@@ -75,7 +107,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: undefined,
-        conditionValue: 25,
+        highThreshold: 25,
+        resolutionThreshold: undefined,
         comparisonDelta: 3600,
         thresholdSuffix: '%',
       });
@@ -87,7 +120,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: undefined,
+        highThreshold: undefined,
+        resolutionThreshold: undefined,
         comparisonDelta: 3600,
         thresholdSuffix: '%',
       });
@@ -99,7 +133,8 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.LESS,
-        conditionValue: 15,
+        highThreshold: 15,
+        resolutionThreshold: undefined,
         comparisonDelta: 7200, // 2 hours
         thresholdSuffix: '%',
       });
@@ -113,13 +148,29 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 20,
+        highThreshold: 20,
+        resolutionThreshold: undefined,
         comparisonDelta: 300, // 5 minutes
         thresholdSuffix: '%',
       });
 
       expect(result).toBe(
         'Issue will be resolved when the query value is less than 20% higher than the previous 5 minutes.'
+      );
+    });
+
+    it('uses resolutionThreshold instead of highThreshold when provided', () => {
+      const result = getResolutionDescription({
+        detectionType: 'percent',
+        conditionType: DataConditionType.GREATER,
+        highThreshold: 25,
+        resolutionThreshold: 15,
+        comparisonDelta: 3600,
+        thresholdSuffix: '%',
+      });
+
+      expect(result).toBe(
+        'Issue will be resolved when the query value is less than 15% higher than the previous 1 hour.'
       );
     });
   });

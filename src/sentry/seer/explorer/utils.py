@@ -46,11 +46,16 @@ def normalize_description(description: str) -> str:
     return description
 
 
-def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
+def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], str | None]:
     """
-    Converts profile data into a hierarchical representation of code execution,
-    including only items from the MainThread and app frames.
+    Converts profile data into a hierarchical representation of code execution.
+    Selects the thread with the most in_app frames. Returns empty list if no
+    in_app frames exist.
     Calculates accurate durations for all nodes based on call stack transitions.
+
+    Returns:
+        Tuple of (execution_tree, selected_thread_id) where selected_thread_id is the
+        thread that was used to build the execution tree.
     """
     profile = profile_data.get(
         "profile"
@@ -60,23 +65,39 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:
-            return []
+            empty_tree: list[dict[Any, Any]] = []
+            return empty_tree, None
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
     if not all([frames, stacks, samples]):
-        return []
+        empty_tree_2: list[dict[Any, Any]] = []
+        return empty_tree_2, None
 
-    # Find the MainThread ID
-    thread_metadata = profile.get("thread_metadata", {}) or {}
-    main_thread_id = next(
-        (key for key, value in thread_metadata.items() if value.get("name") == "MainThread"), None
-    )
-    if (
-        not main_thread_id and len(thread_metadata) == 1
-    ):  # if there is only one thread, use that as the main thread
-        main_thread_id = list(thread_metadata.keys())[0]
+    # Count in_app frames per thread
+    thread_in_app_counts: dict[str, int] = {}
+    for sample in samples:
+        thread_id = str(sample["thread_id"])
+        thread_in_app_counts.setdefault(thread_id, 0)
+
+        stack_index = sample.get("stack_id")
+        if stack_index is not None and stack_index < len(stacks):
+            for idx in stacks[stack_index]:
+                if idx < len(frames) and frames[idx].get("in_app", False):
+                    thread_in_app_counts[thread_id] += 1
+
+    # Select thread with most in_app frames
+    selected_thread_id: str | None = None
+    max_in_app_count = max(thread_in_app_counts.values()) if thread_in_app_counts else 0
+
+    if max_in_app_count > 0:
+        # Find thread with most in_app frames
+        selected_thread_id = max(thread_in_app_counts.items(), key=lambda x: x[1])[0]
+        show_all_frames = False
+    else:
+        # No in_app frames found, return empty tree instead of falling back to system frames
+        return [], None
 
     def _get_elapsed_since_start_ns(
         sample: dict[str, Any], all_samples: list[dict[str, Any]]
@@ -142,23 +163,40 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         parent["children"].append(frame_data)
         return frame_data
 
-    def process_stack(stack_index):
-        """Extract app frames from a stack trace"""
+    def is_valid_frame(frame: dict[str, Any], include_all_frames: bool) -> bool:
+        """Check if a frame should be included in the execution tree."""
+        filename = frame.get("filename", "")
+        is_generated = filename.startswith("<") and filename.endswith(">")
+        if is_generated:
+            return False
+        return include_all_frames or frame.get("in_app", False)
+
+    def process_stack(stack_index: int, include_all_frames: bool = False) -> list[dict[str, Any]]:
+        """Extract frames from a stack trace.
+
+        Args:
+            stack_index: Index into the stacks array
+            include_all_frames: If True, include all frames (including system frames).
+                               If False, only include in_app frames.
+        """
         frame_indices = stacks[stack_index]
         if not frame_indices:
-            return []
+            empty_stack: list[dict[str, Any]] = []
+            return empty_stack
 
-        # Create nodes for app frames only, maintaining order (bottom to top)
+        # Create nodes for frames, maintaining order (bottom to top)
         nodes = []
         for idx in reversed(frame_indices):
-            frame = frames[idx]
-            if frame.get("in_app", False) and not (
-                frame.get("filename", "").startswith("<")
-                and frame.get("filename", "").endswith(">")
-            ):
+            if idx >= len(frames):
+                continue
+            if is_valid_frame(frames[idx], include_all_frames):
                 nodes.append(create_frame_node(idx))
 
         return nodes
+
+    if not selected_thread_id:
+        empty_tree_3: list[dict[Any, Any]] = []
+        return empty_tree_3, None
 
     # Build the execution tree and track call stacks
     execution_tree: list[dict[str, Any]] = []
@@ -166,11 +204,11 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
 
     for sample in sorted_samples:
-        if str(sample["thread_id"]) != str(main_thread_id):
+        if str(sample["thread_id"]) != selected_thread_id:
             continue
 
         timestamp_ns = _get_elapsed_since_start_ns(sample, sorted_samples)
-        stack_frames = process_stack(sample["stack_id"])
+        stack_frames = process_stack(sample["stack_id"], include_all_frames=show_all_frames)
         if not stack_frames:
             continue
 
@@ -178,19 +216,23 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         current_stack_ids = []
 
         # Find or create root node
-        root = None
-        for existing_root in execution_tree:
-            if (
-                existing_root["function"] == stack_frames[0]["function"]
-                and existing_root["module"] == stack_frames[0]["module"]
-                and existing_root["filename"] == stack_frames[0]["filename"]
-                and existing_root["lineno"] == stack_frames[0]["lineno"]
-            ):
-                root = existing_root
-                break
+        root_frame = stack_frames[0]
+        root = next(
+            (
+                existing_root
+                for existing_root in execution_tree
+                if (
+                    existing_root["function"] == root_frame["function"]
+                    and existing_root["module"] == root_frame["module"]
+                    and existing_root["filename"] == root_frame["filename"]
+                    and existing_root["lineno"] == root_frame["lineno"]
+                )
+            ),
+            None,
+        )
 
         if root is None:
-            root = stack_frames[0]
+            root = root_frame
             execution_tree.append(root)
 
         # Process root node
@@ -300,16 +342,17 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     for node in execution_tree:
         apply_durations(node)
 
-    return execution_tree
+    return execution_tree, selected_thread_id
 
 
 def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeNode]:
     """
-    Converts profile data into a hierarchical representation of code execution,
-    including only items from the MainThread and app frames.
+    Converts profile data into a hierarchical representation of code execution.
+    Selects the thread with the most in_app frames. Returns empty list if no
+    in_app frames exist.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    dict_tree = _convert_profile_to_execution_tree(profile_data)
+    dict_tree, _ = _convert_profile_to_execution_tree(profile_data)
 
     def dict_to_execution_tree_node(node_dict: dict) -> ExecutionTreeNode:
         """Convert a dict node to an ExecutionTreeNode Pydantic object."""

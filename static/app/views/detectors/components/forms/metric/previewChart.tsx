@@ -19,19 +19,19 @@ export function MetricDetectorPreviewChart() {
   const rawQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
 
   // Threshold-related form fields
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const highThreshold = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.highThreshold
-  );
-  const initialPriorityLevel = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  const mediumThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.mediumThreshold
   );
   const resolutionStrategy = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
@@ -52,24 +52,22 @@ export function MetricDetectorPreviewChart() {
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
-    // Wait for a condition value to be defined
-    if (detectionType === 'static' && !conditionValue) {
+    // Wait for a high threshold value to be defined
+    if (detectionType === 'static' && !highThreshold) {
       return [];
     }
 
     return createConditions({
       conditionType,
-      conditionValue,
-      initialPriorityLevel,
       highThreshold,
+      mediumThreshold,
       resolutionStrategy,
       resolutionValue,
     });
   }, [
     conditionType,
-    conditionValue,
-    initialPriorityLevel,
     highThreshold,
+    mediumThreshold,
     resolutionStrategy,
     resolutionValue,
     detectionType,
@@ -93,6 +91,7 @@ export function MetricDetectorPreviewChart() {
       comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
       sensitivity={sensitivity}
       thresholdType={thresholdType}
+      extrapolationMode={extrapolationMode}
     />
   );
 }

@@ -22,14 +22,12 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -175,8 +173,10 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         activity = IncidentActivity.objects.filter(incident_id=incident.id)
         assert len(activity) == 4  # detected, created, priority change, close
 
-    def test_can_update_outstanding_incident_priority(self) -> None:
-        """Test that we link and update an incident that was opened before the org started single processing"""
+    def test_can_close_outstanding_incident(self) -> None:
+        """Test that we close incidents that are left open as a result of IGOP linkage bugs"""
+        four_minutes_ago = timezone.now() - timedelta(minutes=4)
+        three_minutes_ago = timezone.now() - timedelta(minutes=3)
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
         assert group is not None
@@ -185,26 +185,34 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
 
         open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
 
+        # replicate the following conditions in the DB: an open incident is tied to
+        # a closed open period, and a new open period is being passed to create_from_occurrence()
         dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
+        dummy_open_period = GroupOpenPeriod.objects.create(
+            group=group,
+            date_started=four_minutes_ago,
+            date_ended=three_minutes_ago,
+            project=self.project,
+        )
         incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        dummy_relationship.delete()
+        IncidentGroupOpenPeriod.objects.create(
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=dummy_open_period,
+        )
 
-        # this is a little hacky, but to emulate dual processing -> single processing I will
-        # just delete the IGOP relationship
-        IncidentGroupOpenPeriod.objects.all().delete()
-
-        _, group_info = self.save_issue_occurrence(priority=DetectorPriorityLevel.MEDIUM)
+        _, group_info = self.save_issue_occurrence()
         group = group_info.group
         assert group is not None
 
+        incident.refresh_from_db()
+        assert IncidentGroupOpenPeriod.objects.count() == 2
+        assert incident.date_closed is not None
         item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        assert item.incident_id == incident.id
-        activity = IncidentActivity.objects.filter(incident_id=incident.id)
-
-        assert len(activity) == 4
-        last_activity_entry = activity[3]
-        assert last_activity_entry.type == 2
-        assert last_activity_entry.value == str(IncidentStatus.WARNING.value)
-        assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+        new_incident = Incident.objects.get(id=item.incident_id)
+        activity = IncidentActivity.objects.filter(incident_id=new_incident.id)
+        assert len(activity) == 3  # detected, created, status change
 
     def test_can_resolve_outstanding_incident(self) -> None:
         """Test that we link and update an incident that was opened before the org started single processing on resolution"""

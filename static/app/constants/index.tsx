@@ -43,6 +43,7 @@ export const API_ACCESS_SCOPES = [
   'org:read',
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -68,6 +69,7 @@ export const ALLOWED_SCOPES = [
   'org:superuser', // not an assignable API access scope
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -119,7 +121,7 @@ type PermissionChoice = {
   scopes: Scope[];
 };
 
-type PermissionObj = {
+export type PermissionObj = {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
@@ -163,6 +165,14 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
     choices: {
       'no-access': {label: 'No Access', scopes: []},
       admin: {label: 'Admin', scopes: ['project:releases']},
+    },
+  },
+  {
+    resource: 'Distribution',
+    help: 'Pre-release app distribution for trusted testers.',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['project:distribution']},
     },
   },
   {
@@ -595,6 +605,20 @@ export const DATA_CATEGORY_INFO = {
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.SEER_USER]: {
+    name: DataCategoryExact.SEER_USER,
+    plural: DataCategory.SEER_USER,
+    singular: 'seerUser',
+    displayName: 'seer user',
+    titleName: t('Seer'),
+    productName: t('Seer'),
+    uid: 34,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(seer): add external stats when ready
     },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

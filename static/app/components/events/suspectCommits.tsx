@@ -131,11 +131,11 @@ export function SuspectCommits({
           >
             {isExpanded ? (
               <Fragment>
-                {t('Show less')} <IconSubtract isCircled size="md" />
+                {t('Show less')} <IconSubtract size="md" />
               </Fragment>
             ) : (
               <Fragment>
-                {t('Show more')} <IconAdd isCircled size="md" />
+                {t('Show more')} <IconAdd size="md" />
               </Fragment>
             )}
           </ExpandButton>

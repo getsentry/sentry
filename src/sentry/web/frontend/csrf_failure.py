@@ -5,11 +5,13 @@ from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import REASON_NO_REFERER
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry.web.frontend.base import all_silo_view
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
 
+@all_silo_view
 @csrf_exempt
 def view(request: HttpRequest, reason: str = "") -> HttpResponse:
     context = {"no_referer": reason == REASON_NO_REFERER}

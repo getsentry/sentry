@@ -9,7 +9,7 @@ discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
-feedback: 0006_safe_del_feedback_model
+feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
@@ -17,7 +17,7 @@ hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0010_delete_orphaned_detectors
+monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -25,18 +25,18 @@ notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0018_add_preprod_artifact_app_icon_id_field
 
-prevent: 0001_create_prevent_ai_configuration
+prevent: 0002_alter_integration_id_not_null
 
-releases: 0001_release_models
+releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 1000_add_project_distribution_scope
+sentry: 1008_loosen_unique_title_contraint
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0001_squashed_0002_make_message_type_nullable
+tempest: 0003_use_encrypted_char_field
 
-uptime: 0048_delete_uptime_status_columns
+uptime: 0049_cleanup_failed_safe_deletes
 
-workflow_engine: 0093_add_action_config_index
+workflow_engine: 0104_action_data_fallthrough_type

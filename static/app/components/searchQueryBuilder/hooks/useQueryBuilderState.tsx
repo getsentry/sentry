@@ -203,9 +203,9 @@ type UpdateAggregateArgsAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateBooleanOperatorAction = {
+type UpdateLogicOperatorAction = {
   token: TokenResult<Token.LOGIC_BOOLEAN>;
-  type: 'UPDATE_BOOLEAN_OPERATOR';
+  type: 'UPDATE_LOGIC_OPERATOR';
   value: string;
 };
 
@@ -245,7 +245,7 @@ export type QueryBuilderActions =
   | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
   | ResetClearAskSeerFeedbackAction
-  | UpdateBooleanOperatorAction;
+  | UpdateLogicOperatorAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -276,7 +276,7 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperatorQuery(
+export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator,
@@ -538,7 +538,7 @@ function replaceTokensWithText(
   };
 }
 
-function modifyFilterValue(
+export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
   newValue: string
@@ -727,7 +727,13 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+    replacedQuery.push(
+      // We don't want to break user flows, so if they include an asterisk in their free
+      // text value, leave it as an `is` filter.
+      value.includes('*')
+        ? `${primarySearchKey}:${value}`
+        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
+    );
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
@@ -781,17 +787,20 @@ function updateFreeTextAndReplaceText(
       : newState.focusOverride;
   }
 
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery = action.shouldCommitQuery ? query : state.committedQuery;
+
   return {
     ...newState,
     query,
-    committedQuery: query,
+    committedQuery,
     focusOverride,
   };
 }
 
-function updateBooleanOperator(
+function updateLogicOperator(
   state: QueryBuilderState,
-  action: UpdateBooleanOperatorAction
+  action: UpdateLogicOperatorAction
 ): QueryBuilderState {
   const newQuery = replaceQueryToken(state.query, action.token, action.value);
   if (newQuery === state.query) {
@@ -986,8 +995,8 @@ export function useQueryBuilderState({
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
-        case 'UPDATE_BOOLEAN_OPERATOR':
-          return updateBooleanOperator(state, action);
+        case 'UPDATE_LOGIC_OPERATOR':
+          return updateLogicOperator(state, action);
         case 'UPDATE_AGGREGATE_ARGS':
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':

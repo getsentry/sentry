@@ -32,6 +32,7 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
+    ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -43,6 +44,7 @@ from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
+from sentry.utils.snuba_rpc import SnubaRPCError
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -51,7 +53,12 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsEndpointTestBase(
-    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
+    APITransactionTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    OurLogTestCase,
+    TraceMetricsTestCase,
+    ProfileFunctionsTestCase,
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
@@ -5968,6 +5975,46 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "debug_info" in response.data["meta"]
         # We should get the snql query back in the query key
         assert "MATCH" in response.data["meta"]["debug_info"]["query"]
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc")
+    def test_debug_param_with_error(self, mock_query) -> None:
+        mock_query.side_effect = SnubaRPCError("test")
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+                "debug": True,
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "debug_info" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "virtualColumnContexts" in response.data["meta"]["debug_info"]["query"]
+
+        # Need to reset the mock, otherwise previous query is still attached
+        mock_query.side_effect = SnubaRPCError("test")
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": "spans",
+            },
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 500, response.content
+        assert "meta" not in response.data
+        assert "debug_info" not in response.data
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):

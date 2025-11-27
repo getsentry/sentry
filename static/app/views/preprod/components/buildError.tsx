@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import Missing from 'sentry-images/missing.png';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 interface BuildErrorProps {
   message: string;

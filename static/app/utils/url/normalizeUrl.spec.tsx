@@ -78,6 +78,8 @@ describe('normalizeUrl', () => {
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
+      ['/checkout/acme/', '/checkout/'],
+      ['/checkout/acme/?query=value', '/checkout/?query=value'],
 
       ['/organizations/new/', '/organizations/new/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],

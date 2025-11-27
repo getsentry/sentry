@@ -1,0 +1,16 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>Account Deleted</h3>
+  <p>Your Sentry account has been permanently deleted by an administrator.</p>
+  <p>
+    <strong>Account:</strong> {{ account.email }}<br />
+    <strong>When:</strong> {{ deletion_datetime }} UTC
+  </p>
+  <p>If you have questions about this action, please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}

@@ -77,7 +77,6 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -541,10 +540,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
-    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -555,7 +552,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    preventAiConfigGithub: dict[str, Any]
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
@@ -664,16 +660,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
             "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubOpenPRBot": bool(
-                obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
-            "gitlabOpenPRBot": bool(
-                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
-            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -696,10 +686,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "preventAiConfigGithub": obj.get_option(
-                "sentry:prevent_ai_config_github",
-                PREVENT_AI_CONFIG_GITHUB_DEFAULT,
             ),
             "enablePrReviewTestGeneration": bool(
                 obj.get_option(
@@ -781,7 +767,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
-        "preventAiConfigGithub",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

@@ -10,6 +10,7 @@ import logoAppleTv from 'sentry-logos/logo-apple-tv.svg';
 import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
 import logoApple from 'sentry-logos/logo-apple.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
+import logoBazzite from 'sentry-logos/logo-bazzite.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
 import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
@@ -39,6 +40,7 @@ import logoQq from 'sentry-logos/logo-qq.svg';
 import logoRuby from 'sentry-logos/logo-ruby.svg';
 import logoSafari from 'sentry-logos/logo-safari.svg';
 import logoSamsung from 'sentry-logos/logo-samsung.svg';
+import logoSteamos from 'sentry-logos/logo-steamos.svg';
 import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
 import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
@@ -67,6 +69,7 @@ const LOGO_MAPPING = {
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
+  bazzite: logoBazzite,
   apple: logoApple,
   appletv: logoAppleTv,
   arm: logoArm,
@@ -101,6 +104,7 @@ const LOGO_MAPPING = {
   ruby: logoRuby,
   safari: logoSafari,
   samsung: logoSamsung,
+  steamos: logoSteamos,
   tvos: logoApple,
   ubuntu: logoUbuntu,
   vercel: logoVercel,

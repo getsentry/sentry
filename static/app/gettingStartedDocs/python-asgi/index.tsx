@@ -1,0 +1,21 @@
+import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/crashReport';
+import {logs} from 'sentry/gettingStartedDocs/python/logs';
+import {mcp} from 'sentry/gettingStartedDocs/python/mcp';
+import {metrics} from 'sentry/gettingStartedDocs/python/metrics';
+import {profiling} from 'sentry/gettingStartedDocs/python/profiling';
+
+import {onboarding} from './onboarding';
+
+const docs: Docs = {
+  onboarding,
+  crashReportOnboarding: crashReport,
+  profilingOnboarding: profiling(),
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+  logsOnboarding: logs(),
+  metricsOnboarding: metrics(),
+};
+
+export default docs;

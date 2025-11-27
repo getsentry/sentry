@@ -57,6 +57,7 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   MILLISECONDS_IN_HOUR,
+  supportsPayg,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -111,7 +112,6 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 }
 
 function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
-  const hasBillingPerms = organization.access.includes('org:billing');
   const navigate = useNavigate();
   const location = useLocation();
   const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
@@ -236,12 +236,15 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         // show add-ons regardless of whether they're enabled
         // as long as they're launched for the org
         // and none of their sub-categories are unlimited
+        // Also do not show Seer if the legacy Seer add-on is enabled
         ([_, addOnInfo]) =>
           (!addOnInfo.billingFlag ||
             organization.features.includes(addOnInfo.billingFlag)) &&
           !addOnInfo.dataCategories.some(
             category => subscription.categories[category]?.reserved === UNLIMITED_RESERVED
-          )
+          ) &&
+          (addOnInfo.apiName !== AddOnCategory.SEER ||
+            !subscription.addOns?.[AddOnCategory.LEGACY_SEER]?.enabled)
       ),
     [subscription.addOns, organization.features, subscription.categories]
   );
@@ -273,22 +276,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       },
     ].filter(
       column =>
-        (hasBillingPerms || !column.key.endsWith('Spend')) &&
         (subscription.canSelfServe ||
           !column.key.endsWith('Spend') ||
-          ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
-            column.key === 'budgetSpend')) &&
+          (supportsPayg(subscription) && column.key === 'budgetSpend')) &&
         (hasAnyPotentialOrActiveProductTrial || column.key !== 'trialInfo')
     );
-  }, [
-    hasBillingPerms,
-    subscription.planDetails,
-    subscription.productTrials,
-    subscription.canSelfServe,
-    subscription.onDemandInvoiced,
-    subscription.onDemandInvoicedManual,
-    isXlScreen,
-  ]);
+  }, [subscription, isXlScreen]);
 
   // TODO(isabella): refactor this to have better types
   const productData: Array<{
@@ -484,6 +477,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 
   return (
     <GridEditable
+      resizable={false}
       bodyStyle={{
         borderTopLeftRadius: '0px',
         borderTopRightRadius: '0px',
@@ -498,7 +492,12 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       columnSortBy={[]}
       grid={{
         renderHeadCell: column => {
-          return <Text>{column.name}</Text>;
+          const isSpendColumn = column.key.toString().toLowerCase().endsWith('spend');
+          return (
+            <Container width="100%" justifySelf={isSpendColumn ? 'end' : 'start'}>
+              <Text align={isSpendColumn ? 'right' : 'left'}>{column.name}</Text>
+            </Container>
+          );
         },
         renderBodyCell: (column, row) => {
           const {

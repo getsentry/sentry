@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Text} from '@sentry/scraps/text';
+
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -14,10 +17,19 @@ interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
+  projectType: string | null;
+  slot: 'head' | 'base';
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
+function BuildButton({
+  buildDetails,
+  icon,
+  label,
+  onRemove,
+  slot,
+  projectType,
+}: BuildButtonProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
@@ -25,9 +37,22 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
   const buildId = buildDetails.id;
 
   const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const platform = buildDetails.app_info?.platform ?? null;
 
   return (
-    <LinkButton to={buildUrl}>
+    <LinkButton
+      to={buildUrl}
+      onClick={() =>
+        trackAnalytics('preprod.builds.compare.go_to_build_details', {
+          organization,
+          build_id: buildId,
+          project_slug: projectId,
+          platform,
+          project_type: projectType,
+          slot,
+        })
+      }
+    >
       <Flex align="center" gap="sm">
         {icon}
         <Text size="sm" variant="accent" bold>
@@ -46,11 +71,13 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
             </Flex>
           )}
         </Flex>
-        <BuildBranch>
-          <Text size="sm" variant="muted">
-            {branchName}
-          </Text>
-        </BuildBranch>
+        {branchName && (
+          <BuildBranch>
+            <Text size="sm" variant="muted">
+              {branchName}
+            </Text>
+          </BuildBranch>
+        )}
         {onRemove && (
           <Button
             onClick={e => {
@@ -104,12 +131,20 @@ export function SizeCompareSelectedBuilds({
   onClearBaseBuild,
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const platform = headBuildDetails.app_info?.platform ?? null;
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
+
   return (
     <ComparisonContainer>
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
+        slot="head"
+        projectType={projectType}
       />
 
       <Text>{t('vs')}</Text>
@@ -120,6 +155,8 @@ export function SizeCompareSelectedBuilds({
           icon={<IconFocus size="xs" color="purple400" />}
           label={t('Base')}
           onRemove={onClearBaseBuild}
+          slot="base"
+          projectType={projectType}
         />
       ) : (
         <SelectBuild>
@@ -131,6 +168,13 @@ export function SizeCompareSelectedBuilds({
         <Button
           onClick={() => {
             if (baseBuildDetails) {
+              trackAnalytics('preprod.builds.compare.trigger_comparison', {
+                organization,
+                project_slug: projectId,
+                platform,
+                build_id: headBuildDetails.id,
+                project_type: projectType,
+              });
               onTriggerComparison();
             }
           }}

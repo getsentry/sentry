@@ -10,11 +10,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
@@ -24,16 +24,13 @@ import {
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     </SpansQueryParamsProvider>
   );
 }
@@ -50,7 +47,7 @@ const mockNumberTags: TagCollection = {
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
 
-const datePageFilterProps: PickableDays = {
+const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
   relativeOptions: ({arbitraryOptions}) => ({
@@ -124,6 +121,24 @@ describe('SpansTabContent', () => {
         },
       }),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'project',
+          name: 'project',
+          attributeSource: {source_type: 'sentry'},
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
   });
 
   it('should fire analytics once per change', async () => {
@@ -194,7 +209,10 @@ describe('SpansTabContent', () => {
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
-    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
     expect(groupBys).toEqual(['project']);
@@ -432,9 +450,7 @@ describe('SpansTabContent', () => {
         const input = screen.getByRole('combobox');
         await userEvent.click(input);
 
-        expect(
-          screen.queryByText(/Ask Seer to build your query/)
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText(/Ask AI to build your query/)).not.toBeInTheDocument();
       });
     });
 
@@ -452,7 +468,7 @@ describe('SpansTabContent', () => {
 
       // re-open the combobox
       await userEvent.click(input);
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -476,7 +492,7 @@ describe('SpansTabContent', () => {
       await userEvent.click(input);
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {
@@ -501,7 +517,7 @@ describe('SpansTabContent', () => {
       await userEvent.type(input, 'span.duration:>10ms{enter}');
       await userEvent.type(input, ' random');
 
-      const askSeer = await screen.findByText(/Ask Seer to build your query/);
+      const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);
 
       const askSeerInput = screen.getByRole('combobox', {

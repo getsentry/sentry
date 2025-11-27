@@ -66,9 +66,11 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
   }
 
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
-  // VC partner accounts don't require a payment source (i.e. credit card) since they make all payments via VC
-  const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-  const hasPaymentSource = !!subscription.paymentSource || isVCPartner;
+  const hasPaymentSource = !!(
+    subscription.paymentSource ||
+    subscription.isSelfServePartner ||
+    subscription.onDemandInvoicedManual
+  );
   const hasOndemandBudgets =
     hasOnDemandBudgetsFeature(organization, subscription) &&
     Boolean(subscription.onDemandBudgets);
@@ -114,7 +116,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
           <EditOnDemandButton organization={organization} subscription={subscription} />
         )}
       </PanelHeader>
-      {/* AM3 doesn't have on-demand-budgets, but we want them to see the newer ui  */}
+      {/* AM3 doesn't have PAYG budget modes, but we want them to see the newer ui  */}
       {hasOndemandBudgets || subscription.planTier === PlanTier.AM3 ? (
         <OnDemandBudgets
           onDemandEnabled={onDemandEnabled}

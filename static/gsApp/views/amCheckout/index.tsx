@@ -13,13 +13,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
@@ -31,7 +31,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -41,21 +40,17 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  CheckoutType,
-  InvoiceItemType,
-  OnDemandBudgetMode,
-  PlanName,
-  PlanTier,
-  type BillingConfig,
-  type CheckoutAddOns,
-  type EventBucket,
-  type Invoice,
-  type OnDemandBudgets,
-  type Plan,
-  type PreviewData,
-  type PromotionData,
-  type Subscription,
+import {CheckoutType, OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
@@ -70,16 +65,16 @@ import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
-import Cart from 'getsentry/views/amCheckout/cart';
-import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
+import Cart from 'getsentry/views/amCheckout/components/cart';
+import CheckoutOverview from 'getsentry/views/amCheckout/components/checkoutOverview';
+import CheckoutOverviewV2 from 'getsentry/views/amCheckout/components/checkoutOverviewV2';
+import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import AddBillingInformation from 'getsentry/views/amCheckout/steps/checkoutV3/addBillingInfo';
-import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
-import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/chooseYourBillingCycle';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
@@ -139,16 +134,12 @@ class AMCheckout extends Component<Props, State> {
     const queryString =
       query && Object.keys(query).length > 0 ? `?${qs.stringify(query)}` : '';
 
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we've remove the legacy checkout route
-    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(
-        `/settings/${props.organization.slug}/billing/checkout/${queryString}`,
-        {
-          replace: true,
-        }
-      );
-    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/${queryString}`, {replace: true});
+    // TODO(checkout v3): remove this check once we properly redirect from the legacy routes
+    if (
+      props.location?.pathname.includes('/settings/billing/checkout/') &&
+      props.isNewCheckout
+    ) {
+      props.navigate(`/checkout/${queryString}`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -760,35 +751,22 @@ class AMCheckout extends Component<Props, State> {
     return (
       <Alert.Container>
         <Alert type="info">
-          <PartnerAlertContent>
-            <PartnerAlertTitle>
+          <Stack gap="md">
+            <Text bold>
               {tct('Billing handled externally through [partnerName]', {
                 partnerName: subscription.partner?.partnership.displayName,
               })}
-            </PartnerAlertTitle>
+            </Text>
             {tct(
               'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
               {
                 partnerName: subscription.partner?.partnership.displayName,
               }
             )}
-          </PartnerAlertContent>
+          </Stack>
         </Alert>
       </Alert.Container>
     );
-  }
-
-  // TODO(checkout v3): remove this once checkout v3 is GA'd
-  renderParentComponent({children}: {children: React.ReactNode}) {
-    const {isNewCheckout} = this.props;
-    if (isNewCheckout) {
-      return (
-        <Flex direction="column" align="center" background="primary">
-          {children}
-        </Flex>
-      );
-    }
-    return children;
   }
 
   render() {
@@ -825,9 +803,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (isSubmitted && isNewCheckout) {
-      const purchasedPlanItem = invoice?.items.find(
-        item => item.type === InvoiceItemType.SUBSCRIPTION
-      );
+      const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
       const basePlan = purchasedPlanItem
         ? this.getPlan(purchasedPlanItem.data.plan)
         : this.getPlan(formData.plan);
@@ -886,30 +862,13 @@ class AMCheckout extends Component<Props, State> {
 
     const renderCheckoutContent = () => (
       <Fragment>
-        <CheckoutBody>
+        <CheckoutBody isNewCheckout={!!isNewCheckout}>
           {!isNewCheckout && (
             <SettingsPageHeader
               title="Change Subscription"
               colorSubtitle={subscriptionDiscountInfo}
               data-test-id="change-subscription"
             />
-          )}
-          {isNewCheckout && (
-            <BackButton
-              aria-label={t('Back to Subscription Overview')}
-              to={`/settings/${organization.slug}/billing/`}
-              onClick={() => {
-                trackGetsentryAnalytics('checkout.exit', {
-                  subscription,
-                  organization,
-                });
-              }}
-            >
-              <Flex gap="sm" align="center">
-                <IconArrow direction="left" />
-                <span>{t('Back')}</span>
-              </Flex>
-            </BackButton>
           )}
           {this.renderPartnerAlert()}
           <CheckoutStepsContainer
@@ -919,7 +878,7 @@ class AMCheckout extends Component<Props, State> {
             {this.renderSteps()}
           </CheckoutStepsContainer>
         </CheckoutBody>
-        <SidePanel>
+        <SidePanel isNewCheckout={!!isNewCheckout}>
           <OverviewContainer isNewCheckout={!!isNewCheckout}>
             {isNewCheckout ? (
               <Cart
@@ -935,140 +894,214 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <Flex
-              justify="between"
-              background="primary"
-              padding="xl"
-              border="primary"
-              radius="md"
-              gap="xl"
-              align="start"
-            >
-              {t('Have a question?')}
-              <Text align="right">
-                {tct('[help:Find an answer] or [contact]', {
-                  help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                  ),
-                  contact: hasZendesk() ? (
-                    <ZendeskButton priority="link" onClick={activateZendesk}>
-                      <Text variant="accent">{t('ask Support')}</Text>
-                    </ZendeskButton>
-                  ) : (
-                    <ZendeskLink subject="Billing Question" source="checkout">
-                      {t('ask Support')}
-                    </ZendeskLink>
-                  ),
-                })}
-              </Text>
-            </Flex>
-          </OverviewContainer>
-          {/* temporarily hiding this until we have a better way to display it in new checkout */}
-          {!isNewCheckout && (
-            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
-          )}
-          {subscription.canCancel && (
-            <CancelSubscription>
-              <LinkButton
-                to={`/settings/${organization.slug}/billing/cancel/`}
-                disabled={subscription.cancelAtPeriodEnd}
-              >
-                {subscription.cancelAtPeriodEnd
-                  ? t('Pending Cancellation')
-                  : t('Cancel Subscription')}
-              </LinkButton>
-            </CancelSubscription>
-          )}
-          {showAnnualTerms && (
-            <AnnualTerms>
-              {tct(
-                `Annual subscriptions require a one-year non-cancellable commitment.
-              By using Sentry you agree to our [terms: Terms of Service].`,
-                {terms: <a href="https://sentry.io/terms/" />}
+
+            <Stack padding="xl" gap="xl">
+              <Flex justify="between" gap="xl" align="center">
+                {t('Have a question?')}
+                <Text align="right">
+                  {tct('[help:Find an answer] or [contact]', {
+                    help: (
+                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    ),
+                    contact: hasZendesk() ? (
+                      <Button size="zero" priority="link" onClick={activateZendesk}>
+                        <Text variant="accent">{t('ask Support')}</Text>
+                      </Button>
+                    ) : (
+                      <ZendeskLink subject="Billing Question" source="checkout">
+                        {t('ask Support')}
+                      </ZendeskLink>
+                    ),
+                  })}
+                </Text>
+              </Flex>
+              {/* temporarily hiding this until we have a better way to display it in new checkout */}
+              {!isNewCheckout && (
+                <Text size="md" align="center" variant="muted">
+                  {discountInfo?.disclaimerText}
+                </Text>
               )}
-            </AnnualTerms>
-          )}
+              {subscription.canCancel && (
+                <LinkButton
+                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  disabled={subscription.cancelAtPeriodEnd}
+                  size="sm"
+                >
+                  {subscription.cancelAtPeriodEnd
+                    ? t('Pending Cancellation')
+                    : t('Cancel Subscription')}
+                </LinkButton>
+              )}
+              {showAnnualTerms && (
+                <Text size="xs" align="center" variant="muted">
+                  {tct(
+                    `Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].`,
+                    {terms: <a href="https://sentry.io/terms/" />}
+                  )}
+                </Text>
+              )}
+            </Stack>
+          </OverviewContainer>
         </SidePanel>
       </Fragment>
     );
 
-    return this.renderParentComponent({
-      children: (
-        <Flex
-          width="100%"
-          background={isNewCheckout ? 'primary' : 'secondary'}
-          justify="center"
-          padding="2xl"
-        >
-          <SentryDocumentTitle
-            title={t('Change Subscription')}
-            orgSlug={organization.slug}
-          />
-          {isOnSponsoredPartnerPlan && (
-            <Alert.Container>
-              <Alert type="info">
-                {t(
-                  'Your promotional plan with %s ends on %s.',
-                  subscription.partner?.partnership.displayName,
-                  moment(subscription.contractPeriodEnd).format('ll')
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
-          {promotionDisclaimerText && (
-            <Alert.Container>
-              <Alert type="info">{promotionDisclaimerText}</Alert>
-            </Alert.Container>
-          )}
-          {isNewCheckout ? (
-            <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
-              <LogoSentry height="24px" />
-              <Flex gap="2xl" wrap="wrap" width="100%" align="start" paddingTop="xl">
-                {renderCheckoutContent()}
-              </Flex>
-            </Stack>
-          ) : (
-            <Grid
-              gap="2xl"
-              width="100%"
-              maxWidth="1440px"
-              columns={{
-                sm: 'auto',
-                lg: '3fr 2fr',
-              }}
-            >
-              {renderCheckoutContent()}
-            </Grid>
-          )}
-        </Flex>
-      ),
-    });
+    return (
+      <Flex
+        width="100%"
+        background={isNewCheckout ? 'primary' : 'secondary'}
+        justify="center"
+        align="center"
+        direction="column"
+      >
+        <SentryDocumentTitle
+          title={t('Change Subscription')}
+          orgSlug={organization.slug}
+        />
+        {isOnSponsoredPartnerPlan && (
+          <Alert.Container>
+            <Alert type="info">
+              {t(
+                'Your promotional plan with %s ends on %s.',
+                subscription.partner?.partnership.displayName,
+                moment(subscription.contractPeriodEnd).format('ll')
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+        {promotionDisclaimerText && (
+          <Alert.Container>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
+          </Alert.Container>
+        )}
+        {isNewCheckout && (
+          <CheckoutHeader>
+            <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
+              <LogoSentry height="20px" />
+              <LinkButton
+                to={`/settings/${organization.slug}/billing/`}
+                icon={<IconChevron direction="left" />}
+                size="xs"
+                borderless
+                onClick={() => {
+                  trackGetsentryAnalytics('checkout.exit', {
+                    subscription,
+                    organization,
+                  });
+                }}
+              >
+                {t('Manage Subscription')}
+              </LinkButton>
+
+              <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+            </Flex>
+          </CheckoutHeader>
+        )}
+        {isNewCheckout ? (
+          <Flex
+            direction={{xs: 'column', md: 'row'}}
+            gap="md 3xl"
+            justify="between"
+            width="100%"
+            maxWidth="82rem"
+            align="start"
+            paddingTop="3xl"
+          >
+            {renderCheckoutContent()}
+          </Flex>
+        ) : (
+          <Grid
+            gap="2xl"
+            width="100%"
+            maxWidth="1440px"
+            columns={{
+              sm: 'auto',
+              lg: '3fr 2fr',
+            }}
+          >
+            {renderCheckoutContent()}
+          </Grid>
+        )}
+      </Flex>
+    );
   }
 }
 
-const BackButton = styled(Link)`
-  align-self: flex-start;
-  padding: 0;
-  color: ${p => p.theme.textColor};
-  display: inline-flex;
-`;
-
-const CheckoutBody = styled('div')`
-  flex-basis: 0;
-  flex-grow: 999;
-  min-inline-size: 60%;
-`;
-
-const SidePanel = styled('aside')`
-  height: max-content;
+const CheckoutHeader = styled('header')`
   position: sticky;
-  top: 30px;
-  align-self: start;
-  flex-grow: 1;
-  flex-basis: 25rem;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
+  justify-content: center;
+  gap: ${p => p.theme.space.md};
+`;
+
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  flex: 1;
+  text-align: right;
+`;
+
+const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    p.isNewCheckout
+      ? css`
+          padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']}
+            ${p.theme.space['2xl']};
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            max-width: 47.5rem;
+            padding-top: ${p.theme.space.md};
+          }
+        `
+      : css`
+          flex-basis: 0;
+          flex-grow: 999;
+          min-inline-size: 60%;
+        `}
+`;
+
+const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
+  ${p =>
+    p.isNewCheckout
+      ? css`
+          width: 100%;
+          border-top: 1px solid ${p.theme.border};
+          display: flex;
+          flex-direction: column;
+          padding: 0 ${p.theme.space['2xl']};
+          background-color: ${p.theme.backgroundSecondary};
+
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            position: sticky;
+            right: 0;
+            top: 6.25rem;
+            max-width: 26rem;
+            border-top: none;
+            padding-left: ${p.theme.space['3xl']};
+            background-color: ${p.theme.background};
+            padding-bottom: ${p.theme.space['3xl']};
+          }
+        `
+      : css`
+          height: max-content;
+          position: sticky;
+          top: 30px;
+          align-self: start;
+          flex-grow: 1;
+          flex-basis: 25rem;
+        `}
 `;
 
 /**
@@ -1078,40 +1111,24 @@ const SidePanel = styled('aside')`
  */
 const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
-    !p.isNewCheckout &&
-    css`
-      @media (max-width: ${p.theme.breakpoints.lg}) {
-        display: none;
-      }
-    `}
-`;
+    p.isNewCheckout
+      ? css`
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          gap: ${p.theme.space.xl};
+          padding: ${p.theme.space['2xl']} 0;
 
-const CancelSubscription = styled('div')`
-  display: grid;
-  justify-items: center;
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const PartnerAlertContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const PartnerAlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const AnnualTerms = styled(TextBlock)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            padding: 0;
+          }
+        `
+      : css`
+          @media (max-width: ${p.theme.breakpoints.lg}) {
+            display: none;
+          }
+        `}
 `;
 
 const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
@@ -1120,19 +1137,14 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
     css`
       display: flex;
       flex-direction: column;
-      gap: 40px;
-      margin-top: ${p.theme.space.md};
+      gap: ${p.theme.space['3xl']};
 
-      & > :not(:first-child) {
-        padding-top: 48px;
-        border-top: 2px dashed ${p.theme.border};
+      & > * + * {
+        border-top: 1px solid ${p.theme.border};
+        padding-top: ${p.theme.space['3xl']};
+        margin-top: ${p.theme.space['3xl']};
       }
     `}
-`;
-
-const ZendeskButton = styled(Button)`
-  padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

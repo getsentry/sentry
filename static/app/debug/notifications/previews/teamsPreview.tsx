@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -12,11 +11,13 @@ import {Image} from 'sentry/components/core/image/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
+import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
 import {IconCheckmark, IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -31,22 +32,23 @@ export function TeamsPreview({
   const previewTime = moment(new Date()).format('h:mm A');
   const card = registration.previews[NotificationProviderKey.TEAMS];
 
-  const {onClick} = useCopyToClipboard({
-    text: JSON.stringify(card, null, 2),
-    onCopy: () => {
-      addSuccessMessage('Copied AdaptiveCard JSON');
-    },
-    onError: () => {
-      addErrorMessage('Failed to copy AdaptiveCard JSON');
-    },
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <DebugNotificationsPreview
       title="MS Teams"
       actions={
         <ButtonBar>
-          <Button size="xs" onClick={onClick} icon={<IconCopy />}>
+          <Button
+            size="xs"
+            onClick={() =>
+              copy(JSON.stringify(card, null, 2), {
+                successMessage: t('Copied AdaptiveCard JSON to clipboard'),
+                errorMessage: t('Failed to copy AdaptiveCard JSON to clipboard'),
+              })
+            }
+            icon={<IconCopy />}
+          >
             Copy JSON
           </Button>
           <LinkButton
@@ -74,7 +76,13 @@ export function TeamsPreview({
               <TeamsBlackText size="xl" bold>
                 {subject}
               </TeamsBlackText>
-              <TeamsBlackText>{body}</TeamsBlackText>
+              <TeamsBlackText>
+                <NotificationBodyRenderer
+                  body={body}
+                  codeBlockBackground="#f3f2f1"
+                  codeBlockBorder="#e1dfdd"
+                />
+              </TeamsBlackText>
               <Flex gap="md">
                 {actions.map(action => (
                   <TeamsLinkButton key={action.label} href={action.link}>

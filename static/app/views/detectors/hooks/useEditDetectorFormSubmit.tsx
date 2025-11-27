@@ -7,10 +7,11 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface UseEditDetectorFormSubmitOptions<TDetector, TFormData> {
@@ -33,7 +34,6 @@ export function useEditDetectorFormSubmit<
   onError,
 }: UseEditDetectorFormSubmitOptions<TDetector, TFormData>): OnSubmitCallback {
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const navigate = useNavigate();
   const {mutateAsync: updateDetector} = useUpdateDetector();
 
@@ -54,18 +54,17 @@ export function useEditDetectorFormSubmit<
 
         const resultDetector = await updateDetector(updatedData);
 
+        trackAnalytics('monitor.updated', {
+          organization,
+          ...getDetectorAnalyticsPayload(resultDetector),
+        });
+
         addSuccessMessage(t('Monitor updated successfully'));
 
         if (onSuccess) {
           onSuccess(resultDetector as TDetector);
         } else {
-          navigate(
-            makeMonitorDetailsPathname(
-              organization.slug,
-              resultDetector.id,
-              monitorsLinkPrefix
-            )
-          );
+          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
         }
 
         onSubmitSuccess?.(resultDetector);
@@ -83,8 +82,7 @@ export function useEditDetectorFormSubmit<
       detector,
       formDataToEndpointPayload,
       updateDetector,
-      organization.slug,
-      monitorsLinkPrefix,
+      organization,
       navigate,
       onSuccess,
       onError,

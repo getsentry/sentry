@@ -32,6 +32,7 @@ import type {
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
@@ -130,6 +131,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             <small>{customer.contractInterval}</small>
           </DetailLabel>
         )}
+        {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
         <DetailLabel title="On-Demand">
           <OnDemandSummary customer={customer} />
         </DetailLabel>
@@ -213,7 +215,9 @@ function ReservedData({customer}: ReservedDataProps) {
                   : 'None'}
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
-                <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
+                <DetailLabel
+                  title={`${displayBudgetName(customer.planDetails, {title: true})} Cost-Per-Event ${categoryName}`}
+                >
                   {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
                         cents: categoryHistory.paygCpe,
@@ -634,7 +638,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
-            {customer.dataRetention || '90d'}
+            {customer.orgRetention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
+              90}
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}

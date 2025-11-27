@@ -2,9 +2,10 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
-import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
@@ -41,6 +42,20 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
     &:not(:last-child) {
       border-bottom: 0;
+    }
+  }
+
+  .log-table-row-pseudo-row-chevron-replacement {
+    width: 23px;
+    height: 24px;
+  }
+
+  &[data-row-highlighted='true']:not(thead > &) {
+    background-color: ${p => p.theme.yellow100};
+    color: ${p => p.theme.red300};
+
+    &:hover {
+      background-color: ${p => p.theme.yellow200};
     }
   }
 
@@ -157,7 +172,7 @@ export const DetailsWrapper = styled('tr')`
   display: grid;
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
-  z-index: ${2 /* place above the grid resizing lines */};
+  z-index: ${1 /* place above the grid resizing lines */};
 `;
 
 export const DetailsContent = styled(StyledPanel)`
@@ -266,12 +281,6 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const FilterBarContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
 export const TableActionsContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
@@ -297,15 +306,17 @@ export const LogsGraphContainer = styled(LogsItemContainer)`
   gap: ${p => p.theme.space.md};
 `;
 
-export const StyledPageFilterBar = styled(PageFilterBar)`
-  width: auto;
-`;
-
 export const AutoRefreshLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   margin-bottom: 0;
+`;
+
+export const AutoRefreshText = styled('span')`
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {
@@ -380,72 +391,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       throw new Error(`Invalid log type, got ${level}`);
   }
 }
-
-export const TopSectionBody = styled(Body)`
-  padding-bottom: 0;
-  flex: 0 0 auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${space(2)};
-  }
-`;
-
-export const BottomSectionBody = styled('div')<{sidebarOpen?: boolean}>`
-  flex: 1;
-  padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.sidebarOpen
-        ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
-          `
-        : css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
-          `}
-  }
-`;
-
-export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-direction: row;
-    padding: 0px;
-    gap: 0px;
-  }
-`;
-
-export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.background};
-  border-right: 1px solid ${p => p.theme.border};
-  border-top: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom: none;
-    ${p =>
-      p.sidebarOpen
-        ? css`
-            width: 343px; /* 300px for the toolbar + padding */
-            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
-              ${p.theme.space['3xl']};
-            border-right: 1px solid ${p.theme.border};
-          `
-        : css`
-            overflow: hidden;
-            width: 0px;
-            padding: 0px;
-            border-right: none;
-          `}
-  }
-`;
 
 export const LogsSidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
@@ -537,4 +482,42 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   justify-content: center;
   height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
+`;
+
+export const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
+`;
+
+export const LogsFilterSection = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.md};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: minmax(300px, auto) 1fr min-content;
+  }
+`;
+
+export const TraceIconStyleWrapper = styled(Flex)`
+  width: 18px;
+  height: 18px;
+
+  .TraceIcon {
+    background-color: ${p => p.theme.red300};
+    position: absolute;
+    transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    margin-right: -2px;
+  }
+
+  .TraceIcon svg {
+    width: 12px;
+    height: 12px;
+    fill: #ffffff;
+  }
 `;

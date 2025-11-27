@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {InvoiceItemType, type PreviewData, type Subscription} from 'getsentry/types';
+import type {PreviewData, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getCreditApplied,
@@ -42,7 +42,7 @@ function NextBillCard({
   // recurring fees, PAYG, and credits are grouped together
   // only additional fees (ie. taxes) are listed individually
   const invoiceItems = nextBill?.invoiceItems ?? [];
-  const planItem = invoiceItems.find(item => item.type === InvoiceItemType.SUBSCRIPTION);
+  const planItem = invoiceItems.find(item => item.type === 'subscription');
   const plan = planItem?.data.plan;
   const isAnnualPlan = plan?.endsWith('_auf');
   const reservedTotal =
@@ -75,7 +75,14 @@ function NextBillCard({
   return (
     <SubscriptionHeaderCard
       sections={[
-        <Flex justify="between" align="start" key="title" width="100%">
+        <Flex
+          justify="between"
+          align="start"
+          key="title"
+          width="100%"
+          wrap="wrap"
+          gap="sm"
+        >
           <Heading as="h2" size="lg">
             {t('Next bill')}
           </Heading>

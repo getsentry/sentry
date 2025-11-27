@@ -2,7 +2,7 @@ import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -21,8 +21,8 @@ export default function TestAnalyticsPageWrapper() {
               {TESTS_PAGE_TITLE}
               <FeatureBadge type="beta" />
             </Layout.Title>
-            <FeedbackWidgetButton
-              optionOverrides={{
+            <FeedbackButton
+              feedbackOptions={{
                 tags: {
                   'feedback.source': 'prevent.tests',
                   'feedback.owner': 'prevent-team',

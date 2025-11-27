@@ -10,8 +10,8 @@ import {space} from 'sentry/styles/space';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import {isDeveloperPlan} from 'getsentry/utils/billing';
-import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
+import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getReservedPriceCents} from 'getsentry/views/amCheckout/utils';
 import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
@@ -24,10 +24,10 @@ import {
 type Props = StepProps;
 
 type State = {
-  // Once the on-demand budget is updated, we no longer suggest a new default on-demand value,
+  // Once the PAYG budget is updated, we no longer suggest a new default PAYG value,
   // regardless of whether there are further changes in the reserved value.
   // This is because if the user has seen and updated or clicked "Continue",
-  // that is considered the final on-demand value unless the user updates the value themselves.
+  // that is considered the final PAYG value unless the user updates the value themselves.
   isUpdated: boolean;
 };
 
@@ -40,7 +40,12 @@ class OnDemandBudgetsStep extends Component<Props> {
   state: State;
 
   get title() {
-    return t('On-Demand Budgets');
+    const {activePlan} = this.props;
+    return displayBudgetName(activePlan, {
+      title: true,
+      withBudget: true,
+      pluralOndemand: true,
+    });
   }
 
   setBudgetMode = (nextMode: OnDemandBudgetMode) => {
@@ -123,9 +128,13 @@ class OnDemandBudgetsStep extends Component<Props> {
     return (
       <StepFooter data-test-id={this.title}>
         <div>
-          {tct('Need more info? [link:See on-demand pricing chart]', {
+          {tct('Need more info? [link]', {
             link: (
-              <ExternalLink href="https://docs.sentry.io/pricing/legacy-pricing/#per-category-pricing" />
+              <ExternalLink href="https://docs.sentry.io/pricing/legacy-pricing/#per-category-pricing">
+                {tct('See [budgetTerm] pricing chart', {
+                  budgetTerm: displayBudgetName(this.props.activePlan),
+                })}
+              </ExternalLink>
             ),
           })}
         </div>

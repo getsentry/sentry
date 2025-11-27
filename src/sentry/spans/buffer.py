@@ -284,6 +284,8 @@ class SpansBuffer:
                 p.execute()
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
+        # This incr metric is needed to get a rate overall.
+        metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
@@ -428,6 +430,8 @@ class SpansBuffer:
             output_spans = []
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
+            # This incr metric is needed to get a rate overall.
+            metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
             for payload in segment:
                 span = orjson.loads(payload)
 
@@ -438,10 +442,7 @@ class SpansBuffer:
                     }
 
                 is_segment = segment_span_id == span["span_id"]
-                span.setdefault("attributes", {})["sentry.is_segment"] = {
-                    "type": "boolean",
-                    "value": is_segment,
-                }
+                span["is_segment"] = is_segment
                 if is_segment:
                     has_root_span = True
 

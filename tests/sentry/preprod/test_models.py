@@ -446,6 +446,76 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         artifacts = list(artifact.get_base_artifact_for_commit())
         assert len(artifacts) == 0
 
+    def test_get_base_artifact_multiple_commit_comparisons_uses_oldest(self):
+        """Test that the oldest commit_comparison is used when more than one is found."""
+        # Create multiple base commit comparisons with the same head_sha but different date_added
+        # The older one (created first)
+        base_commit_comparison_old = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        # Create artifact for older comparison
+        base_artifact_old = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison_old,
+        )
+
+        # The newer one (created second)
+        base_commit_comparison_new = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="accidental/branch/upload",
+            base_ref="develop",
+        )
+
+        # Create artifact for newer comparison
+        PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=base_commit_comparison_new,
+        )
+
+        # Create head commit comparison
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create head artifact
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Multiple base commit comparisons exist; should use the oldest one
+        result = head_artifact.get_base_artifact_for_commit().first()
+        assert result == base_artifact_old
+
     def test_get_head_artifacts_for_commit_single_artifact(self):
         """Test getting head artifacts when there's only one head artifact."""
         # Create base commit comparison

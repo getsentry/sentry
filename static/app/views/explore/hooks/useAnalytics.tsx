@@ -9,12 +9,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useExploreDataset,
-  useExploreTitle,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -23,20 +21,27 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsFields,
   useQueryParamsQuery,
   useQueryParamsSearch,
+  useQueryParamsTitle,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
   computeVisualizeSampleTotals,
 } from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+
+import {Tab, type useTab} from './useTab';
 
 const {info, fmt} = Sentry.logger;
 
@@ -52,11 +57,13 @@ interface UseTrackAnalyticsProps {
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
+  attributeBreakdownsMode?: 'breakdowns' | 'cohort_comparison';
   title?: string;
   tracesTableResult?: TracesTableResult;
 }
 
 function useTrackAnalytics({
+  attributeBreakdownsMode,
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -227,6 +234,7 @@ function useTrackAnalytics({
       interval,
       gave_seer_consent: gaveSeerConsent,
       version: 2,
+      attribute_breakdowns_mode: attributeBreakdownsMode,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -244,6 +252,7 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
       gave_seer_consent: ${gaveSeerConsent}
+      attribute_breakdowns_mode: ${attributeBreakdownsMode}
     `);
   }, [
     dataset,
@@ -266,6 +275,7 @@ function useTrackAnalytics({
     timeseriesResult.isPending,
     title,
     visualizes,
+    attributeBreakdownsMode,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -356,6 +366,7 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
+  tab,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -364,14 +375,24 @@ export function useAnalytics({
   | 'tracesTableResult'
   | 'timeseriesResult'
   | 'interval'
->) {
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
+> & {
+  tab: ReturnType<typeof useTab>[0];
+}) {
+  const dataset = useSpansDataset();
+  const title = useQueryParamsTitle();
   const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
+  const {chartSelection} = useChartSelection();
+
+  const attributeBreakdownsMode =
+    tab === Tab.ATTRIBUTE_BREAKDOWNS
+      ? chartSelection
+        ? 'cohort_comparison'
+        : 'breakdowns'
+      : undefined;
 
   return useTrackAnalytics({
     queryType,
@@ -387,6 +408,7 @@ export function useAnalytics({
     interval,
     page_source: 'explore',
     isTopN,
+    attributeBreakdownsMode,
   });
 }
 
@@ -685,6 +707,273 @@ function computeEmptyBuckets(
     const series = data?.[yAxis]?.filter(defined) ?? [];
     return series.map(computeEmptyBucketsForSeries);
   });
+}
+
+export function useMetricsPanelAnalytics({
+  interval,
+  isTopN,
+  metricAggregatesTableResult,
+  metricSamplesTableResult,
+  metricTimeseriesResult,
+  mode,
+  yAxis,
+  sortBys,
+  aggregateSortBys,
+}: {
+  aggregateSortBys: readonly Sort[];
+  interval: string;
+  isTopN: boolean;
+  metricAggregatesTableResult: ReturnType<typeof useMetricAggregatesTable>;
+  metricSamplesTableResult: ReturnType<typeof useMetricSamplesTable>;
+  metricTimeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  mode: Mode;
+  sortBys: readonly Sort[];
+  yAxis: string;
+}) {
+  const organization = useOrganization();
+
+  const dataset = DiscoverDatasets.METRICS;
+  const dataScanned =
+    mode === Mode.AGGREGATE
+      ? (metricAggregatesTableResult.result.meta?.dataScanned ?? '')
+      : (metricSamplesTableResult.result.meta?.dataScanned ?? '');
+  const search = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
+  const fields = useQueryParamsFields();
+
+  const tableError =
+    mode === Mode.AGGREGATE
+      ? (metricAggregatesTableResult.result.error?.message ?? '')
+      : (metricSamplesTableResult.error?.message ?? '');
+  const query_status = tableError ? 'error' : 'success';
+
+  const aggregatesResultLengthBox = useBox(
+    metricAggregatesTableResult.result.data?.length || 0
+  );
+  const resultLengthBox = useBox(metricSamplesTableResult.result.data?.length || 0);
+  const fieldsBox = useBox(fields);
+  const yAxesBox = useBox([yAxis]);
+  const sortBysBox = useBox(sortBys.map(formatSort));
+  const aggregateSortBysBox = useBox(aggregateSortBys.map(formatSort));
+
+  const timeseriesData = useBox(metricTimeseriesResult.data);
+
+  useEffect(() => {
+    if (mode !== Mode.SAMPLES) {
+      return;
+    }
+
+    if (
+      metricSamplesTableResult.result.isFetching ||
+      metricTimeseriesResult.isPending ||
+      !dataScanned
+    ) {
+      return;
+    }
+
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      organization,
+      dataset,
+      dataScanned,
+      columns: fieldsBox.current,
+      columns_count: fieldsBox.current.length,
+      confidences: computeConfidence(yAxesBox.current, timeseriesData.current),
+      empty_buckets_percentage: computeEmptyBuckets(
+        yAxesBox.current,
+        timeseriesData.current
+      ),
+      interval,
+      query_status,
+      sample_counts: computeVisualizeSampleTotals(
+        yAxesBox.current,
+        timeseriesData.current,
+        isTopN
+      ),
+      table_result_length: resultLengthBox.current,
+      table_result_missing_root: 0,
+      table_result_mode: 'metric samples',
+      table_result_sort: sortBysBox.current,
+      user_queries: search.formatString(),
+      user_queries_count: search.tokens.length,
+    });
+
+    info(
+      fmt`metric.explorer.panel.metadata:
+      organization: ${organization.slug}
+      dataScanned: ${dataScanned}
+      dataset: ${dataset}
+      query: ${query}
+      fields: ${fieldsBox.current}
+      query_status: ${query_status}
+      result_length: ${String(resultLengthBox.current)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+    `,
+      {isAnalytics: true}
+    );
+  }, [
+    organization,
+    dataset,
+    dataScanned,
+    query,
+    fieldsBox,
+    interval,
+    query_status,
+    isTopN,
+    metricSamplesTableResult.result.isFetching,
+    search,
+    timeseriesData,
+    mode,
+    resultLengthBox,
+    sortBysBox,
+    yAxesBox,
+    metricTimeseriesResult.isPending,
+  ]);
+
+  useEffect(() => {
+    if (mode !== Mode.AGGREGATE) {
+      return;
+    }
+
+    if (
+      metricAggregatesTableResult.result.isPending ||
+      metricTimeseriesResult.isPending ||
+      !dataScanned
+    ) {
+      return;
+    }
+
+    trackAnalytics('metrics.explorer.panel.metadata', {
+      organization,
+      dataset,
+      dataScanned,
+      columns: fieldsBox.current,
+      columns_count: fieldsBox.current.length,
+      confidences: computeConfidence([yAxis], timeseriesData.current),
+      empty_buckets_percentage: computeEmptyBuckets([yAxis], timeseriesData.current),
+      interval,
+      query_status,
+      sample_counts: computeVisualizeSampleTotals(
+        [yAxis],
+        timeseriesData.current,
+        isTopN
+      ),
+      table_result_length: aggregatesResultLengthBox.current,
+      table_result_missing_root: 0,
+      table_result_mode: 'aggregates',
+      table_result_sort: aggregateSortBysBox.current,
+      user_queries: search.formatString(),
+      user_queries_count: search.tokens.length,
+    });
+
+    info(
+      fmt`metric.explorer.panel.metadata:
+      organization: ${organization.slug}
+      dataScanned: ${dataScanned}
+      dataset: ${dataset}
+      query: ${query}
+      fields: ${fieldsBox.current}
+      query_status: ${query_status}
+      result_length: ${String(aggregatesResultLengthBox.current)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+    `,
+      {isAnalytics: true}
+    );
+  }, [
+    aggregateSortBysBox,
+    aggregatesResultLengthBox,
+    dataScanned,
+    dataset,
+    fieldsBox,
+    interval,
+    isTopN,
+    metricAggregatesTableResult.result.isPending,
+    timeseriesData,
+    mode,
+    organization,
+    query,
+    query_status,
+    search,
+    yAxis,
+    metricTimeseriesResult.isPending,
+  ]);
+}
+
+export function useMetricsAnalytics({
+  interval,
+  metricQueries,
+}: {
+  interval: string;
+  metricQueries: Array<{queryParams: ReadableQueryParams}>;
+}) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
+
+  const metricQueriesCount = useBox(metricQueries.length);
+  const metricPanelsWithGroupBysCount = useBox(
+    metricQueries.filter(mq =>
+      mq.queryParams.groupBys.some((gb: string) => gb.trim().length > 0)
+    ).length
+  );
+  const metricPanelsWithFiltersCount = useBox(
+    metricQueries.filter(mq => mq.queryParams.query.trim().length > 0).length
+  );
+
+  useEffect(() => {
+    if (isLoadingSubscriptionDetails) {
+      return;
+    }
+
+    const datetimeSelection = `${selection.datetime.start || ''}-${selection.datetime.end || ''}-${selection.datetime.period || ''}`;
+    const projectCount = selection.projects.length;
+    const environmentCount = selection.environments.length;
+
+    trackAnalytics('metrics.explorer.metadata', {
+      organization,
+      datetime_selection: datetimeSelection,
+      environment_count: environmentCount,
+      has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      interval,
+      metric_panels_with_filters_count: metricPanelsWithFiltersCount.current,
+      metric_panels_with_group_bys_count: metricPanelsWithGroupBysCount.current,
+      metric_queries_count: metricQueriesCount.current,
+      project_count: projectCount,
+    });
+
+    info(
+      fmt`metrics.explorer.metadata:
+      organization: ${organization.slug}
+      datetime_selection: ${datetimeSelection}
+      environment_count: ${String(environmentCount)}
+      interval: ${interval}
+      metric_queries_count: ${String(metricQueriesCount.current)}
+      metric_panels_with_group_bys_count: ${String(metricPanelsWithGroupBysCount.current)}
+      metric_panels_with_filters_count: ${String(metricPanelsWithFiltersCount.current)}
+      project_count: ${String(projectCount)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+    `,
+      {isAnalytics: true}
+    );
+  }, [
+    hasExceededPerformanceUsageLimit,
+    interval,
+    isLoadingSubscriptionDetails,
+    metricQueriesCount,
+    metricPanelsWithGroupBysCount,
+    metricPanelsWithFiltersCount,
+    organization,
+    selection.datetime.end,
+    selection.datetime.period,
+    selection.datetime.start,
+    selection.environments.length,
+    selection.projects.length,
+  ]);
 }
 
 function useBox<T>(value: T): RefObject<T> {

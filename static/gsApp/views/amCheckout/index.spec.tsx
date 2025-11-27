@@ -6,7 +6,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   SubscriptionFixture,
-  SubscriptionWithSeerFixture,
+  SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   act,
@@ -27,7 +27,7 @@ import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 function assertCheckoutV3Steps(tier: PlanTier) {
   expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
   [
-    'Build your plan',
+    'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
       ? /Set your on-demand limit/
       : /Set your pay-as-you-go limit/,
@@ -1119,7 +1119,7 @@ describe('AM2 Checkout', () => {
 
   it('skips step 1 for business plan with seer', async () => {
     const seerOrg = OrganizationFixture({features: ['seer-billing']});
-    const seerSubscription = SubscriptionWithSeerFixture({
+    const seerSubscription = SubscriptionWithLegacySeerFixture({
       organization: seerOrg,
       planTier: 'am2',
       plan: 'am2_business',

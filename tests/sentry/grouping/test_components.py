@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
@@ -138,33 +139,30 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         system_exception_component = variants["system"].root_component.values[0]
-        assert isinstance(system_exception_component, ExceptionGroupingComponent)
-        system_stacktrace_component = find_given_child_component(
-            system_exception_component, StacktraceGroupingComponent
-        )
-        assert system_stacktrace_component
-
-        assert system_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=11,
-            system_contributing_frames=21,
-            in_app_non_contributing_frames=12,
-            in_app_contributing_frames=31,
-        )
-
-        # In the app variant, there's no such thing as a contributing system frame, so all the
-        # system frames count as non-contributing
         app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
+        assert isinstance(system_exception_component, ExceptionGroupingComponent)
+
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
         )
+        system_stacktrace_component = find_given_child_component(
+            system_exception_component, StacktraceGroupingComponent
+        )
         assert app_stacktrace_component
+        assert system_stacktrace_component
 
-        assert app_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=32,
-            system_contributing_frames=0,
-            in_app_non_contributing_frames=12,
-            in_app_contributing_frames=31,
+        assert (
+            app_exception_component.frame_counts
+            == system_exception_component.frame_counts
+            == app_stacktrace_component.frame_counts
+            == system_stacktrace_component.frame_counts
+            == Counter(
+                system_non_contributing_frames=11,
+                system_contributing_frames=21,
+                in_app_non_contributing_frames=12,
+                in_app_contributing_frames=31,
+            )
         )
 
     def test_stacktrace_component_tallies_frame_types_not_all_types_present(self) -> None:
@@ -178,33 +176,30 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         system_exception_component = variants["system"].root_component.values[0]
-        assert isinstance(system_exception_component, ExceptionGroupingComponent)
-        system_stacktrace_component = find_given_child_component(
-            system_exception_component, StacktraceGroupingComponent
-        )
-        assert system_stacktrace_component
-
-        assert system_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=0,
-            system_contributing_frames=20,
-            in_app_non_contributing_frames=0,
-            in_app_contributing_frames=13,
-        )
-
-        # In the app variant, there's no such thing as a contributing system frame, so all the
-        # system frames count as non-contributing
         app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
+        assert isinstance(system_exception_component, ExceptionGroupingComponent)
+
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
         )
+        system_stacktrace_component = find_given_child_component(
+            system_exception_component, StacktraceGroupingComponent
+        )
         assert app_stacktrace_component
+        assert system_stacktrace_component
 
-        assert app_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=20,
-            system_contributing_frames=0,
-            in_app_non_contributing_frames=0,
-            in_app_contributing_frames=13,
+        assert (
+            app_exception_component.frame_counts
+            == system_exception_component.frame_counts
+            == app_stacktrace_component.frame_counts
+            == system_stacktrace_component.frame_counts
+            == Counter(
+                system_non_contributing_frames=0,
+                system_contributing_frames=20,
+                in_app_non_contributing_frames=0,
+                in_app_contributing_frames=13,
+            )
         )
 
     def test_exception_component_uses_stacktrace_frame_counts(self) -> None:
@@ -221,36 +216,31 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         system_exception_component = variants["system"].root_component.values[0]
-        assert isinstance(system_exception_component, ExceptionGroupingComponent)
-        system_stacktrace_component = find_given_child_component(
-            system_exception_component, StacktraceGroupingComponent
-        )
-        assert system_stacktrace_component
-
-        assert system_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=4,
-            system_contributing_frames=15,
-            in_app_non_contributing_frames=9,
-            in_app_contributing_frames=8,
-        )
-        assert system_exception_component.frame_counts == system_stacktrace_component.frame_counts
-
-        # In the app variant, there's no such thing as a contributing system frame, so all the
-        # system frames count as non-contributing
         app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
+        assert isinstance(system_exception_component, ExceptionGroupingComponent)
+
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
         )
-        assert app_stacktrace_component
-
-        assert app_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=19,
-            system_contributing_frames=0,
-            in_app_non_contributing_frames=9,
-            in_app_contributing_frames=8,
+        system_stacktrace_component = find_given_child_component(
+            system_exception_component, StacktraceGroupingComponent
         )
-        assert app_exception_component.frame_counts == app_stacktrace_component.frame_counts
+        assert app_stacktrace_component
+        assert system_stacktrace_component
+
+        assert (
+            app_exception_component.frame_counts
+            == system_exception_component.frame_counts
+            == app_stacktrace_component.frame_counts
+            == system_stacktrace_component.frame_counts
+            == Counter(
+                system_non_contributing_frames=4,
+                system_contributing_frames=15,
+                in_app_non_contributing_frames=9,
+                in_app_contributing_frames=8,
+            )
+        )
 
     def test_threads_component_uses_stacktrace_frame_counts(self) -> None:
         self.event.data["threads"] = self.event.data.pop("exception")
@@ -266,37 +256,32 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_threads_component = variants["system"].root_component.values[0]
-        assert isinstance(system_threads_component, ThreadsGroupingComponent)
-        system_stacktrace_component = find_given_child_component(
-            system_threads_component, StacktraceGroupingComponent
-        )
-        assert system_stacktrace_component
-
-        assert system_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=20,
-            system_contributing_frames=12,
-            in_app_non_contributing_frames=20,
-            in_app_contributing_frames=13,
-        )
-        assert system_threads_component.frame_counts == system_stacktrace_component.frame_counts
-
-        # In the app variant, there's no such thing as a contributing system frame, so all the
-        # system frames count as non-contributing
         app_threads_component = variants["app"].root_component.values[0]
+        system_threads_component = variants["system"].root_component.values[0]
         assert isinstance(app_threads_component, ThreadsGroupingComponent)
+        assert isinstance(system_threads_component, ThreadsGroupingComponent)
+
         app_stacktrace_component = find_given_child_component(
             app_threads_component, StacktraceGroupingComponent
         )
-        assert app_stacktrace_component
-
-        assert app_stacktrace_component.frame_counts == Counter(
-            system_non_contributing_frames=32,
-            system_contributing_frames=0,
-            in_app_non_contributing_frames=20,
-            in_app_contributing_frames=13,
+        system_stacktrace_component = find_given_child_component(
+            system_threads_component, StacktraceGroupingComponent
         )
-        assert app_threads_component.frame_counts == app_stacktrace_component.frame_counts
+        assert app_stacktrace_component
+        assert system_stacktrace_component
+
+        assert (
+            app_threads_component.frame_counts
+            == system_threads_component.frame_counts
+            == app_stacktrace_component.frame_counts
+            == system_stacktrace_component.frame_counts
+            == Counter(
+                system_non_contributing_frames=20,
+                system_contributing_frames=12,
+                in_app_non_contributing_frames=20,
+                in_app_contributing_frames=13,
+            )
+        )
 
     def test_chained_exception_component_sums_stacktrace_frame_counts(self) -> None:
         self.event.data["exception"]["values"] = [
@@ -323,60 +308,44 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
+        app_chained_exception_component = variants["app"].root_component.values[0]
         system_chained_exception_component = variants["system"].root_component.values[0]
+        assert isinstance(app_chained_exception_component, ChainedExceptionGroupingComponent)
         assert isinstance(system_chained_exception_component, ChainedExceptionGroupingComponent)
-        system_exception_components = system_chained_exception_component.values
-        assert [
-            exception_component.frame_counts for exception_component in system_exception_components
-        ] == [
-            Counter(
-                system_non_contributing_frames=11,
-                system_contributing_frames=21,
-                in_app_non_contributing_frames=12,
-                in_app_contributing_frames=31,
-            ),
-            Counter(
-                system_non_contributing_frames=4,
-                system_contributing_frames=15,
-                in_app_non_contributing_frames=9,
-                in_app_contributing_frames=8,
-            ),
-        ]
 
-        assert system_chained_exception_component.frame_counts == Counter(
-            system_non_contributing_frames=15,
-            system_contributing_frames=36,
-            in_app_non_contributing_frames=21,
-            in_app_contributing_frames=39,
+        app_exception_components = app_chained_exception_component.values
+        system_exception_components = system_chained_exception_component.values
+        assert (
+            [exception_component.frame_counts for exception_component in app_exception_components]
+            == [
+                exception_component.frame_counts
+                for exception_component in system_exception_components
+            ]
+            == [
+                Counter(
+                    system_non_contributing_frames=11,
+                    system_contributing_frames=21,
+                    in_app_non_contributing_frames=12,
+                    in_app_contributing_frames=31,
+                ),
+                Counter(
+                    system_non_contributing_frames=4,
+                    system_contributing_frames=15,
+                    in_app_non_contributing_frames=9,
+                    in_app_contributing_frames=8,
+                ),
+            ]
         )
 
-        # In the app variant, there's no such thing as a contributing system frame, so all the
-        # system frames count as non-contributing
-        app_chained_exception_component = variants["app"].root_component.values[0]
-        assert isinstance(app_chained_exception_component, ChainedExceptionGroupingComponent)
-        app_exception_components = app_chained_exception_component.values
-        assert [
-            exception_component.frame_counts for exception_component in app_exception_components
-        ] == [
-            Counter(
-                system_non_contributing_frames=32,
-                system_contributing_frames=0,
-                in_app_non_contributing_frames=12,
-                in_app_contributing_frames=31,
-            ),
-            Counter(
-                system_non_contributing_frames=19,
-                system_contributing_frames=0,
-                in_app_non_contributing_frames=9,
-                in_app_contributing_frames=8,
-            ),
-        ]
-
-        assert app_chained_exception_component.frame_counts == Counter(
-            system_non_contributing_frames=51,
-            system_contributing_frames=0,
-            in_app_non_contributing_frames=21,
-            in_app_contributing_frames=39,
+        assert (
+            app_chained_exception_component.frame_counts
+            == system_chained_exception_component.frame_counts
+            == Counter(
+                system_non_contributing_frames=15,
+                system_contributing_frames=36,
+                in_app_non_contributing_frames=21,
+                in_app_contributing_frames=39,
+            )
         )
 
     def test_get_subcomponent(self) -> None:
@@ -411,3 +380,28 @@ class ComponentTest(TestCase):
             "value", recursive=True, only_contributing=True
         )
         assert not contributing_error_value_component
+
+    # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, this test can
+    # be deleted
+    def test_configs_put_exception_subcomponents_in_expected_order(self) -> None:
+        self.event.data["exception"]["values"][0]["stacktrace"] = {"frames": []}
+
+        self.project.update_option("sentry:grouping_config", WINTER_2023_GROUPING_CONFIG)
+        variants = self.event.get_grouping_variants()
+        exception_component = variants["app"].root_component.values[0]
+        assert isinstance(exception_component, ExceptionGroupingComponent)
+        assert [subcomponent.id for subcomponent in exception_component.values] == [
+            "stacktrace",
+            "type",
+            "value",
+        ]
+
+        self.project.update_option("sentry:grouping_config", FALL_2025_GROUPING_CONFIG)
+        variants = self.event.get_grouping_variants()
+        exception_component = variants["app"].root_component.values[0]
+        assert isinstance(exception_component, ExceptionGroupingComponent)
+        assert [subcomponent.id for subcomponent in exception_component.values] == [
+            "type",
+            "value",
+            "stacktrace",
+        ]

@@ -77,7 +77,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
         )
-        response_data = response.json()
     except Exception:
         return None
 
@@ -93,7 +92,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         return None
 
     try:
-        return response_data["title"].strip() or None
+        return response.json()["title"].strip() or None
     except Exception:
         return None
 

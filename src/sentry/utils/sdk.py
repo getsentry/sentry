@@ -9,6 +9,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.serializer
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -82,7 +83,6 @@ SAMPLED_TASKS = {
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
 SAMPLED_ROUTES = {
@@ -204,6 +204,7 @@ def traces_sampler(sampling_context):
 
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
+        "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
     if "transaction_context" in sampling_context:
@@ -306,7 +307,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
-        transport_http2=True,
+        transport_http2=options.get("sdk_http2_experiment.enabled"),
         before_send_log=before_send_log,
         enable_logs=True,
         enable_metrics=True,
@@ -475,6 +476,9 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    sentry_sdk.serializer.MAX_DATABAG_DEPTH = 100
+    sentry_sdk.serializer.MAX_DATABAG_BREADTH = 100
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -482,7 +486,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=True),
+            DjangoIntegration(signals_spans=False, cache_spans=True, middleware_spans=False),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

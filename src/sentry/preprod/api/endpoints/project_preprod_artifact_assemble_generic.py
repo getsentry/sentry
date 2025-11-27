@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import internal_region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -89,7 +89,7 @@ def validate_preprod_artifact_generic_schema(
         return {}, "Invalid json body"
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

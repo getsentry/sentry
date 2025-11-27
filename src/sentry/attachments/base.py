@@ -1,12 +1,18 @@
-from collections.abc import Generator
+from __future__ import annotations
 
-import sentry_sdk
+from collections.abc import Generator
+from typing import TYPE_CHECKING
+
 import zstandard
 
+from sentry.objectstore import get_attachments_session
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
-ATTACHMENT_META_KEY = "{key}:a"
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 ATTACHMENT_UNCHUNKED_DATA_KEY = "{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = "{key}:a:{id}:{chunk_index}"
 
@@ -61,11 +67,11 @@ class CachedAttachment:
             name=file.name, content_type=file.content_type, data=file.read(), **kwargs
         )
 
-    @property
-    def data(self) -> bytes:
+    def load_data(self, project: Project | None = None) -> bytes:
         if self.stored_id:
-            # TODO: fetch the contents based on `stored_id`
-            raise NotImplementedError()
+            assert project
+            session = get_attachments_session(project.organization_id, project.id)
+            return session.get(self.stored_id).payload.read()
 
         if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
@@ -115,7 +121,11 @@ class BaseAttachmentCache:
         self.inner = inner
 
     def set(
-        self, key: str, attachments: list[CachedAttachment], timeout=None, set_metadata=True
+        self,
+        key: str,
+        attachments: list[CachedAttachment],
+        timeout=None,
+        project: Project | None = None,
     ) -> list[dict]:
         for id, attachment in enumerate(attachments):
             # TODO(markus): We need to get away from sequential IDs, they
@@ -125,14 +135,28 @@ class BaseAttachmentCache:
             if attachment.key is None:
                 attachment.key = key
 
+            # the attachment is stored, but has updated data, so we need to overwrite:
+            if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
+                assert project
+                session = get_attachments_session(project.organization_id, project.id)
+                session.put(attachment._data, key=attachment.stored_id)
+
+            # the attachment is stored either in objectstore or in the attachment cache already
             if attachment.chunks is not None or attachment.stored_id is not None:
+                continue
+
+            # otherwise, store it in objectstore or the attachments cache:
+            if in_random_rollout("objectstore.enable_for.cached_attachments"):
+                assert project
+                session = get_attachments_session(project.organization_id, project.id)
+                attachment.stored_id = session.put(attachment.load_data(project))
                 continue
 
             metrics_tags = {"type": attachment.type}
             self.set_unchunked_data(
                 key=key,
                 id=attachment.id,
-                data=attachment.data,
+                data=attachment.load_data(project),
                 timeout=timeout,
                 metrics_tags=metrics_tags,
             )
@@ -141,9 +165,6 @@ class BaseAttachmentCache:
         for attachment in attachments:
             attachment._cache = self
             meta.append(attachment.meta())
-
-        if set_metadata:
-            self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
 
         return meta
 
@@ -165,14 +186,6 @@ class BaseAttachmentCache:
     def get_from_chunks(self, key: str, **attachment) -> CachedAttachment:
         return CachedAttachment(key=key, cache=self, **attachment)
 
-    def get(self, key: str) -> Generator[CachedAttachment]:
-        result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
-
-        for id, attachment in enumerate(result or ()):
-            attachment.setdefault("id", id)
-            attachment.setdefault("key", key)
-            yield CachedAttachment(cache=self, **attachment)
-
     def get_data(self, attachment: CachedAttachment) -> bytes:
         data = bytearray()
 
@@ -184,10 +197,3 @@ class BaseAttachmentCache:
             data.extend(decompressed)
 
         return bytes(data)
-
-    @sentry_sdk.trace
-    def delete(self, key: str):
-        for attachment in self.get(key):
-            attachment.delete()
-
-        self.inner.delete(ATTACHMENT_META_KEY.format(key=key))

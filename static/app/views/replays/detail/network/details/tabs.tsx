@@ -36,8 +36,6 @@ function NetworkDetailsTabs() {
 }
 
 const TabsContainer = styled('div')`
-  padding-top: ${space(0.5)};
-  padding-inline: ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

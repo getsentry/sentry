@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {
   renderGlobalModal,
@@ -46,6 +47,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: 1234567, downsampled: null},
     });
 
     openUpdateRetentionSettingsModal({
@@ -58,6 +61,44 @@ describe('UpdateRetentionSettingsModal', () => {
 
     expect(getSpinbutton('Spans Standard')).toHaveValue(90);
     expect(getSpinbutton('Spans Downsampled')).toHaveValue(30);
+    expect(getSpinbutton('Logs Standard')).toHaveValue(45);
+    expect(getSpinbutton('Logs Downsampled')).toHaveValue(15);
+    expect(getSpinbutton('Org Retention')).toHaveValue(1234567);
+
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Update Settings'})).toBeInTheDocument();
+  });
+
+  it('prefills the form with existing AM2 retention values', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        transactions: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+        logBytes: MetricHistoryFixture({
+          retention: {
+            standard: 45,
+            downsampled: 15,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am2_f'),
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    expect(getSpinbutton('Transactions Standard')).toHaveValue(90);
+    expect(getSpinbutton('Transactions Downsampled')).toHaveValue(30);
     expect(getSpinbutton('Logs Standard')).toHaveValue(45);
     expect(getSpinbutton('Logs Downsampled')).toHaveValue(15);
 
@@ -82,6 +123,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
     });
 
     openUpdateRetentionSettingsModal({
@@ -92,6 +135,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
+    expect(getSpinbutton('Org Retention')).toHaveValue(null);
     expect(getSpinbutton('Spans Standard')).toHaveValue(90);
     expect(getSpinbutton('Spans Downsampled')).toHaveValue(null);
     expect(getSpinbutton('Logs Standard')).toHaveValue(30);
@@ -115,6 +159,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: 123, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -130,6 +176,9 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     await loadModal();
+
+    await userEvent.clear(getSpinbutton('Org Retention'));
+    await userEvent.type(getSpinbutton('Org Retention'), '456');
 
     await userEvent.clear(getSpinbutton('Spans Standard'));
     await userEvent.type(getSpinbutton('Spans Standard'), '120');
@@ -151,8 +200,91 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
+            orgRetention: {
+              standard: 456,
+              downsampled: null,
+            },
             retentions: {
               spans: {
+                standard: 120,
+                downsampled: 60,
+              },
+              logBytes: {
+                standard: 60,
+                downsampled: 14,
+              },
+            },
+          },
+        })
+      );
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+  });
+
+  it('calls api with correct data when updating all AM2 fields', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        transactions: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+        logBytes: MetricHistoryFixture({
+          retention: {
+            standard: 30,
+            downsampled: 7,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am2_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    await userEvent.clear(getSpinbutton('Org Retention'));
+
+    await userEvent.clear(getSpinbutton('Transactions Standard'));
+    await userEvent.type(getSpinbutton('Transactions Standard'), '120');
+
+    await userEvent.clear(getSpinbutton('Transactions Downsampled'));
+    await userEvent.type(getSpinbutton('Transactions Downsampled'), '60');
+
+    await userEvent.clear(getSpinbutton('Logs Standard'));
+    await userEvent.type(getSpinbutton('Logs Standard'), '60');
+
+    await userEvent.clear(getSpinbutton('Logs Downsampled'));
+    await userEvent.type(getSpinbutton('Logs Downsampled'), '14');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/${organization.slug}/retention-settings/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
+            retentions: {
+              transactions: {
                 standard: 120,
                 downsampled: 60,
               },
@@ -186,6 +318,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: 123, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -201,6 +335,8 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     await loadModal();
+
+    await userEvent.clear(getSpinbutton('Org Retention'));
 
     await userEvent.clear(getSpinbutton('Spans Standard'));
     await userEvent.type(getSpinbutton('Spans Standard'), '90');
@@ -220,6 +356,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
             retentions: {
               spans: {
                 standard: 90,
@@ -255,6 +395,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -270,6 +412,8 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     await loadModal();
+
+    await userEvent.clear(getSpinbutton('Org Retention'));
 
     await userEvent.clear(getSpinbutton('Spans Standard'));
     await userEvent.type(getSpinbutton('Spans Standard'), '90');
@@ -291,6 +435,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
             retentions: {
               spans: {
                 standard: 90,
@@ -326,6 +474,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -342,6 +492,8 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
+    await userEvent.clear(getSpinbutton('Org Retention'));
+
     await userEvent.clear(getSpinbutton('Spans Standard'));
     await userEvent.type(getSpinbutton('Spans Standard'), '180');
 
@@ -356,6 +508,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
             retentions: {
               spans: {
                 standard: 180,
@@ -389,6 +545,8 @@ describe('UpdateRetentionSettingsModal', () => {
           },
         }),
       },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -405,6 +563,8 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
+    await userEvent.clear(getSpinbutton('Org Retention'));
+
     await userEvent.clear(getSpinbutton('Logs Standard'));
     await userEvent.type(getSpinbutton('Logs Standard'), '60');
 
@@ -419,6 +579,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
             retentions: {
               spans: {
                 standard: 90,

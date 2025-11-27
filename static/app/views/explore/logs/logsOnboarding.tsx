@@ -16,6 +16,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -36,11 +37,13 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
-  FilterBarContainer,
-  StyledPageFilterBar,
-  TopSectionBody,
-} from 'sentry/views/explore/logs/styles';
-import type {PickableDays} from 'sentry/views/explore/utils';
+  ExploreBodySearch,
+  ExploreFilterSection,
+} from 'sentry/views/explore/components/styles';
+import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
+
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
   organization: Organization;
@@ -370,34 +373,36 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
+const OnboardingContainer = styled('div')`
+  margin-top: ${space(1)};
+`;
+
 type LogsTabOnboardingProps = {
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-} & PickableDays;
+};
 
 export function LogsTabOnboarding({
   organization,
   project,
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
+  datePageFilterProps,
 }: LogsTabOnboardingProps) {
   return (
-    <TopSectionBody noRowGap>
+    <ExploreBodySearch>
       <Layout.Main width="full">
-        <FilterBarContainer>
+        <ExploreFilterSection>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
-        </FilterBarContainer>
-        <Onboarding project={project} organization={organization} />
+        </ExploreFilterSection>
+        <OnboardingContainer>
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <Onboarding project={project} organization={organization} />
+        </OnboardingContainer>
       </Layout.Main>
-    </TopSectionBody>
+    </ExploreBodySearch>
   );
 }

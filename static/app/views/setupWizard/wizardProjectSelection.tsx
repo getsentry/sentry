@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
@@ -10,6 +11,8 @@ import {Flex, Stack} from 'sentry/components/core/layout';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
+import {createablePlatforms} from 'sentry/data/platformPickerCategories';
+import platforms from 'sentry/data/platforms';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -86,6 +89,9 @@ export function WizardProjectSelection({
 
   const [newProjectName, setNewProjectName] = useState(platformParam || '');
   const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
+  const [newProjectPlatform, setNewProjectPlatform] = useState<string | null>(
+    platformParam || null
+  );
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
@@ -118,9 +124,7 @@ export function WizardProjectSelection({
     : false;
   const hasSelectableTeams = (selectableTeams ?? []).length > 0;
   const isCreationEnabled =
-    canUserCreateProject &&
-    platformParam &&
-    (isOrgMemberWithNoAccess || hasSelectableTeams);
+    canUserCreateProject && (isOrgMemberWithNoAccess || hasSelectableTeams);
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
   const createProjectMutation = useCreateProjectFromWizard();
@@ -156,6 +160,19 @@ export function WizardProjectSelection({
 
   const {options: cachedProjectOptions, clear: clearProjectOptions} =
     useCompactSelectOptionsCache(projectOptions);
+
+  const platformOptions = useMemo(
+    () =>
+      platforms
+        .filter(platform => createablePlatforms.has(platform.id))
+        .map(platform => ({
+          value: platform.id,
+          label: platform.name,
+          leadingItems: <PlatformIcon platform={platform.id} size={16} />,
+          searchKey: platform.name,
+        })),
+    []
+  );
 
   // Set the selected project to the first option if there is only one
   useEffect(() => {
@@ -197,8 +214,8 @@ export function WizardProjectSelection({
 
   const isProjectSelected = isCreateProjectSelected
     ? isOrgMemberWithNoAccess
-      ? newProjectName
-      : newProjectName && newProjectTeam
+      ? newProjectName && (platformParam || newProjectPlatform)
+      : newProjectName && (platformParam || newProjectPlatform) && newProjectTeam
     : selectedProject;
 
   const isFormValid = selectedOrg && isProjectSelected;
@@ -217,7 +234,7 @@ export function WizardProjectSelection({
             organization: selectedOrg,
             team: newProjectTeam,
             name: newProjectName,
-            platform: platformParam || 'other',
+            platform: newProjectPlatform || platformParam || 'other',
           });
 
           projectId = project.id;
@@ -250,6 +267,7 @@ export function WizardProjectSelection({
       createProjectMutation,
       newProjectTeam,
       newProjectName,
+      newProjectPlatform,
       updateWizardCacheMutation,
     ]
   );
@@ -265,6 +283,28 @@ export function WizardProjectSelection({
   } else if (search) {
     emptyMessage = t('No projects matching search');
   }
+
+  const platformField = (
+    <FieldWrapper>
+      <label>{t('Platform')}</label>
+      <StyledCompactSelect
+        value={newProjectPlatform as string}
+        searchable
+        options={platformOptions}
+        triggerProps={{
+          icon: newProjectPlatform ? (
+            <PlatformIcon platform={newProjectPlatform} size={16} />
+          ) : null,
+          children: newProjectPlatform
+            ? platforms.find(p => p.id === newProjectPlatform)?.name
+            : t('Select a platform'),
+        }}
+        onChange={({value}) => {
+          setNewProjectPlatform(value as string);
+        }}
+      />
+    </FieldWrapper>
+  );
 
   const projectNameField = (
     <FieldWrapper>
@@ -326,7 +366,7 @@ export function WizardProjectSelection({
               options={sortedProjectOptions}
               triggerProps={{
                 icon: isCreateProjectSelected ? (
-                  <IconAdd isCircled />
+                  <IconAdd />
                 ) : selectedProject ? (
                   <ProjectBadge avatarSize={16} project={selectedProject} hideName />
                 ) : null,
@@ -350,7 +390,7 @@ export function WizardProjectSelection({
                             setSelectedProjectId(CREATE_PROJECT_VALUE);
                             closeOverlay();
                           }}
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Create Project')}
                         </Button>
@@ -363,34 +403,42 @@ export function WizardProjectSelection({
         </FieldWrapper>
         {isCreateProjectSelected &&
           (isOrgMemberWithNoAccess ? (
-            projectNameField
-          ) : (
-            <Columns>
+            <Fragment>
+              {!platformParam && platformField}
               {projectNameField}
-              <FieldWrapper>
-                <label>{t('Team')}</label>
-                <StyledCompactSelect
-                  value={newProjectTeam as string}
-                  options={
-                    selectableTeams?.map(team => ({
-                      value: team.slug,
-                      label: `#${team.slug}`,
-                      leadingItems: <IdBadge team={team} hideName />,
-                      searchKey: team.slug,
-                    })) || []
-                  }
-                  triggerProps={{
-                    icon: selectedTeam ? (
-                      <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                    ) : null,
-                    children: selectedTeam ? `#${selectedTeam.slug}` : t('Select a team'),
-                  }}
-                  onChange={({value}) => {
-                    setNewProjectTeam(value as string);
-                  }}
-                />
-              </FieldWrapper>
-            </Columns>
+            </Fragment>
+          ) : (
+            <Fragment>
+              {!platformParam && platformField}
+              <Columns>
+                {projectNameField}
+                <FieldWrapper>
+                  <label>{t('Team')}</label>
+                  <StyledCompactSelect
+                    value={newProjectTeam as string}
+                    options={
+                      selectableTeams?.map(team => ({
+                        value: team.slug,
+                        label: `#${team.slug}`,
+                        leadingItems: <IdBadge team={team} hideName />,
+                        searchKey: team.slug,
+                      })) || []
+                    }
+                    triggerProps={{
+                      icon: selectedTeam ? (
+                        <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                      ) : null,
+                      children: selectedTeam
+                        ? `#${selectedTeam.slug}`
+                        : t('Select a team'),
+                    }}
+                    onChange={({value}) => {
+                      setNewProjectTeam(value as string);
+                    }}
+                  />
+                </FieldWrapper>
+              </Columns>
+            </Fragment>
           ))}
         <SubmitButton
           disabled={!isFormValid || isPending}

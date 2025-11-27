@@ -18,7 +18,7 @@ class PreventAIConfiguration(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE", null=True)
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE", db_index=True)
     data = models.JSONField(default=dict)
 
     class Meta:

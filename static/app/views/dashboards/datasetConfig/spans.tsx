@@ -224,19 +224,14 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, widget, _organization) => {
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
       return renderEventInTraceView;
     }
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    // Dashboard links are applicable to tables, which should only have one query hence the `queries[0]`
-    const dashboardLink = widget?.queries[0]?.linkedDashboards?.find(
-      linkedDashboard => linkedDashboard.field === field
-    );
-
-    return getFieldRenderer(field, meta, false, dashboardLink);
+    return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
 };
 
@@ -253,9 +248,8 @@ function getPrimaryFieldOptions(
   });
 
   const spanTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
+    function combineTag(acc, tag) {
+      acc[`${tag.kind}:${tag.key}`] = {
         label: tag.name,
         value: {
           kind: FieldValueKind.TAG,
@@ -265,21 +259,14 @@ function getPrimaryFieldOptions(
           // is used for grouping.
           meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
         },
-      },
-    }),
-    {}
+      };
+
+      return acc;
+    },
+    {} as Record<string, FieldValueOption>
   );
 
   return {...baseFieldOptions, ...spanTags};
-}
-
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -329,6 +316,9 @@ function getEventsRequest(
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
@@ -363,10 +353,13 @@ function getEventsRequest(
     },
     // Tries events request up to 3 times on rate limit
     {
-      retry: {
-        statusCodes: [429],
-        tries: 10,
-      },
+      retry: hasQueueFeature
+        ? // The queue will handle retries, so we don't need to retry here
+          undefined
+        : {
+            statusCodes: [429],
+            tries: 10,
+          },
     }
   );
 }
@@ -383,10 +376,7 @@ function getGroupByFieldOptions(
   );
   const yAxisFilter = filterYAxisOptions();
 
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }

@@ -315,9 +315,7 @@ function CopySolutionButton({
   rootCause?: any;
 }) {
   const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   if (isEditing) {
     return null;
@@ -326,9 +324,8 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy plan as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
       icon={<IconCopy />}
@@ -488,6 +485,13 @@ function AutofixSolutionDisplay({
       solution: finalSolutionItems,
     });
   };
+
+  // Check if instructions were provided (either typed in input or already added to solution and active)
+  const hasInstructions =
+    instructions.trim().length > 0 ||
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
 
   useEffect(() => {
     setSolutionItems(
@@ -653,6 +657,9 @@ function AutofixSolutionDisplay({
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
+              analyticsParams={{
+                instruction_provided: hasInstructions,
+              }}
               title={t('Implement this solution in code with Seer')}
             >
               {t('Code It Up')}

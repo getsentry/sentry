@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Select} from 'sentry/components/core/select';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';

@@ -6,8 +6,9 @@ from typing import Any
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstream, nodestore
+from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
+from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
@@ -204,6 +205,46 @@ def delete_events_from_eventstore(
     else:
         eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
         eventstream.backend.end_delete_groups(eventstream_state)
+
+    delete_events_from_eap(organization_id, project_id, group_ids, dataset)
+
+
+def delete_events_from_eap(
+    organization_id: int,
+    project_id: int,
+    group_ids: Sequence[int],
+    dataset: Dataset,
+) -> None:
+    if not options.get("eventstream.eap.deletion-enabled"):
+        return
+
+    try:
+        delete_groups_from_eap_rpc(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_ids=group_ids,
+            referrer="deletions.group.eap",
+        )
+        metrics.incr(
+            "deletions.group.eap.success",
+            tags={"dataset": dataset.value},
+            sample_rate=1.0,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to delete groups from EAP",
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "group_ids": group_ids[:10],
+                "dataset": dataset.value,
+            },
+        )
+        metrics.incr(
+            "deletions.group.eap.failure",
+            tags={"dataset": dataset.value},
+            sample_rate=1.0,
+        )
 
 
 def delete_events_from_eventstore_issue_platform(

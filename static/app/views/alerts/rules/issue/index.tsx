@@ -40,7 +40,7 @@ import LoadingMask from 'sentry/components/loadingMask';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -1244,12 +1244,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                     <StepConnector />
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1334,12 +1329,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
@@ -1410,12 +1400,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   <Step>
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          isCircled
-                          color="gray200"
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron color="gray200" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
