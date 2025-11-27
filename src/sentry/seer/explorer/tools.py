@@ -1065,6 +1065,10 @@ def _make_get_trace_request(
             for a in item.attributes:
                 r = resolved_attrs_by_internal_name.get(a.key.name)
                 public_alias = r.public_alias if r else a.key.name
+
+                if public_alias.startswith("sentry._internal"):
+                    continue
+
                 if public_alias == "project_id":  # Same internal name, normalize to project.id
                     public_alias = "project.id"
 
