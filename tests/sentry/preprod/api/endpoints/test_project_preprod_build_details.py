@@ -322,3 +322,19 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["posted_status_checks"] is None
+
+    def test_posted_status_checks_success_without_check_id(self) -> None:
+        """Test that successful status checks without check_id are still exposed."""
+        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": True}}}
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["posted_status_checks"] is not None
+        assert resp_data["posted_status_checks"]["size"]["success"] is True
+        assert resp_data["posted_status_checks"]["size"]["check_id"] is None

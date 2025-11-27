@@ -57,7 +57,7 @@ class StatusCheckResultSuccess(BaseModel):
     """Result of a successfully posted status check."""
 
     success: Literal[True] = True
-    check_id: str
+    check_id: str | None = None
 
 
 class StatusCheckResultFailure(BaseModel):
@@ -274,8 +274,7 @@ def transform_preprod_artifact_to_build_details(
             raw_size = raw_checks["size"]
             if raw_size.get("success"):
                 check_id = raw_size.get("check_id")
-                if check_id:
-                    size_check = StatusCheckResultSuccess(check_id=check_id)
+                size_check = StatusCheckResultSuccess(check_id=check_id)
             else:
                 error_type_str = raw_size.get("error_type")
                 if error_type_str:
