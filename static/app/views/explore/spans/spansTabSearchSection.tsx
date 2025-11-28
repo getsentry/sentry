@@ -220,8 +220,7 @@ function SpansTabCrossEventSearchBars() {
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
-        <div />
-        <Container justifySelf="end" width={{sm: '100%', md: '100%'}}>
+        <Container justifySelf="end" width={{sm: '100%', md: 'min-content'}}>
           {props => (
             <CompactSelect
               {...props}
@@ -402,13 +401,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           position="bottom"
           margin={-8}
         >
-          <Grid
-            gap="md"
-            columns={{
-              sm: '1fr',
-              md: 'minmax(175px, auto) minmax(125px, auto) 1fr min-content',
-            }}
-          >
+          <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -442,5 +435,4 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
-  grid-column: span 2;
 `;
