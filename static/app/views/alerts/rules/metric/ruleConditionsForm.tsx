@@ -55,6 +55,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
@@ -583,11 +584,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization.features.includes('performance-transaction-deprecation-banner') &&
       DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
 
-    const showExtrapolationModeChangeWarning = !!(
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-      extrapolationMode &&
-      (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
-        extrapolationMode === ExtrapolationMode.NONE)
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset,
+      traceItemType
     );
 
     return (
