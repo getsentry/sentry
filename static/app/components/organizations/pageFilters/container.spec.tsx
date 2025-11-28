@@ -1,3 +1,4 @@
+import moment from 'moment-timezone';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -509,6 +510,33 @@ describe('PageFiltersContainer', () => {
         expect(PageFiltersStore.getState().selection).toEqual({
           datetime: {
             period: '3d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('applies maxPickableDays if the query parms are in the past', async () => {
+      const start = moment().subtract(21, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      renderComponent(
+        <PageFiltersContainer maxPickableDays={7} />,
+        changeQuery(router, {start, end}),
+        organization
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '7d',
             utc: null,
             start: null,
             end: null,
