@@ -55,6 +55,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         with block kit enabled.
         """
         event = self.create_performance_issue()
+        assert event.group is not None
         notification = self.create_notification(event.group)
 
         with self.tasks():

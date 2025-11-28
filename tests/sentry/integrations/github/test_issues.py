@@ -378,6 +378,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     def test_performance_issues_content(self) -> None:
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
+        assert event.group is not None
         description = self.install.get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
         title = self.install.get_group_title(event.group, event)
