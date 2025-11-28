@@ -5,7 +5,6 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Self, override
 
-from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
@@ -16,6 +15,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
+from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
@@ -219,7 +219,7 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
     @override
     @staticmethod
     def get_instance_limit(org: Organization) -> int | None:
-        return settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        return get_max_metric_alert_subscriptions(org)
 
     @override
     @staticmethod
