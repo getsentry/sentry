@@ -6,17 +6,26 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconClock, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName, supportsPayg} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  getReservedBudgetCategoryForAddOn,
+  supportsPayg,
+} from 'getsentry/utils/billing';
+import {
+  DataCategoryUsageBreakdownInfo,
+  ReservedBudgetUsageBreakdownInfo,
+} from 'getsentry/views/subscriptionPage/usageOverview/components/breakdownInfo';
 import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import {
   ProductTrialCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
-import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
+import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
 function PanelHeader({
   selectedProduct,
@@ -81,17 +90,55 @@ function ProductBreakdownPanel({
   usageData,
   isInline,
 }: BreakdownPanelProps) {
-  const {billedCategory, isAddOn, isEnabled, addOnInfo, potentialProductTrial} =
-    useProductBillingMetadata(subscription, selectedProduct);
+  const {
+    billedCategory,
+    isAddOn,
+    isEnabled,
+    addOnInfo,
+    activeProductTrial,
+    potentialProductTrial,
+  } = useProductBillingMetadata(subscription, selectedProduct);
 
   if (!billedCategory) {
     return null;
   }
 
-  const breakdownInfo = null;
+  let breakdownInfo = null;
 
-  if ((isAddOn && !addOnInfo) || (!isAddOn && !subscription.categories[billedCategory])) {
-    return null;
+  if (isAddOn) {
+    if (!addOnInfo) {
+      return null;
+    }
+    const {apiName} = addOnInfo;
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+    const reservedBudget = subscription.reservedBudgets?.find(
+      budget => budget.apiName === reservedBudgetCategory
+    );
+
+    if (reservedBudget) {
+      breakdownInfo = (
+        <ReservedBudgetUsageBreakdownInfo
+          subscription={subscription}
+          reservedBudget={reservedBudget}
+          activeProductTrial={activeProductTrial}
+        />
+      );
+    }
+  } else {
+    const category = selectedProduct as DataCategory;
+    const metricHistory = subscription.categories[category];
+    if (!metricHistory) {
+      return null;
+    }
+
+    breakdownInfo = (
+      <DataCategoryUsageBreakdownInfo
+        subscription={subscription}
+        category={category}
+        metricHistory={metricHistory}
+        activeProductTrial={activeProductTrial}
+      />
+    );
   }
 
   const isEmpty = !potentialProductTrial && !isEnabled;
