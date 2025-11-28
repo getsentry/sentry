@@ -68,7 +68,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const location = useLocation();
 
   const badge = replayRecord ? (
-    <Flex gap="md">
+    <ColumnWrapper gap="md">
       <StyledReplaySessionColumn
         replay={replayRecord}
         rowIndex={0}
@@ -85,7 +85,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       >
         <IconRefresh />
       </Button>
-    </Flex>
+    </ColumnWrapper>
   ) : null;
 
   return (
@@ -104,6 +104,11 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     </ReplayLoadingState>
   );
 }
+
+// column components expect to be stored in a relative container
+const ColumnWrapper = styled(Flex)`
+  position: relative;
+`;
 
 const StyledReplaySessionColumn = styled(ReplaySessionColumn.Component)`
   flex: 0;
