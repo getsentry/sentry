@@ -644,6 +644,13 @@ const SECTIONS: TSection[] = [
           direction: 'down',
         },
       },
+      {
+        id: 'slashFoward',
+        groups: ['navigation'],
+        keywords: ['breadcrumbs', 'directory'],
+        name: 'SlashForward',
+        defaultProps: {},
+      },
     ],
   },
   {
