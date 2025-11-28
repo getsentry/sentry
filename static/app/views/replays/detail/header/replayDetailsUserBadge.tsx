@@ -13,6 +13,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 
@@ -64,6 +65,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const showRefreshButton = polledCountSegments > prevSegments;
 
+  const location = useLocation();
+
   const badge = replayRecord ? (
     <Flex gap="md">
       <StyledReplaySessionColumn
@@ -71,6 +74,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
         rowIndex={0}
         columnIndex={0}
         showDropdownFilters={false}
+        query={location.query}
       />
       <Button
         title={t('Replay is outdated. Refresh for latest activity.')}
