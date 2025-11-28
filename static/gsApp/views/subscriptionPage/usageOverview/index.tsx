@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
@@ -6,9 +7,8 @@ import {Heading} from 'sentry/components/core/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
 
 import {AddOnCategory} from 'getsentry/types';
 import {checkIsAddOn} from 'getsentry/utils/billing';
@@ -16,6 +16,7 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
 function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
@@ -24,9 +25,10 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
   );
   const navigate = useNavigate();
   const location = useLocation();
-  const {isCollapsed: navIsCollapsed} = useNavContext();
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+  const theme = useTheme();
+  const showSidePanel = useMedia(
+    `(min-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+  );
 
   const startDate = moment(subscription.onDemandPeriodStart);
   const endDate = moment(subscription.onDemandPeriodEnd);
@@ -79,7 +81,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
 
   return (
     <Grid
-      columns={{xs: '1fr', md: navIsCollapsed ? `3fr 2fr` : '1fr', lg: '3fr 2fr'}}
+      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: '650px auto'}}
       gap="lg"
       align="start"
     >
@@ -127,7 +129,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
           usageData={usageData}
         />
       </Container>
-      {!isMobile && (
+      {showSidePanel && (
         <ProductBreakdownPanel
           organization={organization}
           selectedProduct={selectedProduct}

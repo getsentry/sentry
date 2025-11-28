@@ -9,6 +9,8 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import {
@@ -31,12 +33,20 @@ function Cta({
   title: React.ReactNode;
   buttons?: React.ReactNode;
 }) {
+  const {isCollapsed: navIsCollapsed, layout: navLayout} = useNavContext();
+  const isMobile = navLayout === NavLayout.MOBILE;
+
   return (
     <Grid
       background="secondary"
       padding="xl"
       columns={
-        buttons ? {'2xs': 'auto', xs: 'repeat(2, 1fr)', lg: 'fit-content auto'} : '1fr'
+        buttons
+          ? {
+              '2xs': 'auto',
+              xs: navIsCollapsed || isMobile ? 'repeat(2, 1fr)' : 'auto',
+            }
+          : '1fr'
       }
       gap="3xl"
       borderBottom={hasContentBelow ? 'primary' : undefined}

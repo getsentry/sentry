@@ -8,8 +8,6 @@ import {IconClock, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -90,10 +88,8 @@ function ProductBreakdownPanel({
   selectedProduct,
   subscription,
   usageData,
+  isInline,
 }: BreakdownPanelProps) {
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
-
   const {
     billedCategory,
     isAddOn,
@@ -150,11 +146,11 @@ function ProductBreakdownPanel({
   return (
     <Container
       background="primary"
-      border={isMobile ? undefined : 'primary'}
-      borderBottom={isMobile ? 'primary' : undefined}
-      radius={isMobile ? undefined : 'md'}
+      border={isInline ? undefined : 'primary'}
+      borderBottom={isInline ? 'primary' : undefined}
+      radius={isInline ? undefined : 'md'}
       style={
-        isMobile
+        isInline
           ? {
               gridColumn: '1 / -1',
             }

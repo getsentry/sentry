@@ -136,7 +136,7 @@ export default UsageOverviewTable;
 
 const Table = styled('table')`
   display: grid;
-  grid-template-columns: max-content auto max-content;
+  grid-template-columns: auto max-content auto;
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};

@@ -2,22 +2,18 @@ import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import useMedia from 'sentry/utils/useMedia';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory} from 'getsentry/types';
 import {
-  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getPercentage,
@@ -30,6 +26,7 @@ import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategor
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
+import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
 
 interface ChildProductRowProps {
@@ -55,8 +52,9 @@ function UsageOverviewTableRow({
   usageData,
 }: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
-  const {layout: navLayout} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+  const showPanelInline = !useMedia(
+    `(min-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+  );
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
@@ -172,11 +170,6 @@ function UsageOverviewTableRow({
 
   const isClickable = !!potentialProductTrial || isEnabled;
   const isSelected = selectedProduct === product;
-  const disabledTooltipText = isAddOn
-    ? t('Requires purchase')
-    : tct('Requires [budgetTerm]', {
-        budgetTerm: displayBudgetName(subscription.planDetails),
-      });
 
   return (
     <Fragment>
@@ -210,16 +203,16 @@ function UsageOverviewTableRow({
                   ? '2xl'
                   : undefined
             }
-            gap="sm"
+            wrap="nowrap"
           >
-            <Text variant={isEnabled ? 'primary' : 'muted'} textWrap="balance">
-              {formattedDisplayName}
+            <Text as="span" variant={isEnabled ? 'primary' : 'muted'} textWrap="balance">
+              {formattedDisplayName}{' '}
+              {!isEnabled && (
+                <IconContainer>
+                  <IconLock size="sm" locked color="disabled" />
+                </IconContainer>
+              )}
             </Text>
-            {!isEnabled && (
-              <Tooltip title={disabledTooltipText}>
-                <IconLock size="xs" locked color="disabled" />
-              </Tooltip>
-            )}
           </Flex>
         </td>
         {isEnabled && (
@@ -256,7 +249,7 @@ function UsageOverviewTableRow({
         )}
         {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </Row>
-      {isMobile && isSelected && (
+      {showPanelInline && isSelected && (
         <tr>
           <MobilePanelContainer>
             <ProductBreakdownPanel
@@ -264,6 +257,7 @@ function UsageOverviewTableRow({
               selectedProduct={selectedProduct}
               subscription={subscription}
               usageData={usageData}
+              isInline
             />
           </MobilePanelContainer>
         </tr>
@@ -310,10 +304,15 @@ const MobilePanelContainer = styled('td')`
 const SelectedPill = styled('td')<{isSelected: boolean}>`
   position: absolute;
   right: -1px;
-  top: 14px;
+  top: 30%;
   width: 4px;
   height: 22px;
   border-radius: 2px;
   background: ${p =>
     p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+`;
+
+const IconContainer = styled('span')`
+  display: inline-block;
+  vertical-align: middle;
 `;

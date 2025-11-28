@@ -11,8 +11,9 @@ export interface UsageOverviewProps {
 
 export interface BreakdownPanelProps extends UsageOverviewProps {
   selectedProduct: DataCategory | AddOnCategory;
+  isInline?: boolean;
 }
 
-export interface UsageOverviewTableProps extends BreakdownPanelProps {
+export interface UsageOverviewTableProps extends Omit<BreakdownPanelProps, 'isInline'> {
   onRowClick: (category: DataCategory | AddOnCategory) => void;
 }
