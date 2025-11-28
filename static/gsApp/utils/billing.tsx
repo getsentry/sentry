@@ -160,7 +160,13 @@ export function formatReservedWithUnits(
     return formatReservedNumberToString(reservedQuantity, options);
   }
 
-  if (isUnlimitedReserved(reservedQuantity)) {
+  // convert reservedQuantity to BYTES to check for unlimited
+  // unless it's already unlimited
+  const usageGb =
+    reservedQuantity && !isUnlimitedReserved(reservedQuantity)
+      ? reservedQuantity * GIGABYTE
+      : reservedQuantity;
+  if (isUnlimitedReserved(usageGb)) {
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
 

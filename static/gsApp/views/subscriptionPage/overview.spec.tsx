@@ -176,7 +176,7 @@ describe('Subscription > Overview', () => {
     expect(
       screen.getByRole('heading', {name: 'Receipts & notifications'})
     ).toBeInTheDocument();
-    expect(screen.getByText('Business plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Business plan')).toHaveLength(2); // top of page + in breakdown panel
     expect(screen.queryByText('Overview')).not.toBeInTheDocument();
   });
 

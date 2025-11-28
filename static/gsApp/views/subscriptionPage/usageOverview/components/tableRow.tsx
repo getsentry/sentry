@@ -10,32 +10,23 @@ import ProgressRing from 'sentry/components/progressRing';
 import {IconLock, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory} from 'getsentry/types';
 import {
-  checkIsAddOn,
   displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
-  getActiveProductTrial,
-  getBilledCategory,
   getPercentage,
-  getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
   MILLISECONDS_IN_HOUR,
-  productIsEnabled,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {
-  getPlanCategoryName,
-  isByteCategory,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
@@ -69,8 +60,17 @@ function UsageOverviewTableRow({
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
-  const isAddOn = checkIsAddOn(parentProduct ?? product);
-  const billedCategory = getBilledCategory(subscription, product);
+
+  const {
+    displayName,
+    billedCategory,
+    isAddOn,
+    isEnabled,
+    addOnInfo,
+    usageExceeded,
+    activeProductTrial,
+    potentialProductTrial,
+  } = useProductBillingMetadata(subscription, product, parentProduct, isChildProduct);
   if (!billedCategory) {
     return null;
   }
@@ -80,21 +80,11 @@ function UsageOverviewTableRow({
     return null;
   }
 
-  const isEnabled = productIsEnabled(subscription, parentProduct ?? product);
-
   if (!isEnabled && isChildProduct) {
     // don't show child product rows if the parent product is not enabled
     return null;
   }
 
-  const activeProductTrial = isChildProduct
-    ? null
-    : getActiveProductTrial(subscription.productTrials ?? null, billedCategory);
-  const potentialProductTrial = isChildProduct
-    ? null
-    : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory);
-
-  let displayName = '';
   let percentUsed = 0;
   let formattedUsage = '';
   let formattedPrepaid = null;
@@ -102,18 +92,9 @@ function UsageOverviewTableRow({
   let isUnlimited = false;
 
   if (isAddOn) {
-    const addOnInfo = subscription.addOns?.[(parentProduct ?? product) as AddOnCategory];
     if (!addOnInfo) {
       return null;
     }
-    const {productName} = addOnInfo;
-    displayName = isChildProduct
-      ? getPlanCategoryName({
-          plan: subscription.planDetails,
-          category: product,
-          title: true,
-        })
-      : toTitleCase(productName, {allowInnerUpperCase: true});
 
     isUnlimited = !!activeProductTrial;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(
@@ -126,11 +107,11 @@ function UsageOverviewTableRow({
       ? getPercentage(reservedBudget.totalReservedSpend, reservedBudget.reservedBudget)
       : 0;
     formattedUsage = reservedBudget
-      ? isChildProduct
-        ? displayPriceWithCents({
-            cents: reservedBudget.categories[product]?.reservedSpend ?? 0,
-          })
-        : displayPriceWithCents({cents: reservedBudget.totalReservedSpend})
+      ? displayPriceWithCents({
+          cents: isChildProduct
+            ? (reservedBudget.categories[product]?.reservedSpend ?? 0)
+            : reservedBudget.totalReservedSpend,
+        })
       : formatUsageWithUnits(metricHistory.usage, billedCategory, {
           isAbbreviated: true,
           useUnitScaling: true,
@@ -138,10 +119,8 @@ function UsageOverviewTableRow({
 
     if (isUnlimited) {
       formattedPrepaid = formatReservedWithUnits(UNLIMITED_RESERVED, billedCategory);
-    } else {
-      if (reservedBudget) {
-        formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
-      }
+    } else if (reservedBudget) {
+      formattedPrepaid = displayPriceWithCents({cents: reservedBudget.reservedBudget});
     }
 
     paygSpend = isChildProduct
@@ -150,11 +129,6 @@ function UsageOverviewTableRow({
           return acc + (subscription.categories[category]?.onDemandSpendUsed ?? 0);
         }, 0);
   } else {
-    displayName = getPlanCategoryName({
-      plan: subscription.planDetails,
-      category: billedCategory,
-      title: true,
-    });
     // convert prepaid amount to the same unit as usage to accurately calculate percent used
     const {prepaid} = metricHistory;
     isUnlimited = prepaid === UNLIMITED_RESERVED || !!activeProductTrial;
@@ -189,11 +163,10 @@ function UsageOverviewTableRow({
 
   const formattedSoftCapType =
     isChildProduct || !isAddOn ? getSoftCapType(metricHistory) : null;
-  if (formattedSoftCapType) {
-    displayName = `${displayName} (${formattedSoftCapType})`;
-  }
+  const formattedDisplayName = formattedSoftCapType
+    ? `${displayName} (${formattedSoftCapType})`
+    : displayName;
 
-  const usageExceeded = subscription.categories[billedCategory]?.usageExceeded ?? false;
   const isPaygOnly =
     !isAddOn && supportsPayg(subscription) && metricHistory.reserved === 0;
 
@@ -240,7 +213,7 @@ function UsageOverviewTableRow({
             gap="sm"
           >
             <Text variant={isEnabled ? 'primary' : 'muted'} textWrap="balance">
-              {displayName}
+              {formattedDisplayName}
             </Text>
             {!isEnabled && (
               <Tooltip title={disabledTooltipText}>

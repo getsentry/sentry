@@ -8,22 +8,16 @@ import {IconClock, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
+import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
-  checkIsAddOn,
   displayBudgetName,
-  getActiveProductTrial,
-  getBilledCategory,
-  getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
-  productIsEnabled,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {
   DataCategoryUsageBreakdownInfo,
   ReservedBudgetUsageBreakdownInfo,
@@ -40,45 +34,26 @@ function PanelHeader({
   subscription,
 }: Pick<BreakdownPanelProps, 'selectedProduct' | 'subscription'>) {
   const {onDemandBudgets: paygBudgets} = subscription;
-  let displayName = '';
-  let billedCategory = null;
 
-  if (selectedProduct === AddOnCategory.SEER) {
-    return null; // special case for seer add-on
-  }
+  const {
+    displayName,
+    billedCategory,
+    isAddOn,
+    addOnInfo,
+    usageExceeded,
+    activeProductTrial,
+  } = useProductBillingMetadata(subscription, selectedProduct);
 
-  const isAddOn = checkIsAddOn(selectedProduct);
-
-  if (isAddOn) {
-    const category = selectedProduct as AddOnCategory;
-    const addOnInfo = subscription.addOns?.[category];
-    if (!addOnInfo) {
-      return null;
-    }
-    const {productName} = addOnInfo;
-    displayName = toTitleCase(productName, {allowInnerUpperCase: true});
-    billedCategory = getBilledCategory(subscription, selectedProduct);
-  } else {
-    const category = selectedProduct as DataCategory;
-    displayName = getPlanCategoryName({
-      plan: subscription.planDetails,
-      category,
-      title: true,
-    });
-    billedCategory = category;
-  }
-
-  if (!billedCategory) {
+  if (
+    // special case for seer add-on
+    selectedProduct === AddOnCategory.SEER ||
+    !billedCategory ||
+    (isAddOn && !addOnInfo)
+  ) {
     return null;
   }
 
-  const activeProductTrial = getActiveProductTrial(
-    subscription.productTrials ?? null,
-    billedCategory
-  );
   const trialDaysLeft = -1 * getDaysSinceDate(activeProductTrial?.endDate ?? '');
-
-  const usageExceeded = subscription.categories[billedCategory]?.usageExceeded ?? false;
 
   const hasPaygAvailable =
     supportsPayg(subscription) &&
@@ -119,24 +94,22 @@ function ProductBreakdownPanel({
   const {layout: navLayout} = useNavContext();
   const isMobile = navLayout === NavLayout.MOBILE;
 
-  const isAddOn = Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
-  let breakdownInfo = null;
-  const billedCategory = getBilledCategory(subscription, selectedProduct);
+  const {
+    billedCategory,
+    isAddOn,
+    isEnabled,
+    addOnInfo,
+    activeProductTrial,
+    potentialProductTrial,
+  } = useProductBillingMetadata(subscription, selectedProduct);
+
   if (!billedCategory) {
     return null;
   }
-  const isEnabled = productIsEnabled(subscription, selectedProduct);
-  const activeProductTrial = getActiveProductTrial(
-    subscription.productTrials ?? null,
-    billedCategory
-  );
-  const potentialProductTrial = getPotentialProductTrial(
-    subscription.productTrials ?? null,
-    billedCategory
-  );
+
+  let breakdownInfo = null;
 
   if (isAddOn) {
-    const addOnInfo = subscription.addOns?.[selectedProduct as AddOnCategory];
     if (!addOnInfo) {
       return null;
     }

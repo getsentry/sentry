@@ -95,8 +95,10 @@ function UsageBreakdownInfo({
     !!formattedPlatformReserved ||
     !!formattedAdditionalReserved ||
     !!formattedGifted;
+  const shouldShowReservedSpend =
+    defined(recurringReservedSpend) && subscription.canSelfServe;
   const shouldShowAdditionalSpend =
-    subscription.canSelfServe || canUsePayg || defined(formattedSoftCapType);
+    shouldShowReservedSpend || canUsePayg || defined(formattedSoftCapType);
 
   if (!shouldShowIncludedVolume && !shouldShowAdditionalSpend) {
     return null;
@@ -160,7 +162,7 @@ function UsageBreakdownInfo({
               )}
             />
           )}
-          {subscription.canSelfServe && defined(recurringReservedSpend) && (
+          {shouldShowReservedSpend && (
             <UsageBreakdownField
               field={t('Reserved spend')}
               value={displayPriceWithCents({cents: recurringReservedSpend})}
