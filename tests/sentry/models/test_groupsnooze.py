@@ -112,6 +112,7 @@ class GroupSnoozeTest(
             event_data["user"]["id"] = str(i)
             event = self.create_performance_issue(event_data=event_data)
         perf_group = event.group
+        assert perf_group is not None
         snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
@@ -149,6 +150,7 @@ class GroupSnoozeTest(
         """Test when a performance issue is ignored until it happens 10 times in a day"""
         for i in range(0, 10):
             event = self.create_performance_issue()
+        assert event.group is not None
         snooze = GroupSnooze.objects.create(group=event.group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 

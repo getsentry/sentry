@@ -68,6 +68,7 @@ class SlackResolvedInPullRequestNotificationTest(
         and block kit is enabled.
         """
         event = self.create_performance_issue()
+        assert event.group is not None
         notification = self.create_notification(event.group)
         with self.tasks():
             notification.send()

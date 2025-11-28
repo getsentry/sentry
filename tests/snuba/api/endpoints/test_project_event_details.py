@@ -306,6 +306,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["id"] == str(self.cur_transaction_event.event_id)
         assert response.data["nextEventID"] == str(self.next_transaction_event.event_id)
         assert response.data["previousEventID"] == str(self.prev_transaction_event.event_id)
+        assert self.cur_transaction_event.group is not None
         assert response.data["groupID"] == str(self.cur_transaction_event.group.id)
 
     def test_no_previous_event(self) -> None:
@@ -324,6 +325,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["id"] == str(self.prev_transaction_event.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == self.cur_transaction_event.event_id
+        assert self.prev_transaction_event.group is not None
         assert response.data["groupID"] == str(self.prev_transaction_event.group.id)
 
     def test_ignores_different_group(self) -> None:

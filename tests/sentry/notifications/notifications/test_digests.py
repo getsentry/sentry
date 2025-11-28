@@ -14,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.analytics import (
@@ -33,6 +34,7 @@ USER_COUNT = 2
 
 class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
     def add_event(self, fingerprint: str, backend: Backend, event_type: str = "error") -> None:
+        event: Event | GroupEvent | None
         if event_type == "performance":
             event = self.create_performance_issue()
         elif event_type == "generic":
@@ -57,6 +59,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 project_id=self.project.id,
             )
 
+        assert event is not None
         backend.add(
             self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
         )

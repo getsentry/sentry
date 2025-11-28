@@ -9,6 +9,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -252,6 +253,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
     def test_full_integration_performance(self) -> None:
         event = self.create_performance_issue()
+        assert isinstance(event, GroupEvent)
+        assert event.group is not None
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
