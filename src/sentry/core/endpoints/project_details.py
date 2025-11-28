@@ -135,7 +135,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "targetSampleRate",
         "dynamicSamplingBiases",
         "tempestFetchScreenshots",
-        "tempestFetchDumps",
         "autofixAutomationTuning",
         "seerScannerAutomation",
         "debugFilesRole",
@@ -229,7 +228,6 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
-    tempestFetchDumps = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -439,14 +437,6 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_tempestFetchScreenshots(self, value):
-        organization = self.context["project"].organization
-        if not has_tempest_access(organization):
-            raise serializers.ValidationError(
-                "Organization does not have the tempest feature enabled."
-            )
-        return value
-
-    def validate_tempestFetchDumps(self, value):
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
             raise serializers.ValidationError(
@@ -738,9 +728,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
-        if result.get("tempestFetchDumps") is not None:
-            if project.update_option("sentry:tempest_fetch_dumps", result["tempestFetchDumps"]):
-                changed_proj_settings["sentry:tempest_fetch_dumps"] = result["tempestFetchDumps"]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)

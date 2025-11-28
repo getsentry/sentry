@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import functools
-import itertools
 import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
@@ -158,10 +157,11 @@ class SiloLimit(abc.ABC):
             if is_available:
                 return original_method(*args, **kwargs)
             else:
+                modes = list(self.modes)
+                if SiloMode.MONOLITH not in self.modes:
+                    modes = modes + [SiloMode.MONOLITH]
                 handler = self.handle_when_unavailable(
-                    original_method,
-                    SiloMode.get_current_mode(),
-                    itertools.chain([SiloMode.MONOLITH], self.modes),
+                    original_method, SiloMode.get_current_mode(), modes
                 )
                 return handler(*args, **kwargs)
 

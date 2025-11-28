@@ -44,6 +44,7 @@ type FiltersBarProps = {
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
+  isPrebuiltDashboard?: boolean;
   onCancel?: () => void;
   onSave?: () => Promise<void>;
   shouldBusySaveButton?: boolean;
@@ -62,6 +63,7 @@ export default function FiltersBar({
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
+  isPrebuiltDashboard,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -195,34 +197,38 @@ export default function FiltersBar({
           />
         </Fragment>
       )}
-      {!hasTemporaryFilters && hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-        <ButtonBar>
-          <Button
-            title={
-              !hasEditAccess && t('You do not have permission to edit this dashboard')
-            }
-            priority="primary"
-            onClick={async () => {
-              await onSave?.();
-              invalidateStarredDashboards();
-            }}
-            disabled={!hasEditAccess}
-            busy={shouldBusySaveButton}
-          >
-            {t('Save')}
-          </Button>
-          <Button
-            data-test-id="filter-bar-cancel"
-            onClick={() => {
-              onCancel?.();
-              setActiveGlobalFilters(filters.globalFilter ?? []);
-              onDashboardFilterChange(filters);
-            }}
-          >
-            {t('Cancel')}
-          </Button>
-        </ButtonBar>
-      )}
+      {!hasTemporaryFilters &&
+        hasUnsavedChanges &&
+        !isEditingDashboard &&
+        !isPreview &&
+        !isPrebuiltDashboard && (
+          <ButtonBar>
+            <Button
+              title={
+                !hasEditAccess && t('You do not have permission to edit this dashboard')
+              }
+              priority="primary"
+              onClick={async () => {
+                await onSave?.();
+                invalidateStarredDashboards();
+              }}
+              disabled={!hasEditAccess}
+              busy={shouldBusySaveButton}
+            >
+              {t('Save')}
+            </Button>
+            <Button
+              data-test-id="filter-bar-cancel"
+              onClick={() => {
+                onCancel?.();
+                setActiveGlobalFilters(filters.globalFilter ?? []);
+                onDashboardFilterChange(filters);
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+          </ButtonBar>
+        )}
       <ToggleOnDemand />
     </Wrapper>
   );

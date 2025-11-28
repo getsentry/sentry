@@ -43,6 +43,13 @@ class ExtrapolationMode(Enum):
     def as_text_choices(cls):
         return tuple((mode.name.lower(), mode.value) for mode in cls)
 
+    @classmethod
+    def from_str(cls, name: str):
+        for mode in cls:
+            if mode.name.lower() == name:
+                return mode
+        return None
+
 
 @region_silo_model
 class SnubaQuery(Model):
