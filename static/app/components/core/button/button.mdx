@@ -37,15 +37,12 @@ import ButtonDocumentation from '!!type-loader!@sentry/scraps/button';
 
 export const documentation = {
   exports: {
-    module: ButtonDocumentation.exports.module,
-    exports: {
-      // Button has some exports that we don't want to document, strip them out until they are removed
-      ...Object.fromEntries(
-        Object.entries(ButtonDocumentation.exports.exports).filter(
-          ([key]) => key !== 'StyledButton' && key !== 'ButtonBar'
-        )
-      ),
-    },
+    ...ButtonDocumentation.exports,
+    exports: Object.fromEntries(
+      Object.entries(ButtonDocumentation.exports.exports)
+        .filter(([key]) => key !== 'StyledButton' && key !== 'ButtonBar')
+        .map(([key, value]) => [key, value.name])
+    ),
   },
   props: {
     ...ButtonDocumentation.props,
