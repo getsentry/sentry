@@ -69,10 +69,7 @@ export const getRepresentativeTraceEvent = (
     if (isRootEvent(event)) {
       rootEvent = event;
 
-      // We prefer certain root events over conventional root events.
-      // These make better titles in the waterfall view and make linked
-      // trace navigations work.
-      if ('op' in event && event.op && CANDIDATE_TRACE_TITLE_OPS.includes(event.op)) {
+      if (hasPreferredOp(event)) {
         preferredRootEvent = event;
         break;
       }
@@ -83,13 +80,7 @@ export const getRepresentativeTraceEvent = (
       // with an op that we care about, we can use it for the title. We keep looking for
       // a root.
       !candidateEvent &&
-      CANDIDATE_TRACE_TITLE_OPS.includes(
-        'transaction.op' in event
-          ? event['transaction.op']
-          : 'op' in event
-            ? event.op
-            : ''
-      )
+      hasPreferredOp(event)
     ) {
       candidateEvent = event;
       continue;
@@ -117,3 +108,18 @@ export const isValidEventUUID = (id: string): boolean => {
     /^[0-9a-f]{8}[0-9a-f]{4}[1-5][0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 };
+
+/**
+ * Prefer "special" root events over generic root events when generating a title
+ * for the waterfall view. Picking these improves contextual navigation for linked
+ * traces, resulting in more meaningful waterfall titles.
+ */
+function hasPreferredOp(event: TraceTree.TraceEvent): boolean {
+  const op =
+    'op' in event
+      ? event.op
+      : 'transaction.op' in event
+        ? event['transaction.op']
+        : undefined;
+  return !!op && CANDIDATE_TRACE_TITLE_OPS.includes(op);
+}
