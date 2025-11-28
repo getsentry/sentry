@@ -9,7 +9,11 @@ import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
 import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
-import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {
+  MigratedAlertWarning,
+  TransactionsDatasetWarning,
+} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
@@ -26,6 +30,11 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
   const eventTypes = snubaQuery?.eventTypes ?? [];
   const interval = snubaQuery?.timeWindow;
   const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
+  const extrapolationMode = snubaQuery?.extrapolationMode;
+  const showExtrapolationModeWarning = useIsMigratedExtrapolation({
+    dataset: detectorDataset,
+    extrapolationMode,
+  });
 
   const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
 
@@ -37,6 +46,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
           {detectorDataset === DetectorDataset.TRANSACTIONS && (
             <TransactionsDatasetWarning />
           )}
+          {showExtrapolationModeWarning && <MigratedAlertWarning detector={detector} />}
           <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
           {snubaQuery && (
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
