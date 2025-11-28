@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
@@ -28,6 +28,9 @@ from sentry.search.eap.normalizer import unquote_literal
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.validator import literal_validator, number_validator
 
+if TYPE_CHECKING:
+    from sentry.search.eap.resolver import SearchResolver
+
 
 def count_processor(count_value: int | None) -> int:
     if count_value is None:
@@ -41,7 +44,9 @@ SPANS_ALWAYS_PRESENT_ATTRIBUTES = [
 ]
 
 
-def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_op(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     op_value = cast(str, args[0])
 
     filter = TraceItemFilter(
@@ -57,7 +62,9 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
     return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
 
 
-def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_key_eq_value_filter(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
     operator = cast(str, args[2])
@@ -103,7 +110,9 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (aggregate_key, trace_filter)
 
 
-def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_starts(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
     filter = TraceItemFilter(
         exists_filter=ExistsFilter(
@@ -114,7 +123,9 @@ def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
-def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_scores(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
@@ -122,7 +133,9 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
     return (ratio_attribute, filter)
 
 
-def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_http_response_count(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     code = cast(Literal[1, 2, 3, 4, 5], args[0])
     codes = constants.RESPONSE_CODE_MAP[code]
 
@@ -148,7 +161,9 @@ def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (status_code_attribute, filter)
 
 
-def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_bounded_sample(
+    _: "SearchResolver", args: ResolvedArguments
+) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
     lower_bound = cast(float, args[1])
     upper_bound = cast(float | None, args[2])

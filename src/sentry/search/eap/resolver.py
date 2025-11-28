@@ -1068,6 +1068,7 @@ class SearchResolver:
             )
 
         resolved_function = function_definition.resolve(
+            resolver=self,
             alias=alias,
             search_type=search_type,
             resolved_arguments=resolved_arguments,

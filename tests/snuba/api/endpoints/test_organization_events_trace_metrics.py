@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from rest_framework.exceptions import ErrorDetail
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -412,6 +411,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         ]
 
     def test_aggregation_multiple_embedded_different_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 3, "counter"),
+            self.create_trace_metric("foo", 2, "counter"),
+            self.create_trace_metric("bar", 1, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
         response = self.do_request(
             {
                 "field": [
@@ -422,9 +428,10 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "project": self.project.id,
             }
         )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": ErrorDetail(
-                "Cannot aggregate multiple metrics in 1 query.", code="parse_error"
-            )
-        }
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "count(value,foo,counter,-)": 2,
+                "count(value,bar,counter,-)": 1,
+            },
+        ]
