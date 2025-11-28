@@ -3,7 +3,6 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
-  isEAPTransaction,
   isRootEvent,
   isTraceNode,
   isTraceSplitResult,
@@ -58,7 +57,6 @@ export const getRepresentativeTraceEvent = (
   }
 
   let preferredRootEvent: TraceTree.TraceEvent | null = null;
-  let eapRootEvent: TraceTree.TraceEvent | null = null;
   let rootEvent: TraceTree.TraceEvent | null = null;
   let candidateEvent: TraceTree.TraceEvent | null = null;
   let firstEvent: TraceTree.TraceEvent | null = null;
@@ -71,24 +69,12 @@ export const getRepresentativeTraceEvent = (
     if (isRootEvent(event)) {
       rootEvent = event;
 
-      if (!isEAP) {
-        // For non-EAP traces, we return the first root event.
+      // We prefer certain root events over conventional root events.
+      // These make better titles in the waterfall view and make linked
+      // trace navigations work.
+      if ('op' in event && event.op && CANDIDATE_TRACE_TITLE_OPS.includes(event.op)) {
+        preferredRootEvent = event;
         break;
-      }
-
-      if (isEAPTransaction(event)) {
-        // We prefer certain root events over conventional root events.
-        // These make better titles in the waterfall view and make linked
-        // trace navigations work.
-        if (event.op && CANDIDATE_TRACE_TITLE_OPS.includes(event.op)) {
-          preferredRootEvent = event;
-          break;
-        }
-
-        // Otherwise, we still prefer the first EAP root event over the conventional root event
-        if (!eapRootEvent) {
-          eapRootEvent = event;
-        }
       }
       // Otherwise we keep looking for a root eap transaction. If we don't find one, we use other roots, like standalone spans.
       continue;
@@ -115,8 +101,7 @@ export const getRepresentativeTraceEvent = (
   }
 
   return {
-    event:
-      preferredRootEvent ?? eapRootEvent ?? rootEvent ?? candidateEvent ?? firstEvent,
+    event: preferredRootEvent ?? rootEvent ?? candidateEvent ?? firstEvent,
     type: 'span',
   };
 };
