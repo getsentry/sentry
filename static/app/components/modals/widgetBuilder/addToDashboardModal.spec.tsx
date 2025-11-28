@@ -687,4 +687,47 @@ describe('add to dashboard modal', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it('does not show prebuilt dashboards in the list of options', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...testDashboardListItem, widgetDisplay: [DisplayType.AREA]},
+        {
+          ...testDashboardListItem,
+          title: 'Other Dashboard',
+          id: '2',
+          widgetDisplay: [DisplayType.AREA],
+        },
+        {
+          ...testDashboardListItem,
+          title: 'Prebuilt Dashboard',
+          id: '3',
+          widgetDisplay: [DisplayType.AREA],
+          prebuiltId: 1,
+        },
+      ],
+    });
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.openMenu(screen.getByText('Select Dashboard'));
+    expect(screen.queryByText('Prebuilt Dashboard')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Other Dashboard')).toBeInTheDocument();
+  });
 });
