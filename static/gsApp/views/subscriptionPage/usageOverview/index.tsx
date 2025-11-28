@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
@@ -13,13 +12,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import {
-  IconChevron,
-  IconDownload,
-  IconGraph,
-  IconLightning,
-  IconLock,
-} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +33,6 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {
   AddOnCategory,
   OnDemandBudgetMode,
@@ -69,6 +61,7 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
+import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/actions';
 import {EMPTY_STAT_TOTAL} from 'getsentry/views/subscriptionPage/usageTotals';
 
 interface UsageOverviewProps {
@@ -798,7 +791,6 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
 function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
   const hasBillingPerms = organization.access.includes('org:billing');
   const {isCollapsed: navIsCollapsed, layout} = useNavContext();
-  const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   const startDate = moment(subscription.onDemandPeriodStart);
   const endDate = moment(subscription.onDemandPeriodEnd);
   const startsAndEndsSameYear = startDate.year() === endDate.year();
@@ -823,7 +815,6 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         align={{xs: 'start', sm: 'center'}}
         padding="lg xl"
         gap="xl"
-        direction={{xs: 'column', sm: 'row'}}
       >
         <Flex direction="column" gap="sm">
           <Heading as="h3" size="lg">
@@ -833,34 +824,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
             {`${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`}
           </Text>
         </Flex>
-        {hasBillingPerms && (
-          <Flex gap="lg" direction={{xs: 'column', sm: 'row'}}>
-            <LinkButton
-              icon={<IconGraph />}
-              aria-label={t('View usage history')}
-              priority="link"
-              to="/settings/billing/usage/"
-            >
-              {t('View usage history')}
-            </LinkButton>
-            <Button
-              icon={<IconDownload />}
-              aria-label={t('Download as CSV')}
-              disabled={isPending || isError}
-              onClick={() => {
-                trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
-                  organization,
-                  reportType: 'summary',
-                });
-                if (currentHistory) {
-                  window.open(currentHistory.links.csv, '_blank');
-                }
-              }}
-            >
-              {t('Download as CSV')}
-            </Button>
-          </Flex>
-        )}
+        {hasBillingPerms && <UsageOverviewActions organization={organization} />}
       </Flex>
       <UsageOverviewTable
         subscription={subscription}
