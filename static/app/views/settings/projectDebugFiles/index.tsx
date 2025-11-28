@@ -48,8 +48,14 @@ function makeDebugFilesQueryKey({
   return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
 }
 
-function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/builtin-symbol-sources/`];
+function makeSymbolSourcesQueryKey({
+  orgSlug,
+  platform,
+}: {
+  orgSlug: string;
+  platform?: string;
+}): ApiQueryKey {
+  return [`/organizations/${orgSlug}/builtin-symbol-sources/`, {query: {platform}}];
 }
 
 export default function ProjectDebugSymbols() {
@@ -89,7 +95,10 @@ export default function ProjectDebugSymbols() {
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
   } = useApiQuery<BuiltinSymbolSource[] | null>(
-    makeSymbolSourcesQueryKey({orgSlug: organization.slug}),
+    makeSymbolSourcesQueryKey({
+      orgSlug: organization.slug,
+      platform: project.platform,
+    }),
     {
       staleTime: 0,
       enabled: hasSymbolSourcesFeatureFlag,
@@ -135,6 +144,7 @@ export default function ProjectDebugSymbols() {
       queryClient.invalidateQueries({
         queryKey: makeSymbolSourcesQueryKey({
           orgSlug: organization.slug,
+          platform: project.platform,
         }),
       });
     },
