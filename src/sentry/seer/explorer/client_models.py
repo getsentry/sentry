@@ -5,9 +5,11 @@ Pydantic models for Seer Explorer client.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class ToolCall(BaseModel):
@@ -43,6 +45,20 @@ class MemoryBlock(BaseModel):
         extra = "allow"
 
 
+class ArtifactInstance(BaseModel):
+    """A single structured artifact generated from an Explorer run."""
+
+    key: str
+    json_schema: dict[str, Any]
+    data: dict[str, Any] | None = None
+    reason: str | None = None
+    generated_at_block_index: int
+    order: int
+
+    class Config:
+        extra = "allow"
+
+
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
 
@@ -50,12 +66,26 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
-    raw_artifact: dict[str, Any] | None = None
-    artifact: BaseModel | None = None
-    artifact_reason: str | None = None
+    artifacts: dict[str, ArtifactInstance] = {}
 
     class Config:
         extra = "allow"
+
+    def get_artifact(self, key: str, schema: type[T]) -> T | None:
+        """
+        Get a typed artifact by key.
+
+        Args:
+            key: The artifact key
+            schema: The Pydantic model class to parse the artifact data into
+
+        Returns:
+            The parsed artifact as a typed Pydantic model, or None if not found or not yet generated
+        """
+        artifact = self.artifacts.get(key)
+        if artifact is None or artifact.data is None:
+            return None
+        return schema.parse_obj(artifact.data)
 
 
 class CustomToolDefinition(BaseModel):

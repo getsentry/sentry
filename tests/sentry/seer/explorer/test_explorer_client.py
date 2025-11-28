@@ -34,18 +34,6 @@ class TestSeerExplorerClient(TestCase):
         client = SeerExplorerClient(self.organization, self.user)
         assert client.organization == self.organization
         assert client.user == self.user
-        assert client.artifact_schema is None
-
-    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
-    def test_client_init_with_artifact_schema(self, mock_access):
-        """Test that client stores artifact schema"""
-        mock_access.return_value = (True, None)
-
-        class TestSchema(BaseModel):
-            count: int
-
-        client = SeerExplorerClient(self.organization, self.user, artifact_schema=TestSchema)
-        assert client.artifact_schema == TestSchema
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.requests.post")
@@ -293,7 +281,7 @@ class TestSeerExplorerClient(TestCase):
 
 
 class TestSeerExplorerClientArtifacts(TestCase):
-    """Test artifact schema passing and reconstruction"""
+    """Test artifact schema passing and retrieval"""
 
     def setUp(self):
         super().setUp()
@@ -304,7 +292,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
     @patch("sentry.seer.explorer.client.requests.post")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
-        """Test that artifact schema is serialized and sent to API"""
+        """Test that artifact key and schema are serialized and sent to API"""
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {"user_id": self.user.id}
         mock_response = MagicMock()
@@ -315,70 +303,211 @@ class TestSeerExplorerClientArtifacts(TestCase):
             issue_count: int
             severity: str
 
-        client = SeerExplorerClient(self.organization, self.user, artifact_schema=IssueAnalysis)
-        run_id = client.start_run("Analyze errors")
+        client = SeerExplorerClient(self.organization, self.user)
+        run_id = client.start_run(
+            "Analyze errors", artifact_key="analysis", artifact_schema=IssueAnalysis
+        )
 
         assert run_id == 123
 
-        # Verify artifact_schema was included in payload
+        # Verify artifact_key and artifact_schema were included in payload
         body = orjson.loads(mock_post.call_args[1]["data"])
+        assert body["artifact_key"] == "analysis"
         assert "artifact_schema" in body
         assert body["artifact_schema"]["type"] == "object"
         assert "issue_count" in body["artifact_schema"]["properties"]
         assert "severity" in body["artifact_schema"]["properties"]
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    def test_start_run_artifact_schema_requires_key(self, mock_post, mock_access):
+        """Test that artifact_schema without artifact_key raises ValueError"""
+        mock_access.return_value = (True, None)
+
+        class IssueAnalysis(BaseModel):
+            issue_count: int
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with pytest.raises(ValueError, match="artifact_key is required"):
+            client.start_run("Analyze", artifact_schema=IssueAnalysis)
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_continue_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
+        """Test continuing a run with a new artifact key and schema"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 123}
+        mock_post.return_value = mock_response
+
+        class Solution(BaseModel):
+            description: str
+            steps: list[str]
+
+        client = SeerExplorerClient(self.organization, self.user)
+        run_id = client.continue_run(
+            123, "Propose a fix", artifact_key="solution", artifact_schema=Solution
+        )
+
+        assert run_id == 123
+
+        body = orjson.loads(mock_post.call_args[1]["data"])
+        assert body["artifact_key"] == "solution"
+        assert "artifact_schema" in body
+        assert body["artifact_schema"]["type"] == "object"
+        assert "description" in body["artifact_schema"]["properties"]
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    def test_continue_run_artifact_schema_requires_key(self, mock_post, mock_access):
+        """Test that artifact_schema without artifact_key raises ValueError"""
+        mock_access.return_value = (True, None)
+
+        class Solution(BaseModel):
+            description: str
+
+        client = SeerExplorerClient(self.organization, self.user)
+        with pytest.raises(ValueError, match="artifact_key is required"):
+            client.continue_run(123, "Fix it", artifact_schema=Solution)
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    def test_get_run_reconstructs_artifact(self, mock_fetch, mock_access):
-        """Test that artifact is automatically reconstructed from dict"""
+    def test_get_run_with_artifacts(self, mock_fetch, mock_access):
+        """Test that artifacts dict is returned and can be retrieved typed"""
+        from sentry.seer.explorer.client_models import ArtifactInstance
+
         mock_access.return_value = (True, None)
 
         class BugReport(BaseModel):
             bug_count: int
             severity: str
 
-        # Mock API returns dict artifact
+        # Mock API returns artifacts dict
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            raw_artifact={"bug_count": 5, "severity": "high"},  # Raw dict from API
-            artifact_reason="Successfully generated",
+            artifacts={
+                "root_cause": ArtifactInstance(
+                    key="root_cause",
+                    json_schema={"type": "object"},
+                    data={"bug_count": 5, "severity": "high"},
+                    reason="Successfully generated",
+                    generated_at_block_index=3,
+                    order=0,
+                )
+            },
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user, artifact_schema=BugReport)
+        client = SeerExplorerClient(self.organization, self.user)
         result = client.get_run(123)
 
-        # Verify artifact was reconstructed as Pydantic model
-        assert isinstance(result.artifact, BugReport)
-        assert result.artifact.bug_count == 5
-        assert result.artifact.severity == "high"
-        assert result.artifact_reason == "Successfully generated"
+        # Verify artifacts dict is returned
+        assert "root_cause" in result.artifacts
+        assert result.artifacts["root_cause"].data == {"bug_count": 5, "severity": "high"}
+
+        # Verify typed retrieval via get_artifact helper
+        artifact = result.get_artifact("root_cause", BugReport)
+        assert isinstance(artifact, BugReport)
+        assert artifact.bug_count == 5
+        assert artifact.severity == "high"
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    def test_get_run_with_none_artifact(self, mock_fetch, mock_access):
-        """Test that None artifact is handled gracefully"""
+    def test_get_artifact_returns_none_when_missing(self, mock_fetch, mock_access):
+        """Test that get_artifact returns None for missing or pending artifacts"""
+        from sentry.seer.explorer.client_models import ArtifactInstance
+
         mock_access.return_value = (True, None)
 
         class MySchema(BaseModel):
             field: str
 
+        # Mock API returns artifacts with one pending (data=None)
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="processing",
+            updated_at="2024-01-01T00:00:00Z",
+            artifacts={
+                "pending": ArtifactInstance(
+                    key="pending",
+                    json_schema={"type": "object"},
+                    data=None,  # Not yet generated
+                    reason=None,
+                    generated_at_block_index=-1,
+                    order=0,
+                )
+            },
+        )
+        mock_fetch.return_value = mock_state
+
+        client = SeerExplorerClient(self.organization, self.user)
+        result = client.get_run(123)
+
+        # Missing key returns None
+        assert result.get_artifact("nonexistent", MySchema) is None
+        # Pending artifact (data=None) returns None
+        assert result.get_artifact("pending", MySchema) is None
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.fetch_run_status")
+    def test_get_run_with_multiple_artifacts(self, mock_fetch, mock_access):
+        """Test retrieving multiple artifacts from a multi-step run"""
+        from sentry.seer.explorer.client_models import ArtifactInstance
+
+        mock_access.return_value = (True, None)
+
+        class RootCause(BaseModel):
+            cause: str
+            confidence: float
+
+        class Solution(BaseModel):
+            description: str
+            steps: list[str]
+
+        # Mock API returns multiple artifacts
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            raw_artifact=None,
-            artifact_reason="Generation failed",
+            artifacts={
+                "root_cause": ArtifactInstance(
+                    key="root_cause",
+                    json_schema={"type": "object"},
+                    data={"cause": "Memory leak", "confidence": 0.95},
+                    reason="Found the issue",
+                    generated_at_block_index=5,
+                    order=0,
+                ),
+                "solution": ArtifactInstance(
+                    key="solution",
+                    json_schema={"type": "object"},
+                    data={"description": "Fix the leak", "steps": ["Step 1", "Step 2"]},
+                    reason="Generated fix",
+                    generated_at_block_index=10,
+                    order=1,
+                ),
+            },
         )
         mock_fetch.return_value = mock_state
 
-        client = SeerExplorerClient(self.organization, self.user, artifact_schema=MySchema)
+        client = SeerExplorerClient(self.organization, self.user)
         result = client.get_run(123)
 
-        # Verify None artifact is preserved
-        assert result.artifact is None
-        assert result.artifact_reason == "Generation failed"
+        # Retrieve both artifacts typed
+        root_cause = result.get_artifact("root_cause", RootCause)
+        solution = result.get_artifact("solution", Solution)
+
+        assert root_cause is not None
+        assert root_cause.cause == "Memory leak"
+        assert root_cause.confidence == 0.95
+
+        assert solution is not None
+        assert solution.description == "Fix the leak"
+        assert solution.steps == ["Step 1", "Step 2"]
