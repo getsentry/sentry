@@ -8,6 +8,16 @@ export function useIsMigratedExtrapolation({
   dataset: DetectorDataset;
   extrapolationMode: ExtrapolationMode | undefined;
 }) {
+  return getIsMigratedExtrapolation({dataset, extrapolationMode});
+}
+
+export function getIsMigratedExtrapolation({
+  dataset,
+  extrapolationMode,
+}: {
+  dataset: DetectorDataset;
+  extrapolationMode: ExtrapolationMode | undefined;
+}) {
   return !!(
     dataset === DetectorDataset.SPANS &&
     extrapolationMode &&
