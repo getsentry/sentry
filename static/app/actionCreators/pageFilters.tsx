@@ -29,7 +29,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {DAY} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
@@ -336,8 +335,10 @@ export function initializeUrlState({
     }
 
     if (start && end) {
-      const difference = new Date(end).getTime() - new Date(start).getTime();
-      if (difference > maxPickableDays * DAY) {
+      const periodStart = new Date(start);
+      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      const maxStart = new Date(maxPeriod.start);
+      if (periodStart.getTime() < maxStart.getTime()) {
         shouldUseMaxPickableDays = true;
         pageFilters.datetime = {
           period: `${maxPickableDays}d`,
