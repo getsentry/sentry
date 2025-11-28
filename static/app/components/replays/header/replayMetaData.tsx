@@ -114,6 +114,7 @@ const KeyMetrics = styled('dl')`
   grid-template-rows: max-content 1fr;
   grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
+  height: 42px;
   gap: 0 ${space(3)};
   align-items: center;
   color: ${p => p.theme.subText};
