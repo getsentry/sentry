@@ -18,6 +18,7 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useApi from 'sentry/utils/useApi';
@@ -430,6 +431,7 @@ function Dashboard({
             onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
             isEmbedded={isEmbedded}
             isPreview={isPreview}
+            isPrebuiltDashboard={defined(dashboard.prebuiltId)}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
             dashboardPermissions={dashboard.permissions}
             dashboardCreator={dashboard.createdBy}
