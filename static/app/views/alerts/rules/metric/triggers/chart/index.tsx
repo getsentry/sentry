@@ -121,6 +121,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
 const noop: any = () => {};
 
 type State = {
+  adjustedExtrapolationMode: ExtrapolationMode | undefined;
   extrapolationSampleCount: number | null;
   sampleRate: number;
   statsPeriod: TimePeriod;
@@ -161,12 +162,22 @@ class TriggersChart extends PureComponent<Props, State> {
     totalCount: null,
     sampleRate: 1,
     extrapolationSampleCount: null,
+    adjustedExtrapolationMode: undefined,
   };
 
   componentDidMount() {
-    const {aggregate, showTotalCount} = this.props;
+    const {aggregate, showTotalCount, extrapolationMode, dataset, traceItemType} =
+      this.props;
     if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
+    }
+
+    // we want to show the regular extrapolated chart as we are changing the extrapolation to UNKNOWN
+    // once a migrated alert is saved
+    if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+      this.setState({adjustedExtrapolationMode: ExtrapolationMode.UNKNOWN});
+    } else {
+      this.setState({adjustedExtrapolationMode: extrapolationMode});
     }
   }
 
@@ -432,8 +443,9 @@ class TriggersChart extends PureComponent<Props, State> {
       isQueryValid,
       isOnDemandMetricAlert,
       traceItemType,
-      extrapolationMode,
     } = this.props;
+
+    const {adjustedExtrapolationMode} = this.state;
 
     const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
@@ -469,11 +481,11 @@ class TriggersChart extends PureComponent<Props, State> {
         partial: false,
         limit: 15,
         children: noop,
-        extrapolationMode: extrapolationMode
-          ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+        extrapolationMode: adjustedExtrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
           : undefined,
         sampling:
-          extrapolationMode === ExtrapolationMode.NONE
+          adjustedExtrapolationMode === ExtrapolationMode.NONE
             ? SAMPLING_MODE.HIGH_ACCURACY
             : SAMPLING_MODE.NORMAL,
       };
@@ -604,20 +616,14 @@ class TriggersChart extends PureComponent<Props, State> {
       partial: false,
       sampling:
         dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-        traceItemType === TraceItemDataset.SPANS
-          ? getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
-            ? SAMPLING_MODE.NORMAL
-            : extrapolationMode === ExtrapolationMode.NONE
-              ? SAMPLING_MODE.HIGH_ACCURACY
-              : SAMPLING_MODE.NORMAL
+        this.props.traceItemType === TraceItemDataset.SPANS
+          ? adjustedExtrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL
           : undefined,
 
-      // we want to show the regular extrapolated chart as we are changing the extrapolation to this
-      // once a migrated alert is saved
-      extrapolationMode: extrapolationMode
-        ? getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
-          ? EAP_EXTRAPOLATION_MODE_MAP[ExtrapolationMode.UNKNOWN]
-          : EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+      extrapolationMode: adjustedExtrapolationMode
+        ? EAP_EXTRAPOLATION_MODE_MAP[adjustedExtrapolationMode]
         : undefined,
     };
 
