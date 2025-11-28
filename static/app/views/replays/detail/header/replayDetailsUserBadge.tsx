@@ -13,6 +13,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 
@@ -64,13 +65,16 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const showRefreshButton = polledCountSegments > prevSegments;
 
+  const location = useLocation();
+
   const badge = replayRecord ? (
-    <Flex gap="md">
+    <ColumnWrapper gap="md">
       <StyledReplaySessionColumn
         replay={replayRecord}
         rowIndex={0}
         columnIndex={0}
         showDropdownFilters={false}
+        query={location.query}
       />
       <Button
         title={t('Replay is outdated. Refresh for latest activity.')}
@@ -81,7 +85,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       >
         <IconRefresh />
       </Button>
-    </Flex>
+    </ColumnWrapper>
   ) : null;
 
   return (
@@ -100,6 +104,11 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     </ReplayLoadingState>
   );
 }
+
+// column components expect to be stored in a relative container
+const ColumnWrapper = styled(Flex)`
+  position: relative;
+`;
 
 const StyledReplaySessionColumn = styled(ReplaySessionColumn.Component)`
   flex: 0;
