@@ -121,7 +121,6 @@ const NewUIHeader = styled('div')`
   gap: ${space(1)};
   flex-flow: row wrap;
   height: ${NAV_HEIGHT};
-  z-index: 1;
 `;
 
 const StyledFlex = styled(Flex)`
