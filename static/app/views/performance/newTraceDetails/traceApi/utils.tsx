@@ -57,7 +57,7 @@ export const getRepresentativeTraceEvent = (
   }
 
   let preferredRootEvent: TraceTree.TraceEvent | null = null;
-  let rootEvent: TraceTree.TraceEvent | null = null;
+  let firstRootEvent: TraceTree.TraceEvent | null = null;
   let candidateEvent: TraceTree.TraceEvent | null = null;
   let firstEvent: TraceTree.TraceEvent | null = null;
 
@@ -67,7 +67,9 @@ export const getRepresentativeTraceEvent = (
     : [...traceNode.value.transactions, ...traceNode.value.orphan_errors];
   for (const event of events) {
     if (isRootEvent(event)) {
-      rootEvent = event;
+      if (!firstRootEvent) {
+        firstRootEvent = event;
+      }
 
       if (hasPreferredOp(event)) {
         preferredRootEvent = event;
@@ -92,7 +94,7 @@ export const getRepresentativeTraceEvent = (
   }
 
   return {
-    event: preferredRootEvent ?? rootEvent ?? candidateEvent ?? firstEvent,
+    event: preferredRootEvent ?? firstRootEvent ?? candidateEvent ?? firstEvent,
     type: 'span',
   };
 };
