@@ -58,7 +58,7 @@ describe('UsageOverview', () => {
     expect(
       screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View usage history'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View all usage'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download as CSV'})).toBeInTheDocument();
     expect(screen.getAllByRole('row', {name: /^View .+ usage$/i}).length).toBeGreaterThan(
       0
@@ -85,7 +85,7 @@ describe('UsageOverview', () => {
       screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'View usage history'})
+      screen.queryByRole('button', {name: 'View all usage'})
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Download as CSV'})

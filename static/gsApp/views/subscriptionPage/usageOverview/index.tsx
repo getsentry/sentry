@@ -815,7 +815,6 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         align={{xs: 'start', sm: 'center'}}
         padding="lg xl"
         gap="xl"
-        direction={{xs: 'column', sm: 'row'}}
       >
         <Flex direction="column" gap="sm">
           <Heading as="h3" size="lg">
