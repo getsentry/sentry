@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
+from django.core.cache import cache
 
 from sentry import options
 from sentry.exceptions import HashDiscarded
@@ -19,6 +20,10 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest.caching import (
+    get_grouphash_existence_cache_key,
+    get_grouphash_object_cache_key,
+)
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
@@ -28,6 +33,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -204,6 +210,104 @@ def find_grouphash_with_group(
     return None
 
 
+def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
+    """
+    Check whether a given hash value has a corresponding `GroupHash` record in the database.
+
+    If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
+    `grouping.ingest_grouphash_existence_cache_expiry` option.
+    """
+    with metrics.timer(
+        "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
+    ) as metrics_tags:
+        # If caching is used, these will get overridden below
+        metrics_tags.update({"cache_get": False, "cache_set": False})
+
+        if use_caching:
+            cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
+            cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+
+            grouphash_exists = cache.get(cache_key)
+            got_cache_hit = grouphash_exists is not None
+
+            metrics_tags.update(
+                {
+                    "cache_get": True,
+                    "cache_result": "hit" if got_cache_hit else "miss",
+                    "expiry_seconds": cache_expiry_seconds,
+                    # If there's a cache miss this will be overridden below
+                    "grouphash_exists": grouphash_exists,
+                }
+            )
+
+            if got_cache_hit:
+                return grouphash_exists
+
+        grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
+        metrics_tags["grouphash_exists"] = grouphash_exists
+
+        if use_caching:
+            cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
+            metrics_tags["cache_set"] = True
+
+        return grouphash_exists
+
+
+def _get_or_create_single_grouphash(
+    hash_value: str, project: Project, use_caching: bool, is_reprocessed_event: bool
+) -> tuple[GroupHash, bool]:
+    """
+    Create or retrieve a `GroupHash` record for the given hash.
+
+    If `use_caching` is true, and the resulting grouphash has an assigned group, cache the
+    `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
+    change when a group is assigned.) Cache retention is controlled by the
+    `grouping.ingest_grouphash_object_cache_expiry` option.
+    """
+    with metrics.timer(
+        "grouping.get_or_create_grouphashes.get_or_create_grouphash"
+    ) as metrics_tags:
+        # If caching is used, these will get overridden below
+        metrics_tags.update({"cache_get": False, "cache_set": False})
+
+        if use_caching:
+            cache_key = get_grouphash_object_cache_key(hash_value, project.id)
+            cache_expiry_seconds = options.get("grouping.ingest_grouphash_object_cache_expiry")
+
+            grouphash = cache.get(cache_key)
+            got_cache_hit = grouphash is not None
+
+            metrics_tags.update(
+                {
+                    "cache_get": True,
+                    "cache_result": "hit" if got_cache_hit else "miss",
+                    "expiry_seconds": cache_expiry_seconds,
+                    # If there's a cache miss this will be overridden below
+                    "created": False,
+                }
+            )
+
+            if got_cache_hit:
+                # If we're reprocessing we want to invalidate the cache entry rather than use it,
+                # because the group id will have changed
+                if is_reprocessed_event:
+                    cache.delete(cache_key)
+                else:
+                    return (grouphash, False)
+
+        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        metrics_tags["created"] = created
+
+        # We only want to cache grouphashes which already have a group assigned, because we know any
+        # without a group will only stay current in the cache for a few milliseconds (until they get
+        # their own group), so there's no point in bothering to cache them.
+        if use_caching and grouphash.group_id is not None:
+            cache.set(cache_key, grouphash, cache_expiry_seconds)
+            metrics_tags["cache_set"] = True
+
+        return (grouphash, created)
+
+
 def get_or_create_grouphashes(
     event: Event,
     project: Project,
@@ -212,21 +316,26 @@ def get_or_create_grouphashes(
     grouping_config_id: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
+    is_reprocessed = is_reprocessed_event(event.data)
+    # use_caching = options.get("grouping.use_ingest_grouphash_caching")
+    # use_caching = False
+    use_caching = True
     grouphashes: list[GroupHash] = []
 
     if is_secondary:
         # The only utility of secondary hashes is to link new primary hashes to an existing group
         # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
         # filter them out before creating grouphash records.
-        existing_hashes = set(
-            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
-                "hash", flat=True
-            )
-        )
-        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
+        hashes = [
+            hash_value
+            for hash_value in hashes
+            if _grouphash_exists_for_hash_value(hash_value, project, use_caching)
+        ]
 
     for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        grouphash, created = _get_or_create_single_grouphash(
+            hash_value, project, use_caching, is_reprocessed
+        )
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:

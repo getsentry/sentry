@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -14,6 +16,7 @@ from sentry.db.models import (
     region_silo_model,
 )
 from sentry.db.models.base import sane_repr
+from sentry.grouping.ingest.caching import get_grouphash_object_cache_key
 from sentry.types.grouphash_metadata import has_fingerprint_data
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
@@ -52,6 +55,23 @@ class GroupHash(Model):
             return self._metadata
         except AttributeError:
             return None
+
+    def delete(self, *args, **kwargs):
+        self._remove_from_grouphash_object_cache()
+        return super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self._remove_from_grouphash_object_cache()
+        return super().save(*args, **kwargs)
+
+    def update(self, *args: Any, **kwds: Any):
+        self._remove_from_grouphash_object_cache()
+        return super().update(*args, **kwds)
+
+    def _remove_from_grouphash_object_cache(self) -> None:
+        if options.get("grouping.use_ingest_grouphash_caching") and self.project:
+            cache_key = get_grouphash_object_cache_key(self.hash, self.project.id)
+            cache.delete(cache_key)
 
     __repr__ = sane_repr("group_id", "hash", "metadata")
     __str__ = __repr__

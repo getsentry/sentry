@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING, Any
 from sentry.exceptions import HashDiscarded
 from sentry.issues.grouptype import GroupCategory
 from sentry.killswitches import killswitch_matches_context
-from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.services.eventstore.models import Event
+
 
 logger = logging.getLogger("sentry.events.grouping")
 
