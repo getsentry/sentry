@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -17,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {NAV_BORDER_BOTTOM, NAV_HEIGHT} from 'sentry/views/nav/secondary/secondary';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
@@ -55,7 +57,21 @@ export default function ReplayDetails() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const content = (
+  const content = organization.features.includes('replay-details-new-ui') ? (
+    <Fragment>
+      <Flex direction="column">
+        <NewUIHeader>
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          <ReplayDetailsHeaderActions readerResult={readerResult} />
+        </NewUIHeader>
+        <StyledFlex justify="between" align="center">
+          <ReplayDetailsUserBadge readerResult={readerResult} />
+          <ReplayDetailsMetadata readerResult={readerResult} />
+        </StyledFlex>
+      </Flex>
+      <ReplayDetailsPage readerResult={readerResult} />
+    </Fragment>
+  ) : (
     <Fragment>
       <Header>
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
@@ -91,6 +107,24 @@ const Header = styled(Layout.Header)`
   padding-bottom: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
-    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
+    padding: ${space(2)} ${space(1)} ${space(0.5)} ${space(2)};
   }
+`;
+
+const NewUIHeader = styled('div')`
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
+  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-flow: row wrap;
+  height: ${NAV_HEIGHT};
+`;
+
+const StyledFlex = styled(Flex)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.lg};
+  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
 `;
