@@ -7,6 +7,9 @@ from typing import Any
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
@@ -19,6 +22,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
+from sentry_protos.snuba.v1.formula_pb2 import Literal
 from sentry_protos.snuba.v1.request_common_pb2 import (
     PageToken,
     RequestMeta,
@@ -26,7 +30,12 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemFilterWithType,
     TraceItemType,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    AttributeValue,
+    Function,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -37,16 +46,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import (
-    AnyResolved,
-    ColumnDefinitions,
-    ResolvedAggregate,
-    ResolvedAttribute,
-    ResolvedConditionalAggregate,
-    ResolvedEquation,
-    ResolvedFormula,
-    ResolvedLiteral,
-)
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters
@@ -97,7 +97,7 @@ class TableRequest:
     """Container for rpc requests"""
 
     rpc_request: TraceItemTableRequest
-    columns: list[AnyResolved]
+    columns: list[ResolvedColumn]
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
@@ -140,39 +140,48 @@ class RPCBase:
     @classmethod
     def categorize_column(
         cls,
-        column: AnyResolved,
+        column: ResolvedColumn,
     ) -> Column:
-        # Can't do bare literals, so they're actually formulas with +0
-        if isinstance(column, (ResolvedFormula, ResolvedEquation, ResolvedLiteral)):
-            return Column(formula=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedAggregate):
-            return Column(aggregation=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedConditionalAggregate):
-            return Column(
-                conditional_aggregation=column.proto_definition, label=column.public_alias
-            )
-        else:
-            return Column(key=column.proto_definition, label=column.public_alias)
+        proto_definition = column.proto_definition
+
+        if isinstance(proto_definition, AttributeKey):
+            return Column(key=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Column(aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Column(conditional_aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Column.BinaryFormula):
+            return Column(formula=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Literal):
+            return Column(literal=proto_definition, label=column.public_alias)
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
     def categorize_aggregate(
         cls,
-        column: AnyResolved,
+        column: ResolvedColumn,
     ) -> Expression:
-        if isinstance(column, (ResolvedFormula, ResolvedEquation)):
+        proto_definition = column.proto_definition
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Expression(aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Expression(conditional_aggregation=proto_definition, label=column.public_alias)
+
+        if isinstance(proto_definition, Column.BinaryFormula):
             # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
             return Expression(
-                formula=transform_binary_formula_to_expression(column.proto_definition),
+                formula=transform_binary_formula_to_expression(proto_definition),
                 label=column.public_alias,
             )
-        elif isinstance(column, ResolvedAggregate):
-            return Expression(aggregation=column.proto_definition, label=column.public_alias)
-        elif isinstance(column, ResolvedConditionalAggregate):
-            return Expression(
-                conditional_aggregation=column.proto_definition, label=column.public_alias
-            )
-        else:
-            raise Exception(f"Unknown column type {type(column)}")
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     @classmethod
     def get_cross_trace_queries(cls, query: TableQuery) -> list[TraceItemFilterWithType]:
@@ -251,7 +260,7 @@ class RPCBase:
             # incomplete traces.
             meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
 
-        all_columns: list[AnyResolved] = []
+        all_columns: list[ResolvedColumn] = []
         equations, equation_contexts = resolver.resolve_equations(
             query.equations if query.equations else []
         )
@@ -594,7 +603,7 @@ class RPCBase:
         extra_conditions: TraceItemFilter | None = None,
     ) -> tuple[
         TimeSeriesRequest,
-        list[AnyResolved],
+        list[ResolvedColumn],
         list[ResolvedAttribute],
     ]:
         selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)

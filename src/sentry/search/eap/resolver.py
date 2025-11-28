@@ -42,13 +42,13 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
-    AnyResolved,
     AttributeArgumentDefinition,
     ColumnDefinitions,
     ConditionalAggregateDefinition,
     FormulaDefinition,
     ResolvedAggregate,
     ResolvedAttribute,
+    ResolvedColumn,
     ResolvedConditionalAggregate,
     ResolvedEquation,
     ResolvedFormula,
@@ -1081,7 +1081,7 @@ class SearchResolver:
         return self._resolved_function_cache[alias]
 
     def resolve_equations(self, equations: list[str]) -> tuple[
-        list[AnyResolved],
+        list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
         formulas = []
@@ -1093,7 +1093,7 @@ class SearchResolver:
         return formulas, contexts
 
     def resolve_equation(self, equation: str) -> tuple[
-        AnyResolved,
+        ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
