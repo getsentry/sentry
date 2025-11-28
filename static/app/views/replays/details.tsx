@@ -125,6 +125,7 @@ const NewUIHeader = styled('div')`
 `;
 
 const StyledFlex = styled(Flex)`
-  padding: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.lg};
   border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
 `;
