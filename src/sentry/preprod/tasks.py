@@ -22,7 +22,10 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
-from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
+from sentry.preprod.size_analysis.tasks import (
+    compare_preprod_artifact_size_analysis,
+    produce_size_analysis_occurrences,
+)
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -519,6 +522,14 @@ def _assemble_preprod_artifact_size_analysis(
         event_id=None,
         # The id of the DSN.
         key_id=None,
+
+    # The 'static' issues, e.g. 'this build has optimizable images'
+    logger.info("produce_size_analysis_occurrences.apply_async")
+    produce_size_analysis_occurrences.apply_async(
+        kwargs={
+            "project_id": project.id,
+            "size_metrics_id": size_metrics.id,
+        }
     )
 
     # Trigger size analysis comparison if eligible
