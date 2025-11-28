@@ -48,6 +48,14 @@ class _ReleaseInfo(TypedDict):
     release: str | None
 
 
+class _ThreadInfo(TypedDict):
+    thread_id: str | None
+    thread_name: str | None
+    thread_state: str | None
+    thread_crashed: bool
+    thread_current: bool
+
+
 class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
@@ -60,6 +68,7 @@ class EventDatastore:
         self._sdk: list[_SdkInfo] | None = None
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
+        self._threads: list[_ThreadInfo] | None = None
 
     def get_values(self, match_type: str) -> list[dict[str, Any]]:
         """
@@ -154,3 +163,18 @@ class EventDatastore:
             {"release": self.event["release"].strip() if self.event.get("release") else None}
         ]
         return self._release
+
+    def _get_threads(self) -> list[_ThreadInfo]:
+        if self._threads is None:
+            self._threads = []
+            for thread in get_path(self.event, "threads", "values", filter=True) or ():
+                self._threads.append(
+                    {
+                        "thread_id": thread.get("id"),
+                        "thread_name": thread.get("name"),
+                        "thread_state": thread.get("state"),
+                        "thread_crashed": bool(thread.get("crashed")),
+                        "thread_current": bool(thread.get("current")),
+                    }
+                )
+        return self._threads
