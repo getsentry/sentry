@@ -3,6 +3,7 @@ from django.views.generic import View
 
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.models.organization import Organization
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreview
 
@@ -14,6 +15,7 @@ def get_context(request):
     return {"organization": org, "actor_email": request.user.email, "provider": provider}
 
 
+@internal_region_silo_view
 class DebugSsoLinkedEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         context = get_context(request)
@@ -25,6 +27,7 @@ class DebugSsoLinkedEmailView(View):
         ).render(request)
 
 
+@internal_region_silo_view
 class DebugSsoUnlinkedEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         context = get_context(request)
@@ -37,6 +40,7 @@ class DebugSsoUnlinkedEmailView(View):
         ).render(request)
 
 
+@internal_region_silo_view
 class DebugSsoUnlinkedNoPasswordEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         context = get_context(request)

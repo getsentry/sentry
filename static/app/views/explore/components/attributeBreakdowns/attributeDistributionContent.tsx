@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text/text';
 
 import {Alert} from 'sentry/components/core/alert';
-import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -66,13 +65,13 @@ export function AttributeDistribution() {
   const {
     data: attributeBreakdownsData,
     isLoading: isAttributeBreakdownsLoading,
-    isError: isAttributeBreakdownsError,
+    error: attributeBreakdownsError,
   } = useAttributeBreakdowns();
 
   const {
     data: cohortCountResponse,
     isLoading: isCohortCountLoading,
-    isError: isCohortCountError,
+    error: cohortCountError,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -141,9 +140,7 @@ export function AttributeDistribution() {
     setPage(0);
   }, [filteredAttributeDistribution]);
 
-  if (isAttributeBreakdownsError || isCohortCountError) {
-    return <LoadingError message={t('Failed to load attribute breakdowns')} />;
-  }
+  const error = attributeBreakdownsError ?? cohortCountError;
 
   return (
     <Panel>
@@ -162,6 +159,8 @@ export function AttributeDistribution() {
         </ControlsContainer>
         {isAttributeBreakdownsLoading || isCohortCountLoading ? (
           <AttributeBreakdownsComponent.LoadingCharts />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : filteredAttributeDistribution.length > 0 ? (
           <Fragment>
             <ChartsGrid>
@@ -206,7 +205,7 @@ export function AttributeDistribution() {
             </PaginationContainer>
           </Fragment>
         ) : (
-          <NoAttributesMessage>{t('No matching attributes found')}</NoAttributesMessage>
+          <AttributeBreakdownsComponent.EmptySearchState />
         )}
       </Flex>
     </Panel>
@@ -233,13 +232,6 @@ const ControlsContainer = styled('div')`
 
 const StyledBaseSearchBar = styled(BaseSearchBar)`
   flex: 1;
-`;
-
-const NoAttributesMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
 `;
 
 const ChartsGrid = styled('div')`

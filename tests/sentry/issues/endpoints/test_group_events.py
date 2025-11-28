@@ -482,6 +482,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
     def test_perf_issue(self) -> None:
         event_1 = self.create_performance_issue()
         event_2 = self.create_performance_issue()
+        assert event_1.group is not None
 
         self.login_as(user=self.user)
 
