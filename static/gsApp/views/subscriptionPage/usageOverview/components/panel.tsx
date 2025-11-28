@@ -25,7 +25,7 @@ import {
   ProductTrialCta,
   UpgradeCta,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/upgradeOrTrialCta';
-import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/type';
+import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 function PanelHeader({
   selectedProduct,
