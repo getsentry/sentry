@@ -82,9 +82,11 @@ function BuildButton({
           <Text size="sm" variant="accent" bold>
             {label}
           </Text>
-          <Text size="sm" variant="accent" bold>
-            {`#${buildId}`}
-          </Text>
+          {!buildNumber && (
+            <Text size="sm" variant="accent" bold>
+              {`#${buildId}`}
+            </Text>
+          )}
           {sha && (
             <Flex align="center" gap="xs">
               <IconCommit size="xs" />
