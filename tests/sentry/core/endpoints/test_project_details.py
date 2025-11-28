@@ -650,6 +650,7 @@ class ProjectUpdateTest(APITestCase):
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
+            "filters:common-errors": True,
         }
         with (
             self.feature(
@@ -794,6 +795,7 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
+        assert project.get_option("filters:common-errors", "1")
 
         self.project.update_option(
             "relay.cardinality-limiter.limits",
@@ -1084,6 +1086,17 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert self.project.get_option("filters:chunk-load-error") == "1"
         assert resp.data["options"]["filters:chunk-load-error"] is True
+
+    def test_common_errors(self) -> None:
+        options = {"filters:common-errors": False}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:common-errors") == "0"
+        assert resp.data["options"]["filters:common-errors"] is False
+
+        options = {"filters:common-errors": True}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:common-errors") == "1"
+        assert resp.data["options"]["filters:common-errors"] is True
 
     def test_relay_pii_config(self) -> None:
         value = '{"applications": {"freeform": []}}'

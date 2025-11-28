@@ -23,6 +23,7 @@ class FilterStatKeys:
     RELEASE_VERSION = "release-version"
     ERROR_MESSAGE = "error-message"
     BROWSER_EXTENSION = "browser-extensions"
+    COMMON_ERRORS = "common-errors"
     LEGACY_BROWSER = "legacy-browsers"
     LOCALHOST = "localhost"
     WEB_CRAWLER = "web-crawlers"
@@ -38,6 +39,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.RELEASE_VERSION: TSDBModel.project_total_received_release_version,
     FilterStatKeys.ERROR_MESSAGE: TSDBModel.project_total_received_error_message,
     FilterStatKeys.BROWSER_EXTENSION: TSDBModel.project_total_received_browser_extensions,
+    FilterStatKeys.COMMON_ERRORS: TSDBModel.project_total_received_common_errors,
     FilterStatKeys.LEGACY_BROWSER: TSDBModel.project_total_received_legacy_browsers,
     FilterStatKeys.LOCALHOST: TSDBModel.project_total_received_localhost,
     FilterStatKeys.WEB_CRAWLER: TSDBModel.project_total_received_web_crawlers,
@@ -73,6 +75,7 @@ def get_all_filter_specs():
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
+        _common_errors_filter,
         _healthcheck_filter,
     ]
 
@@ -170,7 +173,7 @@ def _filter_from_filter_id(filter_id):
 
 class _FilterSerializer(serializers.Serializer):
     active = serializers.BooleanField(
-        help_text="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
+        help_text="Toggle the browser-extensions, common-errors, localhost, filtered-transaction, or web-crawlers filter on or off.",
         required=False,
     )
 
@@ -289,6 +292,13 @@ _web_crawlers_filter = _FilterSpec(
     name="Filter out known web crawlers",
     description="Some crawlers may execute pages in incompatible ways which then cause errors that"
     " are unlikely to be seen by a normal user.",
+)
+
+_common_errors_filter = _FilterSpec(
+    id=FilterStatKeys.COMMON_ERRORS,
+    name="Filter out noisy errors",
+    description="Filters out errors that are typically not actionable, such as network errors, "
+    "aborted requests, and browser-specific quirks like ResizeObserver loop limit exceeded.",
 )
 
 

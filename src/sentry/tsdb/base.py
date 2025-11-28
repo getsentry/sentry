@@ -102,6 +102,8 @@ class TSDBModel(Enum):
     project_total_received_discarded = 610
     # the number of events filtered because they refer to a healthcheck endpoint
     project_total_healthcheck = 611
+    # the number of events filtered by common errors filter
+    project_total_received_common_errors = 612
 
     servicehook_fired = 700
 
