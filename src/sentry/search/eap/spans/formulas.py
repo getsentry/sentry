@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -44,6 +44,9 @@ from sentry.search.events.constants import (
 from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
 
+if TYPE_CHECKING:
+    from sentry.search.eap.resolver import SearchResolver
+
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
     """
@@ -66,7 +69,9 @@ def none_if_zero_processor(value: float) -> float | None:
     return value
 
 
-def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def division_if(
+    resolver: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     dividend = cast(AttributeKey, args[0])
@@ -75,7 +80,7 @@ def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     operator = cast(str, args[3])
     value = cast(str, args[4])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter(resolver, [key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -98,7 +103,9 @@ def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
 
-def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def division(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
 
@@ -119,7 +126,9 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
     )
 
 
-def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def avg_compare(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     attribute = cast(AttributeKey, args[0])
     comparison_attribute = cast(AttributeKey, args[1])
@@ -171,13 +180,15 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     return percentage_change
 
 
-def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def failure_rate_if(
+    resolver: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     key = cast(AttributeKey, args[0])
     operator = cast(str, args[1])
     value = cast(str, args[2])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter(resolver, [key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -223,7 +234,9 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
     )
 
 
-def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def failure_rate(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
@@ -292,14 +305,16 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
     return 0
 
 
-def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def opportunity_score(
+    resolver: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
 
     if ratio_attribute.name == "score.total":
-        return total_opportunity_score(args, settings)
+        return total_opportunity_score(resolver, args, settings)
 
     score_ratio = Column.BinaryFormula(
         default_value_double=0.0,
@@ -343,7 +358,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
 
 
 def total_opportunity_score(
-    _: ResolvedArguments, settings: ResolverSettings
+    resolver: "SearchResolver", _: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
@@ -353,7 +368,7 @@ def total_opportunity_score(
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        formula = opportunity_score([vital_score_key], settings)
+        formula = opportunity_score(resolver, [vital_score_key], settings)
         hasVitalCount = formula.right.literal.val_double > 0
         if hasVitalCount:
             opportunity_score_formulas.append((formula, vital))
@@ -375,7 +390,7 @@ def total_opportunity_score(
     if len(vital_score_columns) == 0:
         # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
         vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
-        return opportunity_score([vital_score_key], settings)
+        return opportunity_score(resolver, [vital_score_key], settings)
 
     if len(vital_score_columns) == 1:
         return vital_score_columns[0].formula
@@ -383,13 +398,15 @@ def total_opportunity_score(
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 
-def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def performance_score(
+    resolver: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
     if ratio_attribute.name == "score.total":
-        return total_performance_score(args, settings)
+        return total_performance_score(resolver, args, settings)
 
     return Column.BinaryFormula(
         default_value_double=0.0,
@@ -406,7 +423,7 @@ def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
 
 
 def total_performance_score(
-    _: ResolvedArguments, settings: ResolverSettings
+    resolver: "SearchResolver", _: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
@@ -417,7 +434,7 @@ def total_performance_score(
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        vital_performance_score = performance_score([vital_score_key], settings)
+        vital_performance_score = performance_score(resolver, [vital_score_key], settings)
         performance_score_formulas.append((vital_performance_score, vital))
 
     for formula, vital in performance_score_formulas:
@@ -470,7 +487,7 @@ def total_performance_score(
     if len(vital_score_columns) == 0:
         # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
         vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
-        return performance_score([vital_score_key], settings)
+        return performance_score(resolver, [vital_score_key], settings)
 
     if len(vital_score_columns) == 1:
         return vital_score_columns[0].formula
@@ -484,7 +501,9 @@ def total_performance_score(
     )
 
 
-def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def http_response_rate(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     code = cast(Literal[1, 2, 3, 4, 5], args[0])
@@ -529,7 +548,9 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
     )
 
 
-def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def trace_status_rate(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     status = cast(str, args[0])
@@ -562,7 +583,9 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
-def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def cache_miss_rate(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
@@ -603,7 +626,7 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
 
 
 def ttfd_contribution_rate(
-    _: ResolvedArguments, settings: ResolverSettings
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -628,7 +651,7 @@ def ttfd_contribution_rate(
 
 
 def ttid_contribution_rate(
-    _: ResolvedArguments, settings: ResolverSettings
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -653,7 +676,7 @@ def ttid_contribution_rate(
 
 
 def time_spent_percentage(
-    args: ResolvedArguments, settings: ResolverSettings
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     """Note this won't work for timeseries requests because we have to divide each bucket by it's own total time."""
     extrapolation_mode = settings["extrapolation_mode"]
@@ -694,7 +717,9 @@ def time_spent_percentage(
     )
 
 
-def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def tpm(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
@@ -726,7 +751,9 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
-def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def epm(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
@@ -751,7 +778,9 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
-def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def failure_count(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
@@ -784,7 +813,9 @@ def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     )
 
 
-def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def eps(
+    _resolver: "SearchResolver", _args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
@@ -809,7 +840,9 @@ def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
-def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def apdex(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     """
     Calculate Apdex score based on response time field and threshold.
 
@@ -935,7 +968,9 @@ def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryF
     )
 
 
-def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def user_misery(
+    _: "SearchResolver", args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     """
     Calculate User Misery score based on response time field and threshold.
 
@@ -1224,10 +1259,16 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=epm,
+        is_aggregate=True,
     ),
     "tpm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=tpm,
+        is_aggregate=True,
     ),
     "failure_count": FormulaDefinition(
         default_search_type="integer",
@@ -1236,7 +1277,10 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "eps": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=eps,
+        is_aggregate=True,
     ),
     "apdex": FormulaDefinition(
         default_search_type="number",
