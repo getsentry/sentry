@@ -1,5 +1,4 @@
 import logging
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
@@ -94,7 +93,7 @@ def _get_rules_of_enabled_biases(
     project: Project,
     base_sample_rate: float,
     enabled_biases: set[str],
-    combined_biases: OrderedDict[RuleType, Bias],
+    combined_biases: dict[RuleType, Bias],
 ) -> list[PolymorphicRule]:
     rules = []
 
