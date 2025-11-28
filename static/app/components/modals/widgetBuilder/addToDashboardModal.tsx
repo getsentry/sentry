@@ -261,6 +261,7 @@ function AddToDashboardModal({
           tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
+          .filter(dashboard => dashboard.prebuiltId === undefined) // Cannot add to prebuilt dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
