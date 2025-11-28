@@ -45,7 +45,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {w: 2, h: 1, x: 2, y: 0, minH: 1},
+      layout: {y: 0, x: 2, h: 1, w: 2, minH: 1},
     },
     {
       id: 'metrics-duration',
@@ -66,7 +66,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {w: 2, h: 1, x: 0, y: 0, minH: 1},
+      layout: {y: 0, x: 0, h: 1, w: 2, minH: 1},
     },
     {
       id: 'metrics-time-spent',
@@ -87,7 +87,31 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {w: 2, h: 1, x: 4, y: 0, minH: 1},
+      layout: {y: 0, x: 4, h: 1, w: 2, minH: 1},
+    },
+    {
+      id: 'example-query',
+      title: 'Example Query',
+      description: '',
+      displayType: DisplayType.DETAILS,
+      thresholds: null,
+      interval: '1h',
+      queries: [
+        {
+          name: '',
+          fields: ['id', 'span.op', 'span.group', 'span.description', 'span.category'],
+          aggregates: [],
+          columns: ['id', 'span.op', 'span.group', 'span.description', 'span.category'],
+          fieldAliases: [],
+          conditions: '',
+          orderby: 'id',
+          onDemand: [],
+          linkedDashboards: [],
+        },
+      ],
+      limit: 1,
+      widgetType: WidgetType.SPANS,
+      layout: {y: 1, x: 0, h: 2, w: 6, minH: 2},
     },
     {
       id: 'transactions-with-query',
@@ -111,7 +135,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {w: 6, h: 2, x: 0, y: 3, minH: 2},
+      layout: {y: 5, x: 0, h: 2, w: 6, minH: 2},
     },
     {
       id: 'metrics-throughput-line',
@@ -135,7 +159,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       widgetType: WidgetType.SPANS,
-      layout: {w: 3, h: 2, x: 0, y: 1, minH: 2},
+      layout: {y: 3, x: 0, h: 2, w: 3, minH: 2},
     },
     {
       id: 'metrics-duration-line',
@@ -158,7 +182,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           isHidden: false,
         },
       ],
-      layout: {w: 3, h: 2, x: 3, y: 1, minH: 2},
+      layout: {y: 3, x: 3, h: 2, w: 3, minH: 2},
     },
   ],
 };

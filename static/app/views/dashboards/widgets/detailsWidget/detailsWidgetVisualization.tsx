@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
-import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
-import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
+import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {SpanFields, type SpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 
@@ -15,39 +14,29 @@ interface DetailsWidgetVisualizationProps {
 export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProps) {
   const {span} = props;
 
-  const spanOp = span[SpanFields.SPAN_OP];
-  const spanDescription = span[SpanFields.SPAN_DESCRIPTION];
+  const spanOp = span[SpanFields.SPAN_OP] ?? '';
+  const spanDescription = span[SpanFields.SPAN_DESCRIPTION] ?? '';
   const spanGroup = span[SpanFields.SPAN_GROUP];
   const spanCategory = span[SpanFields.SPAN_CATEGORY];
 
   const moduleName = resolveSpanModule(spanOp, spanCategory);
 
-  if (spanOp === 'db') {
+  if (moduleName === ModuleName.DB) {
     return (
-      <FullSpanDescription
-        group={spanGroup}
-        shortDescription={spanDescription}
-        moduleName={moduleName}
+      <DatabaseSpanDescription
+        showBorder={false}
+        shouldClipHeight={false}
+        groupId={spanGroup}
+        preliminaryDescription={spanDescription}
       />
     );
   }
 
-  // String values don't support differences, thresholds, max values, or anything else.
-  return (
-    <Wrapper>
-      {spanOp} - {spanDescription}
-    </Wrapper>
-  );
+  return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
 }
 
 function Wrapper({children}: any) {
-  return (
-    <GrowingWrapper>
-      <AutoResizeParent>
-        <AutoSizedText>{children}</AutoSizedText>
-      </AutoResizeParent>
-    </GrowingWrapper>
-  );
+  return <GrowingWrapper>{children}</GrowingWrapper>;
 }
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
@@ -57,21 +46,6 @@ const GrowingWrapper = styled('div')`
   flex-grow: 1;
   height: 100%;
   width: 100%;
-`;
-
-const AutoResizeParent = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  color: ${p => p.theme.headingColor};
-
-  container-type: size;
-  container-name: auto-resize-parent;
-
-  * {
-    line-height: 1;
-    text-align: left !important;
-  }
 `;
 
 const LoadingPlaceholder = styled('span')`
