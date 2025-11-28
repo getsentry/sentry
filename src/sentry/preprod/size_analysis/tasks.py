@@ -22,6 +22,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe, load
+
 from .issues import insight_to_occurrences
 
 logger = logging.getLogger(__name__)
