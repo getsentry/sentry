@@ -165,6 +165,7 @@ const AvatarListWrapper = styled('div')`
 
 const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.background};
+  margin-left: -8px;
   cursor: default;
 
   &:hover {
