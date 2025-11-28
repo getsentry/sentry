@@ -124,7 +124,7 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
         enabled_user_biases = get_enabled_user_biases(
             project.get_option("sentry:dynamic_sampling_biases", None)
         )
-        combined_biases = get_relay_biases(organization).biases
+        combined_biases = get_relay_biases(organization)
 
         rules = _get_rules_of_enabled_biases(
             project, base_sample_rate, enabled_user_biases, combined_biases
