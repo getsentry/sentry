@@ -31,10 +31,9 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # platforms getting sent to Seer during ingest.
 SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
 # Event platforms corresponding to project platforms which were backfilled before we started
-# blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
-# prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
-# just not going to apply the filter to events from these platforms.
-EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
+# filtering stacktraces by length. To keep new events matching with existing data, we bypass
+# length checks for these platforms (their stacktraces will be truncated instead).
+EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK = frozenset(
     [
         "go",
         "javascript",
@@ -337,10 +336,10 @@ def stacktrace_exceeds_limits(
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
-    This checks both frame count and token count limits to determine if the stacktrace
-    is too long to send to Seer. Different platforms have different filtering behaviors:
-    - Platforms in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK bypass all checks
-    - Other platforms are checked against MAX_FRAME_COUNT and max_token_count limits
+    For platforms that bypass length checks (to maintain consistency with backfilled data),
+    all stacktraces pass through. For other platforms, uses a two-step approach:
+    1. First check raw string length - if shorter than token limit, pass immediately
+    2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
     platform: str = event.platform or "unknown"
     shared_tags = {"referrer": referrer.value, "platform": platform}
@@ -357,17 +356,14 @@ def stacktrace_exceeds_limits(
         or contributing_variant.variant_name == "default"
         # Any ComponentVariant will have this, but this reassures mypy
         or not contributing_component
-        # Exception-message-based grouping
-        or not hasattr(contributing_component, "frame_counts")
     ):
         # We don't bother to collect a metric on this outcome, because we shouldn't have called the
         # function in the first place
         return False
 
-    # Certain platforms were backfilled before we added this filter, so to keep new events matching
-    # with the existing data, we turn off the filter for them (instead their stacktraces will be
-    # truncated)
-    if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
+    # Certain platforms were backfilled before we added length filtering, so to keep new events
+    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated)
+    if platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK:
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -376,22 +372,25 @@ def stacktrace_exceeds_limits(
         report_token_count_metric(event, variants, "bypass")
         return False
 
-    stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
-    key = f"{stacktrace_type}_contributing_frames"
-    shared_tags["stacktrace_type"] = stacktrace_type
+    max_token_count = options.get("seer.similarity.max_token_count")
 
-    if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
+    # raw string length check
+    stacktrace_text = event.data.get("stacktrace_string")
+    if stacktrace_text is None:
+        stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
+
+    string_length = len(stacktrace_text)
+    if string_length < max_token_count:
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block_frames"},
+            tags={**shared_tags, "outcome": "pass_string_length"},
         )
-        report_token_count_metric(event, variants, "block_frames")
-        return True
+        report_token_count_metric(event, variants, "pass_string_length")
+        return False
 
-    # For platforms that filter by frame count, also check token count
+    # String is long enough that it might exceed token limit - run actual token count
     token_count = get_token_count(event, variants, platform)
-    max_token_count = options.get("seer.similarity.max_token_count")
 
     if token_count > max_token_count:
         metrics.incr(
