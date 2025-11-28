@@ -3,7 +3,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import type {AddOnCategory, CustomerUsage, Subscription} from 'getsentry/types';
 
-export interface UsageOverviewProps {
+interface UsageOverviewProps {
   organization: Organization;
   subscription: Subscription;
   usageData: CustomerUsage;
