@@ -1,7 +1,10 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment, useContext, useEffect, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
+
+import {Alert} from '@sentry/scraps/alert/alert';
+import {Button} from '@sentry/scraps/button/button';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex, Stack} from 'sentry/components/core/layout';
@@ -14,7 +17,9 @@ import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioFi
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {t} from 'sentry/locale';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tct} from 'sentry/locale';
+import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
@@ -28,6 +33,7 @@ import {
   TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
   TransactionsDatasetWarning,
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
@@ -62,6 +68,7 @@ function MetricDetectorForm() {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
+      <MigratedAlertWarningListener />
       <TemplateSection />
       <CustomizeMetricSection />
       <DetectSection />
@@ -463,12 +470,31 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
+
+  const showThresholdWarning = useIsMigratedExtrapolation({
+    dataset,
+    extrapolationMode,
+  });
 
   return (
     <Container>
       <Flex direction="column" gap="lg">
         <div>
-          <Heading as="h3">{t('Issue Detection')}</Heading>
+          <HeadingContainer>
+            <Heading as="h3">{t('Issue Detection')}</Heading>
+            {showThresholdWarning && (
+              <WarningIcon
+                id="thresholds-warning-icon"
+                title={t(
+                  'Your thresholds may need to be adjusted after the change in extrapolation mode'
+                )}
+              />
+            )}
+          </HeadingContainer>
           <DetectionType />
           <Flex direction="column">
             {(!detectionType || detectionType === 'static') && (
@@ -575,6 +601,62 @@ function TransactionsDatasetWarningListener() {
 
   return <TransactionsDatasetWarning />;
 }
+
+function MigratedAlertWarningListener() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
+  const isMigratedExtrapolation = useIsMigratedExtrapolation({
+    dataset,
+    extrapolationMode,
+  });
+
+  if (isMigratedExtrapolation) {
+    return (
+      <Alert.Container>
+        <Alert type="info">
+          {tct(
+            'This chart may look different from the alert details chart. This is expected as the extrapolation mode has been changed. Once the alert has been saved, your alert will be switched to use the extrapolation mode represented here. To be alerted correctly, please edit your [thresholdsLink:thresholds]. For more information, check out this FAQ!',
+            {
+              thresholdsLink: (
+                <Button
+                  priority="link"
+                  aria-label="Go to thresholds"
+                  onClick={() => {
+                    document
+                      .getElementById('thresholds-warning-icon')
+                      ?.scrollIntoView({behavior: 'smooth'});
+                  }}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+
+  return null;
+}
+
+function WarningIcon({title, id}: {id: string; title: ReactNode}) {
+  return (
+    <Tooltip title={title} skipWrapper>
+      <StyledIconWarning id={id} size="md" color="warning" />
+    </Tooltip>
+  );
+}
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+`;
+
+const HeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+`;
 
 const DatasetRow = styled('div')`
   display: grid;

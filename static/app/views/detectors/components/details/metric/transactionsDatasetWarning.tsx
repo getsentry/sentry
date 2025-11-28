@@ -38,7 +38,7 @@ export function MigratedAlertWarning({detector}: {detector: MetricDetector}) {
 
   return (
     <Alert.Container>
-      <Alert type="warning">
+      <Alert type="info">
         {tctCode(
           'This alert has been migrated from a transaction-based alert to a span-based alert. We have set a different extrapolation mode to mimic the previous alert behavior but this mode will be deprecated. Please [editLink:edit] the thresholds to match the regular extrapolation mode.',
           {
