@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
 
-import sentry_protos.snuba.v1alpha.request_common_pb2
+import sentry_protos.snuba.v1.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
