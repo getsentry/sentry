@@ -20,7 +20,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      renderLoading={() => <Placeholder height="33px" width="203px" />}
+      renderLoading={() => <Placeholder height="32px" width="352px" />}
       renderMissing={() => null}
       renderProcessingError={({replayRecord, projectSlug}) => (
         <ButtonActionsWrapper>

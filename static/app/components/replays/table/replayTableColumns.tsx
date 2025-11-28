@@ -56,6 +56,7 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  className?: string;
   query?: Query;
 }
 
@@ -511,7 +512,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, query}) => {
+  Component: ({replay, query, className}) => {
     const routes = useRoutes();
     const referrer = getRouteStringFromRoutes(routes);
 
@@ -538,6 +539,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     return (
       <CellLink
+        className={className}
         to={{
           pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
           query,
