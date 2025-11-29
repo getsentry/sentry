@@ -185,6 +185,11 @@ describe('formatReservedWithUnits', () => {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
+    expect(
+      formatReservedWithUnits(-1, DataCategory.ATTACHMENTS, {
+        useUnitScaling: true,
+      })
+    ).toBe(UNLIMITED);
   });
 
   it('returns correct string for Profile Duration', () => {
@@ -250,6 +255,12 @@ describe('formatReservedWithUnits', () => {
     ).toBe('1.23 ZB');
     expect(
       formatReservedWithUnits(-1 / GIGABYTE, DataCategory.LOG_BYTE, {
+        useUnitScaling: true,
+      })
+    ).toBe(UNLIMITED);
+
+    expect(
+      formatReservedWithUnits(-1, DataCategory.LOG_BYTE, {
         useUnitScaling: true,
       })
     ).toBe(UNLIMITED);
