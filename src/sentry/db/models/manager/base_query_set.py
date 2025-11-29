@@ -43,14 +43,18 @@ class BaseQuerySet(QuerySet[M, R]):
         query.add_update_values(kwargs)  # type: ignore[attr-defined]
 
         # Inline annotations in order_by(), if possible.
-        new_order_by = []
+        new_order_by: list[Any] = []
         for col in query.order_by:
-            if annotation := query.annotations.get(col):
-                if getattr(annotation, "contains_aggregate", False):
-                    raise exceptions.FieldError(
-                        f"Cannot update when ordering by an aggregate: {annotation}"
-                    )
-                new_order_by.append(annotation)
+            if isinstance(col, str):
+                annotation = query.annotations.get(col)
+                if annotation is not None:
+                    if getattr(annotation, "contains_aggregate", False):
+                        raise exceptions.FieldError(
+                            f"Cannot update when ordering by an aggregate: {annotation}"
+                        )
+                    new_order_by.append(annotation)
+                else:
+                    new_order_by.append(col)
             else:
                 new_order_by.append(col)
         query.order_by = tuple(new_order_by)
