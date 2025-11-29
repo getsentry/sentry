@@ -523,6 +523,13 @@ def set_default_project_seer_scanner_automation(
         )
 
 
+def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
+    """Copy org-level autoOpenPrs setting to new project. UI uses this for automated_run_stopping_point default."""
+    org_auto_open_prs = organization.get_option("sentry:auto_open_prs")
+    if org_auto_open_prs:
+        project.update_option("sentry:auto_open_prs", org_auto_open_prs)
+
+
 def report_token_count_metric(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
