@@ -3,7 +3,7 @@ import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/s
 export default function SeerAutomationSettings() {
   return (
     <SeerSettingsPageWrapper>
-      <p>Projects</p>
+      <p>Repos</p>
     </SeerSettingsPageWrapper>
   );
 }
