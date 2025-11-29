@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
 
-import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
@@ -42,6 +41,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableResponse,
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
 
 from sentry.utils.snuba import SnubaError, _snuba_pool
@@ -80,10 +80,7 @@ class SnubaRPCRequest(Protocol):
     @property
     def meta(
         self,
-    ) -> (
-        sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta
-        | sentry_protos.snuba.v1.request_common_pb2.RequestMeta
-    ): ...
+    ) -> RequestMeta: ...
 
 
 def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
