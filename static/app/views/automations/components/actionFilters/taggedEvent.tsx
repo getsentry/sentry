@@ -1,8 +1,12 @@
+import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   MATCH_CHOICES,
   type MatchType,
@@ -33,16 +37,47 @@ function KeyField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
+  // Select all the tags for an organization to generate a list of the most likely tags
+  const organization = useOrganization();
+  const {data: tagOptions, isLoading} = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: ['-1'],
+      dataset: Dataset.ERRORS,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: true,
+    },
+    {}
+  );
+
+  if (!tagOptions || isLoading) {
+    return <LoadingIndicator mini size={24} style={{alignItems: 'center'}} />;
+  }
+
+  const tags = tagOptions.sort((a, b) => a.key.localeCompare(b.key));
+  if (
+    condition.comparison.key &&
+    !tags.some(tag => tag.key === condition.comparison.key)
+  ) {
+    tags.unshift(condition.comparison);
+  }
+
   return (
-    <AutomationBuilderInput
+    <AutomationBuilderSelect
+      creatable
       name={`${condition_id}.comparison.key`}
+      aria-label={t('Tag')}
       placeholder={t('tag')}
-      value={condition.comparison.key ?? ''}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({comparison: {...condition.comparison, key: e.target.value}});
+      value={condition.comparison.key}
+      options={Object.values(tags).map(tag => ({
+        value: tag.key,
+        label: tag.key,
+      }))}
+      onChange={(e: SelectValue<MatchType>) => {
+        onUpdate({comparison: {...condition.comparison, key: e.value}});
         removeError(condition.id);
       }}
-      aria-label={t('Tag')}
     />
   );
 }
