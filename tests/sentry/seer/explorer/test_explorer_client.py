@@ -374,9 +374,9 @@ class TestSeerExplorerClientArtifacts(TestCase):
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    def test_get_run_with_artifacts(self, mock_fetch, mock_access):
-        """Test that artifacts dict is returned and can be retrieved typed"""
-        from sentry.seer.explorer.client_models import ArtifactInstance
+    def test_get_run_with_artifacts_on_blocks(self, mock_fetch, mock_access):
+        """Test that artifacts on blocks are returned and can be retrieved typed"""
+        from sentry.seer.explorer.client_models import ArtifactBlock, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -384,31 +384,36 @@ class TestSeerExplorerClientArtifacts(TestCase):
             bug_count: int
             severity: str
 
-        # Mock API returns artifacts dict
+        # Mock API returns blocks with artifacts attached
         mock_state = SeerRunState(
             run_id=123,
-            blocks=[],
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Found the issue"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="root_cause",
+                            json_schema={"type": "object"},
+                            data={"bug_count": 5, "severity": "high"},
+                            reason="Successfully generated",
+                        )
+                    ],
+                )
+            ],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            artifacts={
-                "root_cause": ArtifactInstance(
-                    key="root_cause",
-                    json_schema={"type": "object"},
-                    data={"bug_count": 5, "severity": "high"},
-                    reason="Successfully generated",
-                    generated_at_block_index=3,
-                    order=0,
-                )
-            },
         )
         mock_fetch.return_value = mock_state
 
         client = SeerExplorerClient(self.organization, self.user)
         result = client.get_run(123)
 
-        # Verify artifacts dict is returned
-        assert "root_cause" in result.artifacts
-        assert result.artifacts["root_cause"].data == {"bug_count": 5, "severity": "high"}
+        # Verify artifacts can be retrieved via get_artifacts()
+        artifacts = result.get_artifacts()
+        assert "root_cause" in artifacts
+        assert artifacts["root_cause"].data == {"bug_count": 5, "severity": "high"}
 
         # Verify typed retrieval via get_artifact helper
         artifact = result.get_artifact("root_cause", BugReport)
@@ -420,29 +425,33 @@ class TestSeerExplorerClientArtifacts(TestCase):
     @patch("sentry.seer.explorer.client.fetch_run_status")
     def test_get_artifact_returns_none_when_missing(self, mock_fetch, mock_access):
         """Test that get_artifact returns None for missing or pending artifacts"""
-        from sentry.seer.explorer.client_models import ArtifactInstance
+        from sentry.seer.explorer.client_models import ArtifactBlock, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
         class MySchema(BaseModel):
             field: str
 
-        # Mock API returns artifacts with one pending (data=None)
+        # Mock API returns block with artifact that has no data (pending)
         mock_state = SeerRunState(
             run_id=123,
-            blocks=[],
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Working..."),
+                    timestamp="2024-01-01T00:00:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="pending",
+                            json_schema={"type": "object"},
+                            data=None,  # Not yet generated
+                            reason="Waiting for more info",
+                        )
+                    ],
+                )
+            ],
             status="processing",
             updated_at="2024-01-01T00:00:00Z",
-            artifacts={
-                "pending": ArtifactInstance(
-                    key="pending",
-                    json_schema={"type": "object"},
-                    data=None,  # Not yet generated
-                    reason=None,
-                    generated_at_block_index=-1,
-                    order=0,
-                )
-            },
         )
         mock_fetch.return_value = mock_state
 
@@ -456,9 +465,9 @@ class TestSeerExplorerClientArtifacts(TestCase):
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
-    def test_get_run_with_multiple_artifacts(self, mock_fetch, mock_access):
-        """Test retrieving multiple artifacts from a multi-step run"""
-        from sentry.seer.explorer.client_models import ArtifactInstance
+    def test_get_run_with_multiple_artifacts_on_blocks(self, mock_fetch, mock_access):
+        """Test retrieving multiple artifacts from blocks in a multi-step run"""
+        from sentry.seer.explorer.client_models import ArtifactBlock, MemoryBlock, Message
 
         mock_access.return_value = (True, None)
 
@@ -470,30 +479,39 @@ class TestSeerExplorerClientArtifacts(TestCase):
             description: str
             steps: list[str]
 
-        # Mock API returns multiple artifacts
+        # Mock API returns blocks with artifacts attached at different points
         mock_state = SeerRunState(
             run_id=123,
-            blocks=[],
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Found root cause"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="root_cause",
+                            json_schema={"type": "object"},
+                            data={"cause": "Memory leak", "confidence": 0.95},
+                            reason="Found the issue",
+                        )
+                    ],
+                ),
+                MemoryBlock(
+                    id="block-2",
+                    message=Message(role="assistant", content="Here's the solution"),
+                    timestamp="2024-01-01T00:01:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="solution",
+                            json_schema={"type": "object"},
+                            data={"description": "Fix the leak", "steps": ["Step 1", "Step 2"]},
+                            reason="Generated fix",
+                        )
+                    ],
+                ),
+            ],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            artifacts={
-                "root_cause": ArtifactInstance(
-                    key="root_cause",
-                    json_schema={"type": "object"},
-                    data={"cause": "Memory leak", "confidence": 0.95},
-                    reason="Found the issue",
-                    generated_at_block_index=5,
-                    order=0,
-                ),
-                "solution": ArtifactInstance(
-                    key="solution",
-                    json_schema={"type": "object"},
-                    data={"description": "Fix the leak", "steps": ["Step 1", "Step 2"]},
-                    reason="Generated fix",
-                    generated_at_block_index=10,
-                    order=1,
-                ),
-            },
         )
         mock_fetch.return_value = mock_state
 
@@ -511,3 +529,58 @@ class TestSeerExplorerClientArtifacts(TestCase):
         assert solution is not None
         assert solution.description == "Fix the leak"
         assert solution.steps == ["Step 1", "Step 2"]
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.fetch_run_status")
+    def test_get_artifacts_returns_latest_version(self, mock_fetch, mock_access):
+        """Test that get_artifacts returns the latest version when artifact is updated"""
+        from sentry.seer.explorer.client_models import ArtifactBlock, MemoryBlock, Message
+
+        mock_access.return_value = (True, None)
+
+        class RootCause(BaseModel):
+            cause: str
+
+        # Mock API returns blocks with same artifact updated in later block
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="Initial analysis"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="root_cause",
+                            json_schema={"type": "object"},
+                            data={"cause": "Old cause"},
+                            reason="Initial analysis",
+                        )
+                    ],
+                ),
+                MemoryBlock(
+                    id="block-2",
+                    message=Message(role="assistant", content="Updated analysis"),
+                    timestamp="2024-01-01T00:01:00Z",
+                    artifacts=[
+                        ArtifactBlock(
+                            key="root_cause",
+                            json_schema={"type": "object"},
+                            data={"cause": "New cause"},
+                            reason="Updated after feedback",
+                        )
+                    ],
+                ),
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_fetch.return_value = mock_state
+
+        client = SeerExplorerClient(self.organization, self.user)
+        result = client.get_run(123)
+
+        # Should get the latest version
+        root_cause = result.get_artifact("root_cause", RootCause)
+        assert root_cause is not None
+        assert root_cause.cause == "New cause"
