@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
@@ -146,18 +146,19 @@ export function useAttributeBreakdownsTooltip({
     };
   }, [frozenPosition, copyToClipboard, addSearchFilter, setGroupBys]);
 
-  const tooltipConfig: TooltipOption = {
-    trigger: 'axis',
-    appendToBody: true,
-    renderMode: 'html',
-    enterable: true,
-    formatter: (params: TooltipComponentFormatterCallbackParams) => {
-      // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
-      // including the tooltip actions placeholder.
-      if (!frozenPosition) {
-        tooltipParamsRef.current = params;
+  const tooltipConfig: TooltipOption = useMemo(
+    () => ({
+      trigger: 'axis',
+      appendToBody: true,
+      renderMode: 'html',
+      enterable: true,
+      formatter: (params: TooltipComponentFormatterCallbackParams) => {
+        // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
+        // including the tooltip actions placeholder.
+        if (!frozenPosition) {
+          tooltipParamsRef.current = params;
 
-        const actionsPlaceholder = `
+          const actionsPlaceholder = `
           <div
             class="tooltip-footer"
             style="
@@ -171,35 +172,37 @@ export function useAttributeBreakdownsTooltip({
           </div>
         `.trim();
 
-        return formatter(params) + actionsPlaceholder;
-      }
+          return formatter(params) + actionsPlaceholder;
+        }
 
-      // If the tooltip is frozen, return the formatted content, including the tooltip actions.
-      const value = (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
-      return formatter(tooltipParamsRef.current!) + actionsHtmlRenderer?.(value);
-    },
-    position(
-      point: [number, number],
-      _params: TooltipComponentFormatterCallbackParams,
-      el: any
-    ) {
-      const dom = el as HTMLDivElement;
-      const tooltipWidth = dom?.offsetWidth ?? 0;
-      const [rawX = 0, rawY = 0] = frozenPosition ?? point;
+        // If the tooltip is frozen, return the formatted content, including the tooltip actions.
+        const value = (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
+        return formatter(tooltipParamsRef.current!) + actionsHtmlRenderer?.(value);
+      },
+      position(
+        point: [number, number],
+        _params: TooltipComponentFormatterCallbackParams,
+        el: any
+      ) {
+        const dom = el as HTMLDivElement;
+        const tooltipWidth = dom?.offsetWidth ?? 0;
+        const [rawX = 0, rawY = 0] = frozenPosition ?? point;
 
-      // Adding offsets to mitigate users accidentally entering the tooltip,
-      // when trying to hover over the chart for values.
-      let x = rawX + TOOLTIP_POSITION_X_OFFSET;
-      const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
+        // Adding offsets to mitigate users accidentally entering the tooltip,
+        // when trying to hover over the chart for values.
+        let x = rawX + TOOLTIP_POSITION_X_OFFSET;
+        const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
 
-      // Flip left if it overflows chart width. Mitigates the content from being cut off.
-      if (x + tooltipWidth > chartWidth) {
-        x = rawX - tooltipWidth - TOOLTIP_POSITION_X_OFFSET;
-      }
+        // Flip left if it overflows chart width. Mitigates the content from being cut off.
+        if (x + tooltipWidth > chartWidth) {
+          x = rawX - tooltipWidth - TOOLTIP_POSITION_X_OFFSET;
+        }
 
-      return [x, y];
-    },
-  };
+        return [x, y];
+      },
+    }),
+    [frozenPosition, chartWidth, formatter, actionsHtmlRenderer, tooltipParamsRef]
+  );
 
   return tooltipConfig;
 }
