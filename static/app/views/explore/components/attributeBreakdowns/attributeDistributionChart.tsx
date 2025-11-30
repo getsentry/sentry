@@ -10,7 +10,10 @@ import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+import {
+  Actions,
+  useAttributeBreakdownsTooltip,
+} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 
@@ -97,17 +100,105 @@ export function Chart({
         ? `${value.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
         : value
       : '\u2014';
-    return [
-      '<div class="tooltip-series" style="padding: 0;">',
-      `<div><span class="tooltip-label" style="margin: 0 auto; text-align: center; padding:8px 20px; min-width: 100px; max-width: 300px; word-break: break-word; white-space: normal; overflow-wrap: anywhere;"><strong>${truncatedValue}</strong></span></div>`,
-      '</div>',
-      `<div class="tooltip-footer" style="display: flex; justify-content: center; padding: 4px;">${pct}</div>`,
-    ].join('');
+    return `
+      <div class="tooltip-series" style="padding: 0;">
+        <div
+          class="tooltip-label"
+          style="
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin: 0 auto;
+            padding: 10px;
+            min-width: 100px;
+            max-width: 300px;
+          "
+        >
+          <strong
+            style="
+              word-break: break-word;
+              white-space: normal;
+              overflow-wrap: anywhere;
+            "
+          >${truncatedValue}</strong>
+          <span>${pct}</span>
+        </div>
+      </div>
+    `.trim();
   }, []);
+
+  const tooltipActionsHtmlRenderer = useCallback(
+    (value: string) => {
+      if (!value) return '';
+
+      const actionBackground = theme.gray200;
+      return [
+        '<div',
+        '  class="tooltip-footer"',
+        '  id="tooltipActions"',
+        '  style="',
+        '    display: flex;',
+        '    justify-content: center;',
+        '    align-items: center;',
+        '    flex-direction: column;',
+        '    padding: 0;',
+        '    gap: 4px;',
+        '  "',
+        '>',
+        '  <div',
+        `    data-tooltip-action="${Actions.GROUP_BY}"`,
+        `    data-tooltip-action-key="${attributeDistribution.name}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer; transition: background 0.2s;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Group by attribute',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
+        `    data-tooltip-action-key="${attributeDistribution.name}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer; transition: background 0.2s;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Add value to filter',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
+        `    data-tooltip-action-key="${attributeDistribution.name}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer; transition: background 0.2s;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Exclude value from filter',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
+        `    data-tooltip-action-key="${attributeDistribution.name}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer; transition: background 0.2s;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Copy value to clipboard',
+        '  </div>',
+        '</div>',
+      ]
+        .join('\n')
+        .trim();
+    },
+    [theme.gray200, attributeDistribution.name]
+  );
 
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: toolTipFormatter,
+    chartWidth,
+    actionsHtmlRenderer: tooltipActionsHtmlRenderer,
+    attributeName: attributeDistribution.name,
   });
 
   const chartXAxisLabelFormatter = useCallback(
