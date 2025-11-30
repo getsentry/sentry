@@ -9,7 +9,6 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
-import sentry_sdk.serializer
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -475,9 +474,6 @@ def configure_sdk():
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
-
-    sentry_sdk.serializer.MAX_DATABAG_DEPTH = 100
-    sentry_sdk.serializer.MAX_DATABAG_BREADTH = 100
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client

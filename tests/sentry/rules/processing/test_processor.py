@@ -21,6 +21,7 @@ from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -233,6 +234,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 contexts=contexts,
             )
 
+        assert isinstance(perf_event, GroupEvent)
         start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             perf_event,
@@ -252,6 +254,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         rulegroup_to_events = buffer.backend.get_hash(
             model=Project, field={"project_id": self.project.id}
         )
+        assert perf_event.group is not None
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
                 {

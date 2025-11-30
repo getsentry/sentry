@@ -193,6 +193,7 @@ export const SpansConfig: DatasetConfig<
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
+    DisplayType.DETAILS,
   ],
   getTableRequest: (
     api: Client,

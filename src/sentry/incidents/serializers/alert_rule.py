@@ -4,7 +4,6 @@ from datetime import timedelta
 
 import sentry_sdk
 from django import forms
-from django.conf import settings
 from django.db import router, transaction
 from parsimonious.exceptions import ParseError
 from rest_framework import serializers
@@ -30,6 +29,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -264,9 +264,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             ),
         ).count()
 
-        if org_subscription_count >= settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG:
+        organization = self.context["organization"]
+        max_subscriptions = get_max_metric_alert_subscriptions(organization)
+        if org_subscription_count >= max_subscriptions:
             raise serializers.ValidationError(
-                f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
+                f"You may not exceed {max_subscriptions} metric alerts per organization"
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")

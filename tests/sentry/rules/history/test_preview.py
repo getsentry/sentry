@@ -465,6 +465,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
         perf_issue = transaction.group
+        assert perf_issue is not None
         perf_issue.update(first_seen=prev_hour)
         Activity.objects.create(
             project=self.project,
@@ -533,6 +534,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
         perf_issue = transaction.group
+        assert perf_issue is not None
         perf_issue.update(first_seen=timezone.now() - timedelta(weeks=3))
         Activity.objects.create(
             project=self.project,
