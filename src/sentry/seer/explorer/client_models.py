@@ -43,16 +43,28 @@ class MemoryBlock(BaseModel):
         extra = "allow"
 
 
+class PendingUserInput(BaseModel):
+    """A pending user input request from the agent."""
+
+    id: str
+    input_type: str
+    data: dict[str, Any]
+
+    class Config:
+        extra = "allow"
+
+
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
 
     run_id: int
     blocks: list[MemoryBlock]
-    status: Literal["processing", "completed", "error"]
+    status: Literal["processing", "completed", "error", "awaiting_user_input"]
     updated_at: str
     raw_artifact: dict[str, Any] | None = None
     artifact: BaseModel | None = None
     artifact_reason: str | None = None
+    pending_user_input: PendingUserInput | None = None
 
     class Config:
         extra = "allow"
