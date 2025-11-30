@@ -33,6 +33,18 @@ class Message(BaseModel):
         extra = "allow"
 
 
+class ArtifactBlock(BaseModel):
+    """An artifact stored on a block in the conversation history."""
+
+    key: str
+    json_schema: dict[str, Any]
+    data: dict[str, Any] | None = None
+    reason: str
+
+    class Config:
+        extra = "allow"
+
+
 class MemoryBlock(BaseModel):
     """A block in the Explorer agent's conversation/memory."""
 
@@ -40,20 +52,7 @@ class MemoryBlock(BaseModel):
     message: Message
     timestamp: str
     loading: bool = False
-
-    class Config:
-        extra = "allow"
-
-
-class ArtifactInstance(BaseModel):
-    """A single structured artifact generated from an Explorer run."""
-
-    key: str
-    json_schema: dict[str, Any]
-    data: dict[str, Any] | None = None
-    reason: str | None = None
-    generated_at_block_index: int
-    order: int
+    artifacts: list[ArtifactBlock] = []
 
     class Config:
         extra = "allow"
@@ -66,10 +65,22 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
-    artifacts: dict[str, ArtifactInstance] = {}
 
     class Config:
         extra = "allow"
+
+    def get_artifacts(self) -> dict[str, ArtifactBlock]:
+        """
+        Scan blocks and return the latest artifact for each key.
+
+        Returns:
+            Dict mapping artifact keys to their latest ArtifactBlock
+        """
+        result: dict[str, ArtifactBlock] = {}
+        for block in self.blocks:
+            for artifact in block.artifacts:
+                result[artifact.key] = artifact
+        return result
 
     def get_artifact(self, key: str, schema: type[T]) -> T | None:
         """
@@ -82,7 +93,8 @@ class SeerRunState(BaseModel):
         Returns:
             The parsed artifact as a typed Pydantic model, or None if not found or not yet generated
         """
-        artifact = self.artifacts.get(key)
+        artifacts = self.get_artifacts()
+        artifact = artifacts.get(key)
         if artifact is None or artifact.data is None:
             return None
         return schema.parse_obj(artifact.data)
