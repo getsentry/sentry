@@ -62,8 +62,8 @@ function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
         </FileAddedRemoved>
-        <FileName title={`${repoName}/${patch.path}`}>
-          {repoName}/{patch.path}
+        <FileName title={`${repoName}:${patch.path}`}>
+          {repoName}:{patch.path}
         </FileName>
       </FileHeader>
       {isDelete ? (
