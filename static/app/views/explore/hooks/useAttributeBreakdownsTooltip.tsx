@@ -175,9 +175,15 @@ export function useAttributeBreakdownsTooltip({
           return formatter(params) + actionsPlaceholder;
         }
 
-        // If the tooltip is frozen, return the formatted content, including the tooltip actions.
-        const value = (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
-        return formatter(tooltipParamsRef.current!) + actionsHtmlRenderer?.(value);
+        if (!tooltipParamsRef.current) {
+          return '\u2014';
+        }
+
+        // If the tooltip is frozen, use the cached tooltip params and
+        // return the formatted content, including the tooltip actions.
+        const p = tooltipParamsRef.current;
+        const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
+        return formatter(p) + actionsHtmlRenderer?.(value);
       },
       position(
         point: [number, number],
