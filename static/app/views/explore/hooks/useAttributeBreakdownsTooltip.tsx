@@ -190,7 +190,7 @@ export function useAttributeBreakdownsTooltip({
       // Adding offsets to mitigate users accidentally entering the tooltip,
       // when trying to hover over the chart for values.
       let x = rawX + TOOLTIP_POSITION_X_OFFSET;
-      const y = rawY - TOOLTIP_POSITION_Y_OFFSET;
+      const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
 
       // Flip left if it overflows chart width. Mitigates the content from being cut off.
       if (x + tooltipWidth > chartWidth) {
