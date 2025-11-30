@@ -2,7 +2,6 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
-import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
@@ -12,6 +11,10 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {
+  Actions,
+  useAttributeBreakdownsTooltip,
+} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 const MAX_BAR_WIDTH = 20;
 const HIGH_CARDINALITY_THRESHOLD = 20;
@@ -164,49 +167,128 @@ export function Chart({
     [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
 
-  const toolTipValueFormatter = useCallback(
-    (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
-      const percentage = Number(seriesParams?.data);
-      return percentageFormatter(percentage);
-    },
-    []
-  );
-
-  const toolTipFormatAxisLabel = useCallback(
-    (
-      _value: number,
-      _isTimestamp: boolean,
-      _utc: boolean,
-      _showTimeInTooltip: boolean,
-      _addSecondsToTimeFormat: boolean,
-      _bucketSize: number | undefined,
-      seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-    ) => {
-      if (!Array.isArray(seriesParamsOrParam)) {
+  const toolTipFormatter = useCallback(
+    (p: TooltipComponentFormatterCallbackParams) => {
+      if (!Array.isArray(p)) {
         return '\u2014';
       }
 
-      const selectedParam = seriesParamsOrParam.find(
-        s => s.seriesName === SELECTED_SERIES_NAME
-      );
-      const baselineParam = seriesParamsOrParam.find(
-        s => s.seriesName === BASELINE_SERIES_NAME
-      );
+      const selectedParam = p.find(s => s.seriesName === SELECTED_SERIES_NAME);
+      const baselineParam = p.find(s => s.seriesName === BASELINE_SERIES_NAME);
 
       if (!selectedParam || !baselineParam) {
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const name = selectedParam?.name ?? baselineParam?.name ?? '';
+      const selectedValue = selectedParam.value;
+      const baselineValue = baselineParam.value;
+      const selectedPct = percentageFormatter(Number(selectedValue));
+      const baselinePct = percentageFormatter(Number(baselineValue));
+
+      const name = selectedParam.name ?? baselineParam.name ?? '';
       const truncatedName =
         name.length > TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
 
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2; color: black;">${truncatedName}</div>`;
+      return `
+      <div data-explore-chart-selection-region class="tooltip-series" style="padding: 0;">
+        <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 0 auto; padding: 10px; min-width: 100px; max-width: 300px;">
+          <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${truncatedName}</strong>
+          <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort1Color}; display: inline-block;"></span>
+              selected
+            </span>
+            <span>${selectedPct}</span>
+          </span>
+          <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort2Color}; display: inline-block;"></span>
+              baseline
+            </span>
+            <span>${baselinePct}</span>
+          </span>
+        </div>
+      </div>
+    `.trim();
     },
-    []
+    [cohort1Color, cohort2Color]
   );
+
+  const tooltipActionsHtmlRenderer = useCallback(
+    (value: string) => {
+      if (!value) return '';
+
+      const actionBackground = theme.gray200;
+      return [
+        '<div',
+        '  data-explore-chart-selection-region',
+        '  class="tooltip-footer"',
+        '  id="tooltipActions"',
+        '  style="',
+        '    display: flex;',
+        '    justify-content: center;',
+        '    align-items: center;',
+        '    flex-direction: column;',
+        '    padding: 0;',
+        '    gap: 0;',
+        '  "',
+        '>',
+        '  <div',
+        `    data-tooltip-action="${Actions.GROUP_BY}"`,
+        `    data-tooltip-action-key="${attribute.attributeName}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Group by attribute',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
+        `    data-tooltip-action-key="${attribute.attributeName}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Add value to filter',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
+        `    data-tooltip-action-key="${attribute.attributeName}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Exclude value from filter',
+        '  </div>',
+        '  <div',
+        `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
+        `    data-tooltip-action-key="${attribute.attributeName}"`,
+        `    data-tooltip-action-value="${value}"`,
+        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        `    onmouseover="this.style.background='${actionBackground}'"`,
+        '    onmouseout="this.style.background=\'\'"',
+        '  >',
+        '    Copy value to clipboard',
+        '  </div>',
+        '</div>',
+      ]
+        .join('\n')
+        .trim();
+    },
+    [theme.gray200, attribute.attributeName]
+  );
+
+  const tooltipConfig = useAttributeBreakdownsTooltip({
+    chartRef,
+    formatter: toolTipFormatter,
+    chartWidth,
+    actionsHtmlRenderer: tooltipActionsHtmlRenderer,
+  });
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
@@ -276,13 +358,7 @@ export function Chart({
         ref={chartRef}
         autoHeightResize
         isGroupedByDate={false}
-        tooltip={{
-          appendToBody: true,
-          trigger: 'axis',
-          renderMode: 'html',
-          valueFormatter: toolTipValueFormatter,
-          formatAxisLabel: toolTipFormatAxisLabel,
-        }}
+        tooltip={tooltipConfig}
         grid={{
           left: 2,
           right: 8,

@@ -11,7 +11,6 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 
 type Params = {
-  attributeName: string;
   chartRef: React.RefObject<ReactEchartsRef | null>;
   chartWidth: number;
   formatter: (params: TooltipComponentFormatterCallbackParams) => string;
@@ -33,6 +32,7 @@ export function useAttributeBreakdownsTooltip({
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
+
   const addSearchFilter = useAddSearchFilter();
   const copyToClipboard = useCopyToClipboard();
   const setGroupBys = useSetQueryParamsGroupBys();
@@ -145,7 +145,7 @@ export function useAttributeBreakdownsTooltip({
 
       const offsetX = 20;
       let x = rawX + offsetX;
-      const y = rawY;
+      const y = rawY + 5;
 
       // flip left if it overflows chart width
       if (x + tooltipWidth > chartWidth) {
