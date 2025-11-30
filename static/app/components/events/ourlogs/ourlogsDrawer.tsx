@@ -70,7 +70,7 @@ export function OurlogsDrawer({
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
-    searchSource: 'ourlogs',
+    searchSource: 'logs',
     onSearch: (query: string) => setLogsQuery(query),
     numberAttributes,
     stringAttributes,
