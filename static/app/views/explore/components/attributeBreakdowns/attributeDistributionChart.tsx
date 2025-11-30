@@ -10,6 +10,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 
@@ -101,9 +102,13 @@ export function Chart({
       `<div><span class="tooltip-label" style="margin: 0 auto; text-align: center; padding:8px 20px; min-width: 100px; max-width: 300px; word-break: break-word; white-space: normal; overflow-wrap: anywhere;"><strong>${truncatedValue}</strong></span></div>`,
       '</div>',
       `<div class="tooltip-footer" style="display: flex; justify-content: center; padding: 4px;">${pct}</div>`,
-      '<div class="tooltip-arrow"></div>',
     ].join('');
   }, []);
+
+  const tooltipConfig = useAttributeBreakdownsTooltip({
+    chartRef,
+    formatter: toolTipFormatter,
+  });
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
@@ -166,12 +171,7 @@ export function Chart({
         ref={chartRef}
         autoHeightResize
         isGroupedByDate={false}
-        tooltip={{
-          appendToBody: true,
-          trigger: 'axis',
-          renderMode: 'html',
-          formatter: toolTipFormatter,
-        }}
+        tooltip={tooltipConfig}
         grid={{
           left: 2,
           right: 8,
