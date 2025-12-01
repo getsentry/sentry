@@ -412,4 +412,3 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         )
 
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
-
