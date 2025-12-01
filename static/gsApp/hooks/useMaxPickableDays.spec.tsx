@@ -11,6 +11,32 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('without downsampled-date-page-filter', () => {
+    it('returns 90/90 for transactions', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.TRANSACTIONS],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 90/90 for replays', () => {
+      const {result} = renderHookWithProviders(() =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.REPLAYS],
+        })
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
     it('returns 30/90 for spans without flag', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
@@ -115,6 +141,36 @@ describe('useMaxPickableDays', () => {
 
     afterEach(() => {
       jest.clearAllTimers();
+    });
+
+    it('returns 30/90 for transactions', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [DataCategory.TRANSACTIONS],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 30/90 for replays', () => {
+      const {result} = renderHookWithProviders(
+        () =>
+          useMaxPickableDays({
+            dataCategories: [DataCategory.REPLAYS],
+          }),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 90,
+      });
     });
 
     it('returns 127/127 for spans on 2025/12/31', () => {

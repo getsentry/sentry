@@ -75,16 +75,6 @@ function getMaxPickableDaysByScription(
         upsellFooter: SpansUpsellFooter,
       };
     }
-    case DataCategory.PROFILE_CHUNKS:
-    case DataCategory.PROFILE_CHUNKS_UI:
-    case DataCategory.PROFILE_DURATION:
-    case DataCategory.PROFILE_DURATION_UI: {
-      return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
-        defaultPeriod: '24h',
-      };
-    }
     case DataCategory.TRACE_METRICS: {
       // TODO: undecided for now, fixed at 30 days
       return {
@@ -111,6 +101,16 @@ function getMaxPickableDaysByScription(
         defaultPeriod: '24h',
       };
     }
+    case DataCategory.PROFILE_CHUNKS:
+    case DataCategory.PROFILE_CHUNKS_UI:
+    case DataCategory.PROFILE_DURATION:
+    case DataCategory.PROFILE_DURATION_UI:
+    case DataCategory.TRANSACTIONS:
+    case DataCategory.REPLAYS:
+      return {
+        maxPickableDays: subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
+      };
     default:
       return undefined;
   }
