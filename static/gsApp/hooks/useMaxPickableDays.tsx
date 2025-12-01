@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {
@@ -15,6 +16,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {Subscription} from 'getsentry/types';
 
 import useSubscription from './useSubscription';
+
+export function useDefaultMaxPickableDays() {
+  const subscription = useSubscription();
+  return subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS;
+}
 
 export function useMaxPickableDays({
   dataCategories,

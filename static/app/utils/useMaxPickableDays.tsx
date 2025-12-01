@@ -2,11 +2,28 @@ import {useMemo, type ReactNode} from 'react';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
+
+/**
+ * This returns the default max pickable days for the current organization.
+ *
+ * Use this as the default when there is not known data category.
+ */
+export function useDefaultMaxPickableDays(): number {
+  const useDefaultMaxPickableDaysHook =
+    HookStore.get('react-hook:use-default-max-pickable-days')[0] ??
+    useDefaultMaxPickableDaysImpl;
+  return useDefaultMaxPickableDaysHook();
+}
+
+function useDefaultMaxPickableDaysImpl() {
+  return MAX_PICKABLE_DAYS;
+}
 
 export interface MaxPickableDaysOptions {
   /**
