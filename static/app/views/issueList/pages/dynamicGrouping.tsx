@@ -19,14 +19,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconClock,
-  IconClose,
-  IconFire,
-  IconFix,
-  IconUpload,
-} from 'sentry/icons';
+import {IconClose, IconFire, IconUpload} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -278,112 +271,112 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md">
-        <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
-          <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
-            {cluster.title}
-          </Heading>
-          {cluster.description && (
-            <Fragment>
-              {showDescription ? (
-                <DescriptionText>{cluster.description}</DescriptionText>
-              ) : (
-                <ReadMoreButton onClick={() => setShowDescription(true)}>
-                  {t('View summary')}
-                </ReadMoreButton>
-              )}
-            </Fragment>
-          )}
-          <ClusterTags
-            cluster={cluster}
-            onTagClick={onTagClick}
-            selectedTags={selectedTags}
-          />
-        </Flex>
-        <IssueCountBadge>
-          <IssueCountNumber>{issueCount}</IssueCountNumber>
-          <Text size="xs" variant="muted" uppercase>
-            {tn('issue', 'issues', issueCount)}
-          </Text>
-        </IssueCountBadge>
-      </Flex>
-
-      <ClusterStatsBar>
-        {cluster.fixability_score && (
-          <StatItem>
-            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>{' '}
-              {t('confidence')}
-            </Text>
-          </StatItem>
+      {/* Zone 1: Title + Description (Primary Focus) */}
+      <CardHeader>
+        <ClusterTitle>{cluster.title}</ClusterTitle>
+        {cluster.description && (
+          <Fragment>
+            {showDescription ? (
+              <DescriptionText>{cluster.description}</DescriptionText>
+            ) : (
+              <ReadMoreButton onClick={() => setShowDescription(true)}>
+                {t('View summary')}
+              </ReadMoreButton>
+            )}
+          </Fragment>
         )}
-        <StatItem>
-          <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
+        <ClusterTags
+          cluster={cluster}
+          onTagClick={onTagClick}
+          selectedTags={selectedTags}
+        />
+      </CardHeader>
+
+      {/* Zone 2: Stats (Secondary Context) */}
+      <StatsSection>
+        <PrimaryStats>
+          <EventsMetric>
+            <IconFire size="sm" />
+            {clusterStats.isPending ? (
+              <Text size="md" variant="muted">
+                –
+              </Text>
+            ) : (
+              <EventsCount>{clusterStats.totalEvents.toLocaleString()}</EventsCount>
+            )}
+            <Text size="sm" variant="muted">
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
+          </EventsMetric>
+          {cluster.fixability_score && (
+            <FixabilityIndicator score={cluster.fixability_score}>
+              <Text size="sm" bold>
+                {Math.round(cluster.fixability_score * 100)}%
+              </Text>
+              <Text size="xs" variant="muted">
+                {t('fixable')}
+              </Text>
+            </FixabilityIndicator>
           )}
-        </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
-          <StatItem>
-            <IconClock size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('Last Seen')}
-              date={clusterStats.lastSeen}
-              suffix={t('ago')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
-          <StatItem>
-            <IconCalendar size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('First Seen')}
-              date={clusterStats.firstSeen}
-              suffix={t('old')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-      </ClusterStatsBar>
+        </PrimaryStats>
+        <SecondaryStats>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Last seen')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
+          )}
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Age')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
+          )}
+        </SecondaryStats>
+      </StatsSection>
 
-      <Flex direction="column" flex="1" paddingTop="md">
-        <ClusterIssues groupIds={cluster.group_ids} />
-
-        {cluster.group_ids.length > 3 && (
-          <Text
-            size="sm"
-            variant="muted"
-            align="center"
-            style={{marginTop: space(1), fontStyle: 'italic'}}
-          >
-            {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+      {/* Zone 3: Nested Issues (Detail Content) */}
+      <IssuesSection>
+        <IssuesSectionHeader>
+          <Text size="sm" bold uppercase>
+            {tn('%s Issue', '%s Issues', issueCount)}
           </Text>
-        )}
-      </Flex>
+        </IssuesSectionHeader>
+        <IssuesList>
+          <ClusterIssues groupIds={cluster.group_ids} />
+          {cluster.group_ids.length > 3 && (
+            <MoreIssuesIndicator>
+              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+            </MoreIssuesIndicator>
+          )}
+        </IssuesList>
+      </IssuesSection>
 
-      <Flex justify="end" align="center" gap="xs" paddingTop="md">
+      {/* Zone 4: Actions (Tertiary) */}
+      <CardFooter>
         <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Resolve')}
+          {t('Resolve All')}
         </Button>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
           <Button size="sm">{t('View All Issues')}</Button>
         </Link>
-      </Flex>
+      </CardFooter>
     </CardContainer>
   );
 }
@@ -802,63 +795,148 @@ const CardsGrid = styled('div')`
   }
 `;
 
-// Card with hover effect
+// Card with subtle hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: ${p => p.theme.purple200};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-// Issue count badge - compact version
-const IssueCountBadge = styled('div')`
+// Zone 1: Title area - clean and prominent
+const CardHeader = styled('div')`
+  padding: ${space(3)} ${space(3)} ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const ClusterTitle = styled('h3')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: 600;
+  color: ${p => p.theme.textColor};
+  line-height: 1.3;
+  word-break: break-word;
+`;
+
+// Zone 2: Stats section with visual hierarchy
+const StatsSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
+  flex-wrap: wrap;
+`;
+
+const PrimaryStats = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(3)};
+`;
+
+const EventsMetric = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.red300};
+`;
+
+const EventsCount = styled('span')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: 700;
+  color: ${p => p.theme.textColor};
+  font-variant-numeric: tabular-nums;
+`;
+
+const FixabilityIndicator = styled('div')<{score: number}>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.purple100};
+  padding: ${space(0.75)} ${space(1.5)};
+  background: ${p =>
+    p.score >= 0.7
+      ? p.theme.green100
+      : p.score >= 0.4
+        ? p.theme.yellow100
+        : p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  flex-shrink: 0;
+  color: ${p =>
+    p.score >= 0.7
+      ? p.theme.green400
+      : p.score >= 0.4
+        ? p.theme.yellow400
+        : p.theme.gray400};
+  line-height: 1.2;
 `;
 
-const IssueCountNumber = styled('div')`
-  font-size: 24px;
-  font-weight: 600;
-  color: ${p => p.theme.purple400};
-  line-height: 1;
-`;
-
-// Horizontal stats bar below header
-const ClusterStatsBar = styled('div')`
+const SecondaryStats = styled('div')`
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${space(2)};
-  padding: ${space(1.5)} 0;
-  margin-top: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  gap: ${space(3)};
+`;
+
+const SecondaryStatItem = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+`;
+
+// Zone 3: Issues list with clear containment
+const IssuesSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const IssuesSectionHeader = styled('div')`
+  margin-bottom: ${space(1.5)};
+  color: ${p => p.theme.subText};
+  letter-spacing: 0.5px;
+`;
+
+const IssuesList = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const MoreIssuesIndicator = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
+  text-align: center;
+  font-style: italic;
+  padding-top: ${space(1)};
 `;
 
-const StatItem = styled('div')`
+// Zone 4: Footer with actions
+const CardFooter = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
+  justify-content: flex-end;
+  gap: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
-// Issue preview link with hover effect
+// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -878,7 +956,7 @@ const IssuePreviewLink = styled(Link)`
 // Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
@@ -896,6 +974,7 @@ const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
+  opacity: 0.9;
 `;
 
 // Meta separator line
