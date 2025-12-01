@@ -6933,7 +6933,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert is_query.status_code == 200, is_query.content
 
-        contains_query = self.do_request(
+        in_query = self.do_request(
             {
                 "field": ["span.description"],
                 "query": 'span.description:["foo \\*"]',
@@ -6941,5 +6941,5 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "dataset": "spans",
             }
         )
-        assert contains_query.status_code == 200, contains_query.content
-        assert is_query.data["data"] == contains_query.data["data"]
+        assert in_query.status_code == 200, in_query.content
+        assert is_query.data["data"] == in_query.data["data"]
