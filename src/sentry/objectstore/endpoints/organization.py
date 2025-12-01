@@ -109,13 +109,10 @@ class ChunkedEncodingDecoder:
     def read(self, size: int = -1) -> bytes:
         if self._done:
             return b""
-        if size == -1:
-            self._done = True
-            return self._read(-1)
 
         read = 0
         buffer: list[bytes] = []
-        while read < size:
+        while size == -1 or read < size:
             if self._current_chunk_remaining == 0:
                 # Read next chunk size line
                 size_line = b""
