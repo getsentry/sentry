@@ -18,6 +18,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
@@ -29,16 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 MAX_THREADS = 4
-ATTRS_DENYLIST = {
-    "sentry.item_id",
-    "sentry.trace_id",
-    "sentry.segment_id",
-    "sentry.parent_span_id",
-    "sentry.profile_id",
-    "sentry.event_id",
-    "sentry.parent_span_id",
-    "sentry.group",
-}
 
 
 class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
@@ -105,7 +96,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsV2EndpointBase):
         # Chunk attributes and run stats query in parallel
         chunked_attributes = defaultdict(list[AttributeKey])
         for i, attr in enumerate(attrs_response.attributes):
-            if attr.name in ATTRS_DENYLIST:
+            if attr.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
                 continue
 
             chunked_attributes[i % MAX_THREADS].append(
