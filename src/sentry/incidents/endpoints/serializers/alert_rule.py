@@ -377,7 +377,9 @@ class CombinedRuleSerializer(Serializer):
 
         serialized_alert_rules = serialize(alert_rules, user=user)
         serialized_alert_rule_map_by_id = {
-            serialized_alert["id"]: serialized_alert for serialized_alert in serialized_alert_rules
+            serialized_alert["id"]: serialized_alert
+            for serialized_alert in serialized_alert_rules
+            if serialized_alert
         }
 
         serialized_issue_rules = serialize(
@@ -386,7 +388,9 @@ class CombinedRuleSerializer(Serializer):
             serializer=RuleSerializer(expand=self.expand),
         )
         serialized_issue_rule_map_by_id = {
-            serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
+            serialized_rule["id"]: serialized_rule
+            for serialized_rule in serialized_issue_rules
+            if serialized_rule
         }
 
         uptime_detectors = [
