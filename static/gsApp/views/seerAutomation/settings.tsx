@@ -59,9 +59,9 @@ export default function SeerAutomationSettings() {
               fields: [
                 {
                   name: 'defaultAutofixAutomationTuning',
-                  label: t('Auto-Triggered Fixes by Default'),
+                  label: t('Auto-Trigger Fixes by Default'),
                   help: t(
-                    'For all new projects, Seer will automatically analyze highly actionable issues, and create a root cause analysis and proposed solution without a user needing to prompt it.'
+                    'For all new projects, Seer will automatically create a root cause analysis for highly actionable issues and propose a solution without a user needing to prompt it.'
                   ),
                   type: 'boolean',
                   // This will actually set the value to be "off" or "Moderately Actionable and Above (`medium`)"
@@ -69,9 +69,9 @@ export default function SeerAutomationSettings() {
                 {
                   // TODO: Depends on https://github.com/getsentry/sentry/pull/104049
                   name: 'autoOpenPrs',
-                  label: t('Allow Fix PR Creation by Default'),
+                  label: t('Enable Autofix PR Creation by Default'),
                   help: t(
-                    'For all new projects with connected repos, Seer will be able to make a pull requests for highly actionable issues.'
+                    'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
                   ),
                   type: 'boolean',
                 },
@@ -139,7 +139,7 @@ export default function SeerAutomationSettings() {
                               name: 'defaultRepoPRRunOnOpenedPullRequests',
                               label: t('Auto Run on Opened Pull Requests'),
                               help: t(
-                                'Run when a new pull request is published, ignoring new pushes.'
+                                'Run when a new pull request is published, ignoring subsequent pushes.'
                               ),
                               type: 'boolean',
                             },
