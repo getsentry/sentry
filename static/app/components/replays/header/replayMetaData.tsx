@@ -117,7 +117,6 @@ const KeyMetrics = styled('dl')`
   height: 42px;
   gap: 0 ${space(3)};
   align-items: center;
-  align-self: end;
   color: ${p => p.theme.subText};
   margin: 0;
 
