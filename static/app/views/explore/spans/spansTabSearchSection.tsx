@@ -24,6 +24,7 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -71,7 +72,7 @@ function CrossEventQueryingDropdown() {
     }
   };
 
-  const isDisabled = crossEvents?.length === 2;
+  const isDisabled = defined(crossEvents) && crossEvents.length >= 2;
   const tooltipTitle = isDisabled
     ? t('Maximum of 2 cross event queries allowed.')
     : t('For more targeted results, you can also cross reference other datasets.');
