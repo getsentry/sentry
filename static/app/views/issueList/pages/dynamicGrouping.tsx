@@ -53,9 +53,12 @@ interface ClusterSummary {
   fixability_score: number | null;
   group_ids: number[];
   issue_titles: string[]; // unused
-  project_ids: number[]; // unused
-  tags: string[]; // unused
+  project_ids: number[];
+  tags: string[];
   title: string;
+  code_area_tags?: string[];
+  error_type_tags?: string[];
+  service_tags?: string[];
 }
 
 interface TopIssuesResponse {
@@ -177,6 +180,27 @@ function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
+function ClusterTags({cluster}: {cluster: ClusterSummary}) {
+  const hasServiceTags = cluster.service_tags && cluster.service_tags.length > 0;
+  const hasErrorTypeTags = cluster.error_type_tags && cluster.error_type_tags.length > 0;
+  const hasCodeAreaTags = cluster.code_area_tags && cluster.code_area_tags.length > 0;
+
+  if (!hasServiceTags && !hasErrorTypeTags && !hasCodeAreaTags) {
+    return null;
+  }
+
+  return (
+    <Flex wrap="wrap" gap="xs" align="center">
+      {hasServiceTags &&
+        cluster.service_tags!.map(tag => <Tag key={`service-${tag}`}>{tag}</Tag>)}
+      {hasErrorTypeTags &&
+        cluster.error_type_tags!.map(tag => <Tag key={`error-${tag}`}>{tag}</Tag>)}
+      {hasCodeAreaTags &&
+        cluster.code_area_tags!.map(tag => <Tag key={`code-${tag}`}>{tag}</Tag>)}
+    </Flex>
+  );
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -244,13 +268,7 @@ function ClusterCard({
               )}
             </Fragment>
           )}
-          {cluster.tags && cluster.tags.length > 0 && (
-            <Flex wrap="wrap" gap="xs">
-              {cluster.tags.map(tag => (
-                <Tag key={tag}>{tag}</Tag>
-              ))}
-            </Flex>
-          )}
+          <ClusterTags cluster={cluster} />
         </Flex>
         <IssueCountBadge>
           <IssueCountNumber>{issueCount}</IssueCountNumber>
