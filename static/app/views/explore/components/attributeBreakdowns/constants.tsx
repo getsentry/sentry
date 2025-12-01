@@ -5,6 +5,3 @@ export const CHART_MAX_SERIES_LENGTH = 40;
 
 export const CHARTS_COLUMN_COUNT = 3;
 export const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
-
-export const CHART_SELECTED_SERIES_NAME = 'selected';
-export const CHART_BASELINE_SERIES_NAME = 'baseline';
