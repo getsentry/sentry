@@ -3,11 +3,12 @@ import {Fragment} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
   MetricCondition,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -31,19 +32,28 @@ interface MetricDetectorTriggeredSectionProps {
   event: Event;
 }
 
-function TriggeredConditionDetails({event}: {event: Event}) {
-  const evidenceData = event.occurrence?.evidenceData as
-    | MetricDetectorEvidenceData
-    | undefined;
-
+function isMetricDetectorEvidenceData(
+  evidenceData?: EventOccurrence['evidenceData']
+): evidenceData is MetricDetectorEvidenceData {
   if (
-    !evidenceData?.conditions ||
-    !evidenceData?.dataSources ||
-    evidenceData?.value === undefined
+    !defined(evidenceData) ||
+    !('dataSources' in evidenceData) ||
+    !Array.isArray(evidenceData.dataSources) ||
+    evidenceData.dataSources.length === 0
   ) {
-    return null;
+    return false;
   }
 
+  const dataSource = evidenceData.dataSources[0];
+
+  return 'type' in dataSource && dataSource.type === 'snuba_query_subscription';
+}
+
+function TriggeredConditionDetails({
+  evidenceData,
+}: {
+  evidenceData: MetricDetectorEvidenceData;
+}) {
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
@@ -87,7 +97,7 @@ function TriggeredConditionDetails({event}: {event: Event}) {
                 detectionType: 'static',
               },
             }),
-            subject: 'Triggered Condition',
+            subject: 'Condition',
           },
           {
             key: 'value',
@@ -103,6 +113,11 @@ function TriggeredConditionDetails({event}: {event: Event}) {
 export function MetricDetectorTriggeredSection({
   event,
 }: MetricDetectorTriggeredSectionProps) {
+  const evidenceData = event.occurrence?.evidenceData;
+  if (!isMetricDetectorEvidenceData(evidenceData)) {
+    return null;
+  }
+
   const message = event.occurrence?.subtitle;
 
   return (
@@ -113,7 +128,7 @@ export function MetricDetectorTriggeredSection({
         </InterimSection>
       )}
       <ErrorBoundary mini>
-        <TriggeredConditionDetails event={event} />
+        <TriggeredConditionDetails evidenceData={evidenceData} />
       </ErrorBoundary>
     </Fragment>
   );

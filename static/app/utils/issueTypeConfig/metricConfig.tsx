@@ -132,7 +132,6 @@ const metricConfig: IssueCategoryConfigMapping = {
     tags: {enabled: false},
     issueSummary: {enabled: false},
     groupingInfo: {enabled: false},
-    metricDetectorTriggered: {enabled: true},
   },
 };
 

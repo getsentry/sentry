@@ -8,6 +8,14 @@ import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 
 describe('MetricDetectorTriggeredSection', () => {
+  const condition: MetricCondition = {
+    id: 'cond-1',
+    type: DataConditionType.GREATER,
+    comparison: 100,
+    conditionResult: true,
+  };
+  const dataSource = SnubaQueryDataSourceFixture();
+
   it('renders nothing when event has no occurrence', () => {
     const event = EventFixture({
       occurrence: null,
@@ -17,7 +25,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders only Message when evidenceData is missing but subtitle exists', () => {
+  it('renders only message when conditions are missing but subtitle exists', () => {
     const event = EventFixture({
       occurrence: {
         id: '1',
@@ -26,7 +34,11 @@ describe('MetricDetectorTriggeredSection', () => {
         issueTitle: 'Test Issue',
         subtitle: 'Subtitle',
         resourceId: 'resource-1',
-        evidenceData: {},
+        evidenceData: {
+          conditions: [],
+          dataSources: [dataSource],
+          value: 150,
+        },
         evidenceDisplay: [],
         type: 8001,
         detectionTime: '2024-01-01T00:00:00Z',
@@ -42,7 +54,7 @@ describe('MetricDetectorTriggeredSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders nothing when evidenceData is missing and no subtitle', () => {
+  it('renders nothing when evidenceData is missing', () => {
     const event = EventFixture({
       occurrence: {
         id: '1',
@@ -63,14 +75,6 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('renders metric detector details with static condition', () => {
-    const condition: MetricCondition = {
-      id: 'cond-1',
-      type: DataConditionType.GREATER,
-      comparison: 100,
-      conditionResult: true,
-    };
-    const dataSource = SnubaQueryDataSourceFixture();
-
     const event = EventFixture({
       occurrence: {
         id: '1',
@@ -94,7 +98,7 @@ describe('MetricDetectorTriggeredSection', () => {
 
     // Check sections exist by aria-label
     expect(screen.getByRole('region', {name: 'Message'})).toBeInTheDocument();
-    expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Condition'})).toBeInTheDocument();
 
     // Check message content
     expect(screen.getByText('Subtitle')).toBeInTheDocument();

@@ -332,11 +332,7 @@ export function EventDetailsContent({
           </ErrorBoundary>
         </Fragment>
       )}
-      {issueTypeConfig.metricDetectorTriggered.enabled && (
-        <ErrorBoundary mini>
-          <MetricDetectorTriggeredSection event={event} />
-        </ErrorBoundary>
-      )}
+      <MetricDetectorTriggeredSection event={event} />
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
