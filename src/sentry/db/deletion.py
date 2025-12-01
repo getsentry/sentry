@@ -3,10 +3,9 @@ from __future__ import annotations
 import itertools
 from collections.abc import Generator
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.db import connections, router
-from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.utils.query import RangeQuerySetWrapper
@@ -105,25 +104,20 @@ class BulkDeleteQuery:
             queryset = queryset.filter(organization_id=self.organization_id)  # type: ignore[misc]
 
         step = batch_size
-        order_field = "id"
         if self.order_by:
             if self.order_by[0] == "-":
                 step = -batch_size
-                order_field = self.order_by[1:]
-            else:
-                order_field = self.order_by
 
-        # values_list returns tuples of (id, order_field_value)
-        queryset_values: QuerySet[Any, tuple[Any, Any]] = queryset.values_list("id", order_field)
+        # Use values_list to fetch only IDs - the wrapper will apply ordering by pk
+        queryset_values = queryset.values_list("id", flat=True)
 
         wrapper = RangeQuerySetWrapper(
             queryset_values,
             step=step,
-            order_by=order_field,
-            override_unique_safety_check=True,
-            result_value_getter=lambda item: item[1],
+            order_by="pk",
+            result_value_getter=lambda item: item,
             query_timeout_retries=10,
         )
 
         for batch in itertools.batched(wrapper, chunk_size):
-            yield tuple(item[0] for item in batch)
+            yield tuple(batch)
