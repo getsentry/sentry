@@ -100,7 +100,7 @@ class EncryptedField(Field):
             return f"{marker}:{encoded_data}"
 
     @sentry_sdk.trace
-    def get_prep_value(self, value: Any) -> str | None:
+    def get_prep_value(self, value: Any) -> Any:
         """Encrypt the value before saving to database."""
         value = super().get_prep_value(value)
         if value is None:
