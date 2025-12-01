@@ -416,6 +416,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         This is used to skip automatic migrations for queries that users have already modified.
         Only marks queries that already have a snapshot (i.e., were previously migrated).
         """
+        snuba_query.refresh_from_db()
         if snuba_query.query_snapshot is None:
             return
         snuba_query.query_snapshot["user_updated"] = True
