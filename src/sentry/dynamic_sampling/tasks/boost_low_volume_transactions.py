@@ -21,7 +21,7 @@ from snuba_sdk import (
 )
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
@@ -39,8 +39,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -133,28 +132,12 @@ def boost_low_volume_transactions() -> None:
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
-    total_num_transactions = project_transactions.get("total_num_transactions")
-    total_num_classes = project_transactions.get("total_num_classes")
-    transactions = [
-        RebalancedItem(id=id, count=count)
-        for id, count in project_transactions["transaction_counts"]
-    ]
-
-    try:
-        organization = Organization.objects.get_from_cache(id=org_id)
-    except Organization.DoesNotExist:
-        organization = None
-
-    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    organization = Organization.objects.get_from_cache(id=org_id, silent=True)
     if not has_dynamic_sampling(organization):
         return
-
     if is_project_mode_sampling(organization):
         sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
-        source = "project_setting"
     else:
-        # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
-        # resort to the blended sample rate of the org.
         sample_rate, success = get_boost_low_volume_projects_sample_rate(
             org_id=org_id,
             project_id=project_id,
@@ -162,50 +145,31 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
                 organization_id=org_id
             ),
         )
-        source = "boost_low_volume_projects" if success else "blended_sample_rate"
+    if (
+        sample_rate is None
+        or sample_rate == 1.0
+        or len(project_transactions["transaction_counts"]) == 0
+    ):
+        return
 
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="boost_low_volume_transactions",
-        source=source,
-        sample_rate=sample_rate,
-    )
-
-    if sample_rate is None:
-        sentry_sdk.capture_message(
-            "Sample rate of project not found when trying to adjust the sample rates of "
-            "its transactions"
+    transactions = [
+        RebalancedItem(id=id, count=count)
+        for id, count in project_transactions["transaction_counts"]
+    ]
+    try:
+        rebalanced_transactions = TransactionsRebalancingModel().run(
+            TransactionsRebalancingInput(
+                classes=transactions,
+                sample_rate=sample_rate,
+                total_num_classes=project_transactions.get("total_num_classes"),
+                total=project_transactions.get("total_num_transactions"),
+                intensity=0.8,
+            ),
         )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         return
 
-    if sample_rate == 1.0:
-        return
-
-    # the model fails when we are not having any transactions, thus we can simply return here
-    if len(transactions) == 0:
-        return
-
-    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
-
-    model = TransactionsRebalancingModel()
-    rebalanced_transactions = guarded_run(
-        model,
-        TransactionsRebalancingInput(
-            classes=transactions,
-            sample_rate=sample_rate,
-            total_num_classes=total_num_classes,
-            total=total_num_transactions,
-            intensity=intensity,
-        ),
-    )
-    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
-    if rebalanced_transactions is None:
-        return
-
-    # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
     named_rates, implicit_rate = rebalanced_transactions
     set_transactions_resampling_rates(
         org_id=org_id,
@@ -214,7 +178,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         default_rate=implicit_rate,
         ttl_ms=DEFAULT_REDIS_CACHE_KEY_TTL,
     )
-
     schedule_invalidate_project_config(
         project_id=project_id, trigger="dynamic_sampling_boost_low_volume_transactions"
     )

@@ -98,13 +98,14 @@ def boost_low_volume_projects() -> None:
         "boost_low_volume_projects",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
-
+    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
     # NB: This always uses the *transactions* root count just to get the list of orgs.
-    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60)):
+    for orgs in orgs_iterator:
         for measure, orgs in partition_by_measure(orgs).items():
-            for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
+            project_iterator = fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
-            ).items():
+            ).items()
+            for org_id, projects in project_iterator:
                 boost_low_volume_projects_of_org.apply_async(
                     kwargs={
                         "org_id": org_id,
