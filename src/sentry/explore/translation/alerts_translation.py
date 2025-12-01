@@ -13,7 +13,12 @@ from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     handle_send_historical_data_to_seer,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.utils.db import atomic_transaction
 from sentry.workflow_engine.models.data_condition import DataCondition
@@ -87,6 +92,11 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     snuba_query.aggregate = translated_aggregate
     snuba_query.query = translated_query
     snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+
+    if snapshot["dataset"] == Dataset.PerformanceMetrics.value:
+        snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
+    elif snapshot["dataset"] == Dataset.Transactions.value:
+        snuba_query.extrapolation_mode = ExtrapolationMode.NONE.value
 
     with atomic_transaction(
         using=(
