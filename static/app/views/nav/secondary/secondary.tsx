@@ -271,9 +271,6 @@ const Wrapper = styled('div')`
   grid-template-rows: auto 1fr auto;
 `;
 
-// This height of the sidebar header
-// It's used in detail pages to match the height of the sidebar header.
-const NAV_HEIGHT = '44px';
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
@@ -282,7 +279,8 @@ const Header = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   padding: 0 ${space(1)} 0 ${space(2)};
 
-  height: ${NAV_HEIGHT};
+  /* This is used in detail pages to match the height of sidebar header. */
+  height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   button {
