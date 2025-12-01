@@ -8,15 +8,14 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
-class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
-    # TODO: now that cross-project selection is enabled for all plans, we may be able to consolidate this with the generic OrganizationEventsV2Endpoint
+class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
 
