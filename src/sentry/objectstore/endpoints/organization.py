@@ -154,9 +154,16 @@ class ChunkedEncodingDecoder:
 
 
 def get_target_url(path: str) -> str:
-    objectstore_base = options.get("objectstore.config")["base_url"].rstrip("/")
-    target_url = urljoin(objectstore_base, path)
-    return target_url
+    base = options.get("objectstore.config")["base_url"].rstrip("/")
+    base_parsed = urlparse(base)
+
+    target = urljoin(base, path)
+    target_parsed = urlparse(target)
+
+    if target_parsed.scheme != base_parsed.scheme or target_parsed.netloc != base_parsed.netloc:
+        raise SuspiciousOperation("Possible SSRF attempt")
+
+    return target
 
 
 def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
