@@ -196,14 +196,14 @@ export function Chart({
       <div data-explore-chart-selection-region class="tooltip-series" style="padding: 0;">
         <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 0 auto; padding: 10px; min-width: 100px; max-width: 300px;">
           <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${truncatedName}</strong>
-          <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
             <span style="display: flex; align-items: center; gap: 6px;">
               <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort1Color}; display: inline-block;"></span>
               selected
             </span>
             <span>${selectedPct}</span>
           </span>
-          <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
             <span style="display: flex; align-items: center; gap: 6px;">
               <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${cohort2Color}; display: inline-block;"></span>
               baseline
@@ -231,8 +231,8 @@ export function Chart({
         '  id="tooltipActions"',
         '  style="',
         '    display: flex;',
-        '    justify-content: center;',
-        '    align-items: center;',
+        '    justify-content: flex-start;',
+        '    align-items: flex-start;',
         '    flex-direction: column;',
         '    padding: 0;',
         '    gap: 0;',
@@ -242,7 +242,7 @@ export function Chart({
         `    data-tooltip-action="${Actions.GROUP_BY}"`,
         `    data-tooltip-action-key="${escapedAttributeName}"`,
         `    data-tooltip-action-value="${escapedValue}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
         '  >',
@@ -252,7 +252,7 @@ export function Chart({
         `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
         `    data-tooltip-action-key="${escapedAttributeName}"`,
         `    data-tooltip-action-value="${escapedValue}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
         '  >',
@@ -262,7 +262,7 @@ export function Chart({
         `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
         `    data-tooltip-action-key="${escapedAttributeName}"`,
         `    data-tooltip-action-value="${escapedValue}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
         '  >',
@@ -272,7 +272,7 @@ export function Chart({
         `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
         `    data-tooltip-action-key="${escapedAttributeName}"`,
         `    data-tooltip-action-value="${escapedValue}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+        '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
         '  >',
