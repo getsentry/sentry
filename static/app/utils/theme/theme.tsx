@@ -10,7 +10,8 @@
 import type {CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
+import modifyColor from 'color';
+import {color} from 'sentry/utils/theme/scraps/color';
 import {spring, type Transition} from 'framer-motion';
 
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
@@ -1177,71 +1178,71 @@ const radius = {
 } as const;
 
 const lightColors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#FFFFFF', // background.primary
-  surface400: '#F7F6FB', // background.secondary
-  surface300: '#F1EEF9', // background.tertiary
-  surface200: '#EAE7F6', // border.muted
-  surface100: '#DFDBEF', // border.primary
+  surface500: color.white, // background.primary
+  surface400: color.neutral.light.opaque[100], // background.secondary
+  surface300: color.neutral.light.opaque[200], // background.tertiary
+  surface200: color.neutral.light.opaque[300], // border.muted
+  surface100: color.neutral.light.opaque[400], // border.primary
 
-  gray800: '#181423', // content.primary
-  gray700: '#3B434E', // ⚠ link.muted.active only
-  gray600: '#48515B', // ⚠ link.muted.hover only
-  gray500: '#57606B', // content.secondary, link.muted.default
-  gray400: '#707C89', // graphics.muted
-  gray300: 'rgba(112, 124, 137, 0.12)',
-  gray200: 'rgba(112, 124, 137, 0.09)',
-  gray100: 'rgba(112, 124, 137, 0.05)',
+  gray800: color.neutral.light.opaque[1400], // content.primary
+  gray700: color.neutral.light.opaque[1300], // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque[1200], // ⚠ link.muted.hover only
+  gray500: color.neutral.light.opaque[1100], // content.secondary, link.muted.default
+  gray400: color.neutral.light.opaque[1000], // graphics.muted
+  gray300: color.neutral.light.transparent[300],
+  gray200: color.neutral.light.transparent[200],
+  gray100: color.neutral.light.transparent[100],
 
-  blue700: '#4E09BC', // ⚠ link.accent.active only
-  blue600: '#5D0CDC', // ⚠ link.accent.hover only
-  blue500: '#6C02FF', // content.accent, link.accent.default
-  blue400: '#8466FF', // graphics.muted, border.accent
-  blue300: 'rgba(132, 102, 255, 0.13)',
-  blue200: 'rgba(132, 102, 255, 0.09)',
-  blue100: 'rgba(132, 102, 255, 0.05)',
+  blue700: color.blue.light.opaque[1400], // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque[1300], // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque[1200], // content.accent, link.accent.default
+  blue400: color.blue.light.opaque[1000], // graphics.muted, border.accent
+  blue300: color.blue.light.transparent[300],
+  blue200: color.blue.light.transparent[200],
+  blue100: color.blue.light.transparent[100],
 
-  pink700: '#A11B6C', // ⚠ link.promotion.active only
-  pink600: '#B60979', // ⚠ link.promotion.hover only
-  pink500: '#D5008D', // content.promotion, link.promotion.default
-  pink400: '#FF4EB3', // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 78, 179, 0.17)',
-  pink200: 'rgba(255, 78, 179, 0.12)',
-  pink100: 'rgba(255, 78, 179, 0.06)',
+  pink700: color.pink.light.opaque[1300], // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque[1200], // ⚠ link.promotion.hover only
+  pink500: color.pink.light.opaque[1100], // content.promotion, link.promotion.default
+  pink400: color.pink.light.opaque[1000], // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent[300],
+  pink200: color.pink.light.transparent[200],
+  pink100: color.pink.light.transparent[100],
 
-  red700: '#9C0819', // ⚠ link.danger.active only
-  red600: '#B1001B', // ⚠ link.danger.hover only
-  red500: '#CB0020', // ⚠ content.danger, link.danger.default
-  red400: '#FF002B', // graphics.danger, border.danger
-  red300: 'rgba(255, 0, 43, 0.10)',
-  red200: 'rgba(255, 0, 43, 0.08)',
-  red100: 'rgba(255, 0, 43, 0.04)',
+  red700: color.red.light.opaque[1200], // ⚠ link.danger.active only
+  red600: color.red.light.opaque[1100], // ⚠ link.danger.hover only
+  red500: color.red.light.opaque[1000], // ⚠ content.danger, link.danger.default
+  red400: color.red.light.opaque[1000], // graphics.danger, border.danger
+  red300: color.red.light.transparent[300],
+  red200: color.red.light.transparent[200],
+  red100: color.red.light.transparent[100],
 
-  yellow700: '#AD4A0D', // ⚠ link.warning.active only
-  yellow600: '#C55200', // ⚠ link.warning.hover only
-  yellow500: '#E66000', // content.warning, link.warning.default
-  yellow400: '#F3B01B', // graphics.warning, border.warning
-  yellow300: 'rgba(243, 176, 27, 0.24)',
-  yellow200: 'rgba(243, 176, 27, 0.17)',
-  yellow100: 'rgba(243, 176, 27, 0.07)',
+  yellow700: color.yellow.light.opaque[1300], // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque[1200], // ⚠ link.warning.hover only
+  yellow500: color.yellow.light.opaque[1100], // content.warning, link.warning.default
+  yellow400: color.yellow.light.opaque[600], // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent[300],
+  yellow200: color.yellow.light.transparent[200],
+  yellow100: color.yellow.light.transparent[100],
 
-  green700: '#01651F', // ⚠ link.success.active only
-  green600: '#017526', // ⚠ link.success.hover only
-  green500: '#06892F', // content.success, link.success.default
-  green400: '#06AC3D', // graphics.success, border.success
-  green300: 'rgba(6, 172, 61, 0.10)',
-  green200: 'rgba(6, 172, 61, 0.07)',
-  green100: 'rgba(6, 172, 61, 0.04)',
+  green700: color.green.light.opaque[1300], // ⚠ link.success.active only
+  green600: color.green.light.opaque[1200], // ⚠ link.success.hover only
+  green500: color.green.light.opaque[1100], // content.success, link.success.default
+  green400: color.green.light.opaque[800], // graphics.success, border.success
+  green300: color.green.light.transparent[300],
+  green200: color.green.light.transparent[200],
+  green100: color.green.light.transparent[100],
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.light.opaque[1000],
+    pink400: color.pink.light.opaque[800],
+    red400: color.red.light.opaque[1000],
+    yellow400: color.yellow.light.opaque[600],
+    green400: color.green.light.opaque[800],
   },
 };
 
@@ -1549,11 +1550,11 @@ const generateAliases = (
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
+    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
     warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -1562,11 +1563,11 @@ const generateAliases = (
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
+    validActive: modifyColor(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
+    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
     warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
+    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
 
@@ -1793,7 +1794,7 @@ const lightThemeDefinition = {
   level: generateLevelTheme(lightColors),
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1853,7 +1854,7 @@ export const darkTheme: SentryTheme = {
   level: generateLevelTheme(darkColors),
 
   chart: {
-    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
