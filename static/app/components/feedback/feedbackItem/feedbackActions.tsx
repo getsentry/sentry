@@ -147,13 +147,13 @@ function LargeWidth({
           {hasSeen ? t('Mark Unread') : t('Mark Read')}
         </Button>
       </Tooltip>
-      <Tooltip title={t('Copy feedback summary as markdown')}>
+      <Tooltip title={t('Copy feedback as markdown')}>
         <Button
           size="xs"
           priority="default"
           icon={<IconCopy />}
           onClick={onCopyToClipboard}
-          aria-label={t('Copy feedback summary as markdown')}
+          aria-label={t('Copy feedback as markdown')}
         />
       </Tooltip>
       <Tooltip
@@ -224,7 +224,7 @@ function MediumWidth({
             key: 'copy',
             label: t('Copy as markdown'),
             onAction: onCopyToClipboard,
-            tooltip: t('Copy feedback summary as markdown'),
+            tooltip: t('Copy feedback as markdown'),
           },
           {
             key: 'delete',
@@ -285,7 +285,7 @@ function SmallWidth({
           key: 'copy',
           label: t('Copy as markdown'),
           onAction: onCopyToClipboard,
-          tooltip: t('Copy feedback summary as markdown'),
+          tooltip: t('Copy feedback as markdown'),
         },
         {
           key: 'read',
