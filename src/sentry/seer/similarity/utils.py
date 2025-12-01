@@ -350,7 +350,7 @@ def stacktrace_exceeds_limits(
     # is using it for grouping (in which case none of the below conditions should apply), but still
     # worth checking that we have enough information to answer the question just in case
     if (
-        # Any ComponentVariant will have this, but this reassures mypy
+        # Should always have it, but this reassures mypy
         not contributing_component
         # Filter out events that don't use stacktrace-based grouping
         or "stacktrace" not in contributing_variant.key
