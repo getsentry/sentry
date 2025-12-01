@@ -298,6 +298,7 @@ class OrganizationExamples:
                 "defaultSeerScannerAutomation": True,
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
+                "autoOpenPrs": False,
                 "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
