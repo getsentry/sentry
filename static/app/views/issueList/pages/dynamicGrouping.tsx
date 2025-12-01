@@ -53,9 +53,12 @@ interface ClusterSummary {
   fixability_score: number | null;
   group_ids: number[];
   issue_titles: string[]; // unused
-  project_ids: number[]; // unused
-  tags: string[]; // unused
+  project_ids: number[];
+  tags: string[];
   title: string;
+  code_area_tags?: string[];
+  error_type_tags?: string[];
+  service_tags?: string[];
 }
 
 interface TopIssuesResponse {
@@ -177,6 +180,49 @@ function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
+interface ClusterTagsProps {
+  cluster: ClusterSummary;
+  onTagClick?: (tag: string) => void;
+  selectedTags?: Set<string>;
+}
+
+function ClusterTags({cluster, onTagClick, selectedTags}: ClusterTagsProps) {
+  const hasServiceTags = cluster.service_tags && cluster.service_tags.length > 0;
+  const hasErrorTypeTags = cluster.error_type_tags && cluster.error_type_tags.length > 0;
+  const hasCodeAreaTags = cluster.code_area_tags && cluster.code_area_tags.length > 0;
+
+  if (!hasServiceTags && !hasErrorTypeTags && !hasCodeAreaTags) {
+    return null;
+  }
+
+  const renderTag = (tag: string, key: string) => {
+    const isSelected = selectedTags?.has(tag);
+    return (
+      <ClickableTag
+        key={key}
+        onClick={e => {
+          e.stopPropagation();
+          onTagClick?.(tag);
+        }}
+        isSelected={isSelected}
+      >
+        {tag}
+      </ClickableTag>
+    );
+  };
+
+  return (
+    <Flex wrap="wrap" gap="xs" align="center">
+      {hasServiceTags &&
+        cluster.service_tags!.map(tag => renderTag(tag, `service-${tag}`))}
+      {hasErrorTypeTags &&
+        cluster.error_type_tags!.map(tag => renderTag(tag, `error-${tag}`))}
+      {hasCodeAreaTags &&
+        cluster.code_area_tags!.map(tag => renderTag(tag, `code-${tag}`))}
+    </Flex>
+  );
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -217,9 +263,13 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 function ClusterCard({
   cluster,
   onRemove,
+  onTagClick,
+  selectedTags,
 }: {
   cluster: ClusterSummary;
   onRemove: (clusterId: number) => void;
+  onTagClick?: (tag: string) => void;
+  selectedTags?: Set<string>;
 }) {
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
@@ -244,13 +294,11 @@ function ClusterCard({
               )}
             </Fragment>
           )}
-          {cluster.tags && cluster.tags.length > 0 && (
-            <Flex wrap="wrap" gap="xs">
-              {cluster.tags.map(tag => (
-                <Tag key={tag}>{tag}</Tag>
-              ))}
-            </Flex>
-          )}
+          <ClusterTags
+            cluster={cluster}
+            onTagClick={onTagClick}
+            selectedTags={selectedTags}
+          />
         </Flex>
         <IssueCountBadge>
           <IssueCountNumber>{issueCount}</IssueCountNumber>
@@ -346,6 +394,7 @@ function DynamicGrouping() {
   const {teams: userTeams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
@@ -429,6 +478,43 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
+  const handleTagClick = (tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  };
+
+  const handleClearTagFilter = (tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      next.delete(tag);
+      return next;
+    });
+  };
+
+  const handleClearAllTagFilters = () => {
+    setSelectedTags(new Set());
+  };
+
+  // Helper to check if a cluster has any of the selected tags
+  const clusterHasSelectedTags = (cluster: ClusterSummary): boolean => {
+    if (selectedTags.size === 0) return true;
+
+    const allClusterTags = [
+      ...(cluster.service_tags ?? []),
+      ...(cluster.error_type_tags ?? []),
+      ...(cluster.code_area_tags ?? []),
+    ];
+
+    return Array.from(selectedTags).every(tag => allClusterTags.includes(tag));
+  };
+
   // When using custom JSON data with filters disabled, skip all filtering and sorting
   const shouldSkipFilters = isUsingCustomData && disableFilters;
   const filteredAndSortedClusters = shouldSkipFilters
@@ -439,6 +525,9 @@ function DynamicGrouping() {
 
           const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
           if (fixabilityScore < minFixabilityScore) return false;
+
+          // Filter by selected tags
+          if (!clusterHasSelectedTags(cluster)) return false;
 
           if (filterByAssignedToMe) {
             if (!cluster.assignedTo?.length) return false;
@@ -560,6 +649,31 @@ function DynamicGrouping() {
               {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
 
+            {selectedTags.size > 0 && (
+              <ActiveTagFilters>
+                <Text size="sm" variant="muted">
+                  {t('Filtering by tags:')}
+                </Text>
+                <Flex wrap="wrap" gap="xs" align="center">
+                  {Array.from(selectedTags).map(tag => (
+                    <ActiveTagChip key={tag}>
+                      <Text size="xs">{tag}</Text>
+                      <Button
+                        size="zero"
+                        borderless
+                        icon={<IconClose size="xs" />}
+                        aria-label={t('Remove filter for %s', tag)}
+                        onClick={() => handleClearTagFilter(tag)}
+                      />
+                    </ActiveTagChip>
+                  ))}
+                  <Button size="xs" borderless onClick={handleClearAllTagFilters}>
+                    {t('Clear all')}
+                  </Button>
+                </Flex>
+              </ActiveTagFilters>
+            )}
+
             {!shouldSkipFilters && (
               <Container
                 padding="sm"
@@ -651,6 +765,8 @@ function DynamicGrouping() {
                 key={cluster.cluster_id}
                 cluster={cluster}
                 onRemove={handleRemoveCluster}
+                onTagClick={handleTagClick}
+                selectedTags={selectedTags}
               />
             ))}
           </CardsGrid>
@@ -833,6 +949,55 @@ const CustomDataBadge = styled('div')`
   border: 1px solid ${p => p.theme.yellow300};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.yellow400};
+`;
+
+const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  user-select: none;
+
+  ${p =>
+    p.isSelected &&
+    `
+    background: ${p.theme.purple100};
+    border-color: ${p.theme.purple300};
+    color: ${p.theme.purple400};
+  `}
+
+  &:hover {
+    background: ${p => (p.isSelected ? p.theme.purple200 : p.theme.gray100)};
+    border-color: ${p => (p.isSelected ? p.theme.purple400 : p.theme.gray300)};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+`;
+
+const ActiveTagFilters = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-top: ${space(1.5)};
+  flex-wrap: wrap;
+`;
+
+const ActiveTagChip = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1)};
+  background: ${p => p.theme.purple100};
+  border: 1px solid ${p => p.theme.purple200};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.purple400};
 `;
 
 export default DynamicGrouping;
