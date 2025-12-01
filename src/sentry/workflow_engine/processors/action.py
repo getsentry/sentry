@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -31,9 +30,9 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import scopedstats
+from sentry.workflow_engine.utils import log_context, scopedstats
 
-logger = logging.getLogger(__name__)
+logger = log_context.get_logger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 UpdatedStatuses = int
@@ -152,6 +151,17 @@ def update_workflow_action_group_statuses(
         for s in missing_statuses
         if (s.workflow_id, s.action_id) not in created_rows
     ]
+
+    # Log action_ids for debugging
+    attempted_action_ids = {s.action_id for s in missing_statuses}
+    created_action_ids = {action_id for _, action_id in created_rows}
+    logger.debug(
+        "workflow_action_group_status.creation",
+        extra={
+            "attempted_action_ids": list(attempted_action_ids),
+            "created_action_ids": list(created_action_ids),
+        },
+    )
 
     created_count = len(created_rows)
     return updated_count, created_count, conflicted_statuses
