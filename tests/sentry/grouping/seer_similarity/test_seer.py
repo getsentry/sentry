@@ -131,6 +131,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                     "platform": "java",
                     "referrer": "ingest",
                     "outcome": "block_tokens",
+                    "stacktrace_type": "system",
                 },
             )
             mock_record_did_call_seer.assert_any_call(
@@ -178,31 +179,31 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 },
             )
 
-        new_grouphash = GroupHash.objects.create(
-            project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
-        )
-        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
-        maybe_check_seer_for_matching_grouphash(
-            new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
-        )
+            new_grouphash = GroupHash.objects.create(
+                project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
+            )
+            group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
+            maybe_check_seer_for_matching_grouphash(
+                new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
+            )
 
-        mock_get_similarity_data.assert_called_with(
-            {
-                "event_id": new_event.event_id,
-                "hash": new_event.get_primary_hash(),
-                "project_id": self.project.id,
-                "stacktrace": ANY,
-                "exception_type": "FailedToFetchError",
-                "k": 1,
-                "referrer": "ingest",
-                "use_reranking": True,
-                "model": GroupingVersion.V1,
-                "training_mode": False,
-            },
-            {
-                "platform": "python",
-                "model_version": "v1",
-                "training_mode": False,
-                "hybrid_fingerprint": False,
-            },
-        )
+            mock_get_similarity_data.assert_called_with(
+                {
+                    "event_id": new_event.event_id,
+                    "hash": new_event.get_primary_hash(),
+                    "project_id": self.project.id,
+                    "stacktrace": ANY,
+                    "exception_type": "FailedToFetchError",
+                    "k": 1,
+                    "referrer": "ingest",
+                    "use_reranking": True,
+                    "model": GroupingVersion.V1,
+                    "training_mode": False,
+                },
+                {
+                    "platform": "python",
+                    "model_version": "v1",
+                    "training_mode": False,
+                    "hybrid_fingerprint": False,
+                },
+            )
