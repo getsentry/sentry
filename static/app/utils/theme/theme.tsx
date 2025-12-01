@@ -1247,71 +1247,71 @@ const lightColors = {
 };
 
 const darkColors: Colors = {
-  black: '#181423',
-  white: '#FFFFFF',
+  black: color.black,
+  white: color.white,
 
-  surface500: '#272433', // background.primary
-  surface400: '#231E2F', // background.secondary
-  surface300: '#191621', // background.teritary
-  surface200: '#0D071A', // border.muted
-  surface100: '#000000', // border.primary
+  surface500: color.neutral.dark.opaque[500], // background.primary
+  surface400: color.neutral.dark.opaque[400], // background.secondary
+  surface300: color.neutral.dark.opaque[300], // background.teritary
+  surface200: color.neutral.dark.opaque[300], // border.muted
+  surface100: color.neutral.dark.opaque[200], // border.primary
 
-  gray800: '#F6F5FA', // content.primary
-  gray700: '#C6C0D6', // ⚠ link.muted.active only
-  gray600: '#B3ADC3', // ⚠ link.muted.hover only
-  gray500: '#A39EB3', // content.secondary, link.muted.default
-  gray400: '#6F6F78', // // graphics.muted
-  gray300: 'rgba(110, 110, 119, 0.38)',
-  gray200: 'rgba(110, 110, 119, 0.28)',
-  gray100: 'rgba(110, 110, 119, 0.20)',
+  gray800: color.neutral.dark.opaque[1600], // content.primary
+  gray700: color.neutral.dark.opaque[1300], // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque[1200], // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque[1100], // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque[900], // // graphics.muted
+  gray300: color.neutral.dark.transparent[800],
+  gray200: color.neutral.dark.transparent[600],
+  gray100: color.neutral.dark.transparent[400],
 
-  blue700: '#BBB6FC', // ⚠ link.accent.active only
-  blue600: '#A89EFC', // ⚠ link.accent.hover only
-  blue500: '#9B8DFF', // content.accent, link.accent.default
-  blue400: '#8970FF', // // graphics.accent, border.accent
-  blue300: 'rgba(137, 112, 255, 0.26)',
-  blue200: 'rgba(137, 112, 255, 0.20)',
-  blue100: 'rgba(137, 112, 255, 0.14)',
+  blue700: color.blue.dark.opaque[1200], // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque[1100], // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque[1000], // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque[900], // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent[300],
+  blue200: color.blue.dark.transparent[200],
+  blue100: color.blue.dark.transparent[100],
 
-  pink700: '#FFC4DF', // ⚠ link.promotion.active only
-  pink600: '#FFA3CF', // ⚠ link.promotion.hover only
-  pink500: '#FF8BC6', // content.promotion, link.promotion.default
-  pink400: '#FF5CB6', // // graphics.promotion, border.promotion
-  pink300: 'rgba(255, 92, 182, 0.20)',
-  pink200: 'rgba(255, 92, 182, 0.15)',
-  pink100: 'rgba(255, 92, 182, 0.11)',
+  pink700: color.pink.dark.opaque[1300], // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque[1200], // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque[1100], // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque[1000], // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent[300],
+  pink200: color.pink.dark.transparent[200],
+  pink100: color.pink.dark.transparent[100],
 
-  red700: '#FFB0A8', // ⚠ link.danger.active only
-  red600: '#FF8A82', // ⚠ link.danger.hover only
-  red500: '#FF6B65', // content.danger, link.danger.default
-  red400: '#FF333C', // // graphics.danger, border.danger
-  red300: 'rgba(255, 51, 60, 0.26)',
-  red200: 'rgba(255, 51, 60, 0.20)',
-  red100: 'rgba(255, 51, 60, 0.16)',
+  red700: color.red.dark.opaque[1200], // ⚠ link.danger.active only
+  red600: color.red.dark.opaque[1100], // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque[1000], // content.danger, link.danger.default
+  red400: color.red.dark.opaque[900], // // graphics.danger, border.danger
+  red300: color.red.dark.transparent[300],
+  red200: color.red.dark.transparent[200],
+  red100: color.red.dark.transparent[100],
 
-  yellow700: '#FCEBB7', // ⚠ link.warning.active only
-  yellow600: '#F8DC86', // ⚠ link.warning.hover only
-  yellow500: '#FDCF20', // content.warning, link.warning.default
-  yellow400: '#F7B31C', // graphics.warning, border.warning
-  yellow300: 'rgba(247, 179, 28, 0.17)',
-  yellow200: 'rgba(247, 179, 28, 0.13)',
-  yellow100: 'rgba(247, 179, 28, 0.09)',
+  yellow700: color.yellow.dark.opaque[1500], // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque[1400], // ⚠ link.warning.hover only
+  yellow500: color.yellow.dark.opaque[1300], // content.warning, link.warning.default
+  yellow400: color.yellow.dark.opaque[1200], // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent[300],
+  yellow200: color.yellow.dark.transparent[200],
+  yellow100: color.yellow.dark.transparent[100],
 
-  green700: '#4AE969', // ⚠ link.success.active only
-  green600: '#32D859', // ⚠ link.success.hover only
-  green500: '#0CC848', // content.success, link.success.default
-  green400: '#09B340', // graphics.success, border.success
-  green300: 'rgba(9, 179, 64, 0.33)',
-  green200: 'rgba(9, 179, 64, 0.26)',
-  green100: 'rgba(9, 179, 64, 0.20)',
+  green700: color.green.dark.opaque[1400], // ⚠ link.success.active only
+  green600: color.green.dark.opaque[1300], // ⚠ link.success.hover only
+  green500: color.green.dark.opaque[1200], // content.success, link.success.default
+  green400: color.green.dark.opaque[1100], // graphics.success, border.success
+  green300: color.green.dark.transparent[600],
+  green200: color.green.dark.transparent[500],
+  green100: color.green.dark.transparent[400],
 
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
-    blue400: '#7553FF',
-    pink400: '#FF70BC',
-    red400: '#E50045',
-    yellow400: '#FFD00E',
-    green400: '#00F261',
+    blue400: color.blue.dark.opaque[900],
+    pink400: color.pink.dark.opaque[1000],
+    red400: color.red.dark.opaque[900],
+    yellow400: color.yellow.dark.opaque[1200],
+    green400: color.green.dark.opaque[1100],
   },
 };
 
