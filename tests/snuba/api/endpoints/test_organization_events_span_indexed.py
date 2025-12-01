@@ -6916,9 +6916,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         self.store_spans(
             [
                 self.create_span(
-                    {
-                        "description": "SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *"
-                    },
+                    {"description": "foo *"},
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -6928,7 +6926,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         is_query = self.do_request(
             {
                 "field": ["span.description"],
-                "query": 'span.description:"SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, \\*"',
+                "query": 'span.description:"foo \\*"',
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -6938,7 +6936,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         contains_query = self.do_request(
             {
                 "field": ["span.description"],
-                "query": 'span.description:["SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, \\*"]',
+                "query": 'span.description:["foo \\*"]',
                 "project": self.project.id,
                 "dataset": "spans",
             }
