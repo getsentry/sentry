@@ -18,7 +18,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {NAV_BORDER_BOTTOM, NAV_HEIGHT} from 'sentry/views/nav/secondary/secondary';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
@@ -114,17 +113,16 @@ const Header = styled(Layout.Header)`
 const NewUIHeader = styled('div')`
   padding-left: ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.lg};
-  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${space(1)};
   flex-flow: row wrap;
-  height: ${NAV_HEIGHT};
+  height: 44px;
 `;
 
 const StyledFlex = styled(Flex)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
-    ${p => p.theme.space.lg};
-  border-bottom: ${NAV_BORDER_BOTTOM} ${p => p.theme.innerBorder};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
