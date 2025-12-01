@@ -262,7 +262,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         settings = get_detection_settings(project_id=project.id)
         assert len(self.find_problems(event, settings)) == 1
 
-    @patch("sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector.metrics")
+    @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")
     def test_ignores_event_below_duration_threshold(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         assert self.find_problems(event) == []
@@ -270,7 +270,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             "mn_plus_one_db_span_detector.below_duration_threshold"
         )
 
-    @patch("sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector.metrics")
+    @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")
     def test_ignores_event_with_low_db_span_percentage(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         for index, span in enumerate(event["spans"]):
@@ -283,7 +283,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             "mn_plus_one_db_span_detector.below_db_span_percentage"
         )
 
-    @patch("sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector.metrics")
+    @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")
     def test_ignores_event_with_no_common_parent_span(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         previous_parent_span_id = None
@@ -297,7 +297,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert self.find_problems(event) == []
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
 
-    @patch("sentry.issue_detection.detectors.experiments.mn_plus_one_db_span_detector.metrics")
+    @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")
     def test_ignores_prisma_client_if_depth_config_is_too_small(
         self, metrics_mock: MagicMock
     ) -> None:
