@@ -54,6 +54,7 @@ class GroupSearchViewSerializer(Serializer):
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
                 as_user=user,
             )
+            if user is not None
         }
 
         for item in item_list:
