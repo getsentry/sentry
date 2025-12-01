@@ -48,18 +48,6 @@ describe('withChonk', () => {
     OrganizationStore.onUpdate(OrganizationFixture({features: []}));
   });
 
-  it('renders legacy component when chonk is disabled', () => {
-    const Component = withChonk(LegacyComponent, ChonkComponent, props => props);
-
-    render(
-      <ThemeAndStyleProvider>
-        <Component />
-      </ThemeAndStyleProvider>
-    );
-
-    expect(screen.getByText(/Legacy: false/)).toBeInTheDocument();
-  });
-
   it('renders chonk component when chonk is enabled', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
@@ -84,23 +72,6 @@ describe('withChonk', () => {
     );
 
     expect(screen.getByText(/Chonk: true/)).toBeInTheDocument();
-  });
-
-  it('passes ref to legacy component', () => {
-    const ref = createRef<HTMLDivElement>();
-    const Component = withChonk(
-      LegacyComponentWithRef,
-      ChonkComponentWithRef,
-      props => props
-    );
-
-    render(
-      <ThemeAndStyleProvider>
-        <Component ref={ref} />
-      </ThemeAndStyleProvider>
-    );
-    expect(ref.current).toBeInstanceOf(HTMLDivElement);
-    expect(screen.getByText(/Legacy: false/)).toBeInTheDocument();
   });
 
   it('passes ref to chonk component', () => {
