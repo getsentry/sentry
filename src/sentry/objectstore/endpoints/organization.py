@@ -49,9 +49,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
+                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
                 status=403,
             )
         return self._proxy("GET", path, request)
@@ -61,9 +59,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
+                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
                 status=403,
             )
         return self._proxy("PUT", path, request)
@@ -73,9 +69,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
+                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
                 status=403,
             )
         return self._proxy("POST", path, request)
@@ -85,9 +79,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
+                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
                 status=403,
             )
         return self._proxy("DELETE", path, request)
