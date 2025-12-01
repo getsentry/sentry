@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import type {Theme} from 'sentry/utils/theme';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
@@ -58,6 +59,27 @@ export function formatChartXAxisLabel(
   return value.slice(0, truncatedLength) + '…';
 }
 
+function createActionButton(
+  action: Actions,
+  label: string,
+  escapedAttributeName: string,
+  escapedValue: string,
+  actionBackground: string
+): string {
+  return [
+    '  <div',
+    `    data-tooltip-action="${action}"`,
+    `    data-tooltip-action-key="${escapedAttributeName}"`,
+    `    data-tooltip-action-value="${escapedValue}"`,
+    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
+    `    onmouseover="this.style.background='${actionBackground}'"`,
+    '    onmouseout="this.style.background=\'\'"',
+    '  >',
+    `    ${label}`,
+    '  </div>',
+  ].join('\n');
+}
+
 export function tooltipActionsHtmlRenderer(
   value: string,
   attributeName: string,
@@ -68,6 +90,14 @@ export function tooltipActionsHtmlRenderer(
   const escapedAttributeName = escape(attributeName);
   const escapedValue = escape(value);
   const actionBackground = theme.gray200;
+
+  const actions = [
+    {action: Actions.GROUP_BY, label: t('Group by attribute')},
+    {action: Actions.ADD_TO_FILTER, label: t('Add value to filter')},
+    {action: Actions.EXCLUDE_FROM_FILTER, label: t('Exclude value from filter')},
+    {action: Actions.COPY_TO_CLIPBOARD, label: t('Copy value to clipboard')},
+  ];
+
   return [
     '<div',
     '  data-explore-chart-selection-region',
@@ -82,46 +112,15 @@ export function tooltipActionsHtmlRenderer(
     '    gap: 0;',
     '  "',
     '>',
-    '  <div',
-    `    data-tooltip-action="${Actions.GROUP_BY}"`,
-    `    data-tooltip-action-key="${escapedAttributeName}"`,
-    `    data-tooltip-action-value="${escapedValue}"`,
-    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
-    `    onmouseover="this.style.background='${actionBackground}'"`,
-    '    onmouseout="this.style.background=\'\'"',
-    '  >',
-    '    Group by attribute',
-    '  </div>',
-    '  <div',
-    `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
-    `    data-tooltip-action-key="${escapedAttributeName}"`,
-    `    data-tooltip-action-value="${escapedValue}"`,
-    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
-    `    onmouseover="this.style.background='${actionBackground}'"`,
-    '    onmouseout="this.style.background=\'\'"',
-    '  >',
-    '    Add value to filter',
-    '  </div>',
-    '  <div',
-    `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
-    `    data-tooltip-action-key="${escapedAttributeName}"`,
-    `    data-tooltip-action-value="${escapedValue}"`,
-    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
-    `    onmouseover="this.style.background='${actionBackground}'"`,
-    '    onmouseout="this.style.background=\'\'"',
-    '  >',
-    '    Exclude value from filter',
-    '  </div>',
-    '  <div',
-    `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
-    `    data-tooltip-action-key="${escapedAttributeName}"`,
-    `    data-tooltip-action-value="${escapedValue}"`,
-    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
-    `    onmouseover="this.style.background='${actionBackground}'"`,
-    '    onmouseout="this.style.background=\'\'"',
-    '  >',
-    '    Copy value to clipboard',
-    '  </div>',
+    ...actions.map(({action, label}) =>
+      createActionButton(
+        action,
+        label,
+        escapedAttributeName,
+        escapedValue,
+        actionBackground
+      )
+    ),
     '</div>',
   ]
     .join('\n')
