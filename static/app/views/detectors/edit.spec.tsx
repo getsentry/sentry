@@ -571,7 +571,7 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
     });
 
-    it('disables column select when spans + count()', async () => {
+    it('limited options when selecting spans + count()', async () => {
       const spansDetector = MetricDetectorFixture({
         dataSources: [
           SnubaQueryDataSourceFixture({
@@ -606,9 +606,14 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: spansDetector.name})
       ).toBeInTheDocument();
 
-      // Column parameter should be locked to "spans" and disabled
+      // Column parameter should be locked to "spans" - verify only "spans" option is available
       const button = screen.getByRole('button', {name: 'spans'});
-      expect(button).toBeDisabled();
+      await userEvent.click(button);
+
+      // Verify only "spans" option exists in the dropdown
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(1);
+      expect(options[0]).toHaveTextContent('spans');
     });
 
     it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {

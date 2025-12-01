@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 
-import sentry_sdk
-
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import get_autofix_state
@@ -56,7 +54,10 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
-    from sentry.seer.autofix.issue_summary import _generate_fixability_score, get_issue_summary
+    from sentry.seer.autofix.issue_summary import (
+        get_and_update_group_fixability_score,
+        get_issue_summary,
+    )
 
     group = Group.objects.get(id=group_id)
     logger.info("Task: generate_issue_summary_only, group_id=%s", group_id)
@@ -64,16 +65,7 @@ def generate_issue_summary_only(group_id: int) -> None:
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    # Generate fixability score
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
-
-    if not issue_summary.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if issue_summary.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
-
-    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+    _ = get_and_update_group_fixability_score(group, force_generate=True)
 
 
 @instrumented_task(

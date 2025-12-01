@@ -6,7 +6,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-export type WidgetTemplate = Widget & {
+type WidgetTemplate = Widget & {
   description: string;
 };
 

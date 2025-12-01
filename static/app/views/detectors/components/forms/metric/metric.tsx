@@ -16,6 +16,7 @@ import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
@@ -49,6 +50,7 @@ import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
+import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -196,7 +198,7 @@ function validateMediumThreshold({
 interface PriorityRowProps {
   aggregate: string;
   detectionType: 'static' | 'percent';
-  priority: 'high' | 'medium';
+  priority: PriorityLevel;
   showComparisonAgo?: boolean;
 }
 
@@ -479,12 +481,12 @@ function DetectSection() {
                 </DefineThresholdParagraph>
                 <PriorityRowsContainer>
                   <PriorityRow
-                    priority="high"
+                    priority={PriorityLevel.HIGH}
                     detectionType="static"
                     aggregate={aggregate}
                   />
                   <PriorityRow
-                    priority="medium"
+                    priority={PriorityLevel.MEDIUM}
                     detectionType="static"
                     aggregate={aggregate}
                   />
@@ -501,13 +503,13 @@ function DetectSection() {
                 </DefineThresholdParagraph>
                 <PriorityRowsContainer>
                   <PriorityRow
-                    priority="high"
+                    priority={PriorityLevel.HIGH}
                     detectionType="percent"
                     aggregate={aggregate}
                     showComparisonAgo
                   />
                   <PriorityRow
-                    priority="medium"
+                    priority={PriorityLevel.MEDIUM}
                     detectionType="percent"
                     aggregate={aggregate}
                   />
@@ -680,14 +682,6 @@ const PriorityRowContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const PriorityDot = styled('div')<{priority: 'high' | 'medium'}>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: ${p => (p.priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
-  flex-shrink: 0;
 `;
 
 const PriorityLabel = styled('span')`

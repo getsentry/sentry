@@ -29,6 +29,14 @@ export function IssuesSecondaryNav() {
           <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
             {t('Feed')}
           </SecondaryNav.Item>
+          {hasTopIssuesUI && (
+            <SecondaryNav.Item
+              to={`${baseUrl}/dynamic-groups/`}
+              analyticsItemName="issues_dynamic_groups"
+            >
+              {t('Top Issues')}
+            </SecondaryNav.Item>
+          )}
         </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-types">
           {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
@@ -58,16 +66,6 @@ export function IssuesSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <IssueViews sectionRef={sectionRef} />
-        {hasTopIssuesUI && (
-          <SecondaryNav.Section id="issues-dynamic-groups">
-            <SecondaryNav.Item
-              to={`${baseUrl}/dynamic-groups/`}
-              analyticsItemName="issues_dynamic_groups"
-            >
-              {t('Top Issues')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
     </Fragment>

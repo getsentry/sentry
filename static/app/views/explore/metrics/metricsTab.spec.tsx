@@ -9,11 +9,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import type {PickableDays} from 'sentry/views/explore/utils';
 
-const datePageFilterProps: PickableDays = {
+jest.mock('sentry/utils/analytics');
+
+const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
   relativeOptions: ({arbitraryOptions}) => ({
@@ -171,7 +174,7 @@ describe('MetricsTabContent', () => {
   it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
-        <MetricsTabContent {...datePageFilterProps} />
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
         initialRouterConfig,
@@ -216,5 +219,36 @@ describe('MetricsTabContent', () => {
     // copies the last metric as a starting point
     expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
+  });
+
+  it('should fire analytics for metadata', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          organization,
+          metric_queries_count: 1,
+        })
+      );
+    });
+
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
   });
 });

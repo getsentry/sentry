@@ -845,6 +845,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_performance_issue(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         with self.feature("organizations:performance-issues"):
             blocks = SlackIssuesMessageBuilder(event.group, event).build()
         assert isinstance(blocks, dict)

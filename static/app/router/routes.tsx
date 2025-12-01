@@ -1214,10 +1214,21 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer Automation'),
+      component: make(() => import('getsentry/views/seerAutomation/index')),
       children: [
         {
           index: true,
-          component: make(() => import('getsentry/views/seerAutomation')),
+          component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
+        },
+        {
+          path: 'projects/',
+          name: t('Seer'),
+          component: make(() => import('getsentry/views/seerAutomation/projects')),
+        },
+        {
+          path: 'repositories/',
+          name: t('Seer'),
+          component: make(() => import('getsentry/views/seerAutomation/repositories')),
         },
         {
           path: 'onboarding/',
@@ -1658,7 +1669,9 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':alertId/',
-      component: make(() => import('sentry/views/alerts/incidentRedirect')),
+      component: make(
+        () => import('sentry/views/alerts/workflowEngineRedirectWrappers/incident')
+      ),
     },
     {
       path: ':projectId/',

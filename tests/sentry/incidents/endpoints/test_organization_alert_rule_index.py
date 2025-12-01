@@ -874,6 +874,45 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
             assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
 
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **self.alert_rule_dict
+                )
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            alert_rule_dict_2 = self.alert_rule_dict.copy()
+            alert_rule_dict_2["name"] = "Test Rule 2"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_2
+                )
+            alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_2, self.user)
+
+            alert_rule_dict_3 = self.alert_rule_dict.copy()
+            alert_rule_dict_3["name"] = "Test Rule 3"
+            with self.feature("organizations:incidents"):
+                resp = self.get_success_response(
+                    self.organization.slug, status_code=201, **alert_rule_dict_3
+                )
+            alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule_3, self.user)
+
+            alert_rule_dict_4 = self.alert_rule_dict.copy()
+            alert_rule_dict_4["name"] = "Test Rule 4"
+            with self.feature("organizations:incidents"):
+                resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
+                assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
+
     def test_sentry_app(self) -> None:
         other_org = self.create_organization(owner=self.user)
         sentry_app = self.create_sentry_app(

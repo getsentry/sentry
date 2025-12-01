@@ -504,9 +504,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
             additional_queries = AdditionalQueries(
-                span=request.GET.getlist("spanQueries"),
-                log=request.GET.getlist("logQueries"),
-                metric=request.GET.getlist("metricQueries"),
+                span=request.GET.getlist("spanQuery"),
+                log=request.GET.getlist("logQuery"),
+                metric=request.GET.getlist("metricQuery"),
             )
 
             def get_rpc_config():

@@ -3,6 +3,8 @@ import datetime
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
+from sentry.web.frontend.base import internal_region_silo_view
+
 from .mail import MailPreview
 
 
@@ -17,6 +19,7 @@ def get_context():
     }
 
 
+@internal_region_silo_view
 class DebugCronBrokenMonitorEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         context = get_context()

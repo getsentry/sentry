@@ -687,9 +687,13 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 
 export function applyDashboardFilters(
   baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined
+  dashboardFilters: DashboardFilters | undefined,
+  widgetType?: WidgetType
 ): string | undefined {
-  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  const dashboardFilterConditions = dashboardFiltersToString(
+    dashboardFilters,
+    widgetType
+  );
   if (dashboardFilterConditions) {
     if (baseQuery) {
       return `(${baseQuery}) ${dashboardFilterConditions}`;
@@ -698,3 +702,12 @@ export function applyDashboardFilters(
   }
   return baseQuery;
 }
+
+export const isChartDisplayType = (displayType?: DisplayType) => {
+  if (!displayType) {
+    return true;
+  }
+  return ![DisplayType.BIG_NUMBER, DisplayType.TABLE, DisplayType.DETAILS].includes(
+    displayType
+  );
+};

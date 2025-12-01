@@ -67,6 +67,7 @@ MCP_CONFIG = {
 }
 
 
+@all_silo_view
 class ClientConfigView(BaseView):
     def get(self, request: Request) -> HttpResponse:
         return HttpResponse(json.dumps(get_client_config(request)), content_type="application/json")

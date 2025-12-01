@@ -29,34 +29,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {useBuildDetailsActions} from './useBuildDetailsActions';
-
-function makeReleasesUrl(
-  projectId: string | undefined,
-  query: {appId?: string; version?: string}
-): string {
-  const {appId, version} = query;
-
-  // Not knowing the projectId should be transient.
-  if (projectId === undefined) {
-    return '#';
-  }
-
-  const params = new URLSearchParams();
-  params.set('project', projectId);
-  const parts = [];
-  if (appId) {
-    parts.push(`release.package:${appId}`);
-  }
-  if (version) {
-    parts.push(`release.version:${version}`);
-  }
-  if (parts.length) {
-    params.set('query', parts.join(' '));
-  }
-  return `/explore/releases/?${params}`;
-}
 
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
@@ -108,7 +83,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const breadcrumbs: Crumb[] = [
     {
       to: makeReleasesUrl(project?.id, {
-        version: buildDetailsData.app_info.version ?? undefined,
+        appId: buildDetailsData.app_info.app_id ?? undefined,
       }),
       label: 'Releases',
     },

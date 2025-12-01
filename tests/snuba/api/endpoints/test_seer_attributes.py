@@ -90,9 +90,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             )
 
         assert result == {
-            "values": {
-                "transaction": ["bar", "baz"],
-            }
+            "transaction": ["bar", "baz"],
         }
 
     def test_get_attributes_and_values(self) -> None:
@@ -165,7 +163,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             fields_with_substrings=[],
         )
 
-        expected: dict = {"values": {}}
+        expected: dict = {}
         assert result == expected
 
     def test_get_spans_basic(self) -> None:
