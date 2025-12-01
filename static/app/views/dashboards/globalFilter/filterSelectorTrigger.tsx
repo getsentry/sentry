@@ -5,8 +5,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Badge} from 'sentry/components/core/badge';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import type {UseQueryResult} from 'sentry/utils/queryClient';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
@@ -14,6 +15,7 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 type FilterSelectorTriggerProps = {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;
+  operator: TermOperator;
   options: Array<SelectOption<string>>;
   queryResult: UseQueryResult<string[], Error>;
 };
@@ -21,6 +23,7 @@ type FilterSelectorTriggerProps = {
 function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
+  operator,
   options,
   queryResult,
 }: FilterSelectorTriggerProps) {
@@ -36,12 +39,15 @@ function FilterSelectorTrigger({
 
   const tagKey = prettifyTagKey(tag.key);
   const filterValue = activeFilterValues[0] ?? '';
-  const separator = <FilterValueSeparator>{':'}</FilterValueSeparator>;
+  const isDefaultOperator = operator === TermOperator.DEFAULT;
+  const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
 
   return (
-    <ButtonLabelWrapper>
-      <FilterValueTruncated>{tagKey}</FilterValueTruncated>
-      {separator}
+    <ButtonLabelWrapper gap="xs">
+      <Flex align="center" gap={isDefaultOperator ? '0' : 'xs'}>
+        <FilterValueTruncated>{tagKey}</FilterValueTruncated>
+        <SubText>{opLabel}</SubText>
+      </Flex>
       {!isFetching && (
         <span style={{fontWeight: 'normal'}}>
           {isAllSelected ? (
@@ -64,7 +70,7 @@ export default FilterSelectorTrigger;
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0;
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -75,19 +81,20 @@ const StyledBadge = styled(Badge)`
   min-width: 16px;
   border-radius: 16px;
   font-size: 10px;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
 `;
 
 const ButtonLabelWrapper = styled(Flex)`
   align-items: center;
 `;
 
-const FilterValueSeparator = styled('span')`
-  margin-right: ${space(0.5)};
-`;
-
-const FilterValueTruncated = styled('div')`
+export const FilterValueTruncated = styled('div')`
   ${p => p.theme.overflowEllipsis};
   max-width: 300px;
   width: min-content;
+`;
+
+const SubText = styled('span')`
+  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
