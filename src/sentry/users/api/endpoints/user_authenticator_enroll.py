@@ -201,6 +201,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # error rather than silently switch to the superuser/staff user.
 
         # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
+        assert request.user.is_authenticated
         if user.id != request.user.id:
             user = User.objects.get(id=request.user.id)
 
