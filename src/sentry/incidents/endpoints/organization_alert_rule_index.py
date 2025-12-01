@@ -158,6 +158,30 @@ def create_metric_alert(
 
 
 class AlertRuleIndexMixin(Endpoint):
+    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
+        """
+        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
+        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
+        in their request.
+        """
+
+        # if the requesting user has any of these org-level permissions, then they can create an alert
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
+            return
+        # team admins should be able to create alerts for the projects they have access to
+        projects = self.get_projects(request, organization)
+        # team admins will have alerts:write scoped to their projects, members will not
+        team_admin_has_access = all(
+            [request.access.has_project_scope(project, "alerts:write") for project in projects]
+        )
+        # all() returns True for empty list, so include a check for it
+        if not team_admin_has_access or not projects:
+            raise PermissionDenied
+
     def fetch_metric_alert(
         self, request: Request, organization: Organization, alert_rules: BaseQuerySet[AlertRule]
     ) -> HttpResponseBase:
@@ -595,42 +619,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     }
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
-        """
-        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
-        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
-        in their request.
-        """
-        if features.has(
-            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
-        ):
-            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
-            # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
-
-            if alert_limit >= 0 and alert_count >= alert_limit:
-                raise ValidationError(
-                    f"You may not exceed {alert_limit} metric alerts on your current plan."
-                )
-
-        # if the requesting user has any of these org-level permissions, then they can create an alert
-        if (
-            request.access.has_scope("alerts:write")
-            or request.access.has_scope("org:admin")
-            or request.access.has_scope("org:write")
-        ):
-            return
-        # team admins should be able to create alerts for the projects they have access to
-        projects = self.get_projects(request, organization)
-        # team admins will have alerts:write scoped to their projects, members will not
-        team_admin_has_access = all(
-            [request.access.has_project_scope(project, "alerts:write") for project in projects]
-        )
-        # all() returns True for empty list, so include a check for it
-        if not team_admin_has_access or not projects:
-            raise PermissionDenied
-
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -824,5 +812,18 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
+            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            # filter out alert rules without any projects
+            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+
+            if alert_limit >= 0 and alert_count >= alert_limit:
+                raise ValidationError(
+                    f"You may not exceed {alert_limit} metric alerts on your current plan."
+                )
+
         self.check_can_create_alert(request, organization)
         return create_metric_alert(request, organization)
