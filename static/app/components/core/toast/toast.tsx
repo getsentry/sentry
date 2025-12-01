@@ -32,8 +32,10 @@ export interface ToastProps {
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
   const theme = useInvertedTheme();
 
+  const Wrapper = theme.isChonk ? React.Fragment : ThemeProvider;
+
   return (
-    <ThemeProvider theme={theme}>
+    <Wrapper theme={theme}>
       <ToastContainer
         onClick={
           indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
@@ -61,7 +63,7 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
           </ToastUndoButtonContainer>
         ) : null}
       </ToastContainer>
-    </ThemeProvider>
+    </Wrapper>
   );
 }
 
