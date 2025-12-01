@@ -55,7 +55,7 @@ export default function SeerAutomationSettings() {
           disabled={!canWrite}
           forms={[
             {
-              title: t('Default Automations for new projects'),
+              title: t('Default automations for new projects'),
               fields: [
                 {
                   name: 'defaultAutofixAutomationTuning',
