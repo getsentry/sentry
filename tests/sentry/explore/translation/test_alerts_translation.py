@@ -746,7 +746,10 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert event_types_arg == [SnubaQueryEventType.EventType.TRANSACTION]
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
-    def test_rollback_skips_user_updated_query(self) -> None:
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_rollback_skips_user_updated_query(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
         snuba_query = create_snuba_query(
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Transactions,
@@ -756,6 +759,12 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             environment=None,
             event_types=[SnubaQueryEventType.EventType.TRANSACTION],
             resolution=timedelta(minutes=1),
+        )
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
         )
 
         data_source = self.create_data_source(
@@ -776,18 +785,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
             workflow_condition_group=detector_data_condition_group,
         )
 
-        data_source.detectors.set([detector])
+        data_source.detectors.add(detector)
 
-        original_dataset = snuba_query.dataset
-        snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
-        snuba_query.query_snapshot = {
-            "type": snuba_query.type,
-            "dataset": original_dataset,
-            "query": snuba_query.query,
-            "aggregate": snuba_query.aggregate,
-            "time_window": snuba_query.time_window,
-            "user_updated": True,
-        }
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.query_snapshot is not None
+        assert snuba_query.query_snapshot.get("user_updated") is None
+
+        snuba_query.query_snapshot["user_updated"] = True
         snuba_query.save()
 
         rollback_detector_query_and_update_subscription_in_snuba(snuba_query)
