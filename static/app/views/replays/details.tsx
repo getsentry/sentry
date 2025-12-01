@@ -59,14 +59,14 @@ export default function ReplayDetails() {
   const content = organization.features.includes('replay-details-new-ui') ? (
     <Fragment>
       <Flex direction="column">
-        <NewUIHeader>
+        <NewTopHeader>
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
-        </NewUIHeader>
-        <StyledFlex justify="between" align="center">
+        </NewTopHeader>
+        <NewBottonHeader justify="between" align="center">
           <ReplayDetailsUserBadge readerResult={readerResult} />
           <ReplayDetailsMetadata readerResult={readerResult} />
-        </StyledFlex>
+        </NewBottonHeader>
       </Flex>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
@@ -110,7 +110,7 @@ const Header = styled(Layout.Header)`
   }
 `;
 
-const NewUIHeader = styled('div')`
+const NewTopHeader = styled('div')`
   padding-left: ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -122,7 +122,7 @@ const NewUIHeader = styled('div')`
   height: 44px;
 `;
 
-const StyledFlex = styled(Flex)`
+const NewBottonHeader = styled(Flex)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
