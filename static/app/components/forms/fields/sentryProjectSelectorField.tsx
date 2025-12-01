@@ -47,12 +47,14 @@ function SelectedProjectMultiValueLabel({
   return (
     <components.MultiValueLabel data={data} {...props}>
       <Flex align="center" gap="xs">
-        <IdBadge
-          project={data.project}
-          avatarSize={14}
-          avatarProps={{consistentWidth: true}}
-          hideName
-        />
+        {data.project ? (
+          <IdBadge
+            project={data.project}
+            avatarSize={14}
+            avatarProps={{consistentWidth: true}}
+            hideName
+          />
+        ) : null}
         {children}
       </Flex>
     </components.MultiValueLabel>
