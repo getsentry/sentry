@@ -1,14 +1,27 @@
 from collections.abc import Callable, Generator
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from sentry.utils.env import in_test_environment
+
+uwsgi: Any = None
+try:
+    import uwsgi
+except ImportError:
+    if not (settings.IS_DEV or in_test_environment()):
+        raise RuntimeError(
+            "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
+        )
+    pass
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -35,28 +48,48 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(status=404)
+            return Response(
+                {
+                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
+                },
+                status=403,
+            )
         return self._proxy("GET", path, request)
 
     def put(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(status=404)
+            return Response(
+                {
+                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
+                },
+                status=403,
+            )
         return self._proxy("PUT", path, request)
 
     def post(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(status=404)
+            return Response(
+                {
+                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
+                },
+                status=403,
+            )
         return self._proxy("POST", path, request)
 
     def delete(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(status=404)
+            return Response(
+                {
+                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
+                },
+                status=403,
+            )
         return self._proxy("DELETE", path, request)
 
     def _proxy(
@@ -65,7 +98,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         path: str,
         request: Request,
     ) -> Response | StreamingHttpResponse:
-
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
@@ -76,12 +108,28 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
-        stream = None
+        stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
         if method in ("PUT", "POST"):
             wsgi_input = request.META.get("wsgi.input")
+
             if not wsgi_input:
                 return Response("Expected a request body", status=400)
-            stream = ChunkedEncodingDecoder(wsgi_input._read)
+
+            if not uwsgi:
+                # This is needed only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
+                # wsgiref doesn't handle chunked encoding automatically, and exposes different functions on the class it uses to represent the input stream.
+                # Therefore, we need to decode the chunked encoding ourselves using ChunkedEncodingDecoder.
+                stream = ChunkedEncodingDecoder(wsgi_input._read)
+            else:
+
+                def stream_generator():
+                    while True:
+                        chunk = uwsgi.chunked_read()
+                        if not chunk:
+                            break
+                        yield chunk
+
+                stream = stream_generator()
 
         response = requests.request(
             method,
@@ -156,6 +204,7 @@ class ChunkedEncodingDecoder:
 
 def get_target_url(path: str) -> str:
     base = options.get("objectstore.config")["base_url"].rstrip("/")
+    base = "http://localhost:8888"
     base_parsed = urlparse(base)
 
     target = urljoin(base, path)
@@ -174,7 +223,7 @@ def get_target_url(path: str) -> str:
 
 
 def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
-    def stream() -> Generator[bytes]:
+    def stream_generator() -> Generator[bytes]:
         response.raw.decode_content = False
         while True:
             chunk = response.raw.read(CHUNK_SIZE)
@@ -183,7 +232,7 @@ def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
             yield chunk
 
     streamed_response = StreamingHttpResponse(
-        streaming_content=stream(),
+        streaming_content=stream_generator(),
         status=response.status_code,
     )
 
