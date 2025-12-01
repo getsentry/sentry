@@ -98,6 +98,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_perf_issue_latest(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         url = f"/api/0/issues/{event.group.id}/events/latest/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -105,6 +106,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_perf_issue_oldest(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         url = f"/api/0/issues/{event.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -112,6 +114,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_perf_issue_event_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         url = f"/api/0/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -119,6 +122,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     def test_invalid_query(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         url = f"/api/0/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
         assert response.status_code == 400

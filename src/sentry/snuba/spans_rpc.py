@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.constants import DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
+from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -241,7 +241,12 @@ class Spans(rpc_dataset_common.RPCBase):
                     elif resolved_column.proto_definition.type == DOUBLE:
                         span[resolved_column.public_alias] = attribute.value.val_double
                     elif resolved_column.search_type == "boolean":
-                        span[resolved_column.public_alias] = attribute.value.val_int == 1
+                        span[resolved_column.public_alias] = (
+                            attribute.value.val_bool or attribute.value.val_int == 1
+                        )
+                    elif resolved_column.proto_definition.type == BOOLEAN:
+                        span[resolved_column.public_alias] = attribute.value.val_bool
+
                     elif resolved_column.proto_definition.type == INT:
                         span[resolved_column.public_alias] = attribute.value.val_int
                         if resolved_column.public_alias == "project.id":

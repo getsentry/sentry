@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -8,10 +8,9 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   it('returns 30/90 for spans without flag', () => {
-    const {result} = renderHook(() =>
+    const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
         dataCategories: [DataCategory.SPANS],
-        organization: OrganizationFixture({features: []}),
       })
     );
 
@@ -23,11 +22,14 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 90/90 for spans with flag', () => {
-    const {result} = renderHook(() =>
-      useMaxPickableDays({
-        dataCategories: [DataCategory.SPANS],
+    const {result} = renderHookWithProviders(
+      () =>
+        useMaxPickableDays({
+          dataCategories: [DataCategory.SPANS],
+        }),
+      {
         organization: OrganizationFixture({features: ['visibility-explore-range-high']}),
-      })
+      }
     );
 
     expect(result.current).toEqual({
@@ -38,10 +40,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/30 days for tracemetrics', () => {
-    const {result} = renderHook(() =>
+    const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
         dataCategories: [DataCategory.TRACE_METRICS],
-        organization: OrganizationFixture(),
       })
     );
 
@@ -53,10 +54,9 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/30 days for logs', () => {
-    const {result} = renderHook(() =>
+    const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
         dataCategories: [DataCategory.LOG_BYTE, DataCategory.LOG_ITEM],
-        organization: OrganizationFixture(),
       })
     );
 
@@ -68,7 +68,7 @@ describe('useMaxPickableDays', () => {
   });
 
   it('returns 30/90 for many without flag', () => {
-    const {result} = renderHook(() =>
+    const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
         dataCategories: [
           DataCategory.SPANS,
@@ -77,7 +77,6 @@ describe('useMaxPickableDays', () => {
           DataCategory.LOG_BYTE,
           DataCategory.LOG_ITEM,
         ],
-        organization: OrganizationFixture(),
       })
     );
 

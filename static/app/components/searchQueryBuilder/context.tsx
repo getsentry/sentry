@@ -2,11 +2,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type Dispatch,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
@@ -26,10 +28,12 @@ import type {
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -188,6 +192,35 @@ export function SearchQueryBuilderProvider({
     ]
   );
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
+
+  const previousQuery = usePrevious(state.query);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    // on the first render, we want to check the currently parsed query,
+    // then on subsequent renders, we want to ensure the parsedQuery hasnt changed
+    if (!firstRender.current && state.query === previousQuery) {
+      return;
+    }
+    firstRender.current = false;
+
+    const warnings = parsedQuery?.filter(
+      token => 'warning' in token && defined(token.warning)
+    )?.length;
+    if (warnings) {
+      Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
+        attributes: {searchSource},
+      });
+    }
+
+    const invalids = parsedQuery?.filter(
+      token => 'invalid' in token && defined(token.invalid)
+    )?.length;
+    if (invalids) {
+      Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {
+        attributes: {searchSource},
+      });
+    }
+  }, [parsedQuery, state.query, previousQuery, searchSource]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,

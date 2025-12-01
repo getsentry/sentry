@@ -1017,7 +1017,6 @@ def _make_get_trace_request(
         - timestamp: ISO 8601 timestamp, Z suffix.
         - attributes: A dictionary of dictionaries, where the keys are the attribute names.
           - attributes[name].value: The value of the attribute (primitives only)
-          - attributes[name].type: The type of the attribute ("str", "int", "double", "bool")
     """
     organization = cast(Organization, resolver.params.organization)
     projects = list(resolver.params.projects)
@@ -1065,43 +1064,41 @@ def _make_get_trace_request(
             attr_dict: dict[str, dict[str, Any]] = {}
             for a in item.attributes:
                 r = resolved_attrs_by_internal_name.get(a.key.name)
-                public_alias = r.public_alias if r else a.key.name
-                if public_alias == "project_id":  # Same internal name, normalize to project.id
-                    public_alias = "project.id"
+                name = r.public_alias if r else a.key.name
+
+                if name.startswith("sentry._internal"):
+                    continue
+
+                if name == "project_id":  # Same internal name, normalize to project.id
+                    name = "project.id"
 
                 # Note - custom attrs not in the definitions can only be returned as strings or doubles.
                 if a.key.type == STRING:
-                    attr_dict[public_alias] = {
+                    attr_dict[name] = {
                         "value": a.value.val_str,
-                        "type": "str",
                     }
                 elif a.key.type == DOUBLE:
-                    attr_dict[public_alias] = {
+                    attr_dict[name] = {
                         "value": a.value.val_double,
-                        "type": "double",
                     }
                 elif a.key.type == BOOLEAN:
-                    attr_dict[public_alias] = {
+                    attr_dict[name] = {
                         "value": a.value.val_bool,
-                        "type": "bool",
                     }
                 elif a.key.type == INT:
                     if r and r.search_type == "boolean":
-                        attr_dict[public_alias] = {
+                        attr_dict[name] = {
                             "value": a.value.val_int == 1,
-                            "type": "bool",
                         }
                     else:
-                        attr_dict[public_alias] = {
+                        attr_dict[name] = {
                             "value": a.value.val_int,
-                            "type": "int",
                         }
 
-                    if public_alias == "project.id":
+                    if name == "project.id":
                         # Enrich with project slug, alias "project"
                         attr_dict["project"] = {
                             "value": resolver.params.project_id_map.get(a.value.val_int, "Unknown"),
-                            "type": "str",
                         }
 
             item_dicts.append(
