@@ -9,7 +9,7 @@ import sentry_sdk
 from tokenizers import Tokenizer
 
 from sentry import options
-from sentry.constants import DATA_ROOT
+from sentry.constants import AUTO_OPEN_PRS_DEFAULT, DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant, ComponentVariant
@@ -525,9 +525,8 @@ def set_default_project_seer_scanner_automation(
 
 def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
     """Copy org-level autoOpenPrs setting to new project. UI uses this for automated_run_stopping_point default."""
-    org_auto_open_prs = organization.get_option("sentry:auto_open_prs")
-    if org_auto_open_prs:
-        project.update_option("sentry:auto_open_prs", org_auto_open_prs)
+    org_auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+    project.update_option("sentry:auto_open_prs", org_auto_open_prs)
 
 
 def report_token_count_metric(
