@@ -484,7 +484,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
@@ -531,7 +531,7 @@ class UnfurlTest(TestCase):
         assert dataset == Spans
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_ourlogs_events_stats_call(
@@ -627,7 +627,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["incidents"]) == 0
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -662,7 +662,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [
                 (i * INTERVAL_COUNT, [{"count": 0}]) for i in range(int(INTERVALS_PER_DAY / 6))
@@ -702,7 +702,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == 48
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "count()": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -750,7 +750,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["count_unique(user)"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -787,7 +787,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first,capable-hagfish,None": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -859,7 +859,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -921,7 +921,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -976,7 +976,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -1044,7 +1044,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == 2
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1102,7 +1102,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1149,7 +1149,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -1328,7 +1328,7 @@ class UnfurlTest(TestCase):
         assert api_mock.call_args[1]["params"]["interval"] == "10m"
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_saved_query_with_dataset(
@@ -1383,7 +1383,7 @@ class UnfurlTest(TestCase):
         assert dataset == transactions
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,

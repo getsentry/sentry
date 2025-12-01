@@ -19,7 +19,7 @@ from snuba_sdk import Column, Function
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -734,7 +734,7 @@ def pad_span_id(span: str | None) -> str:
     return span.rjust(16, "0")
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -1448,7 +1448,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

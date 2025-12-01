@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission
-from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import (
@@ -27,7 +27,7 @@ from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse, TimeSer
 
 
 @region_silo_endpoint
-class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,

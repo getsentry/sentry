@@ -13,7 +13,7 @@ from snuba_sdk.function import Function
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -80,7 +80,7 @@ class TrendQueryBuilder(DiscoverQueryBuilder):
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
 
-class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
