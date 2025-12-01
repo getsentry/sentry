@@ -1,6 +1,7 @@
 import {Fragment, memo, useMemo, type Key} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -210,7 +211,7 @@ function SpansTabCrossEventSearchBars() {
     return null;
   }
 
-  return crossEvents.map((crossEvent, index) => {
+  return crossEvents.slice(0, 2).map((crossEvent, index) => {
     const traceItemType =
       crossEvent.type === 'spans'
         ? TraceItemDataset.SPANS
@@ -413,6 +414,13 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
           </Grid>
+          {hasCrossEvents && crossEvents.length > 2 ? (
+            <Container paddingTop="md">
+              <Alert type="warning">
+                {t('You can add up to a maximum of 2 cross event queries.')}
+              </Alert>
+            </Container>
+          ) : null}
           {hasCrossEvents ? null : (
             <ExploreSchemaHintsSection>
               <SchemaHintsList
