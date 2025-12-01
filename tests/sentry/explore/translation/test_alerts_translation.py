@@ -330,7 +330,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert snuba_query.aggregate == "count_unique(user)"
         assert snuba_query.query == "(transaction:/api/*) AND is_transaction:1"
-        assert snuba_query.extrapolation_mode == ExtrapolationMode.NONE.value
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value
 
         assert mock_create_rpc.called
         call_args = mock_create_rpc.call_args
