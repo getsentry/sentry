@@ -12,7 +12,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
@@ -66,7 +66,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.PROFILING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
