@@ -1,3 +1,6 @@
+# Legacy organization index endpoint on the region silo.
+# Once get/post have been fully migrated to the control silo this file can be deleted.
+
 import logging
 
 import sentry_sdk
@@ -67,9 +70,11 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         return value
 
 
+# This endpoint is in the process of moving from the region to control silo to enable cellularization
+# It is temporarily marked all_silo_endpoint until the migration/deprecation period is complete
 @extend_schema(tags=["Users"])
 @region_silo_endpoint
-class OrganizationIndexEndpoint(Endpoint):
+class OrganizationIndexEndpointLegacy(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
@@ -229,7 +234,8 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if not features.has("organizations:create", actor=request.user):
             return Response(
-                {"detail": "Organizations are not allowed to be created by this user."}, status=401
+                {"detail": "Organizations are not allowed to be created by this user."},
+                status=401,
             )
 
         limit = options.get("api.rate-limit.org-create")
