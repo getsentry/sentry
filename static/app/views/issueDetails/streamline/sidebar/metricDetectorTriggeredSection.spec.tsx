@@ -98,7 +98,7 @@ describe('MetricDetectorTriggeredSection', () => {
 
     // Check sections exist by aria-label
     expect(screen.getByRole('region', {name: 'Message'})).toBeInTheDocument();
-    expect(screen.getByRole('region', {name: 'Condition'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
 
     // Check message content
     expect(screen.getByText('Subtitle')).toBeInTheDocument();

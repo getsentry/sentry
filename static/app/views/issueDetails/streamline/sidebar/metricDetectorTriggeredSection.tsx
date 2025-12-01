@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {
   MetricCondition,
@@ -69,23 +70,23 @@ function TriggeredConditionDetails({
         shouldSort={false}
         data={[
           {
-            key: 'Aggregate',
+            key: 'aggregate',
             value: snubaQuery.aggregate,
-            subject: 'Aggregate',
+            subject: t('Aggregate'),
           },
           ...(snubaQuery.query
             ? [
                 {
                   key: 'query',
                   value: snubaQuery.query,
-                  subject: 'Query',
+                  subject: t('Query'),
                 },
               ]
             : []),
           {
             key: 'interval',
             value: getExactDuration(snubaQuery.timeWindow),
-            subject: 'Interval',
+            subject: t('Interval'),
           },
           {
             key: 'condition',
@@ -97,12 +98,12 @@ function TriggeredConditionDetails({
                 detectionType: 'static',
               },
             }),
-            subject: 'Condition',
+            subject: t('Condition'),
           },
           {
             key: 'value',
             value,
-            subject: 'Evaluated Value',
+            subject: t('Evaluated Value'),
           },
         ]}
       />
