@@ -162,6 +162,8 @@ def get_target_url(path: str) -> str:
 
     if target_parsed.scheme != base_parsed.scheme or target_parsed.netloc != base_parsed.netloc:
         raise SuspiciousOperation("Possible SSRF attempt")
+    if ".." in path:
+        raise SuspiciousOperation("Possible path traversal attempt")
 
     return target
 
