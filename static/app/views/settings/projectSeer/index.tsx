@@ -8,7 +8,10 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  useProjectSeerPreferences,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -306,11 +309,23 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         {
           onError: () => {
             addErrorMessage(t('Failed to update auto-open PR setting'));
+            // Refetch to reset form state to backend value
+            queryClient.invalidateQueries({
+              queryKey: [
+                makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+              ],
+            });
           },
         }
       );
     },
-    [updateProjectSeerPreferences, preference?.repositories]
+    [
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      queryClient,
+      organization.slug,
+      project.slug,
+    ]
   );
 
   // Handler for Cursor handoff toggle (triage-signals-v0)
@@ -339,6 +354,12 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           {
             onError: () => {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
+              // Refetch to reset form state to backend value
+              queryClient.invalidateQueries({
+                queryKey: [
+                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+                ],
+              });
             },
           }
         );
@@ -354,12 +375,25 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           {
             onError: () => {
               addErrorMessage(t('Failed to update Cursor handoff setting'));
+              // Refetch to reset form state to backend value
+              queryClient.invalidateQueries({
+                queryKey: [
+                  makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+                ],
+              });
             },
           }
         );
       }
     },
-    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+    [
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      cursorIntegration,
+      queryClient,
+      organization.slug,
+      project.slug,
+    ]
   );
 
   const automatedRunStoppingPointField = {
