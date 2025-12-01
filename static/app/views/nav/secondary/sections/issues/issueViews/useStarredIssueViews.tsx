@@ -21,7 +21,7 @@ export function useStarredIssueViews() {
       // XXX (malwilley): Issue views without the nav require at least one issue view,
       // so they respond with "fake" issue views that do not have an ID.
       // We should remove this from the backend and here once we remove the tab-based views.
-      ?.filter(view => defined(view.id))
+      ?.filter(view => defined(view?.id))
       .map(convertGSVtoIssueView) ?? [];
 
   const setStarredIssueViews = useCallback(
