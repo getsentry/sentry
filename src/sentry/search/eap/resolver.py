@@ -44,14 +44,11 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ColumnDefinitions,
-    ConditionalAggregateDefinition,
     FormulaDefinition,
-    ResolvedAggregate,
     ResolvedAttribute,
     ResolvedColumn,
-    ResolvedConditionalAggregate,
     ResolvedEquation,
-    ResolvedFormula,
+    ResolvedFunction,
     ResolvedLiteral,
     ValueArgumentDefinition,
     VirtualColumnDefinition,
@@ -84,20 +81,18 @@ class SearchResolver:
     _resolved_function_cache: dict[
         str,
         tuple[
-            ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
+            ResolvedFunction,
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
-    ) -> ConditionalAggregateDefinition | FormulaDefinition | AggregateDefinition:
+    ) -> FormulaDefinition | AggregateDefinition:
         if function_name in self.definitions.aggregates:
             return self.definitions.aggregates[function_name]
         elif function_name in self.definitions.formulas:
             return self.definitions.formulas[function_name]
-        elif function_name in self.definitions.conditional_aggregates:
-            return self.definitions.conditional_aggregates[function_name]
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
@@ -790,9 +785,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
-        list[
-            ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
-        ],
+        list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
         """Given a list of columns resolve them and get their context if applicable
@@ -832,7 +825,7 @@ class SearchResolver:
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
     ) -> tuple[
-        ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+        ResolvedAttribute | ResolvedFunction,
         VirtualColumnDefinition | None,
     ]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
@@ -938,7 +931,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_functions(self, columns: list[str]) -> tuple[
-        list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+        list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
         """Helper function to resolve a list of functions instead of 1 attribute at a time"""
@@ -954,10 +947,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
-    ) -> tuple[
-        ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
-        VirtualColumnDefinition | None,
-    ]:
+    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -1171,18 +1161,25 @@ class SearchResolver:
             )
         elif isinstance(operation, float):
             return Column(literal=LiteralValue(val_double=operation)), []
-        else:
-            # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
-            col, context = self.resolve_column(operation)
-            contexts = [context] if context is not None else []
-            if isinstance(col, ResolvedAttribute):
-                return Column(key=col.proto_definition), contexts
-            elif isinstance(col, ResolvedAggregate):
-                return Column(aggregation=col.proto_definition), contexts
-            elif isinstance(col, ResolvedConditionalAggregate):
-                return Column(conditional_aggregation=col.proto_definition), contexts
-            elif isinstance(col, ResolvedFormula):
-                return Column(formula=col.proto_definition), contexts
+
+        # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
+        col, context = self.resolve_column(operation)
+        contexts = [context] if context is not None else []
+        proto_definition = col.proto_definition
+
+        if isinstance(proto_definition, AttributeKey):
+            return Column(key=proto_definition), contexts
+
+        if isinstance(proto_definition, AttributeAggregation):
+            return Column(aggregation=proto_definition), contexts
+
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return Column(conditional_aggregation=proto_definition), contexts
+
+        if isinstance(proto_definition, Column.BinaryFormula):
+            return Column(formula=proto_definition), contexts
+
+        raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
     def resolve_dataset_conditions(
         self,
