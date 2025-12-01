@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState, type ComponentProps} from 'react';
+import {Fragment, useCallback, useMemo, useState, type ComponentProps} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -37,6 +37,20 @@ export function SlideOverPanelSkeletonPlayground() {
     setIsPanelOpen(false);
   }, []);
 
+  const fastChildren = useMemo(
+    () =>
+      function (options: {isOpening: boolean}) {
+        return options.isOpening ? (
+          <SkeletonPanelContents onClick={closePanel} />
+        ) : (
+          <PanelContents onClick={closePanel} />
+        );
+      },
+    [closePanel]
+  );
+
+  const slowChildren = <PanelContents onClick={closePanel} />;
+
   return (
     <Fragment>
       <Flex direction="column" gap="md">
@@ -51,29 +65,31 @@ export function SlideOverPanelSkeletonPlayground() {
       </Flex>
 
       <AnimatePresence>
-        <SlideOverPanel
-          collapsed={!isPanelOpen}
-          slidePosition="right"
-          skeleton={isSkeletonEnabled ? <SkeletonPanel onClick={closePanel} /> : null}
-        >
-          <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
-            <Button onClick={closePanel}>Close Panel</Button>
-            <Container>
-              <Alert type="warning">I took a very long time to render!</Alert>
-              <ManySlowComponents />
-            </Container>
-          </Flex>
+        <SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+          {isSkeletonEnabled ? fastChildren : slowChildren}
         </SlideOverPanel>
       </AnimatePresence>
     </Fragment>
   );
 }
 
-interface SkeletonPanelProps {
+interface PanelContentsProps {
   onClick: ComponentProps<typeof Button>['onClick'];
 }
 
-export function SkeletonPanel({onClick}: SkeletonPanelProps) {
+function PanelContents({onClick}: PanelContentsProps) {
+  return (
+    <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
+      <Button onClick={onClick}>Close Panel</Button>
+      <Container>
+        <Alert type="warning">I took a very long time to render!</Alert>
+        <ManySlowComponents />
+      </Container>
+    </Flex>
+  );
+}
+
+export function SkeletonPanelContents({onClick}: PanelContentsProps) {
   return (
     <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>

@@ -50,15 +50,17 @@ In the example below, try opening the panel with the skeleton turned off. You'll
   <SlideOverPanelSkeletonPlayground />
 </Storybook.Demo>
 
-To enable a loading skeleton, provide the `skeleton` prop.
+To enable a loading skeleton, pass a render prop as the children to `SlideOverPanel`, and conditionally render a skeleton based on the `isOpening` prop.
 
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right" skeleton={<Placeholder />}>
+<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+  {({isOpening}) => isOpening ? <Placeholder /> :
   <Container border="primary" height="100%" padding="md">
     <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
   </Container>
+}
 </SlideOverPanel>
 ```
 
