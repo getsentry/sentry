@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import NamedTuple
 
 import sentry_sdk
@@ -13,6 +14,8 @@ from sentry import options
 from sentry.api.exceptions import SentryAPIException
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -20,23 +23,31 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.services.eventstore.models import GroupEvent
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     ERROR_DETECTOR_NAME,
     ISSUE_STREAM_DETECTOR_NAME,
     DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorPriorityLevel,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
-VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
+VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug, MetricIssue.slug]
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
@@ -97,7 +108,95 @@ def _ensure_detector(project: Project, type: str) -> Detector:
         raise UnableToAcquireLockApiError
 
 
+def _ensure_metric_detector(project: Project, created_by_id: int | None = None) -> Detector:
+    """
+    Creates an default anomaly detection metric monitor for high error count.
+    """
+
+    lock = locks.get(
+        f"workflow-engine-project-{MetricIssue.slug}-detector:{project.id}",
+        duration=2,
+        name=f"workflow_engine_default_{MetricIssue.slug}_detector",
+    )
+    try:
+        with (
+            lock.blocking_acquire(initial_delay=0.1, timeout=3),
+            transaction.atomic(router.db_for_write(Detector)),
+        ):
+
+            # Create condition group
+            condition_group = DataConditionGroup.objects.create(
+                logic_type=DataConditionGroup.Type.ANY,
+                organization_id=project.organization_id,
+            )
+
+            # Create anomaly detection conditions
+            # low, abov bounds only
+            DataCondition.objects.create(
+                comparison={
+                    "sensitivity": "low",
+                    "seasonality": "auto",
+                    "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+                },
+                condition_result=DetectorPriorityLevel.HIGH,
+                type=Condition.ANOMALY_DETECTION,
+                condition_group=condition_group,
+            )
+
+            # Create detector
+            detector = Detector.objects.create(
+                project=project,
+                name="High Error Count (Default)",
+                description="Automatically monitors for anomalous spikes in error count",
+                workflow_condition_group=condition_group,
+                type=MetricIssue.slug,
+                config={
+                    "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                    "comparison_delta": None,
+                },
+                owner_user_id=created_by_id,
+                created_by_id=created_by_id,
+            )
+
+            # Create Snuba query for error count monitoring
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",  # filter????
+                aggregate="count()",
+                time_window=timedelta(minutes=15),
+                resolution=timedelta(minutes=1),
+                environment=None,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+
+            # Create query subscription
+            query_subscription = create_snuba_subscription(
+                project=project,
+                subscription_type="incidents",
+                snuba_query=snuba_query,
+            )
+
+            # Create data source
+            data_source = DataSource.objects.create(
+                organization_id=project.organization_id,
+                source_id=str(query_subscription.id),
+                type="snuba_query_subscription",
+            )
+
+            # Link data source to detector
+            DataSourceDetector.objects.create(
+                data_source=data_source,
+                detector=detector,
+            )
+
+            return detector
+    except UnableToAcquireLock:
+        raise UnableToAcquireLockApiError
+
+
 def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
+    """Creates default error and issue stream detectors for a project."""
     return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
         project, IssueStreamGroupType.slug
     )
