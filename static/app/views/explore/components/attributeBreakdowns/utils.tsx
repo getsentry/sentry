@@ -1,3 +1,4 @@
+import {escape} from 'sentry/utils';
 import type {Theme} from 'sentry/utils/theme';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
@@ -68,16 +69,17 @@ export function tooltipActionsHtmlRenderer(
 ): string {
   if (!value) return '';
 
+  const escapedAttributeName = escape(attributeName);
+  const escapedValue = escape(value);
   const actionBackground = theme.gray200;
   return [
     '<div',
-    '  data-explore-chart-selection-region',
     '  class="tooltip-footer"',
     '  id="tooltipActions"',
     '  style="',
     '    display: flex;',
-    '    justify-content: center;',
-    '    align-items: center;',
+    '    justify-content: flex-start;',
+    '    align-items: flex-start;',
     '    flex-direction: column;',
     '    padding: 0;',
     '    gap: 0;',
@@ -85,9 +87,9 @@ export function tooltipActionsHtmlRenderer(
     '>',
     '  <div',
     `    data-tooltip-action="${Actions.GROUP_BY}"`,
-    `    data-tooltip-action-key="${attributeName}"`,
-    `    data-tooltip-action-value="${value}"`,
-    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    data-tooltip-action-key="${escapedAttributeName}"`,
+    `    data-tooltip-action-value="${escapedValue}"`,
+    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
     `    onmouseover="this.style.background='${actionBackground}'"`,
     '    onmouseout="this.style.background=\'\'"',
     '  >',
@@ -95,9 +97,9 @@ export function tooltipActionsHtmlRenderer(
     '  </div>',
     '  <div',
     `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
-    `    data-tooltip-action-key="${attributeName}"`,
-    `    data-tooltip-action-value="${value}"`,
-    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    data-tooltip-action-key="${escapedAttributeName}"`,
+    `    data-tooltip-action-value="${escapedValue}"`,
+    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
     `    onmouseover="this.style.background='${actionBackground}'"`,
     '    onmouseout="this.style.background=\'\'"',
     '  >',
@@ -105,9 +107,9 @@ export function tooltipActionsHtmlRenderer(
     '  </div>',
     '  <div',
     `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
-    `    data-tooltip-action-key="${attributeName}"`,
-    `    data-tooltip-action-value="${value}"`,
-    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    data-tooltip-action-key="${escapedAttributeName}"`,
+    `    data-tooltip-action-value="${escapedValue}"`,
+    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
     `    onmouseover="this.style.background='${actionBackground}'"`,
     '    onmouseout="this.style.background=\'\'"',
     '  >',
@@ -115,9 +117,9 @@ export function tooltipActionsHtmlRenderer(
     '  </div>',
     '  <div',
     `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
-    `    data-tooltip-action-key="${attributeName}"`,
-    `    data-tooltip-action-value="${value}"`,
-    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    data-tooltip-action-key="${escapedAttributeName}"`,
+    `    data-tooltip-action-value="${escapedValue}"`,
+    '    style="width: 100%; padding: 8px 10px; cursor: pointer; text-align: left;"',
     `    onmouseover="this.style.background='${actionBackground}'"`,
     '    onmouseout="this.style.background=\'\'"',
     '  >',
