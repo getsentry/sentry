@@ -320,9 +320,9 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0
+    # Check event count for ALERT source with triage-signals-v0-org
     if source == SeerAutomationSource.ALERT and features.has(
-        "projects:triage-signals-v0", group.project
+        "organizations:triage-signals-v0-org", group.organization
     ):
         # Use times_seen_with_pending if available (set by post_process), otherwise fall back
         times_seen = (
@@ -333,19 +333,24 @@ def run_automation(
         if times_seen < 10:
             logger.info(
                 "Triage signals V0: skipping alert automation, event count < 10",
-                extra={"group_id": group.id, "event_count": times_seen},
+                extra={
+                    "group_id": group.id,
+                    "project_id": group.project.id,
+                    "event_count": times_seen,
+                },
             )
             return
 
-    # Only log for projects with triage-signals-v0
-    if features.has("projects:triage-signals-v0", group.project):
+    # Only log for orgs with triage-signals-v0-org
+    if features.has("organizations:triage-signals-v0-org", group.organization):
         try:
             times_seen = group.times_seen_with_pending
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "Triage signals V0: %s: run_automation called: source=%s, times_seen=%s",
+            "Triage signals V0: %s: run_automation called: project_id=%s, source=%s, times_seen=%s",
             group.id,
+            group.project.id,
             source.value,
             times_seen,
         )
@@ -389,7 +394,7 @@ def run_automation(
         return
 
     stopping_point = None
-    if features.has("projects:triage-signals-v0", group.project):
+    if features.has("organizations:triage-signals-v0-org", group.organization):
         logger.info("Triage signals V0: %s: generating stopping point", group.id)
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
         logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
