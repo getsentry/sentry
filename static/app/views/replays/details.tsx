@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -55,7 +56,21 @@ export default function ReplayDetails() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const content = (
+  const content = organization.features.includes('replay-details-new-ui') ? (
+    <Fragment>
+      <Flex direction="column">
+        <NewTopHeader>
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          <ReplayDetailsHeaderActions readerResult={readerResult} />
+        </NewTopHeader>
+        <NewBottonHeader justify="between" align="center">
+          <ReplayDetailsUserBadge readerResult={readerResult} />
+          <ReplayDetailsMetadata readerResult={readerResult} />
+        </NewBottonHeader>
+      </Flex>
+      <ReplayDetailsPage readerResult={readerResult} />
+    </Fragment>
+  ) : (
     <Fragment>
       <Header>
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
@@ -93,4 +108,21 @@ const Header = styled(Layout.Header)`
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
+`;
+
+const NewTopHeader = styled('div')`
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-flow: row wrap;
+  height: 44px;
+`;
+
+const NewBottonHeader = styled(Flex)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
