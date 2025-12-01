@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
@@ -21,7 +21,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
 @region_silo_endpoint
-class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
     """Replaces a call to events that isn't possible for team plans because of projects restrictions"""
 
     publish_status = {

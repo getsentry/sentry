@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.events.fields import get_function_alias
@@ -14,7 +14,7 @@ from sentry.snuba import discover
 
 
 @region_silo_endpoint
-class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsVitalsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
