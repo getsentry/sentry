@@ -16,6 +16,7 @@ import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectS
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -28,6 +29,24 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const replayId = readerResult.replayId;
 
   const queryClient = useQueryClient();
+
+  // Generate search query based on available user data
+  const getUserSearchQuery = () => {
+    if (!replayRecord?.user) {
+      return null;
+    }
+
+    const user = replayRecord.user;
+    // Prefer email over id for search query
+    if (user.email) {
+      return `user.email:"${user.email}"`;
+    }
+    if (user.id) {
+      return `user.id:"${user.id}"`;
+    }
+    return null;
+  };
+  const searchQuery = getUserSearchQuery();
   const projectSlug = useReplayProjectSlug({replayRecord});
   const {startSummaryRequest} = useReplaySummaryContext();
 
@@ -66,6 +85,25 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const showRefreshButton = polledCountSegments > prevSegments;
 
   const location = useLocation();
+  const linkQuery = searchQuery
+    ? {
+        pathname: makeReplaysPathname({
+          path: '/',
+          organization,
+        }),
+        query: {
+          query: searchQuery,
+        },
+      }
+    : {
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
+        query: {
+          ...location.query,
+        },
+      };
 
   const badge = replayRecord ? (
     <ColumnWrapper gap="md">
@@ -74,7 +112,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
         rowIndex={0}
         columnIndex={0}
         showDropdownFilters={false}
-        query={location.query}
+        linkQuery={linkQuery}
       />
       <Button
         title={t('Replay is outdated. Refresh for latest activity.')}

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Query} from 'history';
+import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -37,7 +37,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
@@ -53,11 +52,11 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
+  linkQuery: string | LocationDescriptor;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
   className?: string;
-  query?: Query;
 }
 
 export interface ReplayTableColumn {
@@ -316,15 +315,9 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay, query}) => {
-    const organization = useOrganization();
+  Component: ({linkQuery}) => {
     return (
-      <DetailsLink
-        to={{
-          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-          query,
-        }}
-      >
+      <DetailsLink to={linkQuery}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -512,7 +505,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, query, className}) => {
+  Component: ({replay, linkQuery, className}) => {
     const routes = useRoutes();
     const referrer = getRouteStringFromRoutes(routes);
 
@@ -538,14 +531,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink
-        className={className}
-        to={{
-          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-          query,
-        }}
-        onClick={trackNavigationEvent}
-      >
+      <CellLink className={className} to={linkQuery} onClick={trackNavigationEvent}>
         <ReplayBadge replay={replay} />
       </CellLink>
     );
