@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -290,6 +290,7 @@ def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks
     if not isinstance(raw_size, dict):
         return None
 
+    size_check: StatusCheckResult
     if raw_size.get("success") is True:
         size_check = _parse_success_check(raw_size, artifact.id)
     else:
@@ -298,7 +299,7 @@ def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks
     return PostedStatusChecks(size=size_check)
 
 
-def _parse_success_check(raw_size: dict, artifact_id: str) -> StatusCheckResultSuccess:
+def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultSuccess:
     """Parse a successful status check result."""
     check_id = raw_size.get("check_id")
     if check_id is not None and not isinstance(check_id, str):
@@ -313,7 +314,7 @@ def _parse_success_check(raw_size: dict, artifact_id: str) -> StatusCheckResultS
     return StatusCheckResultSuccess(check_id=check_id)
 
 
-def _parse_failure_check(raw_size: dict, artifact_id: str) -> StatusCheckResultFailure:
+def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultFailure:
     """Parse a failed status check result."""
     error_type: StatusCheckErrorType | None = None
     error_type_str = raw_size.get("error_type")
