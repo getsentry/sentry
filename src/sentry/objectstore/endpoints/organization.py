@@ -97,7 +97,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
 class ChunkedEncodingDecoder:
     """
-    Wrapper around a read function returning chunked transfer encoded data.
+    Wrapper around a read function that returns chunked transfer encoded data.
     Provides a file-like interface to the decoded data stream.
     """
 
@@ -125,20 +125,31 @@ class ChunkedEncodingDecoder:
 
                 chunk_size = int(size_line.strip(), 16)
                 if chunk_size == 0:
-                    self._read(2)  # Read trailing \r\n
+                    trail = self._read(2)
+                    if trail != b"\r\n":
+                        raise ValueError("Malformed chunk encoded stream")
                     self._done = True
                     return b"".join(buffer)
 
                 self._current_chunk_remaining = chunk_size
             else:
-                to_read = min(self._current_chunk_remaining, size - read)
+                # Read (part of) next chunk
+                to_read = (
+                    min(self._current_chunk_remaining, size - read)
+                    if size != -1
+                    else self._current_chunk_remaining
+                )
                 chunk = self._read(to_read)
+                if not chunk:
+                    raise ValueError("Unexpected end of stream")
                 buffer.append(chunk)
                 read += len(chunk)
                 self._current_chunk_remaining -= len(chunk)
 
                 if self._current_chunk_remaining == 0:
-                    self._read(2)  # Read trailing \r\n
+                    trail = self._read(2)
+                    if trail != b"\r\n":
+                        raise ValueError("Malformed chunk encoded stream")
 
         return b"".join(buffer)
 
