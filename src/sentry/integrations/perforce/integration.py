@@ -16,6 +16,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
@@ -344,7 +345,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             page_number_limit: Ignored (kept for base class compatibility)
 
         Returns:
-            List of repository dictionaries (limited by page_number_limit if provided)
+            List of repository dictionaries
         """
         try:
             client = self.get_client()
@@ -366,10 +367,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
-
-                # Apply pagination limit if specified
-                if page_number_limit and len(repositories) >= page_number_limit:
-                    break
 
             return repositories
 
@@ -579,24 +576,6 @@ class PerforceIntegrationProvider(IntegrationProvider):
 
         # Store credentials in Integration.metadata
         metadata: PerforceMetadata = {
-            "p4port": p4port,
-            "user": installation_data.get("user", ""),
-            "auth_type": installation_data.get("auth_type", "password"),  # Default to password
-            "password": installation_data.get("password", ""),
-        }
-
-        # Add optional fields if provided
-        if installation_data.get("client"):
-            metadata["client"] = installation_data["client"]
-
-        if installation_data.get("ssl_fingerprint"):
-            metadata["ssl_fingerprint"] = installation_data["ssl_fingerprint"]
-
-        if installation_data.get("web_url"):
-            metadata["web_url"] = installation_data["web_url"]
-
-        # Store credentials in Integration.metadata
-        metadata = {
             "p4port": p4port,
             "user": installation_data.get("user", ""),
             "auth_type": installation_data.get("auth_type", "password"),  # Default to password
