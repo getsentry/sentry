@@ -1,7 +1,7 @@
 import pytest
 import requests
 from django.urls import reverse
-from objectstore_client import Client, Session, Usecase
+from objectstore_client import Client, RequestError, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.testutils.cases import TransactionTestCase
@@ -78,8 +78,8 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
 
         session.delete(object_key)
 
-        # with pytest.raises(RequestError):
-        #    session.get(object_key)
+        with pytest.raises(RequestError):
+            session.get(object_key)
 
     @with_feature("organizations:objectstore-endpoint")
     def test_uncompressed(self):
