@@ -33,11 +33,10 @@ class Message(BaseModel):
         extra = "allow"
 
 
-class ArtifactBlock(BaseModel):
-    """An artifact stored on a block in the conversation history."""
+class Artifact(BaseModel):
+    """An artifact generated during an Explorer run."""
 
     key: str
-    json_schema: dict[str, Any]
     data: dict[str, Any] | None = None
     reason: str
 
@@ -52,7 +51,7 @@ class MemoryBlock(BaseModel):
     message: Message
     timestamp: str
     loading: bool = False
-    artifacts: list[ArtifactBlock] = []
+    artifacts: list[Artifact] = []
 
     class Config:
         extra = "allow"
@@ -69,14 +68,14 @@ class SeerRunState(BaseModel):
     class Config:
         extra = "allow"
 
-    def get_artifacts(self) -> dict[str, ArtifactBlock]:
+    def get_artifacts(self) -> dict[str, Artifact]:
         """
         Scan blocks and return the latest artifact for each key.
 
         Returns:
-            Dict mapping artifact keys to their latest ArtifactBlock
+            Dict mapping artifact keys to their latest Artifact
         """
-        result: dict[str, ArtifactBlock] = {}
+        result: dict[str, Artifact] = {}
         for block in self.blocks:
             for artifact in block.artifacts:
                 result[artifact.key] = artifact
