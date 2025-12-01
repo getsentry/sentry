@@ -2,12 +2,7 @@ from dataclasses import dataclass
 from typing import cast
 
 from rest_framework.request import Request
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    AndFilter,
-    ComparisonFilter,
-    TraceItemFilter,
-)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
@@ -74,7 +69,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
 
         selected_metric = selected_metrics.pop()
 
-        return get_metric_filter(search_resolver, selected_metric)
+        return selected_metric.get_filter()
 
     def _extra_conditions_from_metric(
         self,
@@ -82,53 +77,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
     ) -> TraceItemFilter | None:
         if self.metric is None:
             return None
-        return get_metric_filter(search_resolver, self.metric)
-
-
-def get_metric_filter(
-    search_resolver: SearchResolver,
-    metric: TraceMetric,
-) -> TraceItemFilter:
-    metric_name, _ = search_resolver.resolve_column("metric.name")
-    if not isinstance(metric_name.proto_definition, AttributeKey):
-        raise ValueError("Unable to resolve metric.name")
-
-    metric_type, _ = search_resolver.resolve_column("metric.type")
-    if not isinstance(metric_type.proto_definition, AttributeKey):
-        raise ValueError("Unable to resolve metric.type")
-
-    filters = [
-        TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=metric_name.proto_definition,
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=metric.metric_name),
-            )
-        ),
-        TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=metric_type.proto_definition,
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=metric.metric_type),
-            )
-        ),
-    ]
-
-    if metric.metric_unit:
-        metric_unit, _ = search_resolver.resolve_column("metric.unit")
-        if not isinstance(metric_unit.proto_definition, AttributeKey):
-            raise ValueError("Unable to resolve metric.unit")
-        filters.append(
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=metric_unit.proto_definition,
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str=metric.metric_unit),
-                )
-            )
-        )
-
-    return TraceItemFilter(and_filter=AndFilter(filters=filters))
+        return self.metric.get_filter()
 
 
 ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution"]
