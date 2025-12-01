@@ -8,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -19,14 +18,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconClock,
-  IconClose,
-  IconFire,
-  IconFix,
-  IconUpload,
-} from 'sentry/icons';
+import {IconClose, IconFire, IconUpload} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -53,9 +45,12 @@ interface ClusterSummary {
   fixability_score: number | null;
   group_ids: number[];
   issue_titles: string[]; // unused
-  project_ids: number[]; // unused
-  tags: string[]; // unused
+  project_ids: number[];
+  tags: string[];
   title: string;
+  code_area_tags?: string[];
+  error_type_tags?: string[];
+  service_tags?: string[];
 }
 
 interface TopIssuesResponse {
@@ -177,6 +172,49 @@ function useClusterStats(groupIds: number[]): ClusterStats {
   }, [groups, isPending]);
 }
 
+interface ClusterTagsProps {
+  cluster: ClusterSummary;
+  onTagClick?: (tag: string) => void;
+  selectedTags?: Set<string>;
+}
+
+function ClusterTags({cluster, onTagClick, selectedTags}: ClusterTagsProps) {
+  const hasServiceTags = cluster.service_tags && cluster.service_tags.length > 0;
+  const hasErrorTypeTags = cluster.error_type_tags && cluster.error_type_tags.length > 0;
+  const hasCodeAreaTags = cluster.code_area_tags && cluster.code_area_tags.length > 0;
+
+  if (!hasServiceTags && !hasErrorTypeTags && !hasCodeAreaTags) {
+    return null;
+  }
+
+  const renderTag = (tag: string, key: string) => {
+    const isSelected = selectedTags?.has(tag);
+    return (
+      <ClickableTag
+        key={key}
+        onClick={e => {
+          e.stopPropagation();
+          onTagClick?.(tag);
+        }}
+        isSelected={isSelected}
+      >
+        {tag}
+      </ClickableTag>
+    );
+  };
+
+  return (
+    <Flex wrap="wrap" gap="xs" align="center">
+      {hasServiceTags &&
+        cluster.service_tags!.map(tag => renderTag(tag, `service-${tag}`))}
+      {hasErrorTypeTags &&
+        cluster.error_type_tags!.map(tag => renderTag(tag, `error-${tag}`))}
+      {hasCodeAreaTags &&
+        cluster.code_area_tags!.map(tag => renderTag(tag, `code-${tag}`))}
+    </Flex>
+  );
+}
+
 function ClusterIssues({groupIds}: {groupIds: number[]}) {
   const organization = useOrganization();
   const previewGroupIds = groupIds.slice(0, 3);
@@ -217,9 +255,13 @@ function ClusterIssues({groupIds}: {groupIds: number[]}) {
 function ClusterCard({
   cluster,
   onRemove,
+  onTagClick,
+  selectedTags,
 }: {
   cluster: ClusterSummary;
   onRemove: (clusterId: number) => void;
+  onTagClick?: (tag: string) => void;
+  selectedTags?: Set<string>;
 }) {
   const organization = useOrganization();
   const issueCount = cluster.group_ids.length;
@@ -228,114 +270,102 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md">
-        <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
-          <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
-            {cluster.title}
-          </Heading>
-          {cluster.description && (
-            <Fragment>
-              {showDescription ? (
-                <DescriptionText>{cluster.description}</DescriptionText>
-              ) : (
-                <ReadMoreButton onClick={() => setShowDescription(true)}>
-                  {t('View summary')}
-                </ReadMoreButton>
-              )}
-            </Fragment>
-          )}
-          {cluster.tags && cluster.tags.length > 0 && (
-            <Flex wrap="wrap" gap="xs">
-              {cluster.tags.map(tag => (
-                <Tag key={tag}>{tag}</Tag>
-              ))}
-            </Flex>
-          )}
-        </Flex>
-        <IssueCountBadge>
-          <IssueCountNumber>{issueCount}</IssueCountNumber>
-          <Text size="xs" variant="muted" uppercase>
-            {tn('issue', 'issues', issueCount)}
-          </Text>
-        </IssueCountBadge>
-      </Flex>
-
-      <ClusterStatsBar>
-        {cluster.fixability_score && (
-          <StatItem>
-            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>{' '}
-              {t('confidence')}
-            </Text>
-          </StatItem>
+      {/* Zone 1: Title + Description (Primary Focus) */}
+      <CardHeader>
+        <ClusterTitle>{cluster.title}</ClusterTitle>
+        <ClusterTags
+          cluster={cluster}
+          onTagClick={onTagClick}
+          selectedTags={selectedTags}
+        />
+        {cluster.description && (
+          <Fragment>
+            {showDescription ? (
+              <DescriptionText>{cluster.description}</DescriptionText>
+            ) : (
+              <ReadMoreButton onClick={() => setShowDescription(true)}>
+                {t('View summary')}
+              </ReadMoreButton>
+            )}
+          </Fragment>
         )}
-        <StatItem>
-          <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
+      </CardHeader>
+
+      {/* Zone 2: Stats (Secondary Context) */}
+      <StatsSection>
+        <PrimaryStats>
+          <EventsMetric>
+            <IconFire size="sm" />
+            {clusterStats.isPending ? (
+              <Text size="md" variant="muted">
+                –
+              </Text>
+            ) : (
+              <EventsCount>{clusterStats.totalEvents.toLocaleString()}</EventsCount>
+            )}
+            <Text size="sm" variant="muted">
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
+          </EventsMetric>
+        </PrimaryStats>
+        <SecondaryStats>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Last seen')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
           )}
-        </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
-          <StatItem>
-            <IconClock size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('Last Seen')}
-              date={clusterStats.lastSeen}
-              suffix={t('ago')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
-          <StatItem>
-            <IconCalendar size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('First Seen')}
-              date={clusterStats.firstSeen}
-              suffix={t('old')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-      </ClusterStatsBar>
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Age')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
+          )}
+        </SecondaryStats>
+      </StatsSection>
 
-      <Flex direction="column" flex="1" paddingTop="md">
-        <ClusterIssues groupIds={cluster.group_ids} />
-
-        {cluster.group_ids.length > 3 && (
-          <Text
-            size="sm"
-            variant="muted"
-            align="center"
-            style={{marginTop: space(1), fontStyle: 'italic'}}
-          >
-            {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+      {/* Zone 3: Nested Issues (Detail Content) */}
+      <IssuesSection>
+        <IssuesSectionHeader>
+          <Text size="sm" bold uppercase>
+            {tn('%s Issue', '%s Issues', issueCount)}
           </Text>
-        )}
-      </Flex>
+        </IssuesSectionHeader>
+        <IssuesList>
+          <ClusterIssues groupIds={cluster.group_ids} />
+          {cluster.group_ids.length > 3 && (
+            <MoreIssuesIndicator>
+              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+            </MoreIssuesIndicator>
+          )}
+        </IssuesList>
+      </IssuesSection>
 
-      <Flex justify="end" align="center" gap="xs" paddingTop="md">
+      {/* Zone 4: Actions (Tertiary) */}
+      <CardFooter>
         <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Resolve')}
+          {t('Resolve All')}
         </Button>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
           <Button size="sm">{t('View All Issues')}</Button>
         </Link>
-      </Flex>
+      </CardFooter>
     </CardContainer>
   );
 }
@@ -346,7 +376,7 @@ function DynamicGrouping() {
   const {teams: userTeams} = useUserTeams();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
-  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -429,6 +459,43 @@ function DynamicGrouping() {
     setRemovedClusterIds(prev => new Set([...prev, clusterId]));
   };
 
+  const handleTagClick = (tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  };
+
+  const handleClearTagFilter = (tag: string) => {
+    setSelectedTags(prev => {
+      const next = new Set(prev);
+      next.delete(tag);
+      return next;
+    });
+  };
+
+  const handleClearAllTagFilters = () => {
+    setSelectedTags(new Set());
+  };
+
+  // Helper to check if a cluster has any of the selected tags
+  const clusterHasSelectedTags = (cluster: ClusterSummary): boolean => {
+    if (selectedTags.size === 0) return true;
+
+    const allClusterTags = [
+      ...(cluster.service_tags ?? []),
+      ...(cluster.error_type_tags ?? []),
+      ...(cluster.code_area_tags ?? []),
+    ];
+
+    return Array.from(selectedTags).every(tag => allClusterTags.includes(tag));
+  };
+
   // When using custom JSON data with filters disabled, skip all filtering and sorting
   const shouldSkipFilters = isUsingCustomData && disableFilters;
   const filteredAndSortedClusters = shouldSkipFilters
@@ -437,8 +504,8 @@ function DynamicGrouping() {
         .filter(cluster => {
           if (removedClusterIds.has(cluster.cluster_id)) return false;
 
-          const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-          if (fixabilityScore < minFixabilityScore) return false;
+          // Filter by selected tags
+          if (!clusterHasSelectedTags(cluster)) return false;
 
           if (filterByAssignedToMe) {
             if (!cluster.assignedTo?.length) return false;
@@ -560,6 +627,31 @@ function DynamicGrouping() {
               {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
 
+            {selectedTags.size > 0 && (
+              <ActiveTagFilters>
+                <Text size="sm" variant="muted">
+                  {t('Filtering by tags:')}
+                </Text>
+                <Flex wrap="wrap" gap="xs" align="center">
+                  {Array.from(selectedTags).map(tag => (
+                    <ActiveTagChip key={tag}>
+                      <Text size="xs">{tag}</Text>
+                      <Button
+                        size="zero"
+                        borderless
+                        icon={<IconClose size="xs" />}
+                        aria-label={t('Remove filter for %s', tag)}
+                        onClick={() => handleClearTagFilter(tag)}
+                      />
+                    </ActiveTagChip>
+                  ))}
+                  <Button size="xs" borderless onClick={handleClearAllTagFilters}>
+                    {t('Clear all')}
+                  </Button>
+                </Flex>
+              </ActiveTagFilters>
+            )}
+
             {!shouldSkipFilters && (
               <Container
                 padding="sm"
@@ -612,20 +704,6 @@ function DynamicGrouping() {
                           </Flex>
                         </Flex>
                       )}
-
-                      <Flex gap="sm" align="center">
-                        <Text size="sm" variant="muted">
-                          {t('Minimum fixability score (%)')}
-                        </Text>
-                        <NumberInput
-                          min={0}
-                          max={100}
-                          value={minFixabilityScore}
-                          onChange={value => setMinFixabilityScore(value ?? 0)}
-                          aria-label={t('Minimum fixability score')}
-                          size="sm"
-                        />
-                      </Flex>
                     </Flex>
                   </Disclosure.Content>
                 </Disclosure>
@@ -651,6 +729,8 @@ function DynamicGrouping() {
                 key={cluster.cluster_id}
                 cluster={cluster}
                 onRemove={handleRemoveCluster}
+                onTagClick={handleTagClick}
+                selectedTags={selectedTags}
               />
             ))}
           </CardsGrid>
@@ -686,63 +766,127 @@ const CardsGrid = styled('div')`
   }
 `;
 
-// Card with hover effect
+// Card with subtle hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: ${p => p.theme.purple200};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-// Issue count badge - compact version
-const IssueCountBadge = styled('div')`
+// Zone 1: Title area - clean and prominent
+const CardHeader = styled('div')`
+  padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  flex-shrink: 0;
+  gap: ${space(1)};
 `;
 
-const IssueCountNumber = styled('div')`
-  font-size: 24px;
+const ClusterTitle = styled('h3')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.purple400};
-  line-height: 1;
+  color: ${p => p.theme.textColor};
+  line-height: 1.3;
+  word-break: break-word;
 `;
 
-// Horizontal stats bar below header
-const ClusterStatsBar = styled('div')`
+// Zone 2: Stats section with visual hierarchy
+const StatsSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
   gap: ${space(2)};
-  padding: ${space(1.5)} 0;
-  margin-top: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  flex-wrap: wrap;
 `;
 
-const StatItem = styled('div')`
+const PrimaryStats = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(3)};
 `;
 
-// Issue preview link with hover effect
+const EventsMetric = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.red300};
+`;
+
+const EventsCount = styled('span')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: 700;
+  color: ${p => p.theme.textColor};
+  font-variant-numeric: tabular-nums;
+`;
+
+const SecondaryStats = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+`;
+
+const SecondaryStatItem = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+`;
+
+// Zone 3: Issues list with clear containment
+const IssuesSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const IssuesSectionHeader = styled('div')`
+  margin-bottom: ${space(1.5)};
+  color: ${p => p.theme.subText};
+  letter-spacing: 0.5px;
+`;
+
+const IssuesList = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const MoreIssuesIndicator = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  font-style: italic;
+  padding-top: ${space(1)};
+`;
+
+// Zone 4: Footer with actions
+const CardFooter = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -762,7 +906,7 @@ const IssuePreviewLink = styled(Link)`
 // Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
@@ -780,6 +924,7 @@ const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
+  opacity: 0.9;
 `;
 
 // Meta separator line
@@ -833,6 +978,55 @@ const CustomDataBadge = styled('div')`
   border: 1px solid ${p => p.theme.yellow300};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.yellow400};
+`;
+
+const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  user-select: none;
+
+  ${p =>
+    p.isSelected &&
+    `
+    background: ${p.theme.purple100};
+    border-color: ${p.theme.purple300};
+    color: ${p.theme.purple400};
+  `}
+
+  &:hover {
+    background: ${p => (p.isSelected ? p.theme.purple200 : p.theme.gray100)};
+    border-color: ${p => (p.isSelected ? p.theme.purple400 : p.theme.gray300)};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+`;
+
+const ActiveTagFilters = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-top: ${space(1.5)};
+  flex-wrap: wrap;
+`;
+
+const ActiveTagChip = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1)};
+  background: ${p => p.theme.purple100};
+  border: 1px solid ${p => p.theme.purple200};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.purple400};
 `;
 
 export default DynamicGrouping;

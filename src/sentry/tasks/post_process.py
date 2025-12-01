@@ -1618,7 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     # Default behaviour
-    if not features.has("projects:triage-signals-v0", group.project):
+    if not features.has("organizations:triage-signals-v0-org", group.organization):
         # Only run on issues with no existing scan
         if group.seer_fixability_score is not None:
             return
