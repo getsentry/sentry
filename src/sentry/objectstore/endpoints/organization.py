@@ -72,6 +72,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         if method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
             return Response("Only Transfer-Encoding: chunked is supported", status=400)
 
+        headers.pop("Host", None)
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
@@ -160,7 +161,11 @@ def get_target_url(path: str) -> str:
     target = urljoin(base, path)
     target_parsed = urlparse(target)
 
-    if target_parsed.scheme != base_parsed.scheme or target_parsed.netloc != base_parsed.netloc:
+    if (
+        target_parsed.scheme != base_parsed.scheme
+        or target_parsed.netloc != base_parsed.netloc
+        or not target.startswith(base)
+    ):
         raise SuspiciousOperation("Possible SSRF attempt")
     if ".." in path:
         raise SuspiciousOperation("Possible path traversal attempt")
