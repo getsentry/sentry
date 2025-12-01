@@ -35,9 +35,13 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
     def post(self, request: Request, installation) -> Response:
         data = request.data
 
+        issue_id = data.get("issueId")
+        if not issue_id:
+            raise SentryAppError(message="issueId is required", status_code=400)
+
         try:
             group = Group.objects.get(
-                id=data.get("issueId"),
+                id=issue_id,
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
