@@ -274,6 +274,11 @@ function ClusterCard({
       {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
         <ClusterTitle>{cluster.title}</ClusterTitle>
+        <ClusterTags
+          cluster={cluster}
+          onTagClick={onTagClick}
+          selectedTags={selectedTags}
+        />
         {cluster.description && (
           <Fragment>
             {showDescription ? (
@@ -285,11 +290,6 @@ function ClusterCard({
             )}
           </Fragment>
         )}
-        <ClusterTags
-          cluster={cluster}
-          onTagClick={onTagClick}
-          selectedTags={selectedTags}
-        />
       </CardHeader>
 
       {/* Zone 2: Stats (Secondary Context) */}
