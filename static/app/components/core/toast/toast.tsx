@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -12,6 +12,7 @@ import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {
@@ -29,36 +30,38 @@ export interface ToastProps {
 }
 
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
-  const theme = useTheme();
+  const theme = useInvertedTheme();
 
   return (
-    <ToastContainer
-      onClick={
-        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
-      }
-      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
-      className={classNames('ref-toast', `ref-${indicator.type}`)}
-      type={indicator.type}
-      {...TOAST_TRANSITION}
-      {...props}
-    >
-      <ToastIcon type={indicator.type} />
-      <ToastMessage>
-        <TextOverflow>{indicator.message}</TextOverflow>
-      </ToastMessage>
-      {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
-        <ToastUndoButtonContainer type={indicator.type}>
-          <ToastUndoButton
-            priority={theme.isChonk ? 'default' : 'link'}
-            size={theme.isChonk ? 'xs' : undefined}
-            onClick={indicator.options.undo}
-            icon={<IconRefresh size="xs" />}
-          >
-            {t('Undo')}
-          </ToastUndoButton>
-        </ToastUndoButtonContainer>
-      ) : null}
-    </ToastContainer>
+    <ThemeProvider theme={theme}>
+      <ToastContainer
+        onClick={
+          indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
+        }
+        data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
+        className={classNames('ref-toast', `ref-${indicator.type}`)}
+        type={indicator.type}
+        {...TOAST_TRANSITION}
+        {...props}
+      >
+        <ToastIcon type={indicator.type} />
+        <ToastMessage>
+          <TextOverflow>{indicator.message}</TextOverflow>
+        </ToastMessage>
+        {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
+          <ToastUndoButtonContainer type={indicator.type}>
+            <ToastUndoButton
+              priority={theme.isChonk ? 'default' : 'link'}
+              size={theme.isChonk ? 'xs' : undefined}
+              onClick={indicator.options.undo}
+              icon={<IconRefresh size="xs" />}
+            >
+              {t('Undo')}
+            </ToastUndoButton>
+          </ToastUndoButtonContainer>
+        ) : null}
+      </ToastContainer>
+    </ThemeProvider>
   );
 }
 
@@ -111,8 +114,8 @@ const ToastContainer = withChonk(
     max-width: calc(100vw - ${space(4)} * 2);
     padding: 0 15px 0 10px;
     margin-top: 15px;
-    background: ${p => p.theme.inverted.background};
-    color: ${p => p.theme.inverted.textColor};
+    background: ${p => p.theme.background};
+    color: ${p => p.theme.textColor};
     border-radius: 44px 7px 7px 44px;
     box-shadow: ${p => p.theme.dropShadowHeavy};
     position: relative;
@@ -150,11 +153,11 @@ const ToastUndoButton = withChonk(
     display: flex;
     align-items: center;
     gap: ${space(0.5)};
-    color: ${p => p.theme.inverted.linkColor};
+    color: ${p => p.theme.linkColor};
     margin-left: ${space(2)};
 
     &:hover {
-      color: ${p => p.theme.inverted.linkHoverColor};
+      color: ${p => p.theme.linkHoverColor};
     }
   `,
   ChonkToastUndoButton
@@ -162,10 +165,10 @@ const ToastUndoButton = withChonk(
 
 const ToastUndoButtonContainer = withChonk(
   styled('div')<{type: Indicator['type']}>`
-    color: ${p => p.theme.inverted.linkColor};
+    color: ${p => p.theme.linkColor};
 
     &:hover {
-      color: ${p => p.theme.inverted.linkHoverColor};
+      color: ${p => p.theme.linkHoverColor};
     }
   `,
   ChonkToastUndoButtonContainer
@@ -176,8 +179,8 @@ const ToastLoadingIndicator = withChonk(
     margin: 0;
 
     .loading-indicator {
-      border-color: ${p => p.theme.inverted.border};
-      border-left-color: ${p => p.theme.inverted.purple300};
+      border-color: ${p => p.theme.border};
+      border-left-color: ${p => p.theme.purple300};
     }
   `,
   ChonkToastLoadingIndicator
