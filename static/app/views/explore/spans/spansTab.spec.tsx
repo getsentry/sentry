@@ -633,5 +633,28 @@ describe('SpansTabContent', () => {
         screen.getByPlaceholderText('Search for metrics, users, tags, and more')
       ).toBeInTheDocument();
     });
+
+    it('displays the cross event query limit alert', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              crossEvents: JSON.stringify([
+                {query: '', type: 'spans'},
+                {query: '', type: 'logs'},
+                {query: '', type: 'metrics'},
+              ]),
+            },
+          },
+        },
+      });
+
+      expect(
+        screen.getByText('You can add up to a maximum of 2 cross event queries.')
+      ).toBeInTheDocument();
+    });
   });
 });
