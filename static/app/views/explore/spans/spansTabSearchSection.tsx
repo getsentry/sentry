@@ -42,6 +42,7 @@ import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -84,9 +85,10 @@ function CrossEventQueryingDropdown() {
     }
   };
 
-  const isDisabled = defined(crossEvents) && crossEvents.length >= 2;
+  const isDisabled =
+    defined(crossEvents) && crossEvents.length >= MAX_CROSS_EVENT_QUERIES;
   const tooltipTitle = isDisabled
-    ? t('Maximum of 2 cross event queries allowed.')
+    ? t('Maximum of %s cross event queries allowed.', MAX_CROSS_EVENT_QUERIES)
     : t('For more targeted results, you can also cross reference other datasets.');
 
   return (
@@ -211,7 +213,7 @@ function SpansTabCrossEventSearchBars() {
     return null;
   }
 
-  return crossEvents.slice(0, 2).map((crossEvent, index) => {
+  return crossEvents.slice(0, MAX_CROSS_EVENT_QUERIES).map((crossEvent, index) => {
     const traceItemType =
       crossEvent.type === 'spans'
         ? TraceItemDataset.SPANS
@@ -414,10 +416,13 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
             {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
             {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
           </Grid>
-          {hasCrossEvents && crossEvents.length > 2 ? (
+          {hasCrossEvents && crossEvents.length > MAX_CROSS_EVENT_QUERIES ? (
             <Container paddingTop="md">
               <Alert type="warning">
-                {t('You can add up to a maximum of 2 cross event queries.')}
+                {t(
+                  'You can add up to a maximum of %s cross event queries.',
+                  MAX_CROSS_EVENT_QUERIES
+                )}
               </Alert>
             </Container>
           ) : null}
