@@ -24,7 +24,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderMissing={() => null}
       renderProcessingError={({replayRecord, projectSlug}) => (
         <ButtonActionsWrapper>
-          <FeedbackButton />
+          <FeedbackButton size="xs" />
           <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
           <ReplayItemDropdown
             projectSlug={projectSlug}
@@ -36,7 +36,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
     >
       {({replay}) => (
         <ButtonActionsWrapper>
-          <FeedbackButton />
+          <FeedbackButton size="xs" />
           <ConfigureReplayCard
             isMobile={replay.isVideoReplay()}
             replayRecord={replay.getReplay()}
