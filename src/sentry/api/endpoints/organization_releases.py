@@ -150,6 +150,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             package_value = search_filter.value.raw_value
             # SemverFilter expects package as str | Sequence[str] | None
             # Handle both str and any Sequence type (list, tuple, etc.)
+            final_package: str | list[str]
             if isinstance(package_value, str):
                 final_package = package_value
             elif isinstance(package_value, Sequence):
