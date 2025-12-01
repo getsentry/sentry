@@ -8,6 +8,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.search.events.fields import parse_function
 from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     handle_send_historical_data_to_seer,
@@ -25,6 +26,14 @@ from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_source import DataSource
 
 logger = logging.getLogger(__name__)
+
+COUNT_BASED_ALERT_AGGREAGTES = [
+    "count",
+    "failure_count",
+    "sum",
+    "count_if",
+    "count_unique",
+]
 
 
 def snapshot_snuba_query(snuba_query: SnubaQuery):
@@ -93,10 +102,14 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     snuba_query.query = translated_query
     snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
 
-    if snapshot["dataset"] == Dataset.PerformanceMetrics.value:
-        snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
-    elif snapshot["dataset"] == Dataset.Transactions.value:
-        snuba_query.extrapolation_mode = ExtrapolationMode.NONE.value
+    function_name, _, _ = parse_function(old_aggregate)
+    if function_name in COUNT_BASED_ALERT_AGGREAGTES:
+        if snapshot["dataset"] == Dataset.PerformanceMetrics.value:
+            snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
+        elif snapshot["dataset"] == Dataset.Transactions.value:
+            snuba_query.extrapolation_mode = ExtrapolationMode.NONE.value
+    else:
+        snuba_query.extrapolation_mode = ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
 
     with atomic_transaction(
         using=(
