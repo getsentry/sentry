@@ -8,6 +8,7 @@ import {tct} from 'sentry/locale';
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {replay} from './replay';
@@ -87,6 +88,7 @@ const docs: Docs = {
     packageName: '@sentry/nextjs',
   }),
   agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
 };
 
 export default docs;
