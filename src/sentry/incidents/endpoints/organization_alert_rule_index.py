@@ -172,7 +172,12 @@ class AlertRuleIndexMixin(Endpoint):
             or request.access.has_scope("org:write")
         ):
             return
+
         # team admins should be able to create alerts for the projects they have access to
+        # Verify that get_projects is available (requires OrganizationEndpoint)
+        if not hasattr(self, "get_projects"):
+            raise PermissionDenied
+
         projects = self.get_projects(request, organization)
         # team admins will have alerts:write scoped to their projects, members will not
         team_admin_has_access = all(
