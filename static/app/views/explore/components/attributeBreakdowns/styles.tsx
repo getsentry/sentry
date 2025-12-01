@@ -3,16 +3,22 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout/flex';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Text} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+
+import {CHARTS_COLUMN_COUNT, CHARTS_PER_PAGE} from './constants';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -256,7 +262,7 @@ const LoadingChartWrapper = styled(ChartWrapper)`
 
 const ChartsGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
   gap: ${p => p.theme.space.md};
 `;
 
@@ -272,13 +278,89 @@ const ChartTitle = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
+const PopulationIndicator = styled('div')<{color?: string}>`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 500;
+  color: ${p => p.color || p.theme.gray400};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${p => p.color || p.theme.gray400};
+    margin-right: ${space(0.5)};
+  }
+`;
+
+const ControlsContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const StyledBaseSearchBar = styled(BaseSearchBar)`
+  flex: 1;
+`;
+
 const StyledFeedbackButton = styled(Button)`
   height: 31px !important;
 `;
+
+const PaginationContainer = styled('div')`
+  display: flex;
+  justify-content: end;
+  margin-top: ${space(2)};
+`;
+
+interface PaginationProps {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  totalItems: number;
+}
+
+function Pagination({currentPage, onPageChange, totalItems}: PaginationProps) {
+  const totalPages = Math.ceil(totalItems / CHARTS_PER_PAGE);
+
+  return (
+    <PaginationContainer>
+      <ButtonBar merged gap="0">
+        <Button
+          icon={<IconChevron direction="left" />}
+          aria-label={t('Previous')}
+          size="sm"
+          disabled={currentPage === 0}
+          onClick={() => {
+            onPageChange(currentPage - 1);
+          }}
+        />
+        <Button
+          icon={<IconChevron direction="right" />}
+          aria-label={t('Next')}
+          size="sm"
+          disabled={currentPage === totalPages - 1}
+          onClick={() => {
+            onPageChange(currentPage + 1);
+          }}
+        />
+      </ButtonBar>
+    </PaginationContainer>
+  );
+}
 
 export const AttributeBreakdownsComponent = {
   FeedbackButton,
   LoadingCharts,
   ErrorState,
   EmptySearchState,
+  ChartsGrid,
+  ChartWrapper,
+  ChartHeaderWrapper,
+  ChartTitle,
+  PopulationIndicator,
+  ControlsContainer,
+  StyledBaseSearchBar,
+  Pagination,
 };

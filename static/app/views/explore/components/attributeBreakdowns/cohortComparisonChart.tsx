@@ -1,6 +1,5 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
@@ -8,13 +7,9 @@ import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import {
-  Actions,
-  useAttributeBreakdownsTooltip,
-} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import {
   CHART_AXIS_LABEL_FONT_SIZE,
@@ -25,7 +20,13 @@ import {
   CHART_SELECTED_SERIES_NAME,
   CHART_TOOLTIP_MAX_VALUE_LENGTH,
 } from './constants';
-import {calculateAttrubutePopulationPercentage, percentageFormatter} from './utils';
+import {AttributeBreakdownsComponent} from './styles';
+import {
+  calculateAttrubutePopulationPercentage,
+  formatChartXAxisLabel,
+  percentageFormatter,
+  tooltipActionsHtmlRenderer,
+} from './utils';
 
 type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
 
@@ -43,52 +44,42 @@ function cohortsToSeriesData(
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
 
-  const uniqueLabels = new Set([
-    ...cohort1.map(c => c.label),
-    ...cohort2.map(c => c.label),
-  ]);
+  const uniqueLabels = new Set([...cohort1Map.keys(), ...cohort2Map.keys()]);
 
   // From the unique labels, we create two series data objects, one for the selected cohort and one for the baseline cohort.
   // If a label isn't present in either of the cohorts, we assign a value of 0, to that label in the respective series.
-  const seriesData = Array.from(uniqueLabels).map(label => {
-    const selectedVal = cohort1Map.get(label) ?? '0';
-    const baselineVal = cohort2Map.get(label) ?? '0';
+  // We sort by descending value of the selected cohort
+  const seriesData = Array.from(uniqueLabels)
+    .map(label => {
+      const selectedVal = cohort1Map.get(label) ?? '0';
+      const baselineVal = cohort2Map.get(label) ?? '0';
 
-    // We sort by descending value of the selected cohort
-    const selectedPercentage =
-      seriesTotals[CHART_SELECTED_SERIES_NAME] === 0
-        ? 0
-        : (Number(selectedVal) / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100;
-    const baselinePercentage =
-      seriesTotals[CHART_BASELINE_SERIES_NAME] === 0
-        ? 0
-        : (Number(baselineVal) / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100;
+      const selectedPercentage =
+        seriesTotals[CHART_SELECTED_SERIES_NAME] === 0
+          ? 0
+          : (Number(selectedVal) / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100;
+      const baselinePercentage =
+        seriesTotals[CHART_BASELINE_SERIES_NAME] === 0
+          ? 0
+          : (Number(baselineVal) / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100;
 
-    const sortVal = selectedPercentage;
+      return {
+        label,
+        selectedValue: selectedPercentage,
+        baselineValue: baselinePercentage,
+        sortValue: selectedPercentage,
+      };
+    })
+    .sort((a, b) => b.sortValue - a.sortValue)
+    .slice(0, CHART_MAX_SERIES_LENGTH);
 
-    return {
-      label,
-      selectedValue: selectedPercentage,
-      baselineValue: baselinePercentage,
-      sortValue: sortVal,
-    };
-  });
+  const selectedSeriesData: Array<{label: string; value: number}> = [];
+  const baselineSeriesData: Array<{label: string; value: number}> = [];
 
-  seriesData.sort((a, b) => b.sortValue - a.sortValue);
-
-  const selectedSeriesData = seriesData
-    .slice(0, CHART_MAX_SERIES_LENGTH)
-    .map(({label, selectedValue}) => ({
-      label,
-      value: selectedValue,
-    }));
-
-  const baselineSeriesData = seriesData
-    .slice(0, CHART_MAX_SERIES_LENGTH)
-    .map(({label, baselineValue}) => ({
-      label,
-      value: baselineValue,
-    }));
+  for (const {label, selectedValue, baselineValue} of seriesData) {
+    selectedSeriesData.push({label, value: selectedValue});
+    baselineSeriesData.push({label, value: baselineValue});
+  }
 
   return {
     [CHART_SELECTED_SERIES_NAME]: selectedSeriesData,
@@ -197,101 +188,23 @@ export function Chart({
     [cohort1Color, cohort2Color]
   );
 
-  const tooltipActionsHtmlRenderer = useCallback(
-    (value: string) => {
-      if (!value) return '';
-
-      const actionBackground = theme.gray200;
-      return [
-        '<div',
-        '  data-explore-chart-selection-region',
-        '  class="tooltip-footer"',
-        '  id="tooltipActions"',
-        '  style="',
-        '    display: flex;',
-        '    justify-content: center;',
-        '    align-items: center;',
-        '    flex-direction: column;',
-        '    padding: 0;',
-        '    gap: 0;',
-        '  "',
-        '>',
-        '  <div',
-        `    data-tooltip-action="${Actions.GROUP_BY}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Group by attribute',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Add value to filter',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Exclude value from filter',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Copy value to clipboard',
-        '  </div>',
-        '</div>',
-      ]
-        .join('\n')
-        .trim();
-    },
-    [theme.gray200, attribute.attributeName]
+  const actionsHtmlRenderer = useCallback(
+    (value: string) => tooltipActionsHtmlRenderer(value, attribute.attributeName, theme),
+    [attribute.attributeName, theme]
   );
 
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: toolTipFormatter,
     chartWidth,
-    actionsHtmlRenderer: tooltipActionsHtmlRenderer,
+    actionsHtmlRenderer,
   });
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
       const selectedSeries = seriesData[CHART_SELECTED_SERIES_NAME];
       const labelsCount = selectedSeries.length > 0 ? selectedSeries.length : 1;
-      // 14px is the width of the y axis label with font size 12
-      // We'll subtract side padding (e.g. 4px per label) to avoid crowding
-      const labelPadding = 4;
-      const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
-
-      //  Average width of a character is 0.6 times the font size
-      const pixelsPerCharacter = 0.6 * CHART_AXIS_LABEL_FONT_SIZE;
-
-      // Compute the max number of characters that can fit
-      const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
-
-      // If value fits, return it as-is
-      if (value.length <= maxChars) return value;
-
-      // Otherwise, truncate and append '…'
-      const truncatedLength = Math.max(1, maxChars - 2); // leaving space for (ellipsis)
-      return value.slice(0, truncatedLength) + '…';
+      return formatChartXAxisLabel(value, labelsCount, chartWidth);
     },
     [chartWidth, seriesData]
   );
@@ -307,13 +220,19 @@ export function Chart({
   }, [chartRef]);
 
   return (
-    <ChartWrapper>
-      <ChartHeaderWrapper justify="between" align="center" gap="lg">
+    <AttributeBreakdownsComponent.ChartWrapper>
+      <AttributeBreakdownsComponent.ChartHeaderWrapper
+        justify="between"
+        align="center"
+        gap="lg"
+      >
         <Tooltip title={attribute.attributeName} showOnlyOnOverflow skipWrapper>
-          <ChartTitle>{attribute.attributeName}</ChartTitle>
+          <AttributeBreakdownsComponent.ChartTitle>
+            {attribute.attributeName}
+          </AttributeBreakdownsComponent.ChartTitle>
         </Tooltip>
         <Flex gap="sm">
-          <PopulationIndicator color={cohort1Color}>
+          <AttributeBreakdownsComponent.PopulationIndicator color={cohort1Color}>
             <Tooltip
               showUnderline
               title={tct('[percent] of selected cohort has this attribute populated', {
@@ -322,8 +241,8 @@ export function Chart({
             >
               {percentageFormatter(populationPercentages.selected)}
             </Tooltip>
-          </PopulationIndicator>
-          <PopulationIndicator color={cohort2Color}>
+          </AttributeBreakdownsComponent.PopulationIndicator>
+          <AttributeBreakdownsComponent.PopulationIndicator color={cohort2Color}>
             <Tooltip
               showUnderline
               title={tct('[percent] of baseline cohort has this attribute populated', {
@@ -332,9 +251,9 @@ export function Chart({
             >
               {percentageFormatter(populationPercentages.baseline)}
             </Tooltip>
-          </PopulationIndicator>
+          </AttributeBreakdownsComponent.PopulationIndicator>
         </Flex>
-      </ChartHeaderWrapper>
+      </AttributeBreakdownsComponent.ChartHeaderWrapper>
       <BaseChart
         ref={chartRef}
         autoHeightResize
@@ -400,45 +319,6 @@ export function Chart({
           },
         ]}
       />
-    </ChartWrapper>
+    </AttributeBreakdownsComponent.ChartWrapper>
   );
 }
-
-const ChartWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 200px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
-  border: 1px solid ${p => p.theme.border};
-  overflow: hidden;
-  min-width: 0;
-`;
-
-const ChartHeaderWrapper = styled(Flex)`
-  margin-bottom: ${space(1)};
-  max-width: 100%;
-`;
-
-const ChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-  color: ${p => p.theme.gray500};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const PopulationIndicator = styled('div')<{color?: string}>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 500;
-  color: ${p => p.color || p.theme.gray400};
-
-  &::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
-    margin-right: ${space(0.5)};
-  }
-`;

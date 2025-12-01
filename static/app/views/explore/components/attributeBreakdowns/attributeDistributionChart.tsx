@@ -1,6 +1,5 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
@@ -8,12 +7,8 @@ import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {
-  Actions,
-  useAttributeBreakdownsTooltip,
-} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {
@@ -23,7 +18,13 @@ import {
   CHART_MAX_SERIES_LENGTH,
   CHART_TOOLTIP_MAX_VALUE_LENGTH,
 } from './constants';
-import {calculateAttrubutePopulationPercentage, percentageFormatter} from './utils';
+import {AttributeBreakdownsComponent} from './styles';
+import {
+  calculateAttrubutePopulationPercentage,
+  formatChartXAxisLabel,
+  percentageFormatter,
+  tooltipActionsHtmlRenderer,
+} from './utils';
 
 function distributionToSeriesData(
   values: AttributeDistribution[number]['values'],
@@ -106,100 +107,22 @@ export function Chart({
     `.trim();
   }, []);
 
-  const tooltipActionsHtmlRenderer = useCallback(
-    (value: string) => {
-      if (!value) return '';
-
-      const actionBackground = theme.gray200;
-      return [
-        '<div',
-        '  class="tooltip-footer"',
-        '  id="tooltipActions"',
-        '  style="',
-        '    display: flex;',
-        '    justify-content: center;',
-        '    align-items: center;',
-        '    flex-direction: column;',
-        '    padding: 0;',
-        '    gap: 0;',
-        '  "',
-        '>',
-        '  <div',
-        `    data-tooltip-action="${Actions.GROUP_BY}"`,
-        `    data-tooltip-action-key="${attributeDistribution.name}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Group by attribute',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
-        `    data-tooltip-action-key="${attributeDistribution.name}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Add value to filter',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
-        `    data-tooltip-action-key="${attributeDistribution.name}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Exclude value from filter',
-        '  </div>',
-        '  <div',
-        `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
-        `    data-tooltip-action-key="${attributeDistribution.name}"`,
-        `    data-tooltip-action-value="${value}"`,
-        '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
-        `    onmouseover="this.style.background='${actionBackground}'"`,
-        '    onmouseout="this.style.background=\'\'"',
-        '  >',
-        '    Copy value to clipboard',
-        '  </div>',
-        '</div>',
-      ]
-        .join('\n')
-        .trim();
-    },
-    [theme.gray200, attributeDistribution.name]
+  const actionsHtmlRenderer = useCallback(
+    (value: string) =>
+      tooltipActionsHtmlRenderer(value, attributeDistribution.name, theme),
+    [attributeDistribution.name, theme]
   );
 
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: toolTipFormatter,
     chartWidth,
-    actionsHtmlRenderer: tooltipActionsHtmlRenderer,
+    actionsHtmlRenderer,
   });
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
-      const labelsCount = seriesData.length > 0 ? seriesData.length : 1;
-
-      // 14px is the width of the y axis label with font size 12
-      // We'll subtract side padding (e.g. 4px per label) to avoid crowding
-      const labelPadding = 4;
-      const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
-
-      //  Average width of a character is 0.6 times the font size
-      const pixelsPerCharacter = 0.6 * CHART_AXIS_LABEL_FONT_SIZE;
-
-      // Compute the max number of characters that can fit
-      const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
-
-      // If value fits, return it as-is
-      if (value.length <= maxChars) return value;
-
-      // Otherwise, truncate and append '…'
-      const truncatedLength = Math.max(1, maxChars - 2); // leaving space for (ellipsis)
-      return value.slice(0, truncatedLength) + '…';
+      return formatChartXAxisLabel(value, seriesData.length, chartWidth);
     },
     [chartWidth, seriesData]
   );
@@ -215,13 +138,19 @@ export function Chart({
   }, [chartRef]);
 
   return (
-    <ChartWrapper>
-      <ChartHeaderWrapper justify="between" align="center" gap="lg">
+    <AttributeBreakdownsComponent.ChartWrapper>
+      <AttributeBreakdownsComponent.ChartHeaderWrapper
+        justify="between"
+        align="center"
+        gap="lg"
+      >
         <Tooltip title={attributeDistribution.name} showOnlyOnOverflow skipWrapper>
-          <ChartTitle>{attributeDistribution.name}</ChartTitle>
+          <AttributeBreakdownsComponent.ChartTitle>
+            {attributeDistribution.name}
+          </AttributeBreakdownsComponent.ChartTitle>
         </Tooltip>
         <Flex gap="sm">
-          <PopulationIndicator color={color}>
+          <AttributeBreakdownsComponent.PopulationIndicator color={color}>
             <Tooltip
               showUnderline
               title={tct(
@@ -233,9 +162,9 @@ export function Chart({
             >
               {percentageFormatter(populationPercentage)}
             </Tooltip>
-          </PopulationIndicator>
+          </AttributeBreakdownsComponent.PopulationIndicator>
         </Flex>
-      </ChartHeaderWrapper>
+      </AttributeBreakdownsComponent.ChartHeaderWrapper>
       <BaseChart
         ref={chartRef}
         autoHeightResize
@@ -289,45 +218,6 @@ export function Chart({
           },
         ]}
       />
-    </ChartWrapper>
+    </AttributeBreakdownsComponent.ChartWrapper>
   );
 }
-
-const ChartWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 200px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
-  border: 1px solid ${p => p.theme.border};
-  overflow: hidden;
-  min-width: 0;
-`;
-
-const ChartHeaderWrapper = styled(Flex)`
-  margin-bottom: ${space(1)};
-  max-width: 100%;
-`;
-
-const ChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-  color: ${p => p.theme.gray500};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-const PopulationIndicator = styled('div')<{color?: string}>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 500;
-  color: ${p => p.color || p.theme.gray400};
-
-  &::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${p => p.color || p.theme.gray400};
-    margin-right: ${space(0.5)};
-  }
-`;

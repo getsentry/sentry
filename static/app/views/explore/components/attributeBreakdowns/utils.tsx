@@ -1,3 +1,8 @@
+import type {Theme} from 'sentry/utils/theme';
+import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+
+import {CHART_AXIS_LABEL_FONT_SIZE} from './constants';
+
 export function calculateAttrubutePopulationPercentage(
   values: Array<{
     label: string;
@@ -26,4 +31,100 @@ export function percentageFormatter(percentage: number): string {
 
   const decimals = roundsToWhole ? 0 : 1;
   return `${percentage.toFixed(decimals)}%`;
+}
+
+export function chartXAxisLabelFormatter(value: string): string {
+  return value;
+}
+
+export function formatChartXAxisLabel(
+  value: string,
+  labelsCount: number,
+  chartWidth: number
+): string {
+  // 14px is the width of the y axis label with font size 12
+  // We'll subtract side padding (e.g. 4px per label) to avoid crowding
+  const labelPadding = 4;
+  const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
+
+  //  Average width of a character is 0.6 times the font size
+  const pixelsPerCharacter = 0.6 * CHART_AXIS_LABEL_FONT_SIZE;
+
+  // Compute the max number of characters that can fit
+  const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
+
+  // If value fits, return it as-is
+  if (value.length <= maxChars) return value;
+
+  // Otherwise, truncate and append '…'
+  const truncatedLength = Math.max(1, maxChars - 2); // leaving space for (ellipsis)
+  return value.slice(0, truncatedLength) + '…';
+}
+
+export function tooltipActionsHtmlRenderer(
+  value: string,
+  attributeName: string,
+  theme: Theme
+): string {
+  if (!value) return '';
+
+  const actionBackground = theme.gray200;
+  return [
+    '<div',
+    '  data-explore-chart-selection-region',
+    '  class="tooltip-footer"',
+    '  id="tooltipActions"',
+    '  style="',
+    '    display: flex;',
+    '    justify-content: center;',
+    '    align-items: center;',
+    '    flex-direction: column;',
+    '    padding: 0;',
+    '    gap: 0;',
+    '  "',
+    '>',
+    '  <div',
+    `    data-tooltip-action="${Actions.GROUP_BY}"`,
+    `    data-tooltip-action-key="${attributeName}"`,
+    `    data-tooltip-action-value="${value}"`,
+    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    onmouseover="this.style.background='${actionBackground}'"`,
+    '    onmouseout="this.style.background=\'\'"',
+    '  >',
+    '    Group by attribute',
+    '  </div>',
+    '  <div',
+    `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
+    `    data-tooltip-action-key="${attributeName}"`,
+    `    data-tooltip-action-value="${value}"`,
+    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    onmouseover="this.style.background='${actionBackground}'"`,
+    '    onmouseout="this.style.background=\'\'"',
+    '  >',
+    '    Add value to filter',
+    '  </div>',
+    '  <div',
+    `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
+    `    data-tooltip-action-key="${attributeName}"`,
+    `    data-tooltip-action-value="${value}"`,
+    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    onmouseover="this.style.background='${actionBackground}'"`,
+    '    onmouseout="this.style.background=\'\'"',
+    '  >',
+    '    Exclude value from filter',
+    '  </div>',
+    '  <div',
+    `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
+    `    data-tooltip-action-key="${attributeName}"`,
+    `    data-tooltip-action-value="${value}"`,
+    '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
+    `    onmouseover="this.style.background='${actionBackground}'"`,
+    '    onmouseout="this.style.background=\'\'"',
+    '  >',
+    '    Copy value to clipboard',
+    '  </div>',
+    '</div>',
+  ]
+    .join('\n')
+    .trim();
 }
