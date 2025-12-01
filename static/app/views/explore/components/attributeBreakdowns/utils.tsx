@@ -34,10 +34,6 @@ export function percentageFormatter(percentage: number): string {
   return `${percentage.toFixed(decimals)}%`;
 }
 
-export function chartXAxisLabelFormatter(value: string): string {
-  return value;
-}
-
 export function formatChartXAxisLabel(
   value: string,
   labelsCount: number,
@@ -74,6 +70,7 @@ export function tooltipActionsHtmlRenderer(
   const actionBackground = theme.gray200;
   return [
     '<div',
+    '  data-explore-chart-selection-region',
     '  class="tooltip-footer"',
     '  id="tooltipActions"',
     '  style="',

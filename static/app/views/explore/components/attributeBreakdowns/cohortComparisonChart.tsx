@@ -4,7 +4,6 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
-import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -12,21 +11,19 @@ import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/use
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import {
-  CHART_AXIS_LABEL_FONT_SIZE,
-  CHART_BASELINE_SERIES_NAME,
-  CHART_HIGH_CARDINALITY_THRESHOLD,
   CHART_MAX_BAR_WIDTH,
   CHART_MAX_SERIES_LENGTH,
-  CHART_SELECTED_SERIES_NAME,
   CHART_TOOLTIP_MAX_VALUE_LENGTH,
 } from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 import {
   calculateAttrubutePopulationPercentage,
-  formatChartXAxisLabel,
   percentageFormatter,
   tooltipActionsHtmlRenderer,
 } from './utils';
+
+const CHART_SELECTED_SERIES_NAME = 'selected';
+const CHART_BASELINE_SERIES_NAME = 'baseline';
 
 type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
 
@@ -200,15 +197,6 @@ export function Chart({
     actionsHtmlRenderer,
   });
 
-  const chartXAxisLabelFormatter = useCallback(
-    (value: string): string => {
-      const selectedSeries = seriesData[CHART_SELECTED_SERIES_NAME];
-      const labelsCount = selectedSeries.length > 0 ? selectedSeries.length : 1;
-      return formatChartXAxisLabel(value, labelsCount, chartWidth);
-    },
-    [chartWidth, seriesData]
-  );
-
   useLayoutEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
 
@@ -254,48 +242,12 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
         </Flex>
       </AttributeBreakdownsComponent.ChartHeaderWrapper>
-      <BaseChart
-        ref={chartRef}
-        autoHeightResize
-        isGroupedByDate={false}
+      <AttributeBreakdownsComponent.Chart
+        chartRef={chartRef}
+        chartWidth={chartWidth}
+        xAxisData={seriesData[CHART_SELECTED_SERIES_NAME].map(cohort => cohort.label)}
+        maxSeriesValue={maxSeriesValue}
         tooltip={tooltipConfig}
-        grid={{
-          left: 2,
-          right: 8,
-          bottom: 40,
-          containLabel: false,
-        }}
-        xAxis={{
-          show: true,
-          type: 'category',
-          data: seriesData[CHART_SELECTED_SERIES_NAME].map(cohort => cohort.label),
-          truncate: 14,
-          axisLabel:
-            seriesData[CHART_SELECTED_SERIES_NAME].length >
-            CHART_HIGH_CARDINALITY_THRESHOLD
-              ? {
-                  show: false,
-                }
-              : {
-                  hideOverlap: false,
-                  showMaxLabel: false,
-                  showMinLabel: false,
-                  color: '#000',
-                  interval: 0,
-                  fontSize: CHART_AXIS_LABEL_FONT_SIZE,
-                  formatter: chartXAxisLabelFormatter,
-                },
-        }}
-        yAxis={{
-          type: 'value',
-          interval: maxSeriesValue < 1 ? 1 : undefined,
-          axisLabel: {
-            fontSize: 12,
-            formatter: (value: number) => {
-              return percentageFormatter(value);
-            },
-          },
-        }}
         series={[
           {
             type: 'bar',

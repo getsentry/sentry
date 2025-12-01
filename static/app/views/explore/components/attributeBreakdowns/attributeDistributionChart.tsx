@@ -4,7 +4,6 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
-import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -12,8 +11,6 @@ import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttri
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {
-  CHART_AXIS_LABEL_FONT_SIZE,
-  CHART_HIGH_CARDINALITY_THRESHOLD,
   CHART_MAX_BAR_WIDTH,
   CHART_MAX_SERIES_LENGTH,
   CHART_TOOLTIP_MAX_VALUE_LENGTH,
@@ -21,7 +18,6 @@ import {
 import {AttributeBreakdownsComponent} from './styles';
 import {
   calculateAttrubutePopulationPercentage,
-  formatChartXAxisLabel,
   percentageFormatter,
   tooltipActionsHtmlRenderer,
 } from './utils';
@@ -120,13 +116,6 @@ export function Chart({
     actionsHtmlRenderer,
   });
 
-  const chartXAxisLabelFormatter = useCallback(
-    (value: string): string => {
-      return formatChartXAxisLabel(value, seriesData.length, chartWidth);
-    },
-    [chartWidth, seriesData]
-  );
-
   useLayoutEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
 
@@ -165,47 +154,12 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
         </Flex>
       </AttributeBreakdownsComponent.ChartHeaderWrapper>
-      <BaseChart
-        ref={chartRef}
-        autoHeightResize
-        isGroupedByDate={false}
+      <AttributeBreakdownsComponent.Chart
+        chartRef={chartRef}
+        chartWidth={chartWidth}
+        xAxisData={seriesData.map(value => value.label)}
+        maxSeriesValue={maxSeriesValue}
         tooltip={tooltipConfig}
-        grid={{
-          left: 2,
-          right: 8,
-          bottom: 40,
-          containLabel: false,
-        }}
-        xAxis={{
-          show: true,
-          type: 'category',
-          data: seriesData.map(value => value.label),
-          truncate: 14,
-          axisLabel:
-            seriesData.length > CHART_HIGH_CARDINALITY_THRESHOLD
-              ? {
-                  show: false,
-                }
-              : {
-                  hideOverlap: false,
-                  showMaxLabel: false,
-                  showMinLabel: false,
-                  color: '#000',
-                  interval: 0,
-                  fontSize: CHART_AXIS_LABEL_FONT_SIZE,
-                  formatter: chartXAxisLabelFormatter,
-                },
-        }}
-        yAxis={{
-          type: 'value',
-          interval: maxSeriesValue < 1 ? 1 : undefined,
-          axisLabel: {
-            fontSize: 12,
-            formatter: (value: number) => {
-              return percentageFormatter(value);
-            },
-          },
-        }}
         series={[
           {
             type: 'bar',
