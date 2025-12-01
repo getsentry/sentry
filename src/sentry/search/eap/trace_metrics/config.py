@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.rpc_utils import or_trace_item_filters
 from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import fields
@@ -40,6 +41,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         selected_columns: list[str] | None,
         equations: list[str] | None,
     ) -> TraceItemFilter | None:
+        aggregate_all_metrics = False
         selected_metrics: set[TraceMetric] = set()
 
         if selected_columns:
@@ -56,20 +58,30 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                 ) and not isinstance(resolved_function, ResolvedTraceMetricFormula):
                     continue
 
-                if not resolved_function.trace_metric:
+                if resolved_function.trace_metric is None:
+                    # found an aggregation across all metrics, not just 1
+                    aggregate_all_metrics = True
                     continue
 
                 selected_metrics.add(resolved_function.trace_metric)
 
+        if equations:
+            raise InvalidSearchQuery("Cannot support equations on trace metrics yet")
+
+        # no selected metrics, no filter needed
         if not selected_metrics:
             return None
 
-        if len(selected_metrics) > 1:
-            raise InvalidSearchQuery("Cannot aggregate multiple metrics in 1 query.")
+        # check if there are any aggregations across all metrics mixed with
+        # aggregations for a single metric as this is not permitted
+        if aggregate_all_metrics and selected_metrics:
+            raise InvalidSearchQuery(
+                "Cannot aggregate all metrics and singlular metrics in the same query."
+            )
 
-        selected_metric = selected_metrics.pop()
-
-        return selected_metric.get_filter()
+        # at this point we only have selected metrics remaining
+        filters = [metric.get_filter() for metric in selected_metrics]
+        return or_trace_item_filters(*filters)
 
     def _extra_conditions_from_metric(
         self,

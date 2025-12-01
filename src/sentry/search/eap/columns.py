@@ -238,8 +238,32 @@ class ResolvedAggregate(ResolvedFunction):
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedTraceMetricAggregate(ResolvedAggregate):
+class ResolvedTraceMetricAggregate(ResolvedFunction):
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    extrapolation_mode: ExtrapolationMode.ValueType
+    # The attribute to conditionally aggregate on
+    key: AttributeKey
+
+    is_aggregate: bool = field(default=True, init=False)
     trace_metric: TraceMetric | None
+
+    @property
+    def proto_definition(self) -> AttributeAggregation | AttributeConditionalAggregation:
+        if self.trace_metric is None:
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
+        return AttributeConditionalAggregation(
+            aggregate=self.internal_name,
+            key=self.key,
+            filter=self.trace_metric.get_filter(),
+            label=self.public_alias,
+            extrapolation_mode=self.extrapolation_mode,
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -399,7 +423,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
             ),
-            argument=resolved_attribute,
+            key=resolved_attribute,
             trace_metric=trace_metric,
         )
 
