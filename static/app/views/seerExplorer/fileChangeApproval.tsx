@@ -29,6 +29,7 @@ interface FileChangeApprovalData {
 
 interface FileChangeApprovalProps {
   onSubmit: (allApproved: boolean, decisions: boolean[]) => void;
+  isMinimized?: boolean;
   pendingInput?: PendingUserInput | null;
 }
 
@@ -93,7 +94,11 @@ function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
   );
 }
 
-function FileChangeApproval({pendingInput, onSubmit}: FileChangeApprovalProps) {
+function FileChangeApproval({
+  onSubmit,
+  isMinimized = false,
+  pendingInput,
+}: FileChangeApprovalProps) {
   // Track current index and decisions locally
   const [currentIndex, setCurrentIndex] = useState(0);
   const [decisions, setDecisions] = useState<boolean[]>([]);
@@ -119,6 +124,9 @@ function FileChangeApproval({pendingInput, onSubmit}: FileChangeApprovalProps) {
       const newDecisions = [...decisions, approved];
       const nextIndex = currentIndex + 1;
 
+      setDecisions(newDecisions);
+      setCurrentIndex(nextIndex);
+
       if (nextIndex >= totalPatches) {
         // All patches reviewed - submit to backend
         const allApproved = newDecisions.every(d => d);
@@ -132,10 +140,6 @@ function FileChangeApproval({pendingInput, onSubmit}: FileChangeApprovalProps) {
           );
         }
         onSubmit(allApproved, newDecisions);
-      } else {
-        // Move to next patch locally
-        setDecisions(newDecisions);
-        setCurrentIndex(nextIndex);
       }
     },
     [decisions, currentIndex, totalPatches, onSubmit]
@@ -146,7 +150,11 @@ function FileChangeApproval({pendingInput, onSubmit}: FileChangeApprovalProps) {
 
   // Add keyboard shortcuts for approve (Enter) and reject (Backspace/Delete)
   useEffect(() => {
-    if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
+    if (
+      !pendingInput ||
+      pendingInput.input_type !== 'file_change_approval' ||
+      isMinimized
+    ) {
       return undefined;
     }
 
@@ -170,7 +178,7 @@ function FileChangeApproval({pendingInput, onSubmit}: FileChangeApprovalProps) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [pendingInput, handleApprove, handleReject]);
+  }, [pendingInput, handleApprove, handleReject, isMinimized]);
 
   if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
     return null;
