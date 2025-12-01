@@ -1,4 +1,5 @@
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import APITestCase
@@ -103,3 +104,36 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
 
     def test_no_filter_provided(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
+
+    def test_fallback_with_fake_incident_identifier(self) -> None:
+        """
+        Test that when an IGOP doesn't exist, the endpoint falls back to looking up
+        the GroupOpenPeriod by subtracting 10^9 from the incident_identifier.
+        This is the reverse of the GOP -> Incident serialization logic.
+        """
+        # Create a group with open period but NO IGOP
+        group_no_igop = self.create_group(type=MetricIssue.type_id)
+        open_period_no_igop = GroupOpenPeriod.objects.get(group=group_no_igop)
+
+        # Calculate the fake incident_identifier (same as serializer does)
+        fake_incident_identifier = get_fake_id_from_object_id(open_period_no_igop.id)
+
+        # Query using the fake incident_identifier
+        response = self.get_success_response(
+            self.organization.slug, incident_identifier=str(fake_incident_identifier)
+        )
+
+        # Should return a fake IGOP response
+        assert response.data == {
+            "incidentId": str(fake_incident_identifier),
+            "incidentIdentifier": str(fake_incident_identifier),
+            "groupId": str(group_no_igop.id),
+            "openPeriodId": str(open_period_no_igop.id),
+        }
+
+    def test_fallback_with_nonexistent_open_period(self) -> None:
+        # Use a fake incident_identifier that won't map to any real open period
+        nonexistent_fake_id = get_fake_id_from_object_id(999999)
+        self.get_error_response(
+            self.organization.slug, incident_identifier=str(nonexistent_fake_id), status_code=404
+        )
