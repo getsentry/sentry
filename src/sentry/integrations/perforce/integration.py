@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 from django import forms
 from django.http import HttpRequest, HttpResponseBase
@@ -26,9 +26,23 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
+
+
+class PerforceMetadata(TypedDict, total=False):
+    """Type definition for Perforce integration metadata stored in Integration.metadata."""
+
+    p4port: str
+    user: str
+    password: str
+    auth_type: str
+    client: str
+    ssl_fingerprint: str
+    web_url: str
+
 
 DESCRIPTION = """
 Connect your Sentry organization to your Perforce/Helix Core server to enable
@@ -338,10 +352,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         Args:
             query: Optional search query to filter depot names
-            page_number_limit: Maximum number of repositories to return
+            page_number_limit: Ignored (kept for base class compatibility)
 
         Returns:
-            List of repository dictionaries (limited by page_number_limit if provided)
+            List of repository dictionaries
         """
         try:
             client = self.get_client()
@@ -363,10 +377,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
-
-                # Apply pagination limit if specified
-                if page_number_limit and len(repositories) >= page_number_limit:
-                    break
 
             return repositories
 
@@ -575,7 +585,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         external_id = f"perforce-org-{organization_id}-{p4port_hash}"
 
         # Store credentials in Integration.metadata
-        metadata = {
+        metadata: PerforceMetadata = {
             "p4port": p4port,
             "user": installation_data.get("user", ""),
             "auth_type": installation_data.get("auth_type", "password"),  # Default to password
@@ -595,7 +605,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         return {
             "name": state.get("name", f"Perforce ({p4port})"),
             "external_id": external_id,
-            "metadata": metadata,
+            "metadata": dict(metadata),  # Cast TypedDict to dict for compatibility
         }
 
     def post_install(
@@ -718,10 +728,10 @@ class PerforceInstallationView:
 
                 # Bind configuration data to pipeline state
                 pipeline.bind_state("installation_data", form_data)
-                pipeline.bind_state("p4port", form_data.get("p4port"))
-                pipeline.bind_state("name", f"Perforce ({form_data.get('p4port')})")
                 # Include organization_id to create unique external_id per org
-                pipeline.bind_state("organization_id", pipeline.organization.id)
+                active_org = determine_active_organization(request)
+                if active_org:
+                    pipeline.bind_state("organization_id", active_org.organization.id)
 
                 pipeline.get_logger().info(
                     "perforce.setup.installation-config-view.success",

@@ -46,8 +46,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         self.integration = integration
         self.org_integration = org_integration
-        self.P4 = P4
-        self.P4Exception = P4Exception
 
         # Extract configuration from integration.metadata
         if not org_integration:
@@ -79,7 +77,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             with self._connect() as p4:
                 result = p4.run("info")
         """
-        p4 = self.P4()
+        p4 = P4()
         p4.port = self.p4port
         p4.user = self.user
         p4.password = self.password
@@ -92,7 +90,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         # Connect to Perforce server
         try:
             p4.connect()
-        except self.P4Exception as e:
+        except P4Exception as e:
             error_msg = str(e)
             # Provide helpful error message for connection failures
             if "SSL" in error_msg or "trust" in error_msg.lower():
@@ -107,7 +105,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         if self.ssl_fingerprint and self.p4port.startswith("ssl:"):
             try:
                 p4.run_trust("-i", self.ssl_fingerprint)
-            except self.P4Exception as trust_error:
+            except P4Exception as trust_error:
                 try:
                     p4.disconnect()
                 except Exception:
@@ -123,7 +121,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         if self.password and self.auth_type == "password":
             try:
                 p4.run_login()
-            except self.P4Exception as login_error:
+            except P4Exception as login_error:
                 try:
                     p4.disconnect()
                 except Exception:
@@ -137,7 +135,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # Verify ticket works by running a test command
             try:
                 p4.run("info")
-            except self.P4Exception as e:
+            except P4Exception as e:
                 try:
                     p4.disconnect()
                 except Exception:
@@ -184,7 +182,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                     return result[0]
                 return None
 
-            except self.P4Exception:
+            except P4Exception:
                 return None
 
     def build_depot_path(self, repo: Repository, path: str, stream: str | None = None) -> str:
