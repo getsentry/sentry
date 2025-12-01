@@ -186,7 +186,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 # Link can't be unfurled
                 if link_type is None or args is None:
-                    lifecycle.record_halt("Unfurlable link", extra={"url": url})
                     continue
 
                 if (
