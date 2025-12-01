@@ -31,6 +31,7 @@ import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
@@ -135,6 +136,10 @@ interface MetricDetectorChartProps {
    * Used in anomaly detection
    */
   thresholdType: AlertRuleThresholdType | undefined;
+  /**
+   * Detector ID - only available when editing an existing detector
+   */
+  detectorId?: string;
   extrapolationMode?: ExtrapolationMode | undefined;
 }
 
@@ -153,6 +158,7 @@ export function MetricDetectorChart({
   sensitivity,
   thresholdType,
   extrapolationMode,
+  detectorId,
 }: MetricDetectorChartProps) {
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
@@ -218,10 +224,81 @@ export function MetricDetectorChart({
     markLineTooltip: anomalyMarklineTooltip,
   });
 
+  const metricTimestamps = useMemo(() => {
+    const firstSeries = series[0];
+    if (!firstSeries?.data.length) {
+      return {start: undefined, end: undefined};
+    }
+    const data = firstSeries.data;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+
+    if (!firstPoint || !lastPoint) {
+      return {start: undefined, end: undefined};
+    }
+
+    const firstTimestamp =
+      typeof firstPoint.name === 'number'
+        ? firstPoint.name
+        : new Date(firstPoint.name).getTime();
+    const lastTimestamp =
+      typeof lastPoint.name === 'number'
+        ? lastPoint.name
+        : new Date(lastPoint.name).getTime();
+
+    return {
+      start: Math.floor(firstTimestamp / 1000),
+      end: Math.floor(lastTimestamp / 1000),
+    };
+  }, [series]);
+
+  const shouldFetchThresholds = Boolean(detectorId && isAnomalyDetection);
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detectorId ?? 'skip',
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: shouldFetchThresholds ? series : [],
+  });
+
+  const filteredAnomalyThresholdSeries = useMemo(() => {
+    if (
+      !detectorId ||
+      !anomalyThresholdSeries.length ||
+      !isAnomalyDetection ||
+      thresholdType === undefined
+    ) {
+      return [];
+    }
+
+    const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
+
+    const filtered = [];
+
+    if (
+      thresholdType === AlertRuleThresholdType.ABOVE ||
+      thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+    ) {
+      filtered.push(upperThreshold);
+    }
+
+    if (
+      thresholdType === AlertRuleThresholdType.BELOW ||
+      thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+    ) {
+      filtered.push(lowerThreshold);
+    }
+
+    if (seerValue) {
+      filtered.push(seerValue);
+    }
+
+    return filtered.filter((s): s is NonNullable<typeof s> => !!s);
+  }, [detectorId, anomalyThresholdSeries, isAnomalyDetection, thresholdType]);
+
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     if (isAnomalyDetection && anomalyMarkerResult.incidentMarkerSeries) {
       // Line series not working well with the custom series type
@@ -232,6 +309,7 @@ export function MetricDetectorChart({
   }, [
     isAnomalyDetection,
     thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
     anomalyMarkerResult.incidentMarkerSeries,
   ]);
 
