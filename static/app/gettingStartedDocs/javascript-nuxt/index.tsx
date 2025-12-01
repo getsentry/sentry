@@ -3,6 +3,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {mcp} from 'sentry/gettingStartedDocs/node/mcp';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
@@ -31,6 +32,7 @@ const docs: Docs = {
     packageName: '@sentry/nuxt',
   }),
   agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
 };
 
 export default docs;

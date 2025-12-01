@@ -3,6 +3,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {mcp} from 'sentry/gettingStartedDocs/node/mcp';
 import {tct} from 'sentry/locale';
 
 import {agentMonitoring} from './agentMonitoring';
@@ -87,6 +88,7 @@ const docs: Docs = {
     packageName: '@sentry/nextjs',
   }),
   agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
 };
 
 export default docs;
