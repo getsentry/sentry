@@ -88,7 +88,7 @@ function Controls({
   const api = useApi();
   const navigate = useNavigate();
   const hasPrebuiltControlsFeature = organization.features.includes(
-    'organizations:dashboards-prebuilt-controls'
+    'dashboards-prebuilt-controls'
   );
 
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
