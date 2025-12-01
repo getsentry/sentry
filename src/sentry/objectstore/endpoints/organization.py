@@ -1,9 +1,10 @@
 from collections.abc import Callable, Generator
 from typing import Literal
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
+from django.core.exceptions import SuspiciousOperation
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
@@ -28,7 +29,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    parser_classes = []  # don't attempt to parse request data, so we can access it raw
+    parser_classes = ()  # don't attempt to parse request data, so we can access the raw wsgi.input
 
     def get(
         self, request: Request, organization: Organization, path: str
@@ -64,8 +65,8 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         path: str,
         request: Request,
     ) -> Response | StreamingHttpResponse:
-        target_base_url = options.get("objectstore.config")["base_url"].rstrip("/")
-        target_url = urljoin(target_base_url, path)
+
+        target_url = get_target_url(path)
 
         headers = dict(request.headers)
         if method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
@@ -74,18 +75,18 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
 
-        data = None
+        stream = None
         if method in ("PUT", "POST"):
             wsgi_input = request.META.get("wsgi.input")
             if not wsgi_input:
                 return Response("Expected a request body", status=400)
-            data = ChunkedEncodingWrapper(wsgi_input._read)
+            stream = ChunkedEncodingDecoder(wsgi_input._read)
 
         response = requests.request(
             method,
             url=target_url,
             headers=headers,
-            data=data,
+            data=stream,
             params=dict(request.GET) if request.GET else None,
             stream=True,
             allow_redirects=False,
@@ -93,7 +94,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         return stream_response(response)
 
 
-class ChunkedEncodingWrapper:
+class ChunkedEncodingDecoder:
     """
     Wrapper around a read function returning chunked transfer encoded data.
     Provides a file-like interface to the decoded data stream.
@@ -150,6 +151,12 @@ class ChunkedEncodingWrapper:
                     self._read(2)  # Read trailing \r\n
 
         return b"".join(buffer)
+
+
+def get_target_url(path: str) -> str:
+    objectstore_base = options.get("objectstore.config")["base_url"].rstrip("/")
+    target_url = urljoin(objectstore_base, path)
+    return target_url
 
 
 def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
