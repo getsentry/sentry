@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 
+from sentry import options
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
@@ -227,7 +228,9 @@ class Spans(rpc_dataset_common.RPCBase):
         )
         spans = []
         start_time = int(time.time())
-        while True:
+        MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
+        MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
+        for _ in range(MAX_ITERATIONS):
             response = snuba_rpc.get_trace_rpc(request)
             columns_by_name = {col.proto_definition.name: col for col in columns}
             for item_group in response.item_groups:
@@ -261,12 +264,14 @@ class Spans(rpc_dataset_common.RPCBase):
                     spans.append(span)
             if response.page_token.end_pagination:
                 break
-            if time.time() - start_time > 15:
-                rpc_dataset_common.log_rpc_request(
-                    "running a trace query timed out while paginating",
-                    request,
-                    logger,
-                )
+            if time.time() - start_time > MAX_TIMEOUT:
+                # If timeout is not set then logging this is not helpful
+                if MAX_TIMEOUT > 0:
+                    rpc_dataset_common.log_rpc_request(
+                        "running a trace query timed out while paginating",
+                        request,
+                        logger,
+                    )
                 break
             request.page_token.CopyFrom(response.page_token)
         return spans

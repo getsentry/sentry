@@ -11,6 +11,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -281,6 +282,12 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
+    @override_options(
+        {
+            "performance.traces.pagination.max-iterations": 30,
+            "performance.traces.pagination.max-timeout": 15,
+        }
+    )
     @mock.patch("sentry.snuba.spans_rpc.TRACE_QUERY_LIMIT_OVERRIDE", return_value=5)
     def test_pagination(self, mock_override) -> None:
         """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
