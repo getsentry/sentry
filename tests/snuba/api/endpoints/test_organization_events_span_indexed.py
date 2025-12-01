@@ -6925,23 +6925,23 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             is_eap=True,
         )
 
-        is_response = self.do_request(
+        is_query = self.do_request(
             {
                 "field": ["span.description"],
-                "query": 'span.description:"SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *"',
+                "query": 'span.description:"SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, \\*"',
                 "project": self.project.id,
                 "dataset": "spans",
             }
         )
-        assert is_response.status_code == 200, is_response.content
+        assert is_query.status_code == 200, is_query.content
 
-        contains_response = self.do_request(
+        contains_query = self.do_request(
             {
                 "field": ["span.description"],
-                "query": 'span.description:["SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *)"]',
+                "query": 'span.description:["SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, \\*"]',
                 "project": self.project.id,
                 "dataset": "spans",
             }
         )
-        assert contains_response.status_code == 200, contains_response.content
-        assert is_response.data["data"] == contains_response.data["data"]
+        assert contains_query.status_code == 200, contains_query.content
+        assert is_query.data["data"] == contains_query.data["data"]
