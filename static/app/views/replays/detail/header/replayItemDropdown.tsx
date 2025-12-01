@@ -139,7 +139,7 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
         showChevron: false,
         icon: <IconEllipsis color="subText" />,
       }}
-      size="sm"
+      size="xs"
       items={dropdownItems}
       isDisabled={dropdownItems.length === 0}
     />
