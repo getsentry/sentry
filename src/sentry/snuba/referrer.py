@@ -295,6 +295,9 @@ class Referrer(StrEnum):
     )
     API_INSIGHTS_TRANSACTION_EVENTS = "api.insights.transaction-events"
     API_INSIGHTS_LANDING_TABLE = "api.insights.landing-table"
+    API_INSIGHTS_LANDING_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.insights.landing-table.metrics-enhanced.primary"
+    )
     API_INSIGHTS_STATUS_BREAKDOWN = "api.insights.status-breakdown"
     API_INSIGHTS_DURATIONPERCENTILECHART = "api.insights.durationpercentilechart"
 
@@ -446,6 +449,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
     )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED = "api.organization-events.metrics-enhanced"
     API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events.metrics-enhanced.primary"
     )
