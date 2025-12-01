@@ -21,12 +21,10 @@ import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttri
 import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 
 import {Chart} from './cohortComparisonChart';
+import {CHARTS_COLUMN_COUNT, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
 
 type SortingMethod = 'rrr';
-
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 
 export function CohortComparison({
   selection,

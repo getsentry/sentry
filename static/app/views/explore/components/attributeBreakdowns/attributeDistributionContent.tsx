@@ -25,10 +25,8 @@ import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {Chart} from './attributeDistributionChart';
+import {CHARTS_COLUMN_COUNT, CHARTS_PER_PAGE} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
-
-const CHARTS_COLUMN_COUNT = 3;
-const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
 
 export type AttributeDistribution = Array<{
   name: string;

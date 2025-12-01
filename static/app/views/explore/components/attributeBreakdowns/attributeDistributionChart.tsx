@@ -16,42 +16,20 @@ import {
 } from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
-
-const MAX_BAR_WIDTH = 20;
-const HIGH_CARDINALITY_THRESHOLD = 20;
-const AXIS_LABEL_FONT_SIZE = 12;
-const TOOLTIP_MAX_VALUE_LENGTH = 300;
-const MAX_CHART_SERIES_LENGTH = 40;
-
-function calculatePopulationPercentage(
-  values: AttributeDistribution[number]['values'],
-  cohortTotal: number
-): number {
-  if (cohortTotal === 0) return 0;
-
-  const populatedCount = values.reduce((acc, curr) => acc + Number(curr.value), 0);
-  return (populatedCount / cohortTotal) * 100;
-}
-
-function percentageFormatter(percentage: number): string {
-  if (isNaN(percentage) || !isFinite(percentage)) {
-    return '\u2014';
-  }
-
-  if (percentage < 0.1 && percentage > 0) {
-    return '<0.1%';
-  }
-
-  // Round whole numbers to 0 decimal places
-  const decimals = percentage % 1 === 0 ? 0 : 1;
-  return `${percentage.toFixed(decimals)}%`;
-}
+import {
+  CHART_AXIS_LABEL_FONT_SIZE,
+  CHART_HIGH_CARDINALITY_THRESHOLD,
+  CHART_MAX_BAR_WIDTH,
+  CHART_MAX_SERIES_LENGTH,
+  CHART_TOOLTIP_MAX_VALUE_LENGTH,
+} from './constants';
+import {calculateAttrubutePopulationPercentage, percentageFormatter} from './utils';
 
 function distributionToSeriesData(
   values: AttributeDistribution[number]['values'],
   cohortCount: number
 ): Array<{label: string; value: number}> {
-  const seriesData = values.slice(0, MAX_CHART_SERIES_LENGTH).map(value => ({
+  const seriesData = values.slice(0, CHART_MAX_SERIES_LENGTH).map(value => ({
     label: value.label,
     value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
   }));
@@ -86,7 +64,8 @@ export function Chart({
   }, [seriesData]);
 
   const populationPercentage = useMemo(
-    () => calculatePopulationPercentage(attributeDistribution.values, cohortCount),
+    () =>
+      calculateAttrubutePopulationPercentage(attributeDistribution.values, cohortCount),
     [attributeDistribution.values, cohortCount]
   );
 
@@ -96,8 +75,8 @@ export function Chart({
 
     const value = Array.isArray(p) ? p[0]?.name : p.name;
     const truncatedValue = value
-      ? value.length > TOOLTIP_MAX_VALUE_LENGTH
-        ? `${value.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
+      ? value.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
+        ? `${value.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
         : value
       : '\u2014';
     return `
@@ -210,7 +189,7 @@ export function Chart({
       const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
 
       //  Average width of a character is 0.6 times the font size
-      const pixelsPerCharacter = 0.6 * AXIS_LABEL_FONT_SIZE;
+      const pixelsPerCharacter = 0.6 * CHART_AXIS_LABEL_FONT_SIZE;
 
       // Compute the max number of characters that can fit
       const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
@@ -274,7 +253,7 @@ export function Chart({
           data: seriesData.map(value => value.label),
           truncate: 14,
           axisLabel:
-            seriesData.length > HIGH_CARDINALITY_THRESHOLD
+            seriesData.length > CHART_HIGH_CARDINALITY_THRESHOLD
               ? {
                   show: false,
                 }
@@ -284,7 +263,7 @@ export function Chart({
                   showMinLabel: false,
                   color: '#000',
                   interval: 0,
-                  fontSize: AXIS_LABEL_FONT_SIZE,
+                  fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                   formatter: chartXAxisLabelFormatter,
                 },
         }}
@@ -305,7 +284,7 @@ export function Chart({
             itemStyle: {
               color,
             },
-            barMaxWidth: MAX_BAR_WIDTH,
+            barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },
         ]}

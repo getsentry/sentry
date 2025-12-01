@@ -16,48 +16,29 @@ import {
   useAttributeBreakdownsTooltip,
 } from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
-const MAX_BAR_WIDTH = 20;
-const HIGH_CARDINALITY_THRESHOLD = 20;
-const AXIS_LABEL_FONT_SIZE = 12;
-const TOOLTIP_MAX_VALUE_LENGTH = 300;
-const MAX_CHART_SERIES_LENGTH = 40;
-
-const SELECTED_SERIES_NAME = 'selected';
-const BASELINE_SERIES_NAME = 'baseline';
+import {
+  CHART_AXIS_LABEL_FONT_SIZE,
+  CHART_BASELINE_SERIES_NAME,
+  CHART_HIGH_CARDINALITY_THRESHOLD,
+  CHART_MAX_BAR_WIDTH,
+  CHART_MAX_SERIES_LENGTH,
+  CHART_SELECTED_SERIES_NAME,
+  CHART_TOOLTIP_MAX_VALUE_LENGTH,
+} from './constants';
+import {calculateAttrubutePopulationPercentage, percentageFormatter} from './utils';
 
 type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
-
-function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number): number {
-  if (cohortTotal === 0) return 0;
-
-  const populatedCount = cohort.reduce((acc, curr) => acc + Number(curr.value), 0);
-  return (populatedCount / cohortTotal) * 100;
-}
-
-function percentageFormatter(percentage: number): string {
-  if (isNaN(percentage) || !isFinite(percentage)) {
-    return '\u2014';
-  }
-
-  if (percentage < 0.1 && percentage > 0) {
-    return '<0.1%';
-  }
-
-  // Round whole numbers to 0 decimal places
-  const decimals = percentage % 1 === 0 ? 0 : 1;
-  return `${percentage.toFixed(decimals)}%`;
-}
 
 function cohortsToSeriesData(
   cohort1: CohortData,
   cohort2: CohortData,
   seriesTotals: {
-    [BASELINE_SERIES_NAME]: number;
-    [SELECTED_SERIES_NAME]: number;
+    [CHART_BASELINE_SERIES_NAME]: number;
+    [CHART_SELECTED_SERIES_NAME]: number;
   }
 ): {
-  [BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-  [SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
+  [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
+  [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
 } {
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
@@ -75,13 +56,13 @@ function cohortsToSeriesData(
 
     // We sort by descending value of the selected cohort
     const selectedPercentage =
-      seriesTotals[SELECTED_SERIES_NAME] === 0
+      seriesTotals[CHART_SELECTED_SERIES_NAME] === 0
         ? 0
-        : (Number(selectedVal) / seriesTotals[SELECTED_SERIES_NAME]) * 100;
+        : (Number(selectedVal) / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100;
     const baselinePercentage =
-      seriesTotals[BASELINE_SERIES_NAME] === 0
+      seriesTotals[CHART_BASELINE_SERIES_NAME] === 0
         ? 0
-        : (Number(baselineVal) / seriesTotals[BASELINE_SERIES_NAME]) * 100;
+        : (Number(baselineVal) / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100;
 
     const sortVal = selectedPercentage;
 
@@ -96,22 +77,22 @@ function cohortsToSeriesData(
   seriesData.sort((a, b) => b.sortValue - a.sortValue);
 
   const selectedSeriesData = seriesData
-    .slice(0, MAX_CHART_SERIES_LENGTH)
+    .slice(0, CHART_MAX_SERIES_LENGTH)
     .map(({label, selectedValue}) => ({
       label,
       value: selectedValue,
     }));
 
   const baselineSeriesData = seriesData
-    .slice(0, MAX_CHART_SERIES_LENGTH)
+    .slice(0, CHART_MAX_SERIES_LENGTH)
     .map(({label, baselineValue}) => ({
       label,
       value: baselineValue,
     }));
 
   return {
-    [SELECTED_SERIES_NAME]: selectedSeriesData,
-    [BASELINE_SERIES_NAME]: baselineSeriesData,
+    [CHART_SELECTED_SERIES_NAME]: selectedSeriesData,
+    [CHART_BASELINE_SERIES_NAME]: baselineSeriesData,
   };
 }
 
@@ -134,8 +115,8 @@ export function Chart({
 
   const seriesTotals = useMemo(
     () => ({
-      [SELECTED_SERIES_NAME]: cohort1Total,
-      [BASELINE_SERIES_NAME]: cohort2Total,
+      [CHART_SELECTED_SERIES_NAME]: cohort1Total,
+      [CHART_BASELINE_SERIES_NAME]: cohort2Total,
     }),
     [cohort1Total, cohort2Total]
   );
@@ -146,8 +127,8 @@ export function Chart({
   );
 
   const maxSeriesValue = useMemo(() => {
-    const selectedSeries = seriesData[SELECTED_SERIES_NAME];
-    const baselineSeries = seriesData[BASELINE_SERIES_NAME];
+    const selectedSeries = seriesData[CHART_SELECTED_SERIES_NAME];
+    const baselineSeries = seriesData[CHART_BASELINE_SERIES_NAME];
 
     if (selectedSeries.length === 0 && baselineSeries.length === 0) {
       return 0;
@@ -161,8 +142,8 @@ export function Chart({
 
   const populationPercentages = useMemo(
     () => ({
-      selected: calculatePopulationPercentage(attribute.cohort1, cohort1Total),
-      baseline: calculatePopulationPercentage(attribute.cohort2, cohort2Total),
+      selected: calculateAttrubutePopulationPercentage(attribute.cohort1, cohort1Total),
+      baseline: calculateAttrubutePopulationPercentage(attribute.cohort2, cohort2Total),
     }),
     [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
@@ -173,8 +154,8 @@ export function Chart({
         return '\u2014';
       }
 
-      const selectedParam = p.find(s => s.seriesName === SELECTED_SERIES_NAME);
-      const baselineParam = p.find(s => s.seriesName === BASELINE_SERIES_NAME);
+      const selectedParam = p.find(s => s.seriesName === CHART_SELECTED_SERIES_NAME);
+      const baselineParam = p.find(s => s.seriesName === CHART_BASELINE_SERIES_NAME);
 
       if (!selectedParam || !baselineParam) {
         throw new Error('selectedParam or baselineParam is not defined');
@@ -187,8 +168,8 @@ export function Chart({
 
       const name = selectedParam.name ?? baselineParam.name ?? '';
       const truncatedName =
-        name.length > TOOLTIP_MAX_VALUE_LENGTH
-          ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
+        name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
+          ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
 
       return `
@@ -292,7 +273,7 @@ export function Chart({
 
   const chartXAxisLabelFormatter = useCallback(
     (value: string): string => {
-      const selectedSeries = seriesData[SELECTED_SERIES_NAME];
+      const selectedSeries = seriesData[CHART_SELECTED_SERIES_NAME];
       const labelsCount = selectedSeries.length > 0 ? selectedSeries.length : 1;
       // 14px is the width of the y axis label with font size 12
       // We'll subtract side padding (e.g. 4px per label) to avoid crowding
@@ -300,7 +281,7 @@ export function Chart({
       const pixelsPerLabel = (chartWidth - 14) / labelsCount - labelPadding;
 
       //  Average width of a character is 0.6 times the font size
-      const pixelsPerCharacter = 0.6 * AXIS_LABEL_FONT_SIZE;
+      const pixelsPerCharacter = 0.6 * CHART_AXIS_LABEL_FONT_SIZE;
 
       // Compute the max number of characters that can fit
       const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
@@ -368,10 +349,11 @@ export function Chart({
         xAxis={{
           show: true,
           type: 'category',
-          data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.label),
+          data: seriesData[CHART_SELECTED_SERIES_NAME].map(cohort => cohort.label),
           truncate: 14,
           axisLabel:
-            seriesData[SELECTED_SERIES_NAME].length > HIGH_CARDINALITY_THRESHOLD
+            seriesData[CHART_SELECTED_SERIES_NAME].length >
+            CHART_HIGH_CARDINALITY_THRESHOLD
               ? {
                   show: false,
                 }
@@ -381,7 +363,7 @@ export function Chart({
                   showMinLabel: false,
                   color: '#000',
                   interval: 0,
-                  fontSize: AXIS_LABEL_FONT_SIZE,
+                  fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                   formatter: chartXAxisLabelFormatter,
                 },
         }}
@@ -398,22 +380,22 @@ export function Chart({
         series={[
           {
             type: 'bar',
-            data: seriesData[SELECTED_SERIES_NAME].map(cohort => cohort.value),
-            name: SELECTED_SERIES_NAME,
+            data: seriesData[CHART_SELECTED_SERIES_NAME].map(cohort => cohort.value),
+            name: CHART_SELECTED_SERIES_NAME,
             itemStyle: {
               color: cohort1Color,
             },
-            barMaxWidth: MAX_BAR_WIDTH,
+            barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },
           {
             type: 'bar',
-            data: seriesData[BASELINE_SERIES_NAME].map(cohort => cohort.value),
-            name: BASELINE_SERIES_NAME,
+            data: seriesData[CHART_BASELINE_SERIES_NAME].map(cohort => cohort.value),
+            name: CHART_BASELINE_SERIES_NAME,
             itemStyle: {
               color: cohort2Color,
             },
-            barMaxWidth: MAX_BAR_WIDTH,
+            barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },
         ]}
