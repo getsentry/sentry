@@ -443,14 +443,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     rv for rv in release_versions if rv not in releases_with_session_data
                 ]
 
-                release_queryset = Release.objects.filter(
+                # Use get_queryset() to preserve ReleaseQuerySet type through filter chain
+                release_queryset = Release.objects.get_queryset().filter(
                     organization_id=organization.id,
                     version__in=valid_versions,
                 )
-                # Filter returns ReleaseQuerySet due to custom manager
-                results = list(
-                    release_queryset.order_by_recent()[qs_offset : qs_offset + limit]  # type: ignore[attr-defined]
-                )
+                results = list(release_queryset.order_by_recent()[qs_offset : qs_offset + limit])
                 return results
 
             paginator_cls = ReleasesMergingOffsetPaginator
