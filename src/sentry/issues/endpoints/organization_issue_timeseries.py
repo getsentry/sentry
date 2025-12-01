@@ -290,6 +290,10 @@ def fill_timeseries(
     interval: timedelta,
     values: list[Row],
 ) -> list[Row]:
+    # remove microseconds
+    start = start.replace(microsecond=0)
+    end = end.replace(microsecond=0)
+
     def iter_interval(start: datetime, end: datetime, interval: timedelta) -> Iterator[int]:
         while start <= end:
             yield int(start.timestamp() * 1000)
