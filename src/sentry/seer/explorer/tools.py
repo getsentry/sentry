@@ -89,8 +89,8 @@ def _get_full_trace_id(
         subquery_result = Spans.run_table_query(
             params=snuba_params,
             query_string=f"trace:{short_trace_id}",
-            selected_columns=["trace"],
-            orderby=[],
+            selected_columns=["trace", "timestamp"],
+            orderby=["-timestamp"],
             offset=0,
             limit=1,
             referrer=Referrer.SEER_RPC,
