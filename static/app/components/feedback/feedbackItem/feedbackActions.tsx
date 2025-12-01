@@ -35,7 +35,7 @@ export default function FeedbackActions({
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
   const handleCopyToClipboard = useCallback(() => {
-    const summary = feedbackItem.metadata.summary ?? feedbackItem.metadata.title;
+    const summary = feedbackItem.metadata.summary;
     const message =
       feedbackItem.metadata.message ?? feedbackItem.metadata.value ?? t('No message');
     const culprit = eventData?.culprit?.trim();
