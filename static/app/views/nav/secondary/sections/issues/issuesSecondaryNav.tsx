@@ -112,6 +112,5 @@ const StickyBottomSection = styled(SecondaryNav.Section, {
       position: sticky;
       bottom: 0;
       z-index: 1;
-      background: ${p.theme.isChonk ? p.theme.background : p.theme.surface200};
     `}
 `;
