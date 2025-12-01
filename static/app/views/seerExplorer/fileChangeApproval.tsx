@@ -37,17 +37,19 @@ function DiffLineContent({line}: {line: DiffLine}) {
   return <span>{line.value}</span>;
 }
 
-function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: string}) {
-  const {sourceStart, sourceLength, targetStart, targetLength} = useMemo(
-    () => ({
-      sourceStart: lines.at(0)?.source_line_no ?? 0,
-      sourceLength: lines.filter(line => line.line_type !== DiffLineType.ADDED).length,
-      targetStart: lines.at(0)?.target_line_no ?? 0,
-      targetLength: lines.filter(line => line.line_type !== DiffLineType.REMOVED).length,
-    }),
-    [lines]
-  );
-
+function HunkHeader({
+  sectionHeader,
+  sourceLength,
+  sourceStart,
+  targetLength,
+  targetStart,
+}: {
+  sectionHeader: string;
+  sourceLength: number;
+  sourceStart: number;
+  targetLength: number;
+  targetStart: number;
+}) {
   return (
     <HunkHeaderContent>{`@@ -${sourceStart},${sourceLength} +${targetStart},${targetLength} @@ ${sectionHeader ? ' ' + sectionHeader : ''}`}</HunkHeaderContent>
   );
@@ -76,7 +78,13 @@ function FileDiffView({patch, repoName}: {patch: FilePatch; repoName: string}) {
           {patch.hunks.map((hunk, hunkIndex) => (
             <Fragment key={hunkIndex}>
               <HunkHeaderEmptySpace />
-              <HunkHeader lines={hunk.lines} sectionHeader={hunk.section_header} />
+              <HunkHeader
+                sourceStart={hunk.source_start}
+                sourceLength={hunk.source_length}
+                targetStart={hunk.target_start}
+                targetLength={hunk.target_length}
+                sectionHeader={hunk.section_header}
+              />
               {hunk.lines.map((line, lineIndex) => (
                 <Fragment key={`${hunkIndex}-${lineIndex}`}>
                   <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
