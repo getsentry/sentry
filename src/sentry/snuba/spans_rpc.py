@@ -264,14 +264,13 @@ class Spans(rpc_dataset_common.RPCBase):
                     spans.append(span)
             if response.page_token.end_pagination:
                 break
-            if time.time() - start_time > MAX_TIMEOUT:
+            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
                 # If timeout is not set then logging this is not helpful
-                if MAX_TIMEOUT > 0:
-                    rpc_dataset_common.log_rpc_request(
-                        "running a trace query timed out while paginating",
-                        request,
-                        logger,
-                    )
+                rpc_dataset_common.log_rpc_request(
+                    "running a trace query timed out while paginating",
+                    request,
+                    logger,
+                )
                 break
             request.page_token.CopyFrom(response.page_token)
         return spans
