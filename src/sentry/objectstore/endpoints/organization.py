@@ -123,12 +123,7 @@ class ChunkedEncodingDecoder:
                         return b"".join(buffer)
                     size_line += byte
 
-                try:
-                    chunk_size = int(size_line.strip(), 16)
-                except ValueError:
-                    self._done = True
-                    return b"".join(buffer)
-
+                chunk_size = int(size_line.strip(), 16)
                 if chunk_size == 0:
                     self._read(2)  # Read trailing \r\n
                     self._done = True
@@ -138,9 +133,6 @@ class ChunkedEncodingDecoder:
             else:
                 to_read = min(self._current_chunk_remaining, size - read)
                 chunk = self._read(to_read)
-                if not chunk:
-                    self._done = True
-                    break
                 buffer.append(chunk)
                 read += len(chunk)
                 self._current_chunk_remaining -= len(chunk)
