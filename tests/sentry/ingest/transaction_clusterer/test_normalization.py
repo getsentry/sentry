@@ -244,3 +244,35 @@ def test_clusterer_applies_rules(
                 {"meta": {"": {"val": segment_name, "rem": [[expected_rule, "s"]]}}}
             ).decode()
         )
+
+
+@django_db_all
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.normalization.get_sorted_rules",
+    return_value=[("/users/*/**", 0)],
+)
+def test_clusterer_works_with_scrubbing(
+    mock_get_sorted_rules: mock.MagicMock,
+    default_project: mock.MagicMock,
+):
+    segment_name = "/users/my-user-name/94576097f3a64b68b85a59c7d4e3ee2a"
+    segment_span = _segment_span(name=segment_name)
+
+    normalize_segment_name(default_project, segment_span)
+
+    expected = "/users/*/*"
+    assert segment_span["name"] == expected
+    assert attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME) == expected
+    assert (
+        attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
+        == TRANSACTION_SOURCE_SANITIZED
+    )
+    assert (
+        attribute_value(
+            segment_span,
+            f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}",
+        )
+        == orjson.dumps(
+            {"meta": {"": {"val": segment_name, "rem": [["/users/*/**", "s"]]}}}
+        ).decode()
+    )

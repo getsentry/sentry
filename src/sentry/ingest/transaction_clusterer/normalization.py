@@ -124,7 +124,13 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     segment_span["attributes"] = attributes
 
 
-def _apply_clustering_rule(project: Project, segment_span: CompatibleSpan, segment_name: str):
+def _apply_clustering_rule(
+    project: Project, segment_span: CompatibleSpan, original_segment_name: str
+):
+    segment_name = attribute_value(
+        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
+    ) or segment_span.get("name")
+    assert segment_name is not None
     segment_name_parts = segment_name.split("/")
 
     def apply_rule(rule: str) -> str | None:
@@ -177,7 +183,7 @@ def _apply_clustering_rule(project: Project, segment_span: CompatibleSpan, segme
                     {
                         "meta": {
                             "": {
-                                "val": segment_name,
+                                "val": original_segment_name,
                                 "rem": [Remark(ty="s", rule_id=rule, range=None).serialize()],
                             }
                         }
