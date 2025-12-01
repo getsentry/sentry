@@ -32,6 +32,7 @@ COUNT_BASED_ALERT_AGGREAGTES = [
     "failure_count",
     "sum",
     "count_if",
+    "count_unique",
 ]
 
 
