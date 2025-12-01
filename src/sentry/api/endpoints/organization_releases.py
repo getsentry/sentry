@@ -154,7 +154,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 final_package = package_value
             elif isinstance(package_value, Sequence):
                 # Sequence includes list, tuple, and other sequence types
-                final_package = package_value
+                final_package = [str(v) for v in package_value]
             else:
                 final_package = str(package_value)
             queryset = queryset.filter_by_semver(
