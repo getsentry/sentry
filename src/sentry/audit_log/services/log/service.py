@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
+import datetime
 
 from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
@@ -40,6 +41,18 @@ class LogService(RpcService):
         event: int,
         data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def find_issue_deletions_before(
+        self,
+        *,
+        cutoff_datetime: datetime.datetime,
+        min_datetime: datetime.datetime,
+        limit: int = 1000,
+    ) -> list[int]:
+        """Find group IDs with ISSUE_DELETE audit events in the time range [min_datetime, cutoff_datetime)."""
         pass
 
 

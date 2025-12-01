@@ -5,7 +5,7 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 
-from sentry import options
+from sentry import audit_log, options
 from sentry.audit_log.services.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import RegionOutbox
@@ -83,6 +83,26 @@ class DatabaseBackedLogService(LogService):
 
         return last_entry.as_event()
 
+    def find_issue_deletions_before(
+        self,
+        *,
+        cutoff_datetime: datetime.datetime,
+        min_datetime: datetime.datetime,
+        limit: int = 1000,
+    ) -> list[int]:
+        issue_delete_event_id = audit_log.get_event_id("ISSUE_DELETE")
+        return [
+            obj_id
+            for obj_id in AuditLogEntry.objects.filter(
+                event=issue_delete_event_id,
+                datetime__gte=min_datetime,
+                datetime__lt=cutoff_datetime,
+            )
+            .values_list("target_object", flat=True)
+            .distinct()[:limit]
+            if obj_id is not None
+        ]
+
     def _should_skip_invalid_event(self, event: AuditLogEvent) -> bool:
         event_id_pass_list = self._get_invalid_event_id_pass_list()
         return event.event_id in event_id_pass_list
@@ -134,3 +154,12 @@ class OutboxBackedLogService(LogService):
         data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         return None
+
+    def find_issue_deletions_before(
+        self,
+        *,
+        cutoff_datetime: datetime.datetime,
+        min_datetime: datetime.datetime,
+        limit: int = 1000,
+    ) -> list[int]:
+        return []
