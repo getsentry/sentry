@@ -49,15 +49,11 @@ def create_project_detectors(instance, created, **kwargs):
 
 def create_metric_detector_with_owner(project: Project, user=None, user_id=None, **kwargs):
     """
-    Creates default metric detector when project is created, with the creator as owner.
+    Creates default metric detector when project is created, with the team as owner.
     This listens to project_created signal which provides user information.
     """
-    # Get user_id from either user object or user_id parameter
-    created_by_id = None
-    if user:
-        created_by_id = getattr(user, "id", None)
-    elif user_id:
-        created_by_id = user_id
+    # Get the first team assigned to the project
+    owner_team = project.teams.first()
 
     # Check if feature flag is enabled for the organization, passing user as actor
     # This allows enabling the feature by user email in Flagpole
@@ -65,7 +61,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         return
 
     try:
-        _ensure_metric_detector(project, created_by_id=created_by_id)
+        _ensure_metric_detector(project, owner_team_id=owner_team.id if owner_team else None)
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
 

@@ -16,6 +16,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -108,7 +109,7 @@ def _ensure_detector(project: Project, type: str) -> Detector:
         raise UnableToAcquireLockApiError
 
 
-def _ensure_metric_detector(project: Project, created_by_id: int | None = None) -> Detector:
+def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) -> Detector:
     """
     Creates an default anomaly detection metric monitor for high error count.
     """
@@ -130,8 +131,7 @@ def _ensure_metric_detector(project: Project, created_by_id: int | None = None) 
                 organization_id=project.organization_id,
             )
 
-            # Create anomaly detection conditions
-            # low, abov bounds only
+            # Create anomaly detection condition
             DataCondition.objects.create(
                 comparison={
                     "sensitivity": "low",
@@ -154,8 +154,7 @@ def _ensure_metric_detector(project: Project, created_by_id: int | None = None) 
                     "detection_type": AlertRuleDetectionType.DYNAMIC.value,
                     "comparison_delta": None,
                 },
-                owner_user_id=created_by_id,
-                created_by_id=created_by_id,
+                owner_team_id=owner_team_id,
             )
 
             # Create Snuba query for error count monitoring
@@ -173,7 +172,7 @@ def _ensure_metric_detector(project: Project, created_by_id: int | None = None) 
             # Create query subscription
             query_subscription = create_snuba_subscription(
                 project=project,
-                subscription_type="incidents",
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=snuba_query,
             )
 
