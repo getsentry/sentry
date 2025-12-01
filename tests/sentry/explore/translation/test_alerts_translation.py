@@ -744,3 +744,53 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert project_arg.id == self.project.id
         assert seer_method_arg == SeerMethod.UPDATE
         assert event_types_arg == [SnubaQueryEventType.EventType.TRANSACTION]
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    def test_rollback_skips_user_updated_query(self) -> None:
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
+            query="transaction.duration:>100",
+            aggregate="count()",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(snuba_query.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group()
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.set([detector])
+
+        original_dataset = snuba_query.dataset
+        snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        snuba_query.query_snapshot = {
+            "type": snuba_query.type,
+            "dataset": original_dataset,
+            "query": snuba_query.query,
+            "aggregate": snuba_query.aggregate,
+            "time_window": snuba_query.time_window,
+            "user_updated": True,
+        }
+        snuba_query.save()
+
+        rollback_detector_query_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
