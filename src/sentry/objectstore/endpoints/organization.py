@@ -114,7 +114,7 @@ class ChunkedEncodingDecoder:
             return self._read(-1)
 
         read = 0
-        buffer = []
+        buffer: list[bytes] = []
         while read < size:
             if self._current_chunk_remaining == 0:
                 # Read next chunk size line
