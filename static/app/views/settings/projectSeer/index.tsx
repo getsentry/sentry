@@ -9,6 +9,7 @@ import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
@@ -100,6 +101,95 @@ const autofixAutomationToggleField = {
   }),
 } satisfies FieldObject;
 
+interface CursorIntegration {
+  id: string;
+  name: string;
+  provider: string;
+}
+
+function CodingAgentSettings({
+  preference,
+  handleAutoCreatePrChange,
+  handleIntegrationChange,
+  canWriteProject,
+  isAutomationOn,
+  cursorIntegrations,
+}: {
+  canWriteProject: boolean;
+  cursorIntegrations: CursorIntegration[];
+  handleAutoCreatePrChange: (value: boolean) => void;
+  handleIntegrationChange: (integrationId: number) => void;
+  preference: ProjectSeerPreferences | null | undefined;
+  isAutomationOn?: boolean;
+}) {
+  if (!preference?.automation_handoff || !isAutomationOn) {
+    return null;
+  }
+
+  const autoCreatePrValue = preference?.automation_handoff?.auto_create_pr ?? false;
+  const selectedIntegrationId = preference?.automation_handoff?.integration_id;
+
+  const integrationOptions = cursorIntegrations.map(integration => ({
+    value: integration.id,
+    label: `${integration.name} (${integration.id})`,
+  }));
+
+  const fields: FieldObject[] = [];
+
+  // Only show integration selector if there are multiple integrations
+  if (cursorIntegrations.length > 1) {
+    fields.push({
+      name: 'integration_id',
+      label: t('Select Configuration'),
+      help: t(
+        'You have multiple configurations installed. Select which one to use for hand off.'
+      ),
+      type: 'choice',
+      options: integrationOptions,
+      saveOnBlur: true,
+      getData: () => ({}),
+      getValue: () => String(selectedIntegrationId),
+      disabled: !canWriteProject,
+      onChange: (value: string) => handleIntegrationChange(parseInt(value, 10)),
+    } satisfies FieldObject);
+  }
+
+  fields.push({
+    name: 'auto_create_pr',
+    label: t('Auto-Create Pull Requests'),
+    help: t(
+      'When enabled, Cursor Cloud Agents will automatically create pull requests after hand off.'
+    ),
+    saveOnBlur: true,
+    type: 'boolean',
+    getData: () => ({}),
+    getValue: () => autoCreatePrValue,
+    disabled: !canWriteProject,
+    onChange: handleAutoCreatePrChange,
+  } satisfies FieldObject);
+
+  return (
+    <Form
+      key={`coding-agent-settings-${autoCreatePrValue}-${selectedIntegrationId}`}
+      apiMethod="POST"
+      saveOnBlur
+      initialData={{
+        auto_create_pr: autoCreatePrValue,
+        integration_id: String(selectedIntegrationId),
+      }}
+    >
+      <JsonForm
+        forms={[
+          {
+            title: t('Cursor Agent Settings'),
+            fields,
+          },
+        ]}
+      />
+    </Form>
+  );
+}
+
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -110,9 +200,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
-  const cursorIntegration = codingAgentIntegrations?.integrations.find(
-    integration => integration.provider === 'cursor'
-  );
+  const cursorIntegrations =
+    codingAgentIntegrations?.integrations.filter(
+      integration => integration.provider === 'cursor'
+    ) ?? [];
+
+  // For backwards compatibility, use the first cursor integration as default
+  const cursorIntegration = cursorIntegrations[0];
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -146,6 +240,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             handoff_point: 'root_cause',
             target: 'cursor_background_agent',
             integration_id: parseInt(cursorIntegration.id, 10),
+            auto_create_pr: false,
           },
         });
       } else {
@@ -157,6 +252,40 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       }
     },
     [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+  );
+
+  const handleAutoCreatePrChange = useCallback(
+    (value: boolean) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          auto_create_pr: value,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
+  );
+
+  const handleIntegrationChange = useCallback(
+    (integrationId: number) => {
+      if (!preference?.automation_handoff) {
+        return;
+      }
+      updateProjectSeerPreferences({
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: {
+          ...preference.automation_handoff,
+          integration_id: integrationId,
+        },
+      });
+    },
+    [preference, updateProjectSeerPreferences]
   );
 
   const automatedRunStoppingPointField = {
@@ -256,6 +385,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
+  // When triage signals flag is on, toggle defaults to checked unless explicitly 'off'
+  // - New orgs (undefined): shows checked, persists on form interaction
+  // - Existing orgs with 'off': shows unchecked, preserves their choice
+  const automationTuning = isTriageSignalsFeatureOn
+    ? project.autofixAutomationTuning !== 'off'
+    : (project.autofixAutomationTuning ?? 'off');
+
   return (
     <Fragment>
       <Form
@@ -271,9 +407,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           // Same DB field, different UI: toggle (boolean) vs dropdown (string)
-          autofixAutomationTuning: isTriageSignalsFeatureOn
-            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
-            : (project.autofixAutomationTuning ?? 'off'),
+          // When triage signals flag is on, default to true (ON)
+          autofixAutomationTuning: automationTuning,
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
@@ -291,6 +426,14 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           )}
         />
       </Form>
+      <CodingAgentSettings
+        preference={preference}
+        handleAutoCreatePrChange={handleAutoCreatePrChange}
+        isAutomationOn={automationTuning && automationTuning !== 'off'}
+        handleIntegrationChange={handleIntegrationChange}
+        canWriteProject={canWriteProject}
+        cursorIntegrations={cursorIntegrations}
+      />
     </Fragment>
   );
 }

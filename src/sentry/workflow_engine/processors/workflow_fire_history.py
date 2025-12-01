@@ -10,7 +10,6 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
-    Detector,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
@@ -24,7 +23,6 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 @scopedstats.timer()
 def create_workflow_fire_histories(
-    detector: Detector,
     actions_to_fire: BaseQuerySet[Action],
     event_data: WorkflowEventData,
     is_single_processing: bool,
@@ -66,7 +64,6 @@ def create_workflow_fire_histories(
 
     fire_histories = [
         WorkflowFireHistory(
-            detector_id=detector.id,
             workflow_id=workflow_id,
             group=event_data.group,
             event_id=event_id,

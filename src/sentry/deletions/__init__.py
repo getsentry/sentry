@@ -106,7 +106,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
     manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
-    manager.register(monitors.MonitorCheckIn, BulkModelDeletionTask)
+    manager.register(monitors.MonitorCheckIn, defaults.MonitorCheckInDeletionTask)
     manager.register(monitors.MonitorIncident, defaults.MonitorIncidentDeletionTask)
     manager.register(monitors.MonitorEnvBrokenDetection, BulkModelDeletionTask)
     manager.register(sentry_apps.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)

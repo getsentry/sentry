@@ -328,7 +328,7 @@ export default function SentryAppDetailedView() {
             priority="danger"
           >
             <StyledButton size="sm" data-test-id="sentry-app-uninstall">
-              <IconSubtract isCircled style={{marginRight: space(0.75)}} />
+              <IconSubtract style={{marginRight: space(0.75)}} />
               {t('Uninstall')}
             </StyledButton>
           </Confirm>

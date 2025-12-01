@@ -22,6 +22,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
@@ -975,7 +976,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     try:
         process_workflows_event.apply_async(
             kwargs=dict(
-                project_id=job["event"].project_id,
                 event_id=job["event"].event_id,
                 occurrence_id=job["event"].occurrence_id,
                 group_id=job["event"].group_id,
@@ -1283,7 +1283,11 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
         return
 
+    if not features.has("organizations:data-forwarding", event.project.organization):
+        return
+
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
@@ -1296,18 +1300,19 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         provider = data_forwarder_project.data_forwarder.provider
         try:
             # GroupEvent is compatible with Event for all operations forwarders need
-            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]
+            forwarder().post_process(event, data_forwarder_project)
             metrics.incr(
-                "data_forwarding.forward_event",
+                "data_forwarding.post_process",
                 tags={"provider": provider},
             )
         except Exception:
             metrics.incr(
-                "data_forwarding.forward_event.error",
+                "data_forwarding.post_process.error",
                 tags={"provider": provider},
             )
             logger.exception(
-                "data_forwarding.forward_event.error",
+                "data_forwarding.post_process.error",
                 extra={"provider": provider, "project_id": event.project_id},
             )
 
@@ -1595,7 +1600,6 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
     from sentry.seer.autofix.issue_summary import (
         get_issue_summary_cache_key,
         get_issue_summary_lock_key,
@@ -1634,11 +1638,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         generate_summary_and_run_automation.delay(group.id)
     else:
         # Triage signals V0 behaviour
-
         # If event count < 10, only generate summary (no automation)
-        logger.info(
-            "Triage signals V0: %s: event count %s", group.id, group.times_seen_with_pending
-        )
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
@@ -1662,20 +1662,17 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
-            logger.info(
-                "Triage signals V0: %s: event count >= 10 %s",
-                group.id,
-                group.times_seen_with_pending,
-            )
             # Long-term check to avoid re-running
-            if (
-                group.seer_autofix_last_triggered is not None
-                or group.seer_fixability_score
-                is not None  # TODO: Remove this once fixability is generated with generate_issue_summary_only
-                or group.project.get_option("sentry:autofix_automation_tuning")
-                == AutofixAutomationTuningSettings.OFF
-            ):
+            if group.seer_autofix_last_triggered is not None:
                 return
+
+            # Triage signals will not run issues if they are not fixable at MEDIUM threshold
+            if group.seer_fixability_score is not None:
+                if (
+                    group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value
+                    and not group.issue_type.always_trigger_seer_automation
+                ):
+                    return
 
             # Early returns for eligibility checks (cheap checks first)
             if not is_issue_eligible_for_seer_automation(group):
@@ -1735,6 +1732,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_workflow_engine_issue_alerts),
         feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
@@ -1747,6 +1745,7 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_workflow_engine_issue_alerts,
     process_resource_change_bounds,
     process_data_forwarding,
 ]

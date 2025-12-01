@@ -591,6 +591,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -604,6 +605,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -6327,6 +6330,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_performance_issue_id_filter(self) -> None:
         event = self.create_performance_issue()
 
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
@@ -6394,6 +6398,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
     def test_performance_short_group_id(self) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -6407,6 +6412,8 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
     def test_multiple_performance_short_group_ids_filter(self) -> None:
         event1 = self.create_performance_issue()
         event2 = self.create_performance_issue()
+        assert event1.group is not None
+        assert event2.group is not None
 
         query = {
             "field": ["count()"],
@@ -6474,6 +6481,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             },
             user_data=user_data,
         )
+        assert event.group is not None
 
         query = {
             "field": [

@@ -3,8 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RadioField from 'sentry/components/forms/fields/radioField';
@@ -14,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasCaptureGroups} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
 import {
   AllowedDataScrubbingDatasets,
   MethodType,
@@ -46,7 +51,7 @@ type Props<V extends Values, K extends keyof V> = {
   errors: Partial<V>;
   eventId: EventId;
   onAttributeError: (message: string) => void;
-  onChange: (field: K, value: string) => void;
+  onChange: (field: K, value: V[K]) => void;
   onChangeDataset: (dataset: AllowedDataScrubbingDatasets) => void;
   onUpdateEventId: (eventId: string) => void;
   onValidate: (field: K) => () => void;
@@ -60,6 +65,35 @@ type State = {
   displayEventId: boolean;
 };
 
+function ReplaceCapturedCheckbox({
+  values,
+  onChange,
+}: {
+  onChange: (field: 'replaceCaptured', value: boolean) => void;
+  values: Values;
+}) {
+  const disabled = !hasCaptureGroups(values.pattern);
+  return (
+    <Tooltip
+      title={disabled ? t('This rule does not contain capture groups') : undefined}
+      disabled={!disabled}
+    >
+      <Flex gap="xs" align="center">
+        <Checkbox
+          id="replace-captured"
+          name="replaceCaptured"
+          checked={values.replaceCaptured}
+          disabled={disabled}
+          onChange={e => onChange('replaceCaptured', e.target.checked)}
+        />
+        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
+          {t('Only replace first capture match')}
+        </ReplaceCapturedLabel>
+      </Flex>
+    </Tooltip>
+  );
+}
+
 class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   state: State = {
     displayEventId: !!this.props.eventId?.value,
@@ -68,7 +102,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   handleChange =
     <K extends keyof Values>(field: K) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      this.props.onChange(field, event.target.value);
+      this.props.onChange(field, event.target.value as Values[K]);
     };
 
   handleToggleEventId = () => {
@@ -217,6 +251,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
+              <ReplaceCapturedCheckbox values={values} onChange={onChange} />
             </FieldGroup>
           )}
         </FieldContainer>
@@ -384,6 +419,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
+              <ReplaceCapturedCheckbox values={values} onChange={onChange} />
             </FieldGroup>
           )}
         </FieldContainer>
@@ -426,7 +462,7 @@ const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
-    margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -446,6 +482,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 
 const RegularExpression = styled(Input)`
   font-family: ${p => p.theme.text.familyMono};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const DatasetRadioField = styled(RadioField)`
@@ -473,4 +510,15 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
+`;
+
+const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
+  font-weight: normal;
+  margin-bottom: 0;
+  line-height: 1rem;
+  ${p =>
+    p.disabled &&
+    css`
+      color: ${p.theme.disabled};
+    `}
 `;

@@ -66,7 +66,7 @@ describe('PreventAIOnboarding', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders all three onboarding steps', () => {
+  it('renders both onboarding steps', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -78,9 +78,6 @@ describe('PreventAIOnboarding', () => {
     expect(
       screen.getByRole('heading', {name: 'Setup GitHub Integration'})
     ).toBeInTheDocument();
-
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Setup Seer'})).toBeInTheDocument();
   });
 
   it('renders external links with correct hrefs', async () => {
@@ -117,14 +114,6 @@ describe('PreventAIOnboarding', () => {
     await userEvent.click(githubIntegrationLink);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'prevent.ai_onboarding.github_docs_link.clicked',
-      {organization}
-    );
-
-    const seerLink = screen.getByRole('link', {name: 'Seer by Sentry GitHub App'});
-    expect(seerLink).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry');
-    await userEvent.click(seerLink);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'prevent.ai_onboarding.seer_app_link.clicked',
       {organization}
     );
 
@@ -210,11 +199,10 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
-    expect(stepHeadings).toHaveLength(3);
+    expect(stepHeadings).toHaveLength(2);
 
     expect(stepHeadings[0]).toHaveTextContent('Enable AI Code Review features');
     expect(stepHeadings[1]).toHaveTextContent('Setup GitHub Integration');
-    expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
 
   describe('step descriptions', () => {
@@ -251,19 +239,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, install the Sentry GitHub App to connect your GitHub repositories. Learn more about GitHub integration.'
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders step 3 description with Seer app link', () => {
-      render(<PreventAIOnboarding />, {organization});
-
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'AI Code Review uses the Sentry Seer agent to power its core functionalities. Install the Seer by Sentry GitHub App within the same GitHub organization.'
+            'Install the Sentry GitHub App to connect your GitHub repositories and enable AI Code Review to access your codebase. Learn more about GitHub integration.'
           )
         )
       ).toBeInTheDocument();

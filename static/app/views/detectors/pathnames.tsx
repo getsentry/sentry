@@ -22,3 +22,7 @@ export const makeMonitorDetailsPathname = (orgSlug: string, monitorId: string) =
 export const makeMonitorCreatePathname = (orgSlug: string) => {
   return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}new/`);
 };
+
+export const makeMonitorEditPathname = (orgSlug: string, monitorId: string) => {
+  return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}${monitorId}/edit/`);
+};

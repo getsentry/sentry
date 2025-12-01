@@ -81,6 +81,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
+  isEmbedded?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   newlyAddedWidget?: Widget;
@@ -104,6 +105,7 @@ function Dashboard({
   onUpdate,
   widgetLegendState,
   widgetLimitReached,
+  isEmbedded,
   isPreview,
   newWidget,
   newlyAddedWidget,
@@ -426,6 +428,7 @@ function Dashboard({
             onEdit={handleEditWidget(index)}
             onDuplicate={handleDuplicateWidget(widget)}
             onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+            isEmbedded={isEmbedded}
             isPreview={isPreview}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
             dashboardPermissions={dashboard.permissions}
