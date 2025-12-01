@@ -9,7 +9,7 @@ import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
@@ -130,6 +130,7 @@ from sentry.notifications.models.notificationaction import (
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
+    InstallablePreprodArtifact,
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
@@ -2480,6 +2481,7 @@ class Factories:
         max_install_size=2 * 1024 * 1024,  # 2 MB
         error_code=None,
         error_message=None,
+        analysis_file_id=None,
     ):
         if metrics_type is None:
             metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
@@ -2513,6 +2515,7 @@ class Factories:
             ),
             error_code=error_code,
             error_message=error_message,
+            analysis_file_id=analysis_file_id,
         )
 
     @staticmethod
@@ -2610,4 +2613,25 @@ class Factories:
             file_id=file_id,
             error_code=error_code,
             error_message=error_message,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_installable_preprod_artifact(
+        preprod_artifact,
+        url_path: str | None = None,
+        expiration_date=None,
+        download_count: int = 0,
+    ):
+        if url_path is None:
+            url_path = str(uuid4())
+
+        if expiration_date is None:
+            expiration_date = timezone.now() + timedelta(hours=24)
+
+        return InstallablePreprodArtifact.objects.create(
+            preprod_artifact=preprod_artifact,
+            url_path=url_path,
+            expiration_date=expiration_date,
+            download_count=download_count,
         )

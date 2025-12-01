@@ -21,8 +21,8 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_delete_artifact_success(self):
-        main_file = File.objects.create(name="test_artifact.zip", type="application/zip")
-        installable_file = File.objects.create(name="test_app.ipa", type="application/octet-stream")
+        main_file = self.create_file(name="test_artifact.zip", type="application/zip")
+        installable_file = self.create_file(name="test_app.ipa", type="application/octet-stream")
         artifact = self.create_preprod_artifact(
             file_id=main_file.id,
             installable_app_file_id=installable_file.id,
@@ -31,14 +31,14 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
             build_version="1.0.0",
             build_number=1,
         )
-        analysis_file = File.objects.create(name="analysis.json", type="application/json")
+        analysis_file = self.create_file(name="analysis.json", type="application/json")
         size_metric = self.create_preprod_artifact_size_metrics(
             artifact,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
         size_metric.analysis_file_id = analysis_file.id
         size_metric.save()
-        installable = InstallablePreprodArtifact.objects.create(
+        installable = self.create_installable_preprod_artifact(
             preprod_artifact=artifact,
             url_path="test-url-path",
         )

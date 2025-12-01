@@ -938,6 +938,11 @@ class Fixtures:
             project = self.project
         return Factories.create_preprod_build_configuration(project=project, **kwargs)
 
+    def create_installable_preprod_artifact(self, preprod_artifact, **kwargs):
+        return Factories.create_installable_preprod_artifact(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
     def create_ios_preprod_artifact(
         self,
         project: Project | None = None,
