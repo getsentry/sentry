@@ -381,7 +381,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
           )}
         </BlocksContainer>
       )}
-      {!isAwaitingUserInput && (
+      {!(isAwaitingUserInput && pendingInput) && (
         <InputSection
           menu={menu}
           onMenuButtonClick={onMenuButtonClick}
