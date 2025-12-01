@@ -61,7 +61,7 @@ class Migration(CheckedMigration):
                 "indexes": [
                     models.Index(
                         fields=["organization_id", "date_updated"],
-                        name="sentry_orgcont_org_date_upd_idx",
+                        name="sentry_oc_org_date_upd_idx",
                     )
                 ],
                 "constraints": [
