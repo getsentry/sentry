@@ -54,6 +54,7 @@ class ResolvedColumn:
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
+    is_aggregate: bool
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -80,6 +81,18 @@ class ResolvedColumn:
             return self.internal_type
         else:
             return constants.TYPE_MAP[self.search_type]
+
+    @property
+    def proto_definition(
+        self,
+    ) -> (
+        LiteralValue
+        | AttributeKey
+        | AttributeAggregation
+        | AttributeConditionalAggregation
+        | Column.BinaryFormula
+    ):
+        raise NotImplementedError
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -573,17 +586,6 @@ def project_term_resolver(
         return [int(val) for val in raw_value]
     else:
         return int(raw_value)
-
-
-# Any of the resolved attributes, mostly to clean typing up so there's not this giant list all over the code
-AnyResolved = (
-    ResolvedAttribute
-    | ResolvedAggregate
-    | ResolvedConditionalAggregate
-    | ResolvedFormula
-    | ResolvedEquation
-    | ResolvedLiteral
-)
 
 
 @dataclass(frozen=True)
