@@ -1240,11 +1240,14 @@ describe('ProjectSeer', () => {
 
   describe('Auto-open PR and Cursor Handoff toggles with triage-signals-v0', () => {
     it('shows Auto-open PR toggle when Auto-Trigger is ON', async () => {
+      const orgWithTriageSignals = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
+
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithTriageSignals,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1255,11 +1258,14 @@ describe('ProjectSeer', () => {
     });
 
     it('hides Auto-open PR toggle when Auto-Trigger is OFF', async () => {
+      const orgWithTriageSignals = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
+
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithTriageSignals,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'off',
           }),
         },
@@ -1273,7 +1279,11 @@ describe('ProjectSeer', () => {
 
     it('shows Cursor handoff toggle when Auto-Trigger is ON and Cursor integration exists', async () => {
       const orgWithCursor = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: [
+          'autofix-seer-preferences',
+          'integrations-cursor',
+          'triage-signals-v0-org',
+        ],
       });
 
       MockApiClient.addMockResponse({
@@ -1310,7 +1320,6 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1323,11 +1332,14 @@ describe('ProjectSeer', () => {
     });
 
     it('hides Cursor handoff toggle when no Cursor integration', async () => {
+      const orgWithTriageSignals = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
+
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithTriageSignals,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1340,22 +1352,25 @@ describe('ProjectSeer', () => {
     });
 
     it('updates preferences when Auto-open PR toggle is changed', async () => {
+      const orgWithTriageSignals = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
+
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/`,
+        url: `/projects/${orgWithTriageSignals.slug}/${project.slug}/`,
         method: 'PUT',
         body: {},
       });
 
       const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        url: `/projects/${orgWithTriageSignals.slug}/${project.slug}/seer/preferences/`,
         method: 'POST',
       });
 
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithTriageSignals,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1379,7 +1394,11 @@ describe('ProjectSeer', () => {
 
     it('updates preferences when Cursor handoff toggle is changed', async () => {
       const orgWithCursor = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: [
+          'autofix-seer-preferences',
+          'integrations-cursor',
+          'triage-signals-v0-org',
+        ],
       });
 
       MockApiClient.addMockResponse({
@@ -1427,7 +1446,6 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1456,7 +1474,11 @@ describe('ProjectSeer', () => {
 
     it('shows error when Cursor handoff fails due to missing integration', async () => {
       const orgWithCursor = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: [
+          'autofix-seer-preferences',
+          'integrations-cursor',
+          'triage-signals-v0-org',
+        ],
       });
 
       MockApiClient.addMockResponse({
@@ -1492,7 +1514,6 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1509,24 +1530,27 @@ describe('ProjectSeer', () => {
     it('shows error message when Auto-open PR toggle fails', async () => {
       jest.spyOn(indicators, 'addErrorMessage');
 
+      const orgWithTriageSignals = OrganizationFixture({
+        features: ['autofix-seer-preferences', 'triage-signals-v0-org'],
+      });
+
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/`,
+        url: `/projects/${orgWithTriageSignals.slug}/${project.slug}/`,
         method: 'PUT',
         body: {},
       });
 
       const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        url: `/projects/${orgWithTriageSignals.slug}/${project.slug}/seer/preferences/`,
         method: 'POST',
         statusCode: 500,
         body: {detail: 'Internal Server Error'},
       });
 
       render(<ProjectSeer />, {
-        organization,
+        organization: orgWithTriageSignals,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
@@ -1549,7 +1573,11 @@ describe('ProjectSeer', () => {
       jest.spyOn(indicators, 'addErrorMessage');
 
       const orgWithCursor = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
+        features: [
+          'autofix-seer-preferences',
+          'integrations-cursor',
+          'triage-signals-v0-org',
+        ],
       });
 
       MockApiClient.addMockResponse({
@@ -1599,7 +1627,6 @@ describe('ProjectSeer', () => {
         organization: orgWithCursor,
         outletContext: {
           project: ProjectFixture({
-            features: ['triage-signals-v0'],
             autofixAutomationTuning: 'medium',
           }),
         },
