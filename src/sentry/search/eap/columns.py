@@ -23,7 +23,8 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
-from sentry.search.eap.types import EAPResponse, MetricType, SearchResolverConfig
+from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -207,9 +208,7 @@ class ResolvedFormula(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedTraceMetricFormula(ResolvedFormula):
-    metric_name: str | None
-    metric_type: MetricType | None
-    metric_unit: str | None
+    trace_metric: TraceMetric | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -239,9 +238,7 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedTraceMetricAggregate(ResolvedAggregate):
-    metric_name: str | None
-    metric_type: MetricType | None
-    metric_unit: str | None
+    trace_metric: TraceMetric | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -325,10 +322,9 @@ class FunctionDefinition:
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
-    """
-    An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
-    If not provided, assumes the aggregate is on the first argument.
-    """
+    # An optional function that takes in the resolved argument and returns the
+    # attribute key to aggregate on. If not provided, assumes the aggregate is
+    # on the first argument.
     attribute_resolver: Callable[[ResolvedArgument], AttributeKey] | None = None
 
     def resolve(
@@ -390,9 +386,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         if self.attribute_resolver is not None:
             resolved_attribute = self.attribute_resolver(resolved_attribute)
 
-        metric_name, metric_type, metric_unit = extract_trace_metric_aggregate_arguments(
-            resolved_arguments
-        )
+        trace_metric = extract_trace_metric_aggregate_arguments(resolved_arguments)
 
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
@@ -404,9 +398,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 search_config, self.extrapolation_mode_override
             ),
             argument=resolved_attribute,
-            metric_name=metric_name,
-            metric_type=metric_type,
-            metric_unit=metric_unit,
+            trace_metric=trace_metric,
         )
 
 
@@ -511,9 +503,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             search_config=search_config,
         )
 
-        metric_name, metric_type, metric_unit = extract_trace_metric_aggregate_arguments(
-            resolved_arguments
-        )
+        trace_metric = extract_trace_metric_aggregate_arguments(resolved_arguments)
 
         return ResolvedTraceMetricFormula(
             public_alias=alias,
@@ -522,9 +512,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
-            metric_name=metric_name,
-            metric_type=metric_type,
-            metric_unit=metric_unit,
+            trace_metric=trace_metric,
         )
 
 
@@ -646,25 +634,21 @@ def validate_trace_metric_aggregate_arguments(
 
 def extract_trace_metric_aggregate_arguments(
     resolved_arguments: ResolvedArguments,
-) -> tuple[str | None, MetricType | None, str | None]:
-    metric_name = None
-    metric_type = None
-    metric_unit = None
-
+) -> TraceMetric | None:
     if all(
         isinstance(resolved_argument, str) and resolved_argument != ""
         for resolved_argument in resolved_arguments[1:]
     ):
         # a metric was passed
-        metric_name = cast(str, resolved_arguments[1])
-        metric_type = cast(MetricType, resolved_arguments[2])
-        metric_unit = None if resolved_arguments[3] == "-" else cast(str, resolved_arguments[3])
+        return TraceMetric(
+            metric_name=cast(str, resolved_arguments[1]),
+            metric_type=cast(TraceMetricType, resolved_arguments[2]),
+            metric_unit=None if resolved_arguments[3] == "-" else cast(str, resolved_arguments[3]),
+        )
     elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
         # no metrics were specified, assume we query all metrics
-        pass
-    else:
-        raise InvalidSearchQuery(
-            f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
-        )
+        return None
 
-    return metric_name, metric_type, metric_unit
+    raise InvalidSearchQuery(
+        f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
+    )

@@ -40,7 +40,11 @@ def _rate_internal(
         else settings["snuba_params"].interval
     )
 
-    metric_type = search_config.metric_type if search_config.metric_type else metric_type
+    metric_type = (
+        search_config.metric.metric_type
+        if search_config.metric and search_config.metric.metric_type
+        else metric_type
+    )
 
     if metric_type == "counter":
         return Column.BinaryFormula(
