@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1007_cleanup_failed_safe_deletes"),
+        ("sentry", "1009_add_date_updated_to_organizationmapping"),
     ]
 
     operations = [
@@ -59,7 +59,10 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_organizationcontributors",
                 "indexes": [
-                    models.Index(fields=["date_updated"], name="sentry_orgcont_date_upd_idx")
+                    models.Index(
+                        fields=["organization_id", "date_updated"],
+                        name="sentry_orgcont_org_date_upd_idx",
+                    )
                 ],
                 "constraints": [
                     models.UniqueConstraint(

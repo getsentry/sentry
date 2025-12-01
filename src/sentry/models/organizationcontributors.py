@@ -3,12 +3,13 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 @region_silo_model
-class OrganizationContributors(Model):
+class OrganizationContributors(DefaultFieldsModel):
     """
     Tracks external contributors and their activity for an organization.
     This model stores information about contributors associated with an
@@ -25,8 +26,6 @@ class OrganizationContributors(Model):
     external_identifier = models.CharField(max_length=255, db_index=True)
     alias = models.CharField(max_length=255, null=True, blank=True)
     num_actions = BoundedIntegerField(default=0)
-    date_added = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "sentry"
@@ -39,7 +38,7 @@ class OrganizationContributors(Model):
         ]
         indexes = [
             models.Index(
-                fields=["date_updated"],
-                name="sentry_orgcont_date_upd_idx",
+                fields=["organization_id", "date_updated"],
+                name="sentry_orgcont_org_date_upd_idx",
             ),
         ]
