@@ -337,7 +337,7 @@ def stacktrace_exceeds_limits(
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
     For platforms that bypass length checks (to maintain consistency with backfilled data),
-    all stacktraces pass through. For other platforms, uses a two-step approach:
+    all stacktraces pass through. For other platforms, we use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately
     2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
@@ -373,6 +373,9 @@ def stacktrace_exceeds_limits(
         return False
 
     max_token_count = options.get("seer.similarity.max_token_count")
+
+    stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
+    shared_tags["stacktrace_type"] = stacktrace_type
 
     # raw string length check
     stacktrace_text = event.data.get("stacktrace_string")
