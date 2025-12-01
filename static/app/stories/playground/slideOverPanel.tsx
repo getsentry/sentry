@@ -100,16 +100,10 @@ export function SkeletonPanelContents({onClick}: PanelContentsProps) {
   );
 }
 
-const RANGE: number[] = [];
-
-for (let i = 0; i <= 100; i++) {
-  RANGE.push(i);
-}
-
 function ManySlowComponents() {
   return (
     <Fragment>
-      {RANGE.map(index => (
+      {[...new Array(100)].map((_, index) => (
         <VerySlowComponent key={index} />
       ))}
     </Fragment>
