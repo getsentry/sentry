@@ -35,10 +35,7 @@ export default function FeedbackActions({
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
   const handleCopyToClipboard = useCallback(() => {
-    const summary =
-      feedbackItem.metadata.summary ??
-      feedbackItem.metadata.title ??
-      t('No summary provided');
+    const summary = feedbackItem.metadata.summary ?? feedbackItem.metadata.title;
     const message =
       feedbackItem.metadata.message ?? feedbackItem.metadata.value ?? t('No message');
     const culprit = eventData?.culprit?.trim();
@@ -55,8 +52,7 @@ export default function FeedbackActions({
     const markdown = [
       '# User Feedback',
       '',
-      `**Summary:** ${summary}`,
-      '',
+      ...(summary ? [`**Summary:** ${summary}`, ''] : []),
       '## Feedback Message',
       message,
       ...(sourceLines.length
@@ -73,7 +69,7 @@ export default function FeedbackActions({
     });
 
     copy(markdown, {
-      successMessage: t('Copied feedback summary'),
+      successMessage: t('Copied feedback'),
       errorMessage: t('Failed to copy feedback'),
     });
   }, [copy, eventData, feedbackItem, organization]);
