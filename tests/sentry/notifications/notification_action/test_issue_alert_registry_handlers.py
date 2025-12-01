@@ -606,26 +606,6 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             blob = self.handler.build_rule_action_blob(action, self.organization.id)
             assert blob == healed
 
-    def test_build_rule_action_blob_fallthrough_type_camel_case(self) -> None:
-        """
-        Test that while we are temporarily allowing both fallthroughType and fallthrough_type in Action.data
-        that both work when building the action data blob and result in the snake case version
-        """
-        action = Action.objects.create(
-            type=Action.Type.EMAIL,
-            data={"fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS},
-            config={
-                "target_type": ActionTarget.ISSUE_OWNERS,
-                "target_identifier": None,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.organization.id)
-        assert blob == {
-            "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS,
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-        }
-
 
 class TestPluginIssueAlertHandler(BaseWorkflowTest):
     def setUp(self) -> None:

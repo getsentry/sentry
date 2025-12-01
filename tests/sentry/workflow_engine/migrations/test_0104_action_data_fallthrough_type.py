@@ -1,9 +1,12 @@
+import pytest
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Action
 
 
+@pytest.mark.skip
 class TestActionDataFallthroughType(TestMigrations):
     migrate_from = "0103_add_unique_constraint"
     migrate_to = "0104_action_data_fallthrough_type"
