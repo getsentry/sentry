@@ -6911,3 +6911,37 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.data
         assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+    def test_in_query_matches_is_query_with_truncated_strings(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *"
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        is_response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *"',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert is_response.status_code == 200, is_response.content
+
+        contains_response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:["SELECT (group_id AS _snuba_group_id), (ifNull(uniq((nullIf(user, %s) AS _snuba_tags[sentry%s])), %s) AS _snuba_count) FROM errors_dist PREWHERE in(_snuba_group_id, tuple(%s)) WHERE equals(deleted, *)"]',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert contains_response.status_code == 200, contains_response.content
+        assert is_response.data["data"] == contains_response.data["data"]
