@@ -1,7 +1,6 @@
 import {useId, useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
 
@@ -26,10 +25,10 @@ interface BaseSelectProps<Value extends SelectKey>
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributiveOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
+  DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
 
 export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributiveOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
+  DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
 
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>

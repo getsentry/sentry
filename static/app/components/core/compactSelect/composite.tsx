@@ -2,8 +2,7 @@ import {Children, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
-
-import type {DistributiveOmit} from '@sentry/scraps/types';
+import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,7 +29,7 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  */
 type SingleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributiveOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -40,7 +39,7 @@ type SingleCompositeSelectRegion<Value extends SelectKey> =
  */
 type MultipleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributiveOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained

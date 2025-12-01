@@ -1,12 +1,15 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, type Key} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
+import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,9 +25,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
+import {IconAdd} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -49,7 +52,6 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
   ExploreControlSection,
-  ExploreFilterSection,
   ExploreSchemaHintsSection,
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -63,6 +65,7 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsCrossEvents,
   useQueryParamsExtrapolate,
   useQueryParamsFields,
   useQueryParamsId,
@@ -70,8 +73,10 @@ import {
   useQueryParamsQuery,
   useQueryParamsVisualizes,
   useSetQueryParams,
+  useSetQueryParamsCrossEvents,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
@@ -85,7 +90,6 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   findSuggestedColumns,
-  type PickableDays,
 } from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
@@ -93,7 +97,7 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
 }
@@ -135,7 +139,7 @@ function useControlSectionExpanded() {
 }
 
 interface SpanTabProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
 }
 
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
@@ -146,20 +150,21 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 
   return (
     <Fragment>
-      <ExploreBodySearch>
-        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
-      </ExploreBodySearch>
-      <ExploreBodyContent>
-        <SpanTabControlSection
-          organization={organization}
-          controlSectionExpanded={controlSectionExpanded}
-        />
-        <SpanTabContentSection
-          maxPickableDays={datePageFilterProps.maxPickableDays}
-          setControlSectionExpanded={setControlSectionExpanded}
-          controlSectionExpanded={controlSectionExpanded}
-        />
-      </ExploreBodyContent>
+      <ChartSelectionProvider>
+        <ExploreBodySearch>
+          <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
+        </ExploreBodySearch>
+        <ExploreBodyContent>
+          <SpanTabControlSection
+            organization={organization}
+            controlSectionExpanded={controlSectionExpanded}
+          />
+          <SpanTabContentSection
+            setControlSectionExpanded={setControlSectionExpanded}
+            controlSectionExpanded={controlSectionExpanded}
+          />
+        </ExploreBodyContent>
+      </ChartSelectionProvider>
     </Fragment>
   );
 }
@@ -174,8 +179,42 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
+const crossEventDropdownItems: DropdownMenuProps['items'] = [
+  {key: 'spans', label: t('Spans')},
+  {key: 'logs', label: t('Logs')},
+  {key: 'metrics', label: t('Metrics')},
+];
+
+function CrossEventQueryingDropdown() {
+  const crossEvents = useQueryParamsCrossEvents();
+  const setCrossEvents = useSetQueryParamsCrossEvents();
+
+  const onAction = (key: Key) => {
+    if (typeof key !== 'string' || !isCrossEventType(key)) {
+      return;
+    }
+
+    if (!crossEvents || crossEvents.length === 0) {
+      setCrossEvents([{query: '', type: key}]);
+      return;
+    }
+  };
+
+  return (
+    <DropdownMenu
+      triggerProps={{
+        size: 'md',
+        showChevron: false,
+        icon: <IconAdd />,
+      }}
+      items={crossEventDropdownItems}
+      onAction={onAction}
+    />
+  );
+}
+
 interface SpanTabSearchSectionProps {
-  datePageFilterProps: PickableDays;
+  datePageFilterProps: DatePageFilterProps;
 }
 
 function SpansSearchBar({
@@ -202,6 +241,9 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const organization = useOrganization();
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const hasCrossEventQuerying = organization.features.includes(
+    'traces-page-cross-event-querying'
+  );
 
   const {
     tags: numberTags,
@@ -301,7 +343,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
           position="bottom"
           margin={-8}
         >
-          <ExploreFilterSection>
+          <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -310,7 +352,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
             <SpansSearchBar
               eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
             />
-          </ExploreFilterSection>
+            {hasCrossEventQuerying ? <CrossEventQueryingDropdown /> : null}
+          </Grid>
           <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={
@@ -364,16 +407,14 @@ function SpanTabControlSection({
 
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
-  maxPickableDays: PickableDays['maxPickableDays'];
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
-  maxPickableDays,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {selection} = usePageFilters();
+  const {isReady} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -387,36 +428,31 @@ function SpanTabContentSection({
 
   const limit = 50;
 
-  const isAllowedSelection = useMemo(
-    () => checkIsAllowedSelection(selection, maxPickableDays),
-    [selection, maxPickableDays]
-  );
-
   const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'aggregate',
+    enabled: isReady && queryType === 'aggregate',
     queryExtras: {caseInsensitive},
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'samples',
+    enabled: isReady && queryType === 'samples',
     queryExtras: {caseInsensitive},
   });
   const tracesTableResult = useExploreTracesTable({
     query,
     limit,
-    enabled: isAllowedSelection && queryType === 'traces',
+    enabled: isReady && queryType === 'traces',
     queryExtras: {caseInsensitive},
   });
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
-      enabled: isAllowedSelection,
+      enabled: isReady,
       queryExtras: {caseInsensitive},
     });
 
@@ -435,6 +471,7 @@ function SpanTabContentSection({
   const [interval] = useChartInterval();
 
   useAnalytics({
+    tab,
     queryType,
     aggregatesTableResult,
     spansTableResult,
@@ -501,44 +538,33 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ChartSelectionProvider>
-          <ExploreCharts
-            confidences={confidences}
-            query={query}
-            extrapolate={extrapolate}
-            timeseriesResult={timeseriesResult}
-            visualizes={visualizes}
-            setVisualizes={setVisualizes}
-            samplingMode={timeseriesSamplingMode}
-            setTab={setTab}
-            rawSpanCounts={rawSpanCounts}
-          />
-          <ExploreTables
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-            tracesTableResult={tracesTableResult}
-            confidences={confidences}
-            tab={tab}
-            setTab={(newTab: Mode | Tab) => {
-              if (newTab === Mode.AGGREGATE) {
-                setControlSectionExpanded(true);
-              }
-              setTab(newTab);
-            }}
-          />
-        </ChartSelectionProvider>
+        <ExploreCharts
+          confidences={confidences}
+          query={query}
+          extrapolate={extrapolate}
+          timeseriesResult={timeseriesResult}
+          visualizes={visualizes}
+          setVisualizes={setVisualizes}
+          samplingMode={timeseriesSamplingMode}
+          setTab={setTab}
+          rawSpanCounts={rawSpanCounts}
+        />
+        <ExploreTables
+          aggregatesTableResult={aggregatesTableResult}
+          spansTableResult={spansTableResult}
+          tracesTableResult={tracesTableResult}
+          confidences={confidences}
+          tab={tab}
+          setTab={(newTab: Mode | Tab) => {
+            if (newTab === Mode.AGGREGATE) {
+              setControlSectionExpanded(true);
+            }
+            setTab(newTab);
+          }}
+        />
       </TourElement>
     </ExploreContentSection>
   );
-}
-
-function checkIsAllowedSelection(
-  selection: PageFilters,
-  maxPickableDays: PickableDays['maxPickableDays']
-) {
-  const maxPickableMinutes = maxPickableDays * 24 * 60;
-  const selectedMinutes = getDiffInMinutes(selection.datetime);
-  return selectedMinutes <= maxPickableMinutes;
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`

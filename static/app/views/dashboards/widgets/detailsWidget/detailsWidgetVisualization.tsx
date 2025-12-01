@@ -1,0 +1,58 @@
+import styled from '@emotion/styled';
+
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
+
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+
+interface DetailsWidgetVisualizationProps {
+  span: Pick<SpanResponse, DefaultDetailWidgetFields>;
+}
+
+export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProps) {
+  const {span} = props;
+
+  const spanOp = span[SpanFields.SPAN_OP] ?? '';
+  const spanDescription = span[SpanFields.SPAN_DESCRIPTION] ?? '';
+  const spanGroup = span[SpanFields.SPAN_GROUP];
+  const spanCategory = span[SpanFields.SPAN_CATEGORY];
+
+  const moduleName = resolveSpanModule(spanOp, spanCategory);
+
+  if (moduleName === ModuleName.DB) {
+    return (
+      <DatabaseSpanDescription
+        showBorder={false}
+        shouldClipHeight={false}
+        groupId={spanGroup}
+        preliminaryDescription={spanDescription}
+      />
+    );
+  }
+
+  return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+}
+
+function Wrapper({children}: any) {
+  return <GrowingWrapper>{children}</GrowingWrapper>;
+}
+
+// Takes up 100% of the parent. If within flex context, grows to fill.
+// Otherwise, takes up 100% horizontally and vertically
+const GrowingWrapper = styled('div')`
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+`;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSize.lg};
+`;
+
+DetailsWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};

@@ -9,18 +9,16 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUserTimezone} from 'sentry/utils/dates';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
+import {useQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 
 import {Chart} from './cohortComparisonChart';
 import {AttributeBreakdownsComponent} from './styles';
@@ -29,27 +27,32 @@ type SortingMethod = 'rrr';
 
 const CHARTS_COLUMN_COUNT = 3;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
-const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 export function CohortComparison({
   selection,
-  chartInfo,
+  chartIndex,
 }: {
-  chartInfo: ChartInfo;
+  chartIndex: number;
   selection: Selection;
 }) {
-  const {data, isLoading, isError} = useAttributeBreakdownComparison({
-    selection,
-    chartInfo,
+  const visualizes = useQueryParamsVisualizes();
+
+  const yAxis = visualizes[chartIndex]?.yAxis ?? '';
+
+  const {data, isLoading, error} = useAttributeBreakdownComparison({
+    aggregateFunction: yAxis,
+    range: selection.range,
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'attributeBreakdownsSearch',
+  });
   const sortingMethod: SortingMethod = 'rrr';
   const [page, setPage] = useState(0);
   const theme = useTheme();
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 100);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery ?? '', 100);
 
   const filteredRankedAttributes = useMemo(() => {
     const attrs = data?.rankedAttributes;
@@ -84,7 +87,7 @@ export function CohortComparison({
     setPage(0);
   }, [filteredRankedAttributes]);
 
-  const selectionHint = useMemo(() => {
+  const selectedRangeToDates = useMemo(() => {
     if (!selection) {
       return null;
     }
@@ -96,58 +99,47 @@ export function CohortComparison({
     startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
 
     const userTimezone = getUserTimezone() || moment.tz.guess();
-    const startDate = moment
-      .tz(startTimestamp, userTimezone)
-      .format('MMM D YYYY h:mm A z');
-    const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
-
-    // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
-    const yAxisLower = chartInfo.yAxis.toLowerCase();
-    const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
-      yAxisLower.startsWith(prefix)
-    );
-
-    const formattedFunction = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
+    const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
+    const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     return {
-      selection: isPercentileFunction
-        ? t(
-            `Selection is data between %s - %s and is greater than or equal to %s`,
-            startDate,
-            endDate,
-            formattedFunction
-          )
-        : t(`Selection is data between %s - %s`, startDate, endDate),
-      baseline: t('Baseline is all other spans from your query'),
+      start,
+      end,
     };
-  }, [selection, chartInfo.yAxis]);
+  }, [selection]);
 
   return (
     <Panel data-explore-chart-selection-region>
-      <Flex direction="column" gap="xl" padding="xl">
+      <Flex direction="column" gap="2xl" padding="xl">
+        <ControlsContainer>
+          <StyledBaseSearchBar
+            placeholder={t('Search keys')}
+            onChange={query => {
+              setSearchQuery(query);
+            }}
+            query={debouncedSearchQuery}
+            size="sm"
+          />
+          <AttributeBreakdownsComponent.FeedbackButton />
+        </ControlsContainer>
         {isLoading ? (
-          <LoadingIndicator />
-        ) : isError ? (
-          <LoadingError message={t('Failed to load attribute breakdowns')} />
+          <AttributeBreakdownsComponent.LoadingCharts />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : (
           <Fragment>
-            <ControlsContainer>
-              <StyledBaseSearchBar
-                placeholder={t('Search keys')}
-                onChange={query => {
-                  setSearchQuery(query);
-                }}
-                query={debouncedSearchQuery}
-                size="sm"
-              />
-              <AttributeBreakdownsComponent.FeedbackButton />
-            </ControlsContainer>
-            {selectionHint && (
+            {selectedRangeToDates && (
               <SelectionHintContainer>
                 <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
-                  {selectionHint.selection}
+                  {t(
+                    'Selection is data between %s - %s',
+                    selectedRangeToDates.start,
+                    selectedRangeToDates.end
+                  )}
                 </SelectionHint>
-                <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
+                <SelectionHint color="#A29FAA">
+                  {t('Baseline is all other spans from your query')}
+                </SelectionHint>
               </SelectionHintContainer>
             )}
             {filteredRankedAttributes.length > 0 ? (
@@ -192,9 +184,7 @@ export function CohortComparison({
                 </PaginationContainer>
               </Fragment>
             ) : (
-              <NoAttributesMessage>
-                {t('No matching attributes found')}
-              </NoAttributesMessage>
+              <AttributeBreakdownsComponent.EmptySearchState />
             )}
           </Fragment>
         )}
@@ -207,18 +197,10 @@ const ControlsContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const StyledBaseSearchBar = styled(BaseSearchBar)`
   flex: 1;
-`;
-
-const NoAttributesMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
 `;
 
 const ChartsGrid = styled('div')`
@@ -237,7 +219,6 @@ const SelectionHintContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const SelectionHint = styled(Text)<{color?: string}>`

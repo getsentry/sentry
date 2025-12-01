@@ -272,6 +272,27 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
+def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+    """
+    Get the fixability score for a group and update the group with the score.
+    If the fixability score is already set, return it without generating a new one.
+    """
+    if not force_generate and group.seer_fixability_score is not None:
+        return group.seer_fixability_score
+
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary.scores:
+        raise ValueError("Issue summary scores is None or empty.")
+    if issue_summary.scores.fixability_score is None:
+        raise ValueError("Issue summary fixability score is None.")
+
+    fixability_score = issue_summary.scores.fixability_score
+    group.update(seer_fixability_score=fixability_score)
+    return fixability_score
+
+
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     project = group.project
     option = project.get_option("sentry:autofix_automation_tuning")
@@ -344,18 +365,7 @@ def run_automation(
     )
 
     # Only generate fixability if it doesn't already exist
-    fixability_score = group.seer_fixability_score
-    if fixability_score is None:
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            issue_summary = _generate_fixability_score(group)
-
-        if not issue_summary.scores:
-            raise ValueError("Issue summary scores is None or empty.")
-        if issue_summary.scores.fixability_score is None:
-            raise ValueError("Issue summary fixability score is None.")
-
-        fixability_score = issue_summary.scores.fixability_score
-        group.update(seer_fixability_score=fixability_score)
+    fixability_score = get_and_update_group_fixability_score(group)
 
     if (
         not _is_issue_fixable(group, fixability_score)

@@ -5,10 +5,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.users.models.user import User
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import render_preview_email_for_notification
 
 
+@internal_region_silo_view
 class DebugOrganizationInviteRequestEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="default", name="Default")

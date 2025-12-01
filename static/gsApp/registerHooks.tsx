@@ -11,6 +11,7 @@ import DashboardBanner from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
+import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
 import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
 import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
@@ -19,7 +20,6 @@ import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
-import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
@@ -82,6 +82,7 @@ import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
+import {useMaxPickableDays} from './hooks/useMaxPickableDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
@@ -203,8 +204,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     ContinuousProfilingBetaSDKAlertBanner,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
-  'component:explore-date-range-query-limit-footer': () =>
-    ExploreDateRangeQueryLimitFooter,
+  'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */
@@ -233,6 +233,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
+  'react-hook:use-max-pickable-days': useMaxPickableDays,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
