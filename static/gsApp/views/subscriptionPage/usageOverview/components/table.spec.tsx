@@ -13,7 +13,7 @@ import {GIGABYTE, UNLIMITED, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
-describe('UsageOverview', () => {
+describe('UsageOverviewTable', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
   const usageData = CustomerUsageFixture();

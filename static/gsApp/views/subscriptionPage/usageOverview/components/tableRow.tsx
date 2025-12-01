@@ -52,8 +52,8 @@ function UsageOverviewTableRow({
   usageData,
 }: UsageOverviewTableProps & (ChildProductRowProps | ParentProductRowProps)) {
   const theme = useTheme();
-  const showPanelInline = !useMedia(
-    `(min-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
+  const showPanelInline = useMedia(
+    `(max-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
   );
   const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
