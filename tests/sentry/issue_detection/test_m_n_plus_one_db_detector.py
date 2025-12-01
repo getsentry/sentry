@@ -193,13 +193,12 @@ class MNPlusOneDBDetectorTest(TestCase):
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
-                call("_pi_all_issue_count", 2),
+                call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
                 call("is_standalone_spans", False),
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call("_pi_m_n_plus_one_db_fp", "1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8"),
                 call("_pi_m_n_plus_one_db", "9c5049407f37a364"),
-                call("_pi_m_n_plus_one_db_queries", "9c5049407f37a364"),
             ]
         )
 

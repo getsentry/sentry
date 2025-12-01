@@ -48,12 +48,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.spans: list[Span] = []
 
-    @classmethod
-    def is_detection_allowed_for_system(cls) -> bool:
-        # Defer to the issue platform for whether to create issues
-        # See https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type
-        return True
-
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span):
             return
