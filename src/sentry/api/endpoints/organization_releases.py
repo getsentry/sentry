@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -148,14 +149,16 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             negated = search_filter.operator == "!="
             package_value = search_filter.value.raw_value
             # SemverFilter expects package as str | Sequence[str] | None
+            # Handle both str and any Sequence type (list, tuple, etc.)
+            if isinstance(package_value, str):
+                final_package = package_value
+            elif isinstance(package_value, Sequence):
+                # Sequence includes list, tuple, and other sequence types
+                final_package = package_value
+            else:
+                final_package = str(package_value)
             queryset = queryset.filter_by_semver(
-                organization.id,
-                SemverFilter(
-                    "exact",
-                    [],
-                    package_value if isinstance(package_value, (str, list)) else str(package_value),
-                    negated,
-                ),
+                organization.id, SemverFilter("exact", [], final_package, negated)
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
