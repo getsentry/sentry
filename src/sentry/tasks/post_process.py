@@ -1661,6 +1661,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 "Triage signals V0:group=%s project=%s: generating summary",
                 group.id,
                 group.project.slug,
+                extra={"group_id": group.id, "project_slug": group.project.slug},
             )
             generate_issue_summary_only.delay(group.id)
         else:
@@ -1694,6 +1695,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     "Triage signals V0:group=%s project=%s: summary exists, running automation",
                     group.id,
                     group.project.slug,
+                    extra={"group_id": group.id, "project_slug": group.project.slug},
                 )
                 run_automation_only_task.delay(group.id)
             else:
@@ -1706,6 +1708,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     "Triage signals V0:group=%s project=%s: no summary, generating summary + running automation",
                     group.id,
                     group.project.slug,
+                    extra={"group_id": group.id, "project_slug": group.project.slug},
                 )
                 generate_summary_and_run_automation.delay(group.id)
 
