@@ -124,19 +124,24 @@ export default function ReplayBadge({replay}: Props) {
           </Text>
           <Flex gap="xs" align="center">
             <IconCalendar color="gray300" size="xs" />
-            <Text size="sm" variant="muted">
+            <RelativeText size="sm" variant="muted">
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />
               ) : (
                 <TimeSince date={replay.started_at} />
               )}
-            </Text>
+            </RelativeText>
           </Flex>
         </Flex>
       </Flex>
     </Wrapper>
   );
 }
+
+// We need to use relative position to create a new stacking context for tooltip
+const RelativeText = styled(Text)`
+  position: relative;
+`;
 
 const Wrapper = styled(Grid)`
   white-space: nowrap;
