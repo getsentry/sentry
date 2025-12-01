@@ -809,6 +809,39 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_2 = self.valid_params.copy()
+            params_2["name"] = "Test Rule 2"
+            serializer = AlertRuleSerializer(context=self.context, data=params_2)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_3 = self.valid_params.copy()
+            params_3["name"] = "Test Rule 3"
+            serializer = AlertRuleSerializer(context=self.context, data=params_3)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_4 = self.valid_params.copy()
+            params_4["name"] = "Test Rule 4"
+            serializer = AlertRuleSerializer(context=self.context, data=params_4)
+            assert serializer.is_valid(), serializer.errors
+            with pytest.raises(serializers.ValidationError) as excinfo:
+                serializer.save()
+            assert isinstance(excinfo.value.detail, list)
+            assert excinfo.value.detail[0] == "You may not exceed 3 metric alerts per organization"
+
     def test_error_issue_status(self) -> None:
         params = self.valid_params.copy()
         params["query"] = "status:abcd"
