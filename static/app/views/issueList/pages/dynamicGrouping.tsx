@@ -8,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -274,6 +273,11 @@ function ClusterCard({
       {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
         <ClusterTitle>{cluster.title}</ClusterTitle>
+        <ClusterTags
+          cluster={cluster}
+          onTagClick={onTagClick}
+          selectedTags={selectedTags}
+        />
         {cluster.description && (
           <Fragment>
             {showDescription ? (
@@ -285,11 +289,6 @@ function ClusterCard({
             )}
           </Fragment>
         )}
-        <ClusterTags
-          cluster={cluster}
-          onTagClick={onTagClick}
-          selectedTags={selectedTags}
-        />
       </CardHeader>
 
       {/* Zone 2: Stats (Secondary Context) */}
@@ -308,16 +307,6 @@ function ClusterCard({
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
           </EventsMetric>
-          {cluster.fixability_score && (
-            <FixabilityIndicator score={cluster.fixability_score}>
-              <Text size="sm" bold>
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>
-              <Text size="xs" variant="muted">
-                {t('fixable')}
-              </Text>
-            </FixabilityIndicator>
-          )}
         </PrimaryStats>
         <SecondaryStats>
           {!clusterStats.isPending && clusterStats.lastSeen && (
@@ -388,7 +377,6 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -515,9 +503,6 @@ function DynamicGrouping() {
     : clusterData
         .filter(cluster => {
           if (removedClusterIds.has(cluster.cluster_id)) return false;
-
-          const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-          if (fixabilityScore < minFixabilityScore) return false;
 
           // Filter by selected tags
           if (!clusterHasSelectedTags(cluster)) return false;
@@ -719,20 +704,6 @@ function DynamicGrouping() {
                           </Flex>
                         </Flex>
                       )}
-
-                      <Flex gap="sm" align="center">
-                        <Text size="sm" variant="muted">
-                          {t('Minimum fixability score (%)')}
-                        </Text>
-                        <NumberInput
-                          min={0}
-                          max={100}
-                          value={minFixabilityScore}
-                          onChange={value => setMinFixabilityScore(value ?? 0)}
-                          aria-label={t('Minimum fixability score')}
-                          size="sm"
-                        />
-                      </Flex>
                     </Flex>
                   </Disclosure.Content>
                 </Disclosure>
@@ -862,27 +833,6 @@ const EventsCount = styled('span')`
   font-weight: 700;
   color: ${p => p.theme.textColor};
   font-variant-numeric: tabular-nums;
-`;
-
-const FixabilityIndicator = styled('div')<{score: number}>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
-  background: ${p =>
-    p.score >= 0.7
-      ? p.theme.green100
-      : p.score >= 0.4
-        ? p.theme.yellow100
-        : p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p =>
-    p.score >= 0.7
-      ? p.theme.green400
-      : p.score >= 0.4
-        ? p.theme.yellow400
-        : p.theme.gray400};
-  line-height: 1.2;
 `;
 
 const SecondaryStats = styled('div')`
