@@ -169,8 +169,8 @@ class SeerExplorerClient:
             requests.HTTPError: If the Seer API request fails
             ValueError: If artifact_schema is provided without artifact_key
         """
-        if artifact_schema and not artifact_key:
-            raise ValueError("artifact_key is required when artifact_schema is provided")
+        if bool(artifact_schema) != bool(artifact_key):
+            raise ValueError("artifact_key and artifact_schema must be provided together")
 
         path = "/v1/automation/explorer/chat"
 
