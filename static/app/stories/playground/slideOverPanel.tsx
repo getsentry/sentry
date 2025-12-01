@@ -14,7 +14,7 @@ export function SlideOverPanelPlayground() {
 
       <AnimatePresence>
         {isPanelOpen && (
-          <SlideOverPanel collapsed={false} slidePosition="right">
+          <SlideOverPanel isOpen slidePosition="right">
             <Container border="primary" height="100%" padding="md">
               <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
             </Container>

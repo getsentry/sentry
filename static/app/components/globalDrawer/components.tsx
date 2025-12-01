@@ -75,7 +75,7 @@ function DrawerPanel({
         <DrawerSlidePanel
           ariaLabel={ariaLabel}
           slidePosition="right"
-          collapsed={false}
+          isOpen
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only

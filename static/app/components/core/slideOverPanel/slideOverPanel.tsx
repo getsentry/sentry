@@ -27,7 +27,7 @@ type SlideOverPanelProps = {
   /**
    * Whether the panel is visible. In most cases it's better to conditionally render this component rather than use this prop, since it'll defer rendering the panel contents until they're needed.
    */
-  collapsed: boolean;
+  isOpen: boolean;
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
@@ -47,7 +47,7 @@ type SlideOverPanelProps = {
 export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
-  collapsed,
+  isOpen,
   children,
   className,
   onOpen,
@@ -59,10 +59,10 @@ export function SlideOverPanel({
   const theme = useTheme();
 
   useEffect(() => {
-    if (!collapsed && onOpen) {
+    if (isOpen && onOpen) {
       onOpen();
     }
-  }, [collapsed, onOpen]);
+  }, [isOpen, onOpen]);
 
   const openStyle = slidePosition ? OPEN_STYLES[slidePosition] : OPEN_STYLES.right;
 
@@ -70,7 +70,7 @@ export function SlideOverPanel({
     ? COLLAPSED_STYLES[slidePosition]
     : COLLAPSED_STYLES.right;
 
-  return collapsed ? null : (
+  return isOpen ? (
     <_SlideOverPanel
       ref={ref}
       initial={collapsedStyle}
@@ -82,7 +82,7 @@ export function SlideOverPanel({
         ...transitionProps,
       }}
       role="complementary"
-      aria-hidden={collapsed}
+      aria-hidden={!isOpen}
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
@@ -90,13 +90,13 @@ export function SlideOverPanel({
     >
       {children}
     </_SlideOverPanel>
-  );
+  ) : null;
 }
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
-    (prop !== 'collapsed' && isPropValid(prop)),
+    (prop !== 'isOpen' && isPropValid(prop)),
 })<{
   panelWidth?: string;
   slidePosition?: 'right' | 'bottom' | 'left';

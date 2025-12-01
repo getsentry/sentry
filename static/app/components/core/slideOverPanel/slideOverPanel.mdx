@@ -27,7 +27,7 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
-<SlideOverPanel collapsed={!isPanelOpen} slidePosition="right">
+<SlideOverPanel isOpen={isPanelOpen} slidePosition="right">
   <Container border="primary" height="100%" padding="md">
     <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
   </Container>
@@ -35,4 +35,4 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 ```
 
 > [!NOTE]
-> To enable exit animations, you'll need to wrap `<SlideOverPanel />` in an `<AnimatePresence />` component, and render the panel conditionally (e.g., `{isPanelOpen &&}`) instead of using the `collapsed` prop.
+> To enable exit animations, you'll need to wrap `<SlideOverPanel />` in an `<AnimatePresence />` component, and render the panel conditionally (e.g., `{isPanelOpen &&}`) instead of using the `isOpen` prop.
