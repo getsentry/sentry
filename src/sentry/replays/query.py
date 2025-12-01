@@ -145,7 +145,7 @@ def query_replay_id_by_prefix(
 
         query = Query(
             match=Entity("replays"),
-            select=[Column("replay_id")],
+            select=[Column("replay_id"), Column("timestamp")],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(
