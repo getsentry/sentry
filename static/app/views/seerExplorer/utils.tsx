@@ -193,6 +193,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Examining logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}...`
       : `Examined logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}`;
   },
+
+  search_sentry_docs: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading
+      ? `Scouring Sentry docs: '${question}'...`
+      : `Scoured Sentry docs: '${question}'`;
+  },
 };
 
 /**
