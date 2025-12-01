@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
@@ -22,7 +22,7 @@ def validate_sort_field(field_name: str) -> str:
 
 
 @region_silo_endpoint
-class OrganizationTagKeyValuesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

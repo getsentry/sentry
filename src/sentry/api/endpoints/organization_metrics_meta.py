@@ -4,7 +4,7 @@ from sentry_sdk import set_tag
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.events.fields import get_function_alias
@@ -15,7 +15,7 @@ COUNT_NULL = "count_null_transactions()"
 
 
 @region_silo_endpoint
-class OrganizationMetricsCompatibility(OrganizationEventsV2EndpointBase):
+class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -64,7 +64,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsV2EndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationMetricsCompatibilitySums(OrganizationEventsV2EndpointBase):
+class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

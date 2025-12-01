@@ -11,7 +11,7 @@ from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
@@ -54,7 +54,7 @@ SENTRY_BACKEND_REFERRERS = [
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

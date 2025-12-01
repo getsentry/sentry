@@ -155,7 +155,7 @@ def generate_transaction(trace: str | None = None, span: str | None = None) -> A
 
 
 @no_silo_test
-class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
+class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)

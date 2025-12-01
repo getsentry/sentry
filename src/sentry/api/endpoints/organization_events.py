@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -85,7 +85,7 @@ class EventsApiResponse(TypedDict):
 
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
-class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
