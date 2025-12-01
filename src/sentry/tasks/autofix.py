@@ -54,18 +54,18 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
-    from sentry import features
-    from sentry.seer.autofix.issue_summary import get_issue_summary
+    from sentry.seer.autofix.issue_summary import (
+        get_and_update_group_fixability_score,
+        get_issue_summary,
+    )
 
     group = Group.objects.get(id=group_id)
-    if features.has("projects:triage-signals-v0", group.project):
-        logger.info("Task: generate_issue_summary_only, group_id=%s", group_id)
+    logger.info("Task: generate_issue_summary_only, group_id=%s", group_id)
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
-    # TODO: Generate fixability score here and check for it in run_automation around line 316
-    # That will make sure that even after adding fixability here it's not re-triggered.
-    # Currently fixability will only be generated after 10 events when run_automation is called
+
+    _ = get_and_update_group_fixability_score(group, force_generate=True)
 
 
 @instrumented_task(
@@ -81,12 +81,10 @@ def run_automation_only_task(group_id: int) -> None:
     """
     from django.contrib.auth.models import AnonymousUser
 
-    from sentry import features
     from sentry.seer.autofix.issue_summary import run_automation
 
     group = Group.objects.get(id=group_id)
-    if features.has("projects:triage-signals-v0", group.project):
-        logger.info("Task: run_automation_only_task, group_id=%s", group_id)
+    logger.info("Task: run_automation_only_task, group_id=%s", group_id)
 
     event = group.get_latest_event()
 

@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 from django.db import IntegrityError
 
-from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import (
     ensure_cron_detector,
@@ -20,8 +19,7 @@ class EnsureCronDetectorTest(TestCase):
 
     def test_creates_data_source_and_detector_for_new_monitor(self) -> None:
         assert not get_detector_for_monitor(self.monitor)
-        ensure_cron_detector(self.monitor)
-        detector = get_detector_for_monitor(self.monitor)
+        detector = ensure_cron_detector(self.monitor)
         assert detector is not None
         assert detector.type == "monitor_check_in_failure"
         assert detector.project_id == self.monitor.project_id
@@ -30,32 +28,23 @@ class EnsureCronDetectorTest(TestCase):
         assert detector.owner_team_id == self.monitor.owner_team_id
 
     def test_idempotent_for_existing_data_source(self) -> None:
-        ensure_cron_detector(self.monitor)
-        detector = get_detector_for_monitor(self.monitor)
-        assert detector
-        ensure_cron_detector(self.monitor)
-        detector_after = get_detector_for_monitor(self.monitor)
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        detector_after = ensure_cron_detector(self.monitor)
         assert detector_after is not None
         assert detector.id == detector_after.id
 
     def test_with_owner_user(self) -> None:
         self.monitor.owner_user_id = self.user.id
         self.monitor.save()
-        ensure_cron_detector(self.monitor)
-        detector = Detector.objects.get(
-            type=MonitorIncidentType.slug,
-            project_id=self.monitor.project_id,
-        )
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
 
     def test_with_no_owner(self) -> None:
-        ensure_cron_detector(self.monitor)
-
-        detector = Detector.objects.get(
-            type=MonitorIncidentType.slug,
-            project_id=self.monitor.project_id,
-        )
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
         assert detector.owner_user_id is None
         assert detector.owner_team_id is None
 

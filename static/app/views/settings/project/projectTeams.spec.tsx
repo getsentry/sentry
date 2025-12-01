@@ -294,7 +294,7 @@ describe('ProjectTeams', () => {
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 

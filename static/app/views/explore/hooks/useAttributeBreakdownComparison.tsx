@@ -8,8 +8,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
@@ -34,11 +32,11 @@ export type AttributeBreakdownsComparison = {
 };
 
 function useAttributeBreakdownComparison({
-  boxSelectOptions,
-  chartInfo,
+  aggregateFunction,
+  range,
 }: {
-  boxSelectOptions: BoxSelectOptions;
-  chartInfo: ChartInfo;
+  aggregateFunction: string;
+  range: [number, number];
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -46,8 +44,7 @@ function useAttributeBreakdownComparison({
   const {selection: pageFilters} = usePageFilters();
   const aggregateExtrapolation = location.query.extrapolate ?? '1';
 
-  const enableQuery = boxSelectOptions.xRange !== null;
-  const [x1, x2] = boxSelectOptions.xRange!;
+  const [x1, x2] = range;
 
   // Ensure that we pass the existing queries in the search bar to the attribute breakdowns queries
   const currentQuery = location.query.query?.toString() ?? '';
@@ -77,12 +74,12 @@ function useAttributeBreakdownComparison({
       query_1: query1,
       query_2: query2,
       dataset,
-      function: chartInfo.yAxis,
+      function: aggregateFunction,
       above: 1,
       sampling: SAMPLING_MODE.NORMAL,
       aggregateExtrapolation,
     };
-  }, [query1, query2, pageFilters, dataset, chartInfo.yAxis, aggregateExtrapolation]);
+  }, [query1, query2, pageFilters, dataset, aggregateFunction, aggregateExtrapolation]);
 
   return useApiQuery<AttributeBreakdownsComparison>(
     [
@@ -91,7 +88,7 @@ function useAttributeBreakdownComparison({
     ],
     {
       staleTime: Infinity,
-      enabled: enableQuery,
+      enabled: !!aggregateFunction && !!range,
     }
   );
 }

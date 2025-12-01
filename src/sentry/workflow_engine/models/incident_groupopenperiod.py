@@ -16,6 +16,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.models import DetectorGroup
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -121,29 +122,37 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             .first()
         )
         if open_incident is not None:
-            incident_group_open_period = cls.objects.get(
-                incident_id=open_incident.id,
-            )
-            old_open_period = incident_group_open_period.group_open_period
-            if old_open_period.date_ended is None:
-                raise Exception("Outdated open period missing date_ended")
-
-            if open_incident.subscription_id is not None:
-                subscription = QuerySubscription.objects.select_related("snuba_query").get(
-                    id=int(open_incident.subscription_id)
+            try:
+                incident_group_open_period = cls.objects.get(
+                    incident_id=open_incident.id,
                 )
-                time_window = subscription.snuba_query.time_window
-            else:
-                time_window = 0
-            calculated_date_closed = calculate_event_date_from_update_date(
-                old_open_period.date_ended, time_window
-            )
-            update_incident_status(
-                open_incident,
-                IncidentStatus.CLOSED,
-                status_method=IncidentStatusMethod.RULE_TRIGGERED,
-                date_closed=calculated_date_closed,
-            )
+                old_open_period = incident_group_open_period.group_open_period
+                if old_open_period.date_ended is None:
+                    raise Exception("Outdated open period missing date_ended")
+
+                if open_incident.subscription_id is not None:
+                    subscription = QuerySubscription.objects.select_related("snuba_query").get(
+                        id=int(open_incident.subscription_id)
+                    )
+                    time_window = subscription.snuba_query.time_window
+                else:
+                    time_window = 0
+                calculated_date_closed = calculate_event_date_from_update_date(
+                    old_open_period.date_ended, time_window
+                )
+                update_incident_status(
+                    open_incident,
+                    IncidentStatus.CLOSED,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                    date_closed=calculated_date_closed,
+                )
+            except IncidentGroupOpenPeriod.DoesNotExist:
+                # If there's no IGOP relationship. This can happen if the incident opened before we
+                # switched to single processing, as there's a long tail here, or the incident was broken for some
+                # reason.
+                # Associate the ongoing incident with the current open period. We'll start correct associations
+                # with the next open period.
+                return open_incident
 
         # Extract query subscription id from evidence_data
         source_id = occurrence.evidence_data.get("data_packet_source_id")
@@ -297,8 +306,42 @@ def update_incident_based_on_open_period_status_change(
         incident = Incident.objects.get(id=incident_id)
 
     except IncidentGroupOpenPeriod.DoesNotExist:
-        # detector was not dual written
-        return
+        detector_group = DetectorGroup.objects.filter(group=group).first()
+        # detector was not dual written, or this is a long-open alert that we should just close.
+        if detector_group and detector_group.detector:
+            detector_id = detector_group.detector.id
+            try:
+                alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+            except AlertRuleDetector.DoesNotExist:
+                # Detector was not dual written.
+                return
+            open_incident = (
+                Incident.objects.filter(alert_rule__id=alert_rule_id, date_closed=None)
+                .order_by("-date_started")
+                .first()
+            )
+            if open_incident is not None:
+                incident = open_incident
+                IncidentGroupOpenPeriod.create_relationship(
+                    incident=incident, open_period=open_period
+                )
+            else:
+                logger.info(
+                    "No IncidentGroupOpenPeriod relationship and no outstanding incident",
+                    extra={
+                        "open_period_id": open_period.id,
+                    },
+                )
+                return
+        else:
+            # not much we can do here
+            logger.info(
+                "incident_groupopenperiod.hard_fail",
+                extra={
+                    "group_id": group.id,
+                },
+            )
+            return
 
     if incident.subscription_id is not None:
         subscription = QuerySubscription.objects.select_related("snuba_query").get(

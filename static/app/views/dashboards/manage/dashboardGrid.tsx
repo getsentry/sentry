@@ -16,6 +16,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
@@ -122,6 +123,10 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
+        disabled: defined(dashboard.prebuiltId),
+        tooltip: defined(dashboard.prebuiltId)
+          ? t('Prebuilt dashboards cannot be deleted')
+          : undefined,
       },
     ];
 

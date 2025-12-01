@@ -20,6 +20,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
@@ -65,15 +66,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
           return null;
         }
 
-        const query = isTransactionNode(node)
-          ? {
-              eventId: node.value.event_id,
-            }
-          : isSpanNode(node)
-            ? {
-                eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
-              }
-            : {};
+        const query = getProfileRouteQueryFromNode(node);
 
         const link =
           'profiler_id' in profile
@@ -149,6 +142,23 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
       })}
     </ProfilesTable>
   );
+}
+
+function getProfileRouteQueryFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node)) {
+    return {eventId: node.value.event_id};
+  }
+  if (isSpanNode(node)) {
+    return {eventId: TraceTree.ParentTransaction(node)?.value?.event_id};
+  }
+  if (isEAPSpanNode(node)) {
+    const threadId = node.value.additional_attributes?.['thread.id'] ?? undefined;
+    return {
+      eventId: node.value.transaction_id,
+      tid: typeof threadId === 'string' ? threadId : undefined,
+    };
+  }
+  return {};
 }
 
 const ProfilesTable = styled('div')`

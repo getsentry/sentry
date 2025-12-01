@@ -5,9 +5,11 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.models.projectkey import ProjectKey
+from sentry.web.frontend.base import internal_region_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@internal_region_silo_view
 class DebugErrorPageEmbedView(View):
     def _get_project_key(self):
         return ProjectKey.objects.filter(project=settings.SENTRY_PROJECT)[0]

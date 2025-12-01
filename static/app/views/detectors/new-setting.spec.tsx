@@ -658,6 +658,83 @@ describe('DetectorEdit', () => {
         );
       });
     });
+
+    it('can submit a new metric detector with apdex aggregate', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '789'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Apdex{enter}');
+
+      // Change aggregate from count to apdex
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'apdex'}));
+
+      // Change to apdex(100)
+      await userEvent.clear(screen.getByPlaceholderText('300'));
+      await userEvent.type(screen.getByPlaceholderText('300'), '100');
+
+      // Set the high threshold for alerting
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Apdex',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              conditionGroup: {
+                conditions: [
+                  {
+                    comparison: 100,
+                    conditionResult: 75,
+                    type: 'gt',
+                  },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lte',
+                  },
+                ],
+                logicType: 'any',
+              },
+              config: {
+                detectionType: 'static',
+              },
+              dataSources: [
+                {
+                  aggregate: 'apdex(span.duration,100)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                  query: '',
+                  queryType: 1,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
+            }),
+          })
+        );
+      });
+    });
   });
 
   describe('Uptime Detector', () => {
