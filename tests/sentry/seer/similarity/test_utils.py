@@ -854,6 +854,7 @@ class StacktraceExceedsLimitsTest(TestCase):
         self.exception_value = {
             "type": "FailedToFetchError",
             "value": "Charlie didn't bring the ball back",
+            "stacktrace": {"frames": [self.contributing_in_app_frame]},
         }
         self.event = Event(
             event_id="12312012041520130908201311212012",

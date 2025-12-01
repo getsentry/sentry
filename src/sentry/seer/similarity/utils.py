@@ -12,7 +12,7 @@ from sentry import options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
-from sentry.grouping.variants import BaseVariant, ComponentVariant
+from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -350,12 +350,10 @@ def stacktrace_exceeds_limits(
     # is using it for grouping (in which case none of the below conditions should apply), but still
     # worth checking that we have enough information to answer the question just in case
     if (
-        # Fingerprint, checksum, fallback variants
-        not isinstance(contributing_variant, ComponentVariant)
-        # Security violations, log-message-based grouping
-        or contributing_variant.variant_name == "default"
         # Any ComponentVariant will have this, but this reassures mypy
-        or not contributing_component
+        not contributing_component
+        # Filter out events that don't use stacktrace-based grouping
+        or "stacktrace" not in contributing_variant.key
     ):
         # We don't bother to collect a metric on this outcome, because we shouldn't have called the
         # function in the first place
