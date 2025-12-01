@@ -33,14 +33,14 @@ const aiDetectedConfig: IssueCategoryConfigMapping = {
       replays: {enabled: false},
       tagsTab: {enabled: false},
     },
-    autofix: false,
+    autofix: true,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
     spanEvidence: {enabled: true},
     evidence: null,
     usesIssuePlatform: true,
-    issueSummary: {enabled: false},
+    issueSummary: {enabled: true},
   },
 };
 
