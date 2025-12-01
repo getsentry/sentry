@@ -113,11 +113,11 @@ function ManySlowComponents() {
 export function VerySlowComponent() {
   const start = performance.now();
 
+  const SLOW_COMPONENT_RENDER_DURATION = 20;
+
   while (performance.now() < start + SLOW_COMPONENT_RENDER_DURATION) {
     // Do nothing
   }
 
   return null;
 }
-
-const SLOW_COMPONENT_RENDER_DURATION = 20;
