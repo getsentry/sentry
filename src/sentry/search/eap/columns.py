@@ -29,6 +29,13 @@ from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
+ProtoDefinition: TypeAlias = (
+    LiteralValue
+    | AttributeKey
+    | AttributeAggregation
+    | AttributeConditionalAggregation
+    | Column.BinaryFormula
+)
 
 
 class ResolverSettings(TypedDict):
@@ -86,13 +93,7 @@ class ResolvedColumn:
     @property
     def proto_definition(
         self,
-    ) -> (
-        LiteralValue
-        | AttributeKey
-        | AttributeAggregation
-        | AttributeConditionalAggregation
-        | Column.BinaryFormula
-    ):
+    ) -> ProtoDefinition:
         raise NotImplementedError
 
 
@@ -315,12 +316,13 @@ class FunctionDefinition:
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
+    ) -> ResolvedFunction:
         raise NotImplementedError()
 
 
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
+    # The type of aggregation (ex. sum, avg)
     internal_function: Function.ValueType
     # An optional function that takes in the resolved argument and returns the
     # attribute key to aggregate on. If not provided, assumes the aggregate is
@@ -335,7 +337,7 @@ class AggregateDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedAggregate:
+    ) -> ResolvedFunction:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
                 f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
@@ -376,7 +378,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedAggregate:
+    ) -> ResolvedFunction:
         if not isinstance(resolved_arguments[0], AttributeKey):
             raise InvalidSearchQuery(
                 "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
@@ -403,7 +405,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
 
 
 @dataclass(kw_only=True)
-class ConditionalAggregateDefinition(FunctionDefinition):
+class ConditionalAggregateDefinition(AggregateDefinition):
     """
     The definition of a conditional aggregation,
     Conditionally aggregates the `key`, if it passes the `filter`.
@@ -411,8 +413,6 @@ class ConditionalAggregateDefinition(FunctionDefinition):
     The `filter` is returned by the `filter_resolver` function which takes in the args from the user and returns a `TraceItemFilter`.
     """
 
-    # The type of aggregation (ex. sum, avg)
-    internal_function: Function.ValueType
     # A function that takes in the resolved argument and returns the condition to filter on and the key to aggregate on
     aggregate_resolver: Callable[[ResolvedArguments], tuple[AttributeKey, TraceItemFilter]]
 
@@ -424,7 +424,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedConditionalAggregate:
+    ) -> ResolvedFunction:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
@@ -460,7 +460,7 @@ class FormulaDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedFormula:
+    ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
@@ -493,7 +493,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
-    ) -> ResolvedFormula:
+    ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
@@ -579,7 +579,6 @@ def project_term_resolver(
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
-    conditional_aggregates: dict[str, ConditionalAggregateDefinition]
     formulas: dict[str, FormulaDefinition]
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
