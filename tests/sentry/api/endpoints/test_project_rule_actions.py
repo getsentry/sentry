@@ -14,7 +14,11 @@ from sentry.notifications.notification_action.issue_alert_registry import (
     PagerDutyIssueAlertHandler,
     PluginIssueAlertHandler,
 )
+from sentry.notifications.notification_action.issue_alert_registry.handlers.sentry_app_issue_alert_handler import (
+    SentryAppIssueAlertHandler,
+)
 from sentry.rules.actions.notify_event import NotifyEventAction
+from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -338,3 +342,73 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
 
         assert mock_notify.call_count == 1
+
+    @mock.patch(
+        "sentry.api.endpoints.project_rule_actions.should_fire_workflow_actions", return_value=True
+    )
+    @mock.patch(
+        "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
+        return_value=IssueAlertRegistryHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
+        return_value=SentryAppIssueAlertHandler,
+    )
+    def test_sentry_app_action(
+        self,
+        mock_get_issue_alert_handler,
+        mock_get_group_type_handler,
+        mock_trigger_sentry_app_action_creators: mock.MagicMock,
+        mock_should_fire_workflow_actions: mock.MagicMock,
+    ) -> None:
+        self.create_detector(project=self.project)
+        schema = {
+            "type": "alert-rule-action",
+            "title": "Create Task with App",
+            "settings": {
+                "type": "alert-rule-settings",
+                "uri": "/sentry/alert-rule",
+                "required_fields": [
+                    {"type": "list", "name": "asdf", "label": "None"},
+                    {"type": "text", "name": "fdsa", "label": "label"},
+                ],
+            },
+        }
+        self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema={"elements": [schema]},
+        )
+        install = self.create_sentry_app_installation(
+            slug="test-application", organization=self.organization
+        )
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {
+                        "name": "asdf",
+                        "label": None,
+                        "value": [
+                            {"id": "1dedabd2-059d-457b-ac17-df39031d4593", "type": "team"}
+                        ],  # should stringify this
+                    },
+                    {
+                        "name": "fdsa",
+                        "label": "label",
+                        "value": "string",
+                    },
+                ],
+                "hasSchemaFormConfig": True,
+            }
+        ]
+        mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
+            success=True, message="success"
+        )
+
+        self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
