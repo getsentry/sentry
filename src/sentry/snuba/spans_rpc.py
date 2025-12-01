@@ -218,7 +218,8 @@ class Spans(rpc_dataset_common.RPCBase):
         request = GetTraceRequest(
             meta=meta,
             trace_id=trace_id,
-            limit=TRACE_QUERY_LIMIT_OVERRIDE,
+            # when this is None we just get the default limit
+            limit=TRACE_QUERY_LIMIT_OVERRIDE,  # type: ignore[arg-type]
             items=[
                 GetTraceRequest.TraceItem(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
