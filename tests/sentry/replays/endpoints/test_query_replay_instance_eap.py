@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 from uuid import uuid4
 
 from sentry.replays.endpoints.organization_replay_details import (
@@ -134,7 +135,7 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         start_ts = 1690182000.0
         end_ts = 1690185600.0
 
-        data: list[dict] = [
+        data: list[dict[str, Any]] = [
             {
                 "replay_id": "test123",
                 "started_at": start_ts,

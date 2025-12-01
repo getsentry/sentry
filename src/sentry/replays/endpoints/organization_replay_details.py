@@ -194,7 +194,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 request_user_id=request.user.id,
             )["data"]
-            snuba_response = _format_eap_timestamps(eap_result["data"])
+            snuba_response = _format_eap_timestamps(eap_result)
         else:
             snuba_response = query_replay_instance(
                 project_id=project_ids,
