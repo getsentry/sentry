@@ -8,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -378,7 +377,6 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -505,9 +503,6 @@ function DynamicGrouping() {
     : clusterData
         .filter(cluster => {
           if (removedClusterIds.has(cluster.cluster_id)) return false;
-
-          const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-          if (fixabilityScore < minFixabilityScore) return false;
 
           // Filter by selected tags
           if (!clusterHasSelectedTags(cluster)) return false;
@@ -709,20 +704,6 @@ function DynamicGrouping() {
                           </Flex>
                         </Flex>
                       )}
-
-                      <Flex gap="sm" align="center">
-                        <Text size="sm" variant="muted">
-                          {t('Minimum fixability score (%)')}
-                        </Text>
-                        <NumberInput
-                          min={0}
-                          max={100}
-                          value={minFixabilityScore}
-                          onChange={value => setMinFixabilityScore(value ?? 0)}
-                          aria-label={t('Minimum fixability score')}
-                          size="sm"
-                        />
-                      </Flex>
                     </Flex>
                   </Disclosure.Content>
                 </Disclosure>
