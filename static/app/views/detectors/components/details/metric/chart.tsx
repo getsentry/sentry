@@ -19,6 +19,7 @@ import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detec
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -224,6 +225,47 @@ export function useMetricDetectorChart({
     series,
   });
 
+  const filteredAnomalyThresholdSeries = useMemo(() => {
+    if (!anomalyThresholdSeries.length) {
+      return [];
+    }
+
+    const condition = detector.conditionGroup?.conditions[0];
+    if (!condition || condition.type !== 'anomaly_detection') {
+      return [];
+    }
+
+    const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
+
+    if (typeof condition.comparison === 'number') {
+      return [];
+    }
+
+    const {thresholdType} = condition.comparison;
+
+    const filtered = [];
+
+    if (
+      thresholdType === AlertRuleThresholdType.ABOVE ||
+      thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+    ) {
+      filtered.push(upperThreshold);
+    }
+
+    if (
+      thresholdType === AlertRuleThresholdType.BELOW ||
+      thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+    ) {
+      filtered.push(lowerThreshold);
+    }
+
+    if (seerValue) {
+      filtered.push(seerValue);
+    }
+
+    return filtered.filter((s): s is NonNullable<typeof s> => !!s);
+  }, [anomalyThresholdSeries, detector.conditionGroup]);
+
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [
       createTriggerIntervalMarkerData({
@@ -264,7 +306,7 @@ export function useMetricDetectorChart({
   const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
 
   const additionalSeries = useMemo(() => {
-    const baseSeries = [...thresholdAdditionalSeries, ...anomalyThresholdSeries];
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
@@ -272,7 +314,7 @@ export function useMetricDetectorChart({
     return baseSeries;
   }, [
     thresholdAdditionalSeries,
-    anomalyThresholdSeries,
+    filteredAnomalyThresholdSeries,
     openPeriodMarkerResult.incidentMarkerSeries,
   ]);
 
