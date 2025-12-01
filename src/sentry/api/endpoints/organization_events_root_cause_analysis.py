@@ -5,7 +5,7 @@ from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -171,7 +171,7 @@ def fetch_span_analysis_results(
 
 
 @region_silo_endpoint
-class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
+class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
