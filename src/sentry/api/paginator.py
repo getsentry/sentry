@@ -259,11 +259,11 @@ class OffsetPaginator(PaginatorLike):
     def get_result(
         self,
         limit: int = 100,
-        cursor: Any = None,
-        count_hits: Any = False,
-        known_hits: Any = None,
-        max_hits: Any = None,
-    ):
+        cursor: Cursor | None = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[Any]:
         # offset is page #
         # value is page limit
         if cursor is None:
