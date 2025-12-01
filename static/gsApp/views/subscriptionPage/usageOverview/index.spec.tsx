@@ -67,7 +67,9 @@ describe('UsageOverview', () => {
   });
 
   it('opens panel based with no query params', async () => {
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
+    jest
+      .spyOn(useMedia, 'default')
+      .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -80,7 +82,9 @@ describe('UsageOverview', () => {
   });
 
   it('opens panel based on query params', async () => {
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
+    jest
+      .spyOn(useMedia, 'default')
+      .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -102,7 +106,9 @@ describe('UsageOverview', () => {
   });
 
   it('defaults to last selected when query param is invalid', async () => {
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
+    jest
+      .spyOn(useMedia, 'default')
+      .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -124,7 +130,9 @@ describe('UsageOverview', () => {
   });
 
   it('can switch panel by clicking table rows', async () => {
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
+    jest
+      .spyOn(useMedia, 'default')
+      .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
