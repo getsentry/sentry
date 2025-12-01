@@ -333,6 +333,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         <FileChangeApproval
           pendingInput={pendingInput}
           onSubmit={handleSubmitFileChanges}
+          isMinimized={isMinimized}
         />
       ) : (
         <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
