@@ -265,35 +265,7 @@ def transform_preprod_artifact_to_build_details(
         pr_number=(artifact.commit_comparison.pr_number if artifact.commit_comparison else None),
     )
 
-    posted_status_checks = None
-    if artifact.extras and "posted_status_checks" in artifact.extras:
-        raw_checks = artifact.extras["posted_status_checks"]
-        size_check: StatusCheckResult | None = None
-
-        if isinstance(raw_checks, dict) and "size" in raw_checks:
-            raw_size = raw_checks["size"]
-            if isinstance(raw_size, dict):
-                if raw_size.get("success"):
-                    check_id = raw_size.get("check_id")
-                    size_check = StatusCheckResultSuccess(check_id=check_id)
-                else:
-                    error_type: StatusCheckErrorType | None = None
-                    error_type_str = raw_size.get("error_type")
-                    if error_type_str:
-                        try:
-                            error_type = StatusCheckErrorType(error_type_str)
-                        except ValueError:
-                            logger.warning(
-                                "preprod.build_details.invalid_error_type",
-                                extra={
-                                    "artifact_id": artifact.id,
-                                    "error_type": error_type_str,
-                                },
-                            )
-                    size_check = StatusCheckResultFailure(error_type=error_type)
-
-        if size_check is not None:
-            posted_status_checks = PostedStatusChecks(size=size_check)
+    posted_status_checks = _parse_posted_status_checks(artifact)
 
     return BuildDetailsApiResponse(
         id=artifact.id,
@@ -303,3 +275,57 @@ def transform_preprod_artifact_to_build_details(
         size_info=size_info,
         posted_status_checks=posted_status_checks,
     )
+
+
+def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks | None:
+    """Parse posted status checks from artifact extras, returning None for invalid data."""
+    if not artifact.extras:
+        return None
+
+    raw_checks = artifact.extras.get("posted_status_checks")
+    if not isinstance(raw_checks, dict):
+        return None
+
+    raw_size = raw_checks.get("size")
+    if not isinstance(raw_size, dict):
+        return None
+
+    if raw_size.get("success") is True:
+        size_check = _parse_success_check(raw_size, artifact.id)
+    else:
+        size_check = _parse_failure_check(raw_size, artifact.id)
+
+    return PostedStatusChecks(size=size_check)
+
+
+def _parse_success_check(raw_size: dict, artifact_id: str) -> StatusCheckResultSuccess:
+    """Parse a successful status check result."""
+    check_id = raw_size.get("check_id")
+    if check_id is not None and not isinstance(check_id, str):
+        logger.warning(
+            "preprod.build_details.invalid_check_id",
+            extra={
+                "artifact_id": artifact_id,
+                "check_id_type": type(check_id).__name__,
+            },
+        )
+        check_id = None
+    return StatusCheckResultSuccess(check_id=check_id)
+
+
+def _parse_failure_check(raw_size: dict, artifact_id: str) -> StatusCheckResultFailure:
+    """Parse a failed status check result."""
+    error_type: StatusCheckErrorType | None = None
+    error_type_str = raw_size.get("error_type")
+    if error_type_str:
+        try:
+            error_type = StatusCheckErrorType(error_type_str)
+        except ValueError:
+            logger.warning(
+                "preprod.build_details.invalid_error_type",
+                extra={
+                    "artifact_id": artifact_id,
+                    "error_type": error_type_str,
+                },
+            )
+    return StatusCheckResultFailure(error_type=error_type)
