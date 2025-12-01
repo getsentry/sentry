@@ -10,6 +10,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {escape} from 'sentry/utils';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {
   Actions,
@@ -220,6 +221,8 @@ export function Chart({
     (value: string) => {
       if (!value) return '';
 
+      const escapedAttributeName = escape(attribute.attributeName);
+      const escapedValue = escape(value);
       const actionBackground = theme.gray200;
       return [
         '<div',
@@ -237,8 +240,8 @@ export function Chart({
         '>',
         '  <div',
         `    data-tooltip-action="${Actions.GROUP_BY}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
+        `    data-tooltip-action-key="${escapedAttributeName}"`,
+        `    data-tooltip-action-value="${escapedValue}"`,
         '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
@@ -247,8 +250,8 @@ export function Chart({
         '  </div>',
         '  <div',
         `    data-tooltip-action="${Actions.ADD_TO_FILTER}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
+        `    data-tooltip-action-key="${escapedAttributeName}"`,
+        `    data-tooltip-action-value="${escapedValue}"`,
         '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
@@ -257,8 +260,8 @@ export function Chart({
         '  </div>',
         '  <div',
         `    data-tooltip-action="${Actions.EXCLUDE_FROM_FILTER}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
+        `    data-tooltip-action-key="${escapedAttributeName}"`,
+        `    data-tooltip-action-value="${escapedValue}"`,
         '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
@@ -267,8 +270,8 @@ export function Chart({
         '  </div>',
         '  <div',
         `    data-tooltip-action="${Actions.COPY_TO_CLIPBOARD}"`,
-        `    data-tooltip-action-key="${attribute.attributeName}"`,
-        `    data-tooltip-action-value="${value}"`,
+        `    data-tooltip-action-key="${escapedAttributeName}"`,
+        `    data-tooltip-action-value="${escapedValue}"`,
         '    style="width: 100%; padding: 8px 20px; cursor: pointer;"',
         `    onmouseover="this.style.background='${actionBackground}'"`,
         '    onmouseout="this.style.background=\'\'"',
