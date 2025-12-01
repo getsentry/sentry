@@ -8,7 +8,10 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
-import type {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import type {
+  useDefaultMaxPickableDays,
+  useMaxPickableDays,
+} from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -331,6 +334,7 @@ type ReactHooks = {
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
+  'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {
