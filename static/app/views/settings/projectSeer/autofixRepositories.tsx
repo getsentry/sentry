@@ -45,21 +45,9 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
-
-  const getDefaultStoppingPoint = useCallback(():
-    | 'root_cause'
-    | 'solution'
-    | 'code_changes'
-    | 'open_pr' => {
-    if (organization.features.includes('seer-settings-gtm')) {
-      return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
-    }
-    return 'root_cause';
-  }, [organization.features, organization.autoOpenPrs]);
-
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
     'root_cause' | 'solution' | 'code_changes' | 'open_pr'
-  >(getDefaultStoppingPoint());
+  >('root_cause');
 
   useEffect(() => {
     if (repositories) {
@@ -89,7 +77,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
         setRepoSettings(initialSettings);
         setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || getDefaultStoppingPoint()
+          preference.automated_run_stopping_point || 'root_cause'
         );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
@@ -106,16 +94,10 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint(getDefaultStoppingPoint());
+        setAutomatedRunStoppingPoint('root_cause');
       }
     }
-  }, [
-    preference,
-    repositories,
-    codeMappingRepos,
-    updateProjectSeerPreferences,
-    getDefaultStoppingPoint,
-  ]);
+  }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
 
   const updatePreferences = useCallback(
     (
