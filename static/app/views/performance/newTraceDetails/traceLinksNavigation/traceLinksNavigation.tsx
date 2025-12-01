@@ -1,6 +1,5 @@
 import {ButtonBar} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -28,19 +27,7 @@ export function TraceLinksNavigation({
   }
 
   return (
-    <Tooltip
-      position="top"
-      delay={400}
-      isHoverable
-      title={tct(
-        `Go to the previous or next trace of the same session. [link:Learn More]`,
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-          ),
-        }
-      )}
-    >
+    <div>
       <ButtonBar merged gap="0">
         <TraceLinkNavigationButton
           direction="previous"
@@ -48,6 +35,19 @@ export function TraceLinksNavigation({
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
+          tooltipProps={{
+            position: 'top',
+            delay: 400,
+            isHoverable: true,
+            title: tct(
+              `Go to the previous trace of the same session. [link:Learn More]`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+                ),
+              }
+            ),
+          }}
         />
         <TraceLinkNavigationButton
           direction="next"
@@ -55,8 +55,18 @@ export function TraceLinksNavigation({
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
+          tooltipProps={{
+            position: 'top',
+            delay: 400,
+            isHoverable: true,
+            title: tct(`Go to the next trace of the same session. [link:Learn More]`, {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+              ),
+            }),
+          }}
         />
       </ButtonBar>
-    </Tooltip>
+    </div>
   );
 }

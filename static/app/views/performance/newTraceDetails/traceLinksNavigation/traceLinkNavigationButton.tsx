@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
@@ -20,11 +21,13 @@ type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];
   currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
+  tooltipProps: TooltipProps;
 };
 
 export function TraceLinkNavigationButton({
   direction,
   attributes,
+  tooltipProps,
   currentTraceStartTimestamp,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
@@ -89,6 +92,8 @@ export function TraceLinkNavigationButton({
       size="xs"
       icon={<IconChevron direction={iconDirection} />}
       aria-label={ariaLabel}
+      tooltipProps={tooltipProps}
+      title={tooltipProps.title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({
