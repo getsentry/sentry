@@ -6,6 +6,7 @@ import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {replay} from './replay';
@@ -32,6 +33,7 @@ const docs: Docs = {
     docsPlatform: 'react-router',
     packageName: '@sentry/react-router',
   }),
+  mcpOnboarding: mcp,
 };
 
 export default docs;

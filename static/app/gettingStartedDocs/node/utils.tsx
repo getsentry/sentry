@@ -799,7 +799,7 @@ export const getNodeMcpOnboarding = ({
     const mcpSdkStep: ContentBlock[] = [
       {
         type: 'text',
-        text: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+        text: tct('Initialize the Sentry SDK by calling [code:Sentry.init()]:', {
           code: <code />,
         }),
       },

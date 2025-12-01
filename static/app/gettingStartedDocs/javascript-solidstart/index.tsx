@@ -7,6 +7,7 @@ import {profiling} from 'sentry/gettingStartedDocs/javascript/profiling';
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 import {replay} from './replay';
 import {installSnippetBlock} from './utils';
@@ -31,6 +32,7 @@ const docs: Docs = {
     docsPlatform: 'solidstart',
     packageName: '@sentry/solidstart',
   }),
+  mcpOnboarding: mcp,
 };
 
 export default docs;

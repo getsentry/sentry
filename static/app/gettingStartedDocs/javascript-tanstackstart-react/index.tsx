@@ -4,6 +4,7 @@ import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 
 const docs: Docs = {
@@ -24,6 +25,7 @@ const docs: Docs = {
     docsPlatform: 'tanstackstart-react',
     packageName: '@sentry/tanstackstart-react',
   }),
+  mcpOnboarding: mcp,
 };
 
 export default docs;
