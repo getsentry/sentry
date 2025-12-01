@@ -2,9 +2,9 @@ import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {mcp} from 'sentry/gettingStartedDocs/node/mcp';
 
 import {agentMonitoring} from './agentMonitoring';
+import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 
 const docs: Docs = {
