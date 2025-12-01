@@ -226,11 +226,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
             if dataset == TraceMetrics:
                 # tracemetrics uses aggregate conditions
-                metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+                metric = get_trace_metric_from_request(request)
+
                 return TraceMetricsSearchResolverConfig(
-                    metric_name=metric_name,
-                    metric_type=metric_type,
-                    metric_unit=metric_unit,
+                    metric=metric,
                     auto_fields=False,
                     use_aggregate_conditions=True,
                     disable_aggregate_extrapolation=request.GET.get(

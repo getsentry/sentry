@@ -12,22 +12,14 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import MetricType, SearchResolverConfig
+from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import fields
 
 
 @dataclass(frozen=True, kw_only=True)
-class Metric:
-    metric_name: str
-    metric_type: MetricType
-    metric_unit: str | None
-
-
-@dataclass(frozen=True, kw_only=True)
 class TraceMetricsSearchResolverConfig(SearchResolverConfig):
-    metric_name: str | None
-    metric_type: MetricType | None
-    metric_unit: str | None
+    metric: TraceMetric | None
 
     def extra_conditions(
         self,
@@ -53,7 +45,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         selected_columns: list[str] | None,
         equations: list[str] | None,
     ) -> TraceItemFilter | None:
-        selected_metrics: set[Metric] = set()
+        selected_metrics: set[TraceMetric] = set()
 
         if selected_columns:
             stripped_columns = [column.strip() for column in selected_columns]
@@ -69,15 +61,10 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                 ) and not isinstance(resolved_function, ResolvedTraceMetricFormula):
                     continue
 
-                if not resolved_function.metric_name or not resolved_function.metric_type:
+                if not resolved_function.trace_metric:
                     continue
 
-                metric = Metric(
-                    metric_name=resolved_function.metric_name,
-                    metric_type=resolved_function.metric_type,
-                    metric_unit=resolved_function.metric_unit,
-                )
-                selected_metrics.add(metric)
+                selected_metrics.add(resolved_function.trace_metric)
 
         if not selected_metrics:
             return None
@@ -93,21 +80,14 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         self,
         search_resolver: SearchResolver,
     ) -> TraceItemFilter | None:
-        if not self.metric_name or not self.metric_type:
+        if self.metric is None:
             return None
-
-        metric = Metric(
-            metric_name=self.metric_name,
-            metric_type=self.metric_type,
-            metric_unit=self.metric_unit,
-        )
-
-        return get_metric_filter(search_resolver, metric)
+        return get_metric_filter(search_resolver, self.metric)
 
 
 def get_metric_filter(
     search_resolver: SearchResolver,
-    metric: Metric,
+    metric: TraceMetric,
 ) -> TraceItemFilter:
     metric_name, _ = search_resolver.resolve_column("metric.name")
     if not isinstance(metric_name.proto_definition, AttributeKey):
@@ -151,21 +131,25 @@ def get_metric_filter(
     return TraceItemFilter(and_filter=AndFilter(filters=filters))
 
 
-ALLOWED_METRIC_TYPES: list[MetricType] = ["counter", "gauge", "distribution"]
+ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution"]
 
 
 def get_trace_metric_from_request(
     request: Request,
-) -> tuple[str | None, MetricType | None, str | None]:
+) -> TraceMetric | None:
     metric_name = request.GET.get("metricName")
     metric_type = request.GET.get("metricType")
     metric_unit = request.GET.get("metricUnit")
 
     if not metric_name:
-        metric_name = None
-    if not metric_type:
-        metric_type = None
+        return None
+    if not metric_type or metric_type not in ALLOWED_METRIC_TYPES:
+        return None
     if not metric_unit:
         metric_unit = None
 
-    return metric_name, cast(MetricType | None, metric_type), metric_unit
+    return TraceMetric(
+        metric_name=metric_name,
+        metric_type=cast(TraceMetricType, metric_type),
+        metric_unit=metric_unit,
+    )
