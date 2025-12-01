@@ -1173,8 +1173,7 @@ def get_log_attributes_for_trace(
     )
 
     if not message_substring:
-        if limit is not None:
-            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
+        # Limit applied by endpoint.
         return {"data": items}
 
     # Filter on message substring.
@@ -1250,8 +1249,7 @@ def get_metric_attributes_for_trace(
     )
 
     if not metric_name:
-        if limit is not None:
-            items = items[:limit]  # Re-apply in case the endpoint didn't respect it.
+        # Limit applied by endpoint.
         return {"data": items}
 
     # Filter on metric name (exact case-insensitive match).
