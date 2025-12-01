@@ -50,6 +50,14 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   interval?: string;
   /**
+   * Query to apply to the log data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   */
+  logQuery?: string[];
+  /**
+   * Query to apply to the metric data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   */
+  metricQuery?: string[];
+  /**
    * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
   pageFilters?: PageFilters;
@@ -69,6 +77,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Sort order for the results, only applies if `groupBy` is provided.
    */
   sort?: Sort;
+  /**
+   * Query to apply to the span data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   */
+  spanQuery?: string[];
   /**
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
@@ -106,6 +118,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     pageFilters,
     sort,
     topEvents,
+    logQuery,
+    metricQuery,
+    spanQuery,
   } = options;
 
   const organization = useOrganization();
@@ -153,6 +168,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               : '1'
             : undefined,
           caseInsensitive: caseInsensitive ? 1 : 0,
+          ...(Array.isArray(logQuery) && logQuery.length > 0 ? {logQuery} : {}),
+          ...(Array.isArray(metricQuery) && metricQuery.length > 0 ? {metricQuery} : {}),
+          ...(Array.isArray(spanQuery) && spanQuery.length > 0 ? {spanQuery} : {}),
         },
       },
     ],

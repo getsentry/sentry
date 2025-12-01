@@ -9,7 +9,12 @@ interface UseExploreTracesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: {caseInsensitive?: CaseInsensitive};
+  queryExtras?: {
+    caseInsensitive?: CaseInsensitive;
+    logQuery?: string[];
+    metricQuery?: string[];
+    spanQuery?: string[];
+  };
 }
 
 export interface TracesTableResult {
