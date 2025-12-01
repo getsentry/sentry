@@ -57,6 +57,8 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
             return Response(external_issue_action_serializer.errors, status=400)
 
         group_id = data.get("groupId")
+        if not group_id:
+            return Response({"groupId": ["This field is required"]}, status=400)
         del data["groupId"]
 
         try:
