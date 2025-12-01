@@ -346,9 +346,6 @@ class EncryptedJSONField(EncryptedField, models.JSONField):
 
     _encrypted_field_key = "sentry_encrypted_field_value"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @sentry_sdk.trace
     def get_prep_value(self, value: Any) -> dict | None:
         """
