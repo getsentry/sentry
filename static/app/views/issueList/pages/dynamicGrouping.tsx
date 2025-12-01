@@ -308,16 +308,6 @@ function ClusterCard({
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
           </EventsMetric>
-          {cluster.fixability_score && (
-            <FixabilityIndicator score={cluster.fixability_score}>
-              <Text size="sm" bold>
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>
-              <Text size="xs" variant="muted">
-                {t('fixable')}
-              </Text>
-            </FixabilityIndicator>
-          )}
         </PrimaryStats>
         <SecondaryStats>
           {!clusterStats.isPending && clusterStats.lastSeen && (
@@ -862,27 +852,6 @@ const EventsCount = styled('span')`
   font-weight: 700;
   color: ${p => p.theme.textColor};
   font-variant-numeric: tabular-nums;
-`;
-
-const FixabilityIndicator = styled('div')<{score: number}>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
-  background: ${p =>
-    p.score >= 0.7
-      ? p.theme.green100
-      : p.score >= 0.4
-        ? p.theme.yellow100
-        : p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p =>
-    p.score >= 0.7
-      ? p.theme.green400
-      : p.score >= 0.4
-        ? p.theme.yellow400
-        : p.theme.gray400};
-  line-height: 1.2;
 `;
 
 const SecondaryStats = styled('div')`
