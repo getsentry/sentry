@@ -297,7 +297,11 @@ export function Control({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions,
+    preventOverflowOptions: {
+      ...preventOverflowOptions,
+      boundary:
+        preventOverflowOptions?.boundary ?? document.querySelector('main') ?? undefined,
+    },
     flipOptions,
     strategy,
     onOpenChange: open => {
@@ -475,6 +479,11 @@ export function Control({
           visible={overlayIsOpen}
           zIndex={theme.zIndex?.dropdown}
           {...overlayProps}
+          style={{
+            ...overlayProps.style,
+            paddingLeft: '15%',
+            paddingRight: '15%',
+          }}
         >
           {overlayIsOpen && (
             <StyledOverlay
