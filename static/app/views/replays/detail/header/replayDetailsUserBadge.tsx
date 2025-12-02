@@ -68,7 +68,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
         rowIndex={0}
         columnIndex={0}
         showDropdownFilters={false}
-        linkQuery={linkQuery}
+        to={linkQuery}
       />
       <Button
         title={t('Replay is outdated. Refresh for latest activity.')}
