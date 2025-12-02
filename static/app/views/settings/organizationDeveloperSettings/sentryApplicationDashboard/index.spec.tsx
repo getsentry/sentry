@@ -1,4 +1,3 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
@@ -72,20 +71,26 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows the total install/uninstall stats', async () => {
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
       expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
     it('shows the request log', async () => {
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
@@ -103,10 +108,13 @@ describe('Sentry Application Dashboard', () => {
         body: [],
       });
 
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
 
       expect(
@@ -115,10 +123,13 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows integration and interactions chart', async () => {
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
 
       expect(await screen.findAllByTestId('chart')).toHaveLength(3);
@@ -167,10 +178,13 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows the request log', async () => {
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
       // The mock response has 1 request
@@ -191,10 +205,13 @@ describe('Sentry Application Dashboard', () => {
         body: [],
       });
 
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
       expect(
         await screen.findByText('No requests found in the last 30 days.')
@@ -202,10 +219,13 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it('shows the component interactions in a line chart', async () => {
-      const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/dashboard/`,
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+        },
       });
 
       expect(await screen.findByTestId('chart')).toBeInTheDocument();

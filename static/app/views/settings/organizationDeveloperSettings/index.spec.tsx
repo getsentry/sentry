@@ -1,9 +1,6 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -16,7 +13,7 @@ import {
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', () => {
-  const {organization: org} = initializeOrg();
+  const org = OrganizationFixture();
   const sentryApp = SentryAppFixture({
     scopes: [
       'team:read',
@@ -39,7 +36,7 @@ describe('Organization Developer Settings', () => {
         body: [],
       });
       render(<OrganizationDeveloperSettings />, {
-        deprecatedRouterMocks: true,
+        organization: org,
       });
       await waitFor(() => {
         expect(
@@ -78,7 +75,7 @@ describe('Organization Developer Settings', () => {
 
     it('internal integrations list is empty', async () => {
       render(<OrganizationDeveloperSettings />, {
-        deprecatedRouterMocks: true,
+        organization: org,
       });
       expect(
         await screen.findByText('No internal integrations have been created yet.')
@@ -86,12 +83,15 @@ describe('Organization Developer Settings', () => {
     });
 
     it('public integrations list contains 1 item', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       expect(await screen.findByText('Sample App')).toBeInTheDocument();
       expect(screen.getByText('unpublished')).toBeInTheDocument();
@@ -103,12 +103,15 @@ describe('Organization Developer Settings', () => {
         method: 'DELETE',
         body: [],
       });
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
 
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
@@ -133,13 +136,16 @@ describe('Organization Developer Settings', () => {
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
 
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
 
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
@@ -242,35 +248,44 @@ describe('Organization Developer Settings', () => {
       });
     });
     it('shows the published status', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       expect(await screen.findByText('published')).toBeInTheDocument();
     });
 
     it('trash button is disabled', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
-        deprecatedRouterMocks: true,
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toBeDisabled();
@@ -289,7 +304,7 @@ describe('Organization Developer Settings', () => {
 
     it('allows deleting', async () => {
       render(<OrganizationDeveloperSettings />, {
-        deprecatedRouterMocks: true,
+        organization: org,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeEnabled();
@@ -297,7 +312,7 @@ describe('Organization Developer Settings', () => {
 
     it('publish button does not exist', () => {
       render(<OrganizationDeveloperSettings />, {
-        deprecatedRouterMocks: true,
+        organization: org,
       });
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
@@ -312,26 +327,30 @@ describe('Organization Developer Settings', () => {
       });
     });
     it('trash button is disabled', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
-        router,
         organization: newOrg,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${newOrg.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
       render(<OrganizationDeveloperSettings />, {
         organization: newOrg,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${newOrg.slug}/developer-settings/`,
+            query: {type: 'public'},
+          },
+          route: '/settings/:orgId/developer-settings/',
+        },
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toBeDisabled();
