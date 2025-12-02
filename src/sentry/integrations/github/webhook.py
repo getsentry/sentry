@@ -766,6 +766,16 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
+            if created:
+                metrics.incr(
+                    "github.webhook.pull_request.created",
+                    sample_rate=1.0,
+                    tags={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                    },
+                )
+
         except IntegrityError:
             pass
 
