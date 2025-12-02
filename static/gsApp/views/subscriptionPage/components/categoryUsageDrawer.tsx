@@ -8,7 +8,7 @@ import {
   type CustomerUsage,
   type Subscription,
 } from 'getsentry/types';
-import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/charts';
+import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 
 interface CategoryUsageDrawerProps {
   categoryInfo: BillingMetricHistory;
