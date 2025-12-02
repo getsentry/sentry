@@ -81,6 +81,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         request: Request,
         path: str,
     ) -> Response | StreamingHttpResponse:
+        assert request.method
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
@@ -92,8 +93,10 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Transfer-Encoding", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
-        wsgi_input = request.META.get("wsgi.input")
-        if wsgi_input:
+        if request.method in ("PUT", "POST"):
+            wsgi_input = request.META.get("wsgi.input")
+            assert wsgi_input
+
             if uwsgi:
 
                 def stream_generator():
@@ -115,7 +118,6 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                     )
                 stream = ChunkedEncodingDecoder(wsgi_input._read)
 
-        assert request.method
         response = requests.request(
             request.method,
             url=target_url,
