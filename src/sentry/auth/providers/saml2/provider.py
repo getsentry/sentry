@@ -181,6 +181,7 @@ class SAML2SLSView(BaseView):
         return self.redirect(redirect_to)
 
 
+@control_silo_view
 class SAML2MetadataView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponse:
         provider = get_provider(organization_slug)
