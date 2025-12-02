@@ -513,6 +513,11 @@ class SearchValue(NamedTuple):
             return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
+        elif isinstance(self.raw_value, (list, tuple)):
+            # Non-wildcard lists should also have escape sequences translated
+            return [
+                translate_escape_sequences(v) if isinstance(v, str) else v for v in self.raw_value
+            ]
         return self.raw_value
 
     def to_query_string(self) -> str:
