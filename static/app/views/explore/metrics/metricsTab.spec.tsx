@@ -233,13 +233,23 @@ describe('MetricsTabContent', () => {
       })
     );
 
-    expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+      2,
+      'metrics.explorer.metadata',
+      expect.objectContaining({metric_queries_count: 2})
+    );
+
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
 
     trackAnalyticsMock.mockClear();
     // Picking a new metric on the first panel should only fire one event for the panel update
     await userEvent.click(within(toolbars[0]!).getByRole('button', {name: 'bar'}));
     await userEvent.click(within(toolbars[0]!).getByRole('option', {name: 'foo'}));
     expect(within(toolbars[0]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+    });
 
     expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
       1,
