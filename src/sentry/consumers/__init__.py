@@ -33,6 +33,39 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 
+def apply_processor_args_overrides(
+    consumer_name: str, base_args: dict[str, Any], overrides: Mapping[str, Any]
+) -> dict[str, Any]:
+    """
+    Apply processor args overrides from options to the base StreamProcessor arguments.
+
+    Args:
+        consumer_name: Name of the consumer
+        base_args: Base arguments dict for StreamProcessor
+        overrides: Override configuration from options
+
+    Returns:
+        Updated arguments dict with overrides applied
+    """
+    consumer_specific_overrides = overrides.get(consumer_name, {})
+
+    # Apply overrides
+    for key, value in consumer_specific_overrides.items():
+        if key in base_args:
+            logger.info(
+                "overriding StreamProcessor argument from options",
+                extra={
+                    "consumer_name": consumer_name,
+                    "argument": key,
+                    "old_value": base_args[key],
+                    "new_value": value,
+                },
+            )
+        base_args[key] = value
+
+    return base_args
+
+
 def convert_max_batch_time(ctx, param, value):
     if value <= 0:
         raise click.BadParameter("--max-batch-time must be greater than 0")
@@ -623,14 +656,25 @@ def get_stream_processor(
     else:
         dlq_policy = None
 
-    return StreamProcessor(
-        consumer=consumer,
-        topic=ArroyoTopic(topic),
-        processor_factory=strategy_factory,
-        commit_policy=ONCE_PER_SECOND,
-        join_timeout=join_timeout,
-        dlq_policy=dlq_policy,
+    # Build base StreamProcessor arguments
+    processor_args = {
+        "consumer": consumer,
+        "topic": ArroyoTopic(topic),
+        "processor_factory": strategy_factory,
+        "commit_policy": ONCE_PER_SECOND,
+        "join_timeout": join_timeout,
+        "dlq_policy": dlq_policy,
+    }
+
+    # Apply option-based overrides for this specific consumer
+    from sentry import options
+
+    processor_args_overrides = options.get("consumer.arroyo.processor_args")
+    processor_args = apply_processor_args_overrides(
+        consumer_name, processor_args, processor_args_overrides
     )
+
+    return StreamProcessor(**processor_args)
 
 
 class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):

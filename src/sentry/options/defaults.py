@@ -3703,6 +3703,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Override StreamProcessor arguments for specific consumers.
+# Example: {"ingest-events": {"join_timeout": 123, "stuck_detector_timeout": 456}}
+register(
+    "consumer.arroyo.processor_args",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.scanner_no_consent.rollout_rate",
     type=Float,
