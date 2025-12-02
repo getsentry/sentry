@@ -13,6 +13,7 @@ import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -403,6 +404,7 @@ function DynamicGrouping() {
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [disableFilters, setDisableFilters] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -556,7 +558,9 @@ function DynamicGrouping() {
     <PageWrapper>
       <HeaderSection>
         <Flex align="center" gap="md" style={{marginBottom: space(2)}}>
-          <Heading as="h1">{t('Top Issues')}</Heading>
+          <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+            {t('Top Issues')}
+          </ClickableHeading>
           {isUsingCustomData && (
             <CustomDataBadge>
               <Text size="xs" bold>
@@ -574,13 +578,25 @@ function DynamicGrouping() {
         </Flex>
 
         <Flex gap="sm" style={{marginBottom: space(2)}}>
-          <Button
+          {showDevTools && (
+            <Button
+              size="sm"
+              icon={<IconUpload size="xs" />}
+              onClick={() => setShowJsonInput(!showJsonInput)}
+            >
+              {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+            </Button>
+          )}
+          <FeedbackButton
             size="sm"
-            icon={<IconUpload size="xs" />}
-            onClick={() => setShowJsonInput(!showJsonInput)}
-          >
-            {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
-          </Button>
+            feedbackOptions={{
+              messagePlaceholder: t('What do you think about the new Top Issues page?'),
+              tags: {
+                ['feedback.source']: 'top-issues',
+                ['feedback.owner']: 'issues',
+              },
+            }}
+          />
         </Flex>
 
         {showJsonInput && (
@@ -766,6 +782,11 @@ const PageWrapper = styled('div')`
 
 const HeaderSection = styled('div')`
   padding: ${space(4)} ${space(4)} ${space(3)};
+`;
+
+const ClickableHeading = styled(Heading)`
+  cursor: pointer;
+  user-select: none;
 `;
 
 const CardsSection = styled('div')`
