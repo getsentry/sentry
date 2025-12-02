@@ -105,6 +105,7 @@ interface BaseField {
 
 interface CollapsibleSectionType {
   fields: FieldObject[];
+  label: React.ReactNode | (() => React.ReactNode);
   type: 'collapsible';
   initiallyCollapsed?: boolean;
 }
