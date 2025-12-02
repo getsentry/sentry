@@ -1,8 +1,5 @@
 import {ButtonBar} from '@sentry/scraps/button';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {tct} from 'sentry/locale';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
@@ -28,19 +25,7 @@ export function TraceLinksNavigation({
   }
 
   return (
-    <Tooltip
-      position="top"
-      delay={400}
-      isHoverable
-      title={tct(
-        `Go to the previous or next trace of the same session. [link:Learn More]`,
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-          ),
-        }
-      )}
-    >
+    <div>
       <ButtonBar merged gap="0">
         <TraceLinkNavigationButton
           direction="previous"
@@ -57,6 +42,6 @@ export function TraceLinksNavigation({
           }
         />
       </ButtonBar>
-    </Tooltip>
+    </div>
   );
 }
