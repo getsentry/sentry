@@ -250,15 +250,19 @@ def load_data(
                     }
             measurements.update(measurement_markers)
 
-        if fingerprint is not None:
+    if fingerprint is not None:
+        if data.get("type") == "transaction":
             for f in fingerprint:
                 f_data = f.split("-", 1)
                 if len(f_data) < 2:
                     raise ValueError(
                         "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
+        else:
+            if not isinstance(fingerprint, list):
+                raise ValueError("Invalid fingerprint. Fingerprint must be a list of strings.")
 
-            data["fingerprint"] = fingerprint
+        data["fingerprint"] = fingerprint
 
     if event_id is not None:
         data["event_id"] = event_id
