@@ -21,7 +21,7 @@ class OrganizationContributors(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="SET_NULL", null=True)
 
     external_identifier = models.CharField(max_length=255, db_index=True)
     alias = models.CharField(max_length=255, null=True, blank=True)
