@@ -2,7 +2,6 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -25,7 +24,7 @@ jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
-  const {organization, router} = initializeOrg();
+  const organization = OrganizationFixture();
   let configState: Config;
 
   beforeEach(() => {
@@ -50,7 +49,7 @@ describe('OrganizationGeneralSettings', () => {
 
   it('can enable "early adopter"', async () => {
     render(<OrganizationGeneralSettings />, {
-      deprecatedRouterMocks: true,
+      organization,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -76,7 +75,6 @@ describe('OrganizationGeneralSettings', () => {
     });
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
-      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -100,9 +98,14 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('changes org slug and redirects to new slug', async () => {
-    render(<OrganizationGeneralSettings />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<OrganizationGeneralSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/`,
+        },
+        route: '/settings/:orgId/',
+      },
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -124,9 +127,7 @@ describe('OrganizationGeneralSettings', () => {
       );
     });
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({pathname: '/settings/new-slug/'})
-      );
+      expect(router.location.pathname).toBe('/settings/new-slug/');
     });
   });
 
@@ -142,7 +143,6 @@ describe('OrganizationGeneralSettings', () => {
 
     render(<OrganizationGeneralSettings />, {
       organization: org,
-      deprecatedRouterMocks: true,
     });
 
     const input = screen.getByRole('textbox', {name: /slug/i});
@@ -172,7 +172,6 @@ describe('OrganizationGeneralSettings', () => {
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
-      deprecatedRouterMocks: true,
     });
 
     const formElements = [
@@ -197,8 +196,6 @@ describe('OrganizationGeneralSettings', () => {
       organization: OrganizationFixture({
         access: ['org:write'],
       }),
-
-      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -211,7 +208,6 @@ describe('OrganizationGeneralSettings', () => {
 
     render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({access: ['org:admin']}),
-      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

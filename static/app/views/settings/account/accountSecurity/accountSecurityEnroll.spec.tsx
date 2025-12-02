@@ -1,6 +1,5 @@
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
@@ -33,10 +32,6 @@ describe('AccountSecurityEnroll', () => {
       ],
     });
 
-    const router = RouterFixture({
-      params: {authId: authenticator.authId},
-    });
-
     beforeEach(() => {
       setWindowLocation('https://example.test');
       window.__initialData = {
@@ -58,8 +53,12 @@ describe('AccountSecurityEnroll', () => {
 
     it('does not have enrolled circle indicator', async () => {
       render(<AccountSecurityEnroll />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.authId}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
       });
 
       await waitFor(() => {
@@ -71,8 +70,12 @@ describe('AccountSecurityEnroll', () => {
 
     it('has qrcode component', async () => {
       render(<AccountSecurityEnroll />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.authId}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
       });
 
       await waitFor(() => {
@@ -101,8 +104,12 @@ describe('AccountSecurityEnroll', () => {
       });
 
       render(<AccountSecurityEnroll />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.authId}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
       });
 
       await waitFor(() => {
@@ -148,8 +155,12 @@ describe('AccountSecurityEnroll', () => {
       });
 
       render(<AccountSecurityEnroll />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.authId}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
       });
 
       await waitFor(() => {
@@ -184,21 +195,17 @@ describe('AccountSecurityEnroll', () => {
         statusCode: 400,
       });
 
-      const routerWithMock = RouterFixture({
-        params: {authId: authenticator.authId},
-      });
-
-      render(<AccountSecurityEnroll />, {
-        router: routerWithMock,
-        deprecatedRouterMocks: true,
+      const {router} = render(<AccountSecurityEnroll />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.authId}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
       });
 
       await waitFor(() => {
-        expect(routerWithMock.push).toHaveBeenCalledWith(
-          expect.objectContaining({
-            pathname: '/settings/account/security/',
-          })
-        );
+        expect(router.location.pathname).toBe('/settings/account/security/');
       });
     });
   });
