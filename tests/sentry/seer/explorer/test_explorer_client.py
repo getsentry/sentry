@@ -328,7 +328,9 @@ class TestSeerExplorerClientArtifacts(TestCase):
             issue_count: int
 
         client = SeerExplorerClient(self.organization, self.user)
-        with pytest.raises(ValueError, match="artifact_key is required"):
+        with pytest.raises(
+            ValueError, match="artifact_key and artifact_schema must be provided together"
+        ):
             client.start_run("Analyze", artifact_schema=IssueAnalysis)
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
@@ -369,7 +371,9 @@ class TestSeerExplorerClientArtifacts(TestCase):
             description: str
 
         client = SeerExplorerClient(self.organization, self.user)
-        with pytest.raises(ValueError, match="artifact_key is required"):
+        with pytest.raises(
+            ValueError, match="artifact_key and artifact_schema must be provided together"
+        ):
             client.continue_run(123, "Fix it", artifact_schema=Solution)
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
