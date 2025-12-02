@@ -118,7 +118,7 @@ describe('ProjectFilters', () => {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Safari Version 11 and lower',
+        name: 'Safari Version 15 and lower',
       })
     ).toBeChecked();
 
