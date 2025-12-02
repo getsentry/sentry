@@ -24,6 +24,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -184,6 +185,11 @@ def _ensure_metric_detector(
                 data_source=data_source,
                 detector=detector,
             )
+
+            try:
+                send_new_detector_data(detector)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             return detector
     except UnableToAcquireLock:
