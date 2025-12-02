@@ -98,21 +98,21 @@ export default function ReplayBadge({replay}: Props) {
       />
 
       <Flex direction="column" gap="xs" justify="center">
-        <Flex direction="row" align="center">
+        <Flex direction="row" align="center" gap="sm">
           <div>
             <Text size="md" bold ellipsis data-underline-on-hover>
               {replay.user.display_name || t('Anonymous User')}
             </Text>
           </div>
           {isLive ? (
-            <LiveContainer align="center" gap="xs">
-              <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+            <Flex align="center" gap="xs">
+              <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="danger">
                 <Text bold variant="danger" data-test-id="live-badge">
                   {t('LIVE')}
                 </Text>
               </Tooltip>
               <LiveIndicator />
-            </LiveContainer>
+            </Flex>
           ) : null}
         </Flex>
 
@@ -142,10 +142,6 @@ export default function ReplayBadge({replay}: Props) {
     </Wrapper>
   );
 }
-
-const LiveContainer = styled(Flex)`
-  margin-left: ${p => p.theme.space.md};
-`;
 
 const Wrapper = styled(Grid)`
   white-space: nowrap;
