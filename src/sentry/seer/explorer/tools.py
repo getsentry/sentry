@@ -1,5 +1,6 @@
 import logging
 import uuid
+from collections import defaultdict
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -653,6 +654,84 @@ def _get_issue_event_timeseries(
     return data, stats_period, interval
 
 
+def _get_trace_with_spans(trace_ids: list[str], org_id: int, start: str, end: str) -> str | None:
+    """
+    Given a list of trace IDs, return a trace ID with at least one span (non-deterministic).
+    """
+
+    if not trace_ids:
+        return None
+
+    if len(trace_ids) == 1:
+        query = f"trace:{trace_ids[0]}"
+    else:
+        query = f"trace:[{','.join(trace_ids)}]"
+
+    # Table query for a single item that has one of the trace IDs.
+    result = execute_table_query(
+        org_id=org_id,
+        dataset="spans",
+        per_page=1,
+        fields=["trace"],
+        query=query,
+        sort="-timestamp",
+        start=start,
+        end=end,
+    )
+
+    if not result or not result.get("data"):
+        return None
+
+    return result["data"][0]["trace"]
+
+
+def _get_event_with_valid_trace(group: Group, org_id: int) -> Event | GroupEvent | None:
+    """
+    Given a group, find an event with a trace that has at least one span.
+    """
+
+    # Get up to 50 event IDs and their traces.
+    events_result = execute_table_query(
+        org_id=org_id,
+        dataset="errors",
+        per_page=50,
+        fields=["trace"],
+        query=f"issue:{group.qualified_short_id}",
+        sort="-timestamp",
+        project_ids=[group.project_id],
+        start=group.first_seen,
+        end=group.last_seen,
+    )
+
+    if not events_result or not events_result.get("data"):
+        return None
+
+    trace_to_event_ids = defaultdict(list)
+    for e in events_result["data"]:
+        if trace := e.get("trace"):
+            trace_to_event_ids[trace].append(e["id"])
+
+    # Query spans to select one of the event traces with at least one span.
+    trace_with_spans = _get_trace_with_spans(
+        list(trace_to_event_ids.keys()),
+        org_id,
+        group.first_seen - timedelta(days=1),
+        group.last_seen + timedelta(days=1),
+    )
+
+    if not trace_with_spans:
+        return None
+
+    event_id = trace_to_event_ids[trace_with_spans][0]
+
+    return eventstore.backend.get_event_by_id(
+        project_id=group.project_id,
+        event_id=event_id,
+        group_id=group.id,
+        tenant_ids={"organization_id": org_id},
+    )
+
+
 def get_issue_and_event_details(
     *,
     organization_id: int,
@@ -811,6 +890,21 @@ def get_issue_and_event_details(
             },
         )
         return None
+
+    # If the recommended event (default option) doesn't have a trace or the trace has no spans, try finding a different event.
+    if selected_event == "recommended" and (
+        event.trace_id is None
+        or _get_trace_with_spans(
+            [event.trace_id],
+            organization_id,
+            group.first_seen - timedelta(days=1),
+            group.last_seen + timedelta(days=1),
+        )
+        is None
+    ):
+        candidate_event = _get_event_with_valid_trace(group, organization_id)
+        if candidate_event:
+            event = candidate_event
 
     # Serialize event.
     serialized_event: IssueEventSerializerResponse = serialize(
