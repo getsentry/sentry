@@ -128,6 +128,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   searchPriority = 0;
 
   /**
+   * The color of the node's bar in the waterfall.
+   */
+  isLightBarColor = false;
+
+  /**
    * The maximum severity of the node's issues.
    */
   private _max_severity: keyof Theme['level'] | undefined;
