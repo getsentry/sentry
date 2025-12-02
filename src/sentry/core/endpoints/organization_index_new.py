@@ -100,7 +100,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
 
                 rpc_org = organization_provisioning_service.provision_organization_in_region(
-                    region_name=result["region"],
+                    region_name=result["locality"],
                     provisioning_options=provision_args,
                 )
 
