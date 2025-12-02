@@ -9,6 +9,10 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
+  /**
+   * This could accept most props from AddIntegrationButton, but we are
+   * selectively picking the ones that we are actively using
+   */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
     'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
