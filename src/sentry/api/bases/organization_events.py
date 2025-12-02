@@ -163,12 +163,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
 
-                # kill switch: disable the highest accuracy flex time strategy to avoid hammering snuba
-                if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME" and not features.has(
-                    "organizations:ourlogs-high-fidelity", organization, actor=request.user
-                ):
-                    raise ParseError(f"sampling mode: {sampling_mode} is not supported")
-
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -220,10 +214,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 params["end"], key, duration=round_to, rounding=snuba.ROUND_UP
             )
         return results
-
-
-class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.DATA_BROWSING
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -782,7 +772,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return serialized_values
 
 
-class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+class KeyTransactionBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:performance-view", organization, actor=request.user)
 

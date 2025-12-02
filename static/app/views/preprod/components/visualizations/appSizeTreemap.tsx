@@ -24,6 +24,7 @@ interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -32,11 +33,13 @@ function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
   alertMessage,
+  onAlertClick,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
+  onAlertClick?: () => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -76,6 +79,7 @@ function FullscreenModalContent({
           root={filteredRoot}
           searchQuery={localSearch}
           alertMessage={alertMessage}
+          onAlertClick={onAlertClick}
         />
       </Container>
     </Flex>
@@ -84,7 +88,8 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onAlertClick, onSearchChange} =
+    props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -323,7 +328,15 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
-      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
+      {alertMessage && (
+        <ClickableAlert
+          type="warning"
+          onClick={onAlertClick}
+          style={{cursor: onAlertClick ? 'pointer' : 'default'}}
+        >
+          {alertMessage}
+        </ClickableAlert>
+      )}
       <Container
         height="100%"
         width="100%"
@@ -372,6 +385,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                       unfilteredRoot={unfilteredRoot}
                       initialSearch={searchQuery}
                       alertMessage={alertMessage}
+                      onAlertClick={onAlertClick}
                       onSearchChange={onSearchChange}
                     />
                   ) : (
@@ -380,6 +394,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                         root={root}
                         searchQuery={searchQuery}
                         alertMessage={alertMessage}
+                        onAlertClick={onAlertClick}
                       />
                     </Container>
                   ),
@@ -392,6 +407,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     </Flex>
   );
 }
+
+const ClickableAlert = styled(Alert)`
+  &:hover {
+    opacity: ${p => (p.onClick ? 0.9 : 1)};
+  }
+`;
 
 const ButtonContainer = styled(Flex)`
   top: 0px;

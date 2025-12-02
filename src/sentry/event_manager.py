@@ -1918,7 +1918,7 @@ def _process_existing_aggregate(
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
     times_seen = 1
-    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+    if group.project_id in options.get("issues.client_error_sampling.project_allowlist"):
         times_seen = _get_error_weighted_times_seen(event)
 
     buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
@@ -2383,7 +2383,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.stored_id or attachment.data
+        attachment.stored_id or attachment.load_data(project)
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,

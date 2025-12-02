@@ -122,17 +122,17 @@ function UsageLog({location, subscription}: Props) {
     [auditLogs?.eventNames]
   );
 
-  const handleEventFilter = (value: string | null) => {
-    if (value === null) {
+  const handleEventFilter = (value: string | undefined) => {
+    if (typeof value === 'string') {
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, event: value, cursor: undefined},
+      });
+    } else {
       // Clear filters
       navigate({
         pathname: location.pathname,
         query: {...location.query, event: undefined, cursor: undefined},
-      });
-    } else {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, event: value, cursor: undefined},
       });
     }
 
@@ -166,9 +166,8 @@ function UsageLog({location, subscription}: Props) {
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
           value={selectedEventName}
-          onClear={() => handleEventFilter(null)}
           onChange={option => {
-            handleEventFilter(option.value);
+            handleEventFilter(option?.value);
           }}
           triggerProps={{
             size: 'sm',

@@ -51,7 +51,7 @@ function getReplayTabs({
           >
             {t('AI Summary')}
           </Tooltip>
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
@@ -63,6 +63,9 @@ function getReplayTabs({
     // For video replays, we hide the memory tab (not applicable for mobile)
     [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
+    [TabKey.PLAYLIST]: organization.features.includes('replay-playlist-view')
+      ? t('Playlist')
+      : null,
   };
 }
 

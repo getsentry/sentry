@@ -46,12 +46,16 @@ def normalize_description(description: str) -> str:
     return description
 
 
-def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
+def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], str | None]:
     """
     Converts profile data into a hierarchical representation of code execution.
-    Selects the thread with the most in_app frames, or falls back to MainThread if no
-    in_app frames exist (showing all frames including system frames).
+    Selects the thread with the most in_app frames. Returns empty list if no
+    in_app frames exist.
     Calculates accurate durations for all nodes based on call stack transitions.
+
+    Returns:
+        Tuple of (execution_tree, selected_thread_id) where selected_thread_id is the
+        thread that was used to build the execution tree.
     """
     profile = profile_data.get(
         "profile"
@@ -61,14 +65,15 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:
-            return []
+            empty_tree: list[dict[Any, Any]] = []
+            return empty_tree, None
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
-    thread_metadata = profile.get("thread_metadata", {})
     if not all([frames, stacks, samples]):
-        return []
+        empty_tree_2: list[dict[Any, Any]] = []
+        return empty_tree_2, None
 
     # Count in_app frames per thread
     thread_in_app_counts: dict[str, int] = {}
@@ -91,22 +96,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         selected_thread_id = max(thread_in_app_counts.items(), key=lambda x: x[1])[0]
         show_all_frames = False
     else:
-        # No in_app frames found, try to find MainThread
-        main_thread_id_from_metadata = next(
-            (
-                str(thread_id)
-                for thread_id, metadata in thread_metadata.items()
-                if metadata.get("name") == "MainThread"
-            ),
-            None,
-        )
-
-        selected_thread_id = main_thread_id_from_metadata or (
-            str(samples[0]["thread_id"]) if samples else None
-        )
-        show_all_frames = (
-            True  # Show all frames including system frames when no in_app frames exist
-        )
+        # No in_app frames found, return empty tree instead of falling back to system frames
+        return [], None
 
     def _get_elapsed_since_start_ns(
         sample: dict[str, Any], all_samples: list[dict[str, Any]]
@@ -190,7 +181,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         """
         frame_indices = stacks[stack_index]
         if not frame_indices:
-            return []
+            empty_stack: list[dict[str, Any]] = []
+            return empty_stack
 
         # Create nodes for frames, maintaining order (bottom to top)
         nodes = []
@@ -203,7 +195,8 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         return nodes
 
     if not selected_thread_id:
-        return []
+        empty_tree_3: list[dict[Any, Any]] = []
+        return empty_tree_3, None
 
     # Build the execution tree and track call stacks
     execution_tree: list[dict[str, Any]] = []
@@ -349,17 +342,17 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     for node in execution_tree:
         apply_durations(node)
 
-    return execution_tree
+    return execution_tree, selected_thread_id
 
 
 def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeNode]:
     """
     Converts profile data into a hierarchical representation of code execution.
-    Selects the thread with the most in_app frames, or falls back to MainThread if no
-    in_app frames exist (showing all frames including system frames).
+    Selects the thread with the most in_app frames. Returns empty list if no
+    in_app frames exist.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    dict_tree = _convert_profile_to_execution_tree(profile_data)
+    dict_tree, _ = _convert_profile_to_execution_tree(profile_data)
 
     def dict_to_execution_tree_node(node_dict: dict) -> ExecutionTreeNode:
         """Convert a dict node to an ExecutionTreeNode Pydantic object."""

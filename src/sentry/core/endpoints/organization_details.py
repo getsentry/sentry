@@ -42,6 +42,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_OPEN_PRS_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
@@ -241,6 +242,13 @@ ORG_OPTIONS = (
         ENABLE_SEER_CODING_DEFAULT,
     ),
     (
+        # Informs UI default for automated_run_stopping_point in project preferences
+        "autoOpenPrs",
+        "sentry:auto_open_prs",
+        bool,
+        AUTO_OPEN_PRS_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -326,6 +334,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    autoOpenPrs = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -710,6 +719,7 @@ def create_console_platform_audit_log(
         "genAIConsent",
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
+        "autoOpenPrs",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
     ]

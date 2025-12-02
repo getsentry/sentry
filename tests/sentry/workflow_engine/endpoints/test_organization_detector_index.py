@@ -1795,3 +1795,54 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
         # Verify detector was not affected
         self.assert_unaffected_detectors([self.detector, other_detector])
+
+    def test_delete_system_created_detector_by_id_prevented(self) -> None:
+        # Test that system-created detectors cannot be deleted via bulk delete by ID
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(error_detector.id)},
+            status_code=403,
+        )
+
+        self.assert_unaffected_detectors([error_detector])
+
+    def test_delete_system_and_user_created(self) -> None:
+        # Test that permission is denied when request includes system-created detectors
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.detector.id)),
+                ("id", str(error_detector.id)),
+            ],
+            status_code=403,
+        )
+
+        self.assert_unaffected_detectors([self.detector, error_detector])
+
+    def test_delete_system_and_user_created_with_query_filters(self) -> None:
+        # Test that permission is denied when query filter request includes system-created detectors
+        error_detector = self.create_detector(
+            project=self.project,
+            name="Test Error Detector",
+            type=ErrorGroupType.slug,
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"query": "Test", "project": self.project.id},
+            status_code=403,
+        )
+
+        self.assert_unaffected_detectors([self.detector, error_detector])

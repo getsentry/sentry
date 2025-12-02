@@ -7,6 +7,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -15,29 +18,75 @@ interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
+  projectType: string | null;
+  slot: 'head' | 'base';
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
+function BuildButton({
+  buildDetails,
+  icon,
+  label,
+  onRemove,
+  slot,
+  projectType,
+}: BuildButtonProps) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
+  const version = buildDetails.app_info?.version;
+  const buildNumber = buildDetails.app_info?.build_number;
+  const dateBuilt = buildDetails.app_info?.date_built;
+  const dateAdded = buildDetails.app_info?.date_added;
 
   const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const platform = buildDetails.app_info?.platform ?? null;
+
+  const dateToShow = dateBuilt || dateAdded;
+  const formattedDate = getFormattedDate(
+    dateToShow,
+    getFormat({timeZone: true, year: true}),
+    {
+      local: true,
+    }
+  );
+
+  // Build metadata parts for the second line
+  const metadataParts = [formattedDate];
+  if (version) {
+    metadataParts.unshift(`Version ${version}`);
+  }
+  if (buildNumber) {
+    metadataParts.unshift(`Build ${buildNumber}`);
+  }
 
   return (
-    <LinkButton to={buildUrl}>
-      <Flex align="center" gap="sm">
-        {icon}
-        <Text size="sm" variant="accent" bold>
-          {label}
-        </Text>
-        <Flex align="center" gap="md">
+    <StyledLinkButton
+      to={buildUrl}
+      onClick={() =>
+        trackAnalytics('preprod.builds.compare.go_to_build_details', {
+          organization,
+          build_id: buildId,
+          project_slug: projectId,
+          platform,
+          project_type: projectType,
+          slot,
+        })
+      }
+    >
+      <Flex direction="column" gap="xs">
+        <Flex align="center" gap="sm">
+          {icon}
           <Text size="sm" variant="accent" bold>
-            {`#${buildId}`}
+            {label}
           </Text>
+          {!buildNumber && (
+            <Text size="sm" variant="accent" bold>
+              {`#${buildId}`}
+            </Text>
+          )}
           {sha && (
             <Flex align="center" gap="xs">
               <IconCommit size="xs" />
@@ -46,32 +95,42 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
               </Text>
             </Flex>
           )}
+          {branchName && (
+            <BuildBranch>
+              <Text size="sm" variant="muted">
+                {branchName}
+              </Text>
+            </BuildBranch>
+          )}
+          {onRemove && (
+            <Button
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove();
+              }}
+              size="zero"
+              priority="transparent"
+              borderless
+              aria-label={t('Clear base build')}
+              icon={<IconClose size="xs" color="purple400" />}
+            />
+          )}
         </Flex>
-        {branchName && (
-          <BuildBranch>
-            <Text size="sm" variant="muted">
-              {branchName}
-            </Text>
-          </BuildBranch>
-        )}
-        {onRemove && (
-          <Button
-            onClick={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              onRemove();
-            }}
-            size="zero"
-            priority="transparent"
-            borderless
-            aria-label={t('Clear base build')}
-            icon={<IconClose size="xs" color="purple400" />}
-          />
-        )}
+        <Flex align="center" gap="sm">
+          <Text size="sm" variant="muted">
+            {metadataParts.join(' • ')}
+          </Text>
+        </Flex>
       </Flex>
-    </LinkButton>
+    </StyledLinkButton>
   );
 }
+
+const StyledLinkButton = styled(LinkButton)`
+  height: auto;
+  min-height: auto;
+`;
 
 const ComparisonContainer = styled(Flex)`
   flex-wrap: wrap;
@@ -107,12 +166,20 @@ export function SizeCompareSelectedBuilds({
   onClearBaseBuild,
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const platform = headBuildDetails.app_info?.platform ?? null;
+  const project = ProjectsStore.getBySlug(projectId);
+  const projectType = project?.platform ?? null;
+
   return (
     <ComparisonContainer>
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
+        slot="head"
+        projectType={projectType}
       />
 
       <Text>{t('vs')}</Text>
@@ -123,6 +190,8 @@ export function SizeCompareSelectedBuilds({
           icon={<IconFocus size="xs" color="purple400" />}
           label={t('Base')}
           onRemove={onClearBaseBuild}
+          slot="base"
+          projectType={projectType}
         />
       ) : (
         <SelectBuild>
@@ -134,6 +203,13 @@ export function SizeCompareSelectedBuilds({
         <Button
           onClick={() => {
             if (baseBuildDetails) {
+              trackAnalytics('preprod.builds.compare.trigger_comparison', {
+                organization,
+                project_slug: projectId,
+                platform,
+                build_id: headBuildDetails.id,
+                project_type: projectType,
+              });
               onTriggerComparison();
             }
           }}

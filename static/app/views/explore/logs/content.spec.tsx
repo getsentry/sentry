@@ -3,7 +3,13 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -182,7 +188,9 @@ describe('LogsPage', () => {
     eventsTimeSeriesMock.mockClear();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
-    await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
     await userEvent.click(screen.getByRole('option', {name: 'severity'}));
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
 

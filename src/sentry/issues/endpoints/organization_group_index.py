@@ -389,6 +389,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
             context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
+        # Sanity check: if we're on the first and last page with no more results,
+        # the estimated hits from sampling may be too high due to Snuba/Postgres
+        # data inconsistency. Cap hits to match the actual number of results.
+        if (
+            cursor_result.hits is not None
+            and cursor_result.next.has_results is False
+            and not request.GET.get("cursor")
+        ):
+            actual_count = len(context)
+            if cursor_result.hits > actual_count:
+                cursor_result.hits = actual_count
+
         response = Response(context)
 
         self.add_cursor_headers(request, response, cursor_result)

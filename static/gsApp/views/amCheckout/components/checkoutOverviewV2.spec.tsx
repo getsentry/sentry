@@ -80,7 +80,7 @@ describe('CheckoutOverviewV2', () => {
       },
       onDemandMaxSpend: 5000,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: true,
         },
       },
@@ -97,7 +97,7 @@ describe('CheckoutOverviewV2', () => {
       />
     );
 
-    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
+    expect(screen.getByTestId('legacySeer-reserved')).toHaveTextContent('Seer$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
@@ -179,7 +179,7 @@ describe('CheckoutOverviewV2', () => {
       },
       onDemandMaxSpend: 5000,
       addOns: {
-        [AddOnCategory.SEER]: {
+        [AddOnCategory.LEGACY_SEER]: {
           enabled: false,
         },
       },
@@ -196,7 +196,7 @@ describe('CheckoutOverviewV2', () => {
       />
     );
 
-    expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('legacySeer-reserved')).not.toBeInTheDocument();
   });
 
   it('does not show add-on when not included in formData', () => {
@@ -226,6 +226,6 @@ describe('CheckoutOverviewV2', () => {
       />
     );
 
-    expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('legacySeer-reserved')).not.toBeInTheDocument();
   });
 });

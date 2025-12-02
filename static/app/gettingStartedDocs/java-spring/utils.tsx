@@ -8,12 +8,17 @@ import {t} from 'sentry/locale';
 export enum SpringVersion {
   V5 = 'v5',
   V6 = 'v6',
+  V7 = 'v7',
 }
 
 export const platformOptions = {
   springVersion: {
     label: t('Spring Version'),
     items: [
+      {
+        label: t('Spring 7'),
+        value: SpringVersion.V7,
+      },
       {
         label: t('Spring 6'),
         value: SpringVersion.V6,

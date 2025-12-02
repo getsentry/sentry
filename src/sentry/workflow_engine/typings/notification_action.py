@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.utils import json
+
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"
 
@@ -98,7 +100,7 @@ class EmailFieldMappingKeys(StrEnum):
     EmailFieldMappingKeys is an enum that represents the keys of an email field mapping.
     """
 
-    FALLTHROUGH_TYPE_KEY = "fallthroughType"
+    FALLTHROUGH_TYPE_KEY = "fallthrough_type"
     TARGET_TYPE_KEY = "targetType"
 
 
@@ -577,7 +579,7 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         ):
             return dataclasses.asdict(
                 EmailDataBlob(
-                    fallthroughType=self.action.get(
+                    fallthrough_type=self.action.get(
                         EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
                         FallthroughChoiceType.ACTIVE_MEMBERS.value,
                     ),
@@ -643,6 +645,9 @@ class SentryAppActionTranslator(BaseActionTranslator):
         data = SentryAppDataBlob()
         if settings := self.action.get("settings"):
             for setting in settings:
+                # stringify setting value if it's a list
+                if isinstance(setting.get("value"), list):
+                    setting["value"] = json.dumps(setting["value"])
                 data.settings.append(SentryAppFormConfigDataBlob(**setting))
 
         return dataclasses.asdict(data)
@@ -740,7 +745,7 @@ class EmailDataBlob(DataBlob):
     EmailDataBlob represents the data blob for an email notification action.
     """
 
-    fallthroughType: str = ""
+    fallthrough_type: str = ""
 
 
 issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {

@@ -152,54 +152,12 @@ describe('EventSamplesTable', () => {
     expect(await screen.findByRole('button', {name: 'View Profile'})).toBeInTheDocument();
   });
 
-  it('updates URL params when device class selector is changed', async () => {
-    mockQuery = {
-      name: '',
-      fields: ['transaction.id'],
-      query: '',
-      version: 2,
-    };
-    mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
-
-    render(
-      <EventSamplesTable
-        showDeviceClassSelector
-        eventIdKey="transaction.id"
-        columnNameMap={{'transaction.id': 'Event ID'}}
-        cursorName=""
-        eventView={mockEventView}
-        isLoading={false}
-        profileIdKey="profile.id"
-        sort={{
-          field: '',
-          kind: 'desc',
-        }}
-        sortKey=""
-        data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
-      />,
-      {router: mockRouter, deprecatedRouterMocks: true}
-    );
-
-    expect(screen.getByRole('button', {name: /device class all/i})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: /device class all/i}));
-    await userEvent.click(screen.getByText('Medium'));
-    expect(mockRouter.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/mock-pathname/',
-        query: expect.objectContaining({
-          'device.class': 'medium',
-        }),
-      })
-    );
-  });
-
   it('updates URL params when the table is paginated', async () => {
     const pageLinks =
       '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
       '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
     render(
       <EventSamplesTable
-        showDeviceClassSelector
         eventIdKey="transaction.id"
         columnNameMap={{'transaction.id': 'Event ID'}}
         cursorName="customCursorName"
@@ -239,7 +197,6 @@ describe('EventSamplesTable', () => {
     mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
     render(
       <EventSamplesTable
-        showDeviceClassSelector
         eventIdKey="transaction.id"
         columnNameMap={{'transaction.id': 'Event ID', duration: 'Duration'}}
         cursorName="customCursorName"

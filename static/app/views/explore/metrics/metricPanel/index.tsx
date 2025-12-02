@@ -75,10 +75,11 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     yAxis: traceMetric.name || '',
     sortBys,
     aggregateSortBys,
+    panelIndex: queryIndex,
   });
 
   return (
-    <Panel>
+    <Panel data-test-id="metric-panel">
       <PanelBody>
         {orientation === 'right' ? (
           <SideBySideOrientation

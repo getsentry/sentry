@@ -12,7 +12,8 @@ import Crumb from './crumb';
 import Divider from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps extends Omit<SingleSelectProps<string>, 'onChange'> {
+interface BreadcrumbDropdownProps
+  extends Omit<SingleSelectProps<string>, 'onChange' | 'clearable'> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;

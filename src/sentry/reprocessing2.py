@@ -238,7 +238,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
             )
 
     if attachment_objects:
-        store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
+        store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Step 2: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
