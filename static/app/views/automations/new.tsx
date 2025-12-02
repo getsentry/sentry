@@ -66,6 +66,7 @@ const initialData = {
   environment: null,
   frequency: 1440,
   enabled: true,
+  projectIds: [],
 };
 
 export default function AutomationNewSettings() {
