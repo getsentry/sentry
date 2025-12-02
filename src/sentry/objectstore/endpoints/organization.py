@@ -149,25 +149,27 @@ def get_target_url(path: str) -> str:
     return target
 
 
-def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
+def stream_response(external_response: ExternalResponse) -> StreamingHttpResponse:
     def stream_generator() -> Generator[bytes]:
-        response.raw.decode_content = False
+        external_response.raw.decode_content = False
         while True:
-            chunk = response.raw.read(CHUNK_SIZE)
+            chunk = external_response.raw.read(CHUNK_SIZE)
             if not chunk:
                 break
             yield chunk
 
-    streamed_response = StreamingHttpResponse(
+    response = StreamingHttpResponse(
         streaming_content=stream_generator(),
-        status=response.status_code,
+        status=external_response.status_code,
     )
 
-    for header, value in response.headers.items():
+    for header, value in external_response.headers.items():
+        if header == "server":
+            continue
         if not is_hop_by_hop(header):
-            streamed_response[header] = value
+            response[header] = value
 
-    return streamed_response
+    return response
 
 
 class ChunkedEncodingDecoder:
