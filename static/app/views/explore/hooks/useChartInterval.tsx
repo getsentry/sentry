@@ -34,9 +34,9 @@ interface Options {
   unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy;
 }
 
-export function useChartInterval(
-  {unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}
-): [
+export function useChartInterval({
+  unspecifiedStrategy = ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+}: {unspecifiedStrategy?: ChartIntervalUnspecifiedStrategy} = {}): [
   string,
   (interval: string) => void,
   intervalOptions: Array<{label: string; value: string}>,
