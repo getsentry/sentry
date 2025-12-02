@@ -105,7 +105,7 @@ function UsageCharts({
   };
 
   return (
-    <Container>
+    <Container padding="xl">
       <ProductUsageChart
         useDisplayModeTitle={false}
         usageStats={usageStats}
