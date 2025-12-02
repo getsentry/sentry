@@ -9,19 +9,15 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  buttonProps: ButtonProps;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
   userHasAccess: boolean;
+  buttonProps?: Omit<
+    React.ComponentProps<typeof AddIntegrationButton>,
+    'provider' | 'onAddIntegration' | 'organization'
+  >;
   externalInstallText?: string;
 };
-
-type ButtonProps = {
-  disabled?: any;
-  priority?: any;
-  size?: any;
-  style?: any;
-} | null;
 
 function IntegrationButton({
   userHasAccess,
@@ -51,8 +47,8 @@ function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         modalParams={modalParams}
-        organization={organization}
         {...buttonProps}
+        organization={organization}
       />
     );
   }
