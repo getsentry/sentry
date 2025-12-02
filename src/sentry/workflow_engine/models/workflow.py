@@ -107,7 +107,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         ]
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"name": self.name}
+        return {"name": self.name, "enabled": self.enabled}
 
     def get_snapshot(self) -> WorkflowSnapshot:
         when_condition_group = None
