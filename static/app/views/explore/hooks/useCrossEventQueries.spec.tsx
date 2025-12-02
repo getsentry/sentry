@@ -74,9 +74,9 @@ describe('useCrossEventQueries', () => {
     });
 
     expect(result.current).toStrictEqual({
-      logQueries: ['test:a'],
-      metricQueries: ['test:b'],
-      spanQueries: ['test:c'],
+      logQuery: ['test:a'],
+      metricQuery: ['test:b'],
+      spanQuery: ['test:c'],
     });
   });
 
@@ -90,9 +90,9 @@ describe('useCrossEventQueries', () => {
     });
 
     expect(result.current).toStrictEqual({
-      logQueries: [],
-      metricQueries: [],
-      spanQueries: ['test:a', 'test:b', 'test:c'],
+      logQuery: [],
+      metricQuery: [],
+      spanQuery: ['test:a', 'test:b', 'test:c'],
     });
   });
 });
