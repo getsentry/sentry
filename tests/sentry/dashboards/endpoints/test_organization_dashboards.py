@@ -1894,6 +1894,27 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
+    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+        Dashboard.objects.all().delete()
+        mock_get_dashboard_limit.return_value = 2
+
+        responses = []
+        for i in range(5):
+            response = self.do_request("post", self.url, data={"title": f"Burst Request {i}"})
+            responses.append(response)
+
+        # Only up to the configured limit of dashboards should exist.
+        dashboards = Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=None,
+        )
+        assert dashboards.count() == 2
+
+        # Only two requests should have successfully created a dashboard.
+        created_response_count = sum(1 for response in responses if response.status_code == 201)
+        assert created_response_count == 2
+
+    @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_does_not_count_prebuilt_dashboards(
         self, mock_get_dashboard_limit
     ) -> None:
