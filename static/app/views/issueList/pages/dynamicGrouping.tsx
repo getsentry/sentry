@@ -442,7 +442,7 @@ function DynamicGrouping() {
   const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
   const isUsingCustomData = customClusterData !== null;
 
-  // Extract all unique teams from the cluster data
+  // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
     const data = topIssuesResponse?.data ?? [];
     const teamMap = new Map<string, {id: string; name: string}>();
@@ -686,7 +686,7 @@ function DynamicGrouping() {
               </ActiveTagFilters>
             )}
 
-            {!shouldSkipFilters && (
+            {showDevTools && !shouldSkipFilters && (
               <Container
                 padding="sm"
                 border="primary"
