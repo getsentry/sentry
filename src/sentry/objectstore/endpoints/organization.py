@@ -135,10 +135,51 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         return stream_response(response)
 
 
+def get_target_url(path: str) -> str:
+    base = options.get("objectstore.config")["base_url"].rstrip("/")
+    base_parsed = urlparse(base)
+
+    target = urljoin(base, path)
+    target_parsed = urlparse(target)
+
+    if (
+        target_parsed.scheme != base_parsed.scheme
+        or target_parsed.netloc != base_parsed.netloc
+        or not target.startswith(base)
+    ):
+        raise SuspiciousOperation("Possible SSRF attempt")
+    if ".." in path:
+        raise SuspiciousOperation("Possible path traversal attempt")
+
+    return target
+
+
+def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
+    def stream_generator() -> Generator[bytes]:
+        response.raw.decode_content = False
+        while True:
+            chunk = response.raw.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            yield chunk
+
+    streamed_response = StreamingHttpResponse(
+        streaming_content=stream_generator(),
+        status=response.status_code,
+    )
+
+    for header, value in response.headers.items():
+        if not is_hop_by_hop(header):
+            streamed_response[header] = value
+
+    return streamed_response
+
+
 class ChunkedEncodingDecoder:
     """
     Wrapper around a read function that returns chunked transfer encoded data.
     Provides a file-like interface to the decoded data stream.
+    This should only be needed in dev/test mode, to manually decode wsgi.input.
     """
 
     def __init__(self, read: Callable[[int], bytes]):
@@ -192,43 +233,3 @@ class ChunkedEncodingDecoder:
                         raise ValueError("Malformed chunk encoded stream")
 
         return b"".join(buffer)
-
-
-def get_target_url(path: str) -> str:
-    base = options.get("objectstore.config")["base_url"].rstrip("/")
-    base_parsed = urlparse(base)
-
-    target = urljoin(base, path)
-    target_parsed = urlparse(target)
-
-    if (
-        target_parsed.scheme != base_parsed.scheme
-        or target_parsed.netloc != base_parsed.netloc
-        or not target.startswith(base)
-    ):
-        raise SuspiciousOperation("Possible SSRF attempt")
-    if ".." in path:
-        raise SuspiciousOperation("Possible path traversal attempt")
-
-    return target
-
-
-def stream_response(response: ExternalResponse) -> StreamingHttpResponse:
-    def stream_generator() -> Generator[bytes]:
-        response.raw.decode_content = False
-        while True:
-            chunk = response.raw.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            yield chunk
-
-    streamed_response = StreamingHttpResponse(
-        streaming_content=stream_generator(),
-        status=response.status_code,
-    )
-
-    for header, value in response.headers.items():
-        if not is_hop_by_hop(header):
-            streamed_response[header] = value
-
-    return streamed_response
