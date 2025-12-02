@@ -1996,6 +1996,19 @@ register(
 
 # Adjusting some time buffers in the trace endpoint
 register(
+    "performance.traces.pagination.max-iterations",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.pagination.max-timeout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "performance.traces.transaction_query_timebuffer_days",
     type=Float,
     default=1.5,
@@ -3049,6 +3062,24 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Notification Options - Start
+# Options for migrating to the notification platform
+# Data Export Success notifications
+register(
+    "notifications.platform-rate.data-export-success",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Data Export Failure notifications
+register(
+    "notifications.platform-rate.data-export-failure",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Options - End
 
 # List of organizations with increased rate limits for organization_events API
 register(

@@ -50,6 +50,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -246,6 +247,18 @@ export default function MetricChart({
         traceItemType,
       });
 
+      const disableEapButton = getIsMigratedExtrapolationMode(
+        rule.extrapolationMode,
+        rule.dataset,
+        traceItemType
+      );
+
+      const disabledTooltip = disableEapButton
+        ? t(
+            'This alert cannot be opened in Explore until you update thresholds and resave.'
+          )
+        : undefined;
+
       const resolvedPercent =
         (100 *
           Math.max(
@@ -306,7 +319,12 @@ export default function MetricChart({
               })
             ) ? (
               <Feature features="visibility-explore-view">
-                <LinkButton size="sm" {...props}>
+                <LinkButton
+                  size="sm"
+                  disabled={disableEapButton}
+                  title={disabledTooltip}
+                  {...props}
+                >
                   {buttonText}
                 </LinkButton>
               </Feature>
