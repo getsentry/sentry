@@ -356,6 +356,10 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
+
+            # Mark that this alert was updated by a user
+            self._mark_query_as_user_updated(alert_rule.snuba_query)
+
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
@@ -405,3 +409,15 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     raise serializers.ValidationError(trigger_serializer.errors)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error
+
+    def _mark_query_as_user_updated(self, snuba_query):
+        """
+        Mark the snuba query as user-updated in the query_snapshot field.
+        This is used to skip automatic migrations for queries that users have already modified.
+        Only marks queries that already have a snapshot (i.e., were previously migrated).
+        """
+        snuba_query.refresh_from_db()
+        if snuba_query.query_snapshot is None:
+            return
+        snuba_query.query_snapshot["user_updated"] = True
+        snuba_query.save()
