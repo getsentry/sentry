@@ -4,9 +4,18 @@ import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  PREBUILT_DASHBOARDS,
+  PrebuiltDashboardId,
+  type PrebuiltDashboard,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
-export const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
+export const useGetPrebuiltDashboard = (prebuiltId?: PrebuiltDashboardId) => {
+  const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
+  return usePopulateLinkedDashboards(prebuiltDashboard);
+};
+
+const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
   const organization = useOrganization();
 
   const widgets = useMemo(() => dashboard?.widgets ?? [], [dashboard]);

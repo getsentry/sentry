@@ -23,7 +23,7 @@ const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString()
 export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Backend Queries',
+  title: 'Queries',
   filters: {
     globalFilter: [
       {
