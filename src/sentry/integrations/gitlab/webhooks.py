@@ -77,16 +77,22 @@ class GitlabWebhook(SCMWebhook, ABC):
         """
         Given a webhook payload, get the associated Repository record.
 
-        Assumes a 'project' key in event payload.
+        Attempts to pull the project id either from the nested project metadata
+        or the top level payload before giving up.
         """
-        try:
-            project_id = event["project"]["id"]
-        except KeyError:
+        project = event.get("project")
+        project_id: Any | None = None
+        if isinstance(project, Mapping):
+            project_id = project.get("id")
+
+        if project_id is None:
+            project_id = event.get("project_id")
+
+        if project_id is None:
             logger.info(
                 "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
             )
-            logger.exception("Missing project ID.")
-            raise Http404()
+            return None
 
         external_id = "{}:{}".format(integration.metadata["instance"], project_id)
         try:
@@ -105,7 +111,9 @@ class GitlabWebhook(SCMWebhook, ABC):
         this if that stops being a safe assumption.
         """
 
-        project = event["project"]
+        project = event.get("project")
+        if not isinstance(project, Mapping):
+            return
 
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
