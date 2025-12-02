@@ -27,6 +27,10 @@ def has_replay_permission(organization: Organization, user: User | None) -> bool
     """
     if not features.has("organizations:replay-granular-permissions", organization):
         return True
+
+    if user is None or not user.is_authenticated:
+        return False
+
     try:
         member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
     except OrganizationMember.DoesNotExist:

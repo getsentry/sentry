@@ -7,7 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import serialize
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import OrganizationRole, Role
 from sentry.users.models.user import User
@@ -62,16 +61,8 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         for user_data in users_by_id.values():
             user_data.pop("emails", None)
 
-        replay_access_map = {
-            access.organizationmember_id: True
-            for access in OrganizationMemberReplayAccess.objects.filter(
-                organizationmember__in=item_list
-            )
-        }
-
         for item in item_list:
             result.setdefault(item, {})["serializedUser"] = users_by_id.get(str(item.user_id), {})
-            result.setdefault(item, {})["replayAccess"] = replay_access_map.get(item.id, False)
         return result
 
     def serialize(
@@ -90,7 +81,6 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
             context["user"] = attrs.get("serializedUser", {})
 
         context["isOnlyOwner"] = obj.is_only_owner()
-        context["replayAccess"] = attrs.get("replayAccess", False)
 
         organization_role_list = [
             role for role in organization_roles.get_all() if not _is_retired_role_hidden(role, obj)

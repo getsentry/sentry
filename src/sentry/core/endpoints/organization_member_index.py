@@ -84,10 +84,6 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
     )
     regenerate = serializers.BooleanField(required=False)
-    replayAccess = serializers.BooleanField(
-        required=False,
-        help_text="Whether or not the member has permission to access replay data.",
-    )
 
     def validate_email(self, email: str) -> str:
         users = user_service.get_many_by_email(

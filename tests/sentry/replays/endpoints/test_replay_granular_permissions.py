@@ -46,7 +46,7 @@ class TestReplayGranularPermissions(APITestCase):
             assert response.status_code == 403
 
     def test_organization_replay_details_with_permission(self):
-        """User with replay permission can access org replay details"""
+        """User with replay permission can access org replay details (gets 404 for non-existent replay, not 403)"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
         ):
@@ -56,7 +56,8 @@ class TestReplayGranularPermissions(APITestCase):
             self.login_as(self.user_with_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/123e4567-e89b-12d3-a456-426614174000/"
             response = self.client.get(url)
-            assert response.status_code in [200, 404]
+            # Should get 404 for non-existent replay, NOT 403 Forbidden (which would indicate permission denial)
+            assert response.status_code == 404
 
     def test_organization_replay_details_without_permission(self):
         """User without replay permission cannot access org replay details"""
@@ -115,5 +116,33 @@ class TestReplayGranularPermissions(APITestCase):
             )
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 200
+
+    def test_removing_last_user_from_allowlist_reopens_access(self):
+        """When the last user is removed from allowlist, all org members regain access"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:replay-granular-permissions"]
+        ):
+            # Create allowlist with only one user
+            access_record = OrganizationMemberReplayAccess.objects.create(
+                organization=self.organization, organizationmember=self.member_with_access
+            )
+
+            # Verify user_without_access is blocked
+            self.login_as(self.user_without_access)
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 403
+
+            # Remove the last user from allowlist
+            access_record.delete()
+
+            # Verify allowlist is now empty
+            assert not OrganizationMemberReplayAccess.objects.filter(
+                organization=self.organization
+            ).exists()
+
+            # Verify user_without_access now has access (empty allowlist = everyone has access)
             response = self.client.get(url)
             assert response.status_code == 200

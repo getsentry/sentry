@@ -91,6 +91,8 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
 from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -338,6 +340,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        help_text="List of organization member IDs that have access to replay data. Only modifiable by owners and managers.",
+    )
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
@@ -558,6 +566,59 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if trusted_relay_info is not None:
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
+        if "replayAccessMembers" in data:
+            if not features.has("organizations:replay-granular-permissions", org):
+                raise serializers.ValidationError(
+                    {"replayAccessMembers": "This feature is not enabled for your organization."}
+                )
+
+            if not self.context["request"].access.has_scope("org:admin"):
+                raise serializers.ValidationError(
+                    {"replayAccessMembers": "You do not have permission to modify replay access."}
+                )
+
+            member_ids = data["replayAccessMembers"]
+
+            if member_ids is None:
+                member_ids = []
+
+            current_member_ids = set(
+                OrganizationMemberReplayAccess.objects.filter(organization=org).values_list(
+                    "organizationmember_id", flat=True
+                )
+            )
+            new_member_ids = set(member_ids)
+
+            to_add = new_member_ids - current_member_ids
+            to_remove = current_member_ids - new_member_ids
+
+            if to_add:
+                valid_members = OrganizationMember.objects.filter(id__in=to_add, organization=org)
+                if valid_members.count() != len(to_add):
+                    raise serializers.ValidationError(
+                        {"replayAccessMembers": "One or more invalid member IDs provided."}
+                    )
+
+                OrganizationMemberReplayAccess.objects.bulk_create(
+                    [
+                        OrganizationMemberReplayAccess(
+                            organization=org, organizationmember_id=member_id
+                        )
+                        for member_id in to_add
+                    ],
+                    ignore_conflicts=True,
+                )
+
+            if to_remove:
+                OrganizationMemberReplayAccess.objects.filter(
+                    organization=org, organizationmember_id__in=to_remove
+                ).delete()
+
+            if to_add or to_remove:
+                changed_data["replayAccessMembers"] = (
+                    f"Updated replay access: {len(new_member_ids)} member(s) with access"
+                )
+
         if "openMembership" in data:
             org.flags.allow_joinleave = data["openMembership"]
         if "allowSharedIssues" in data:
@@ -774,6 +835,12 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         choices=roles.get_choices(),
         help_text="The role required to download debug information files, ProGuard mappings and source maps.",
         required=False,
+    )
+    replayAccessMembers = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="A list of organization member IDs who have permission to access replay data. When empty, all members have access. Requires the replay-granular-permissions feature flag.",
+        required=False,
+        allow_null=True,
     )
 
     # avatar
