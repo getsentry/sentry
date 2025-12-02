@@ -28,6 +28,12 @@ const expandedViewKeys = [
   'sdk.replay.unmaskedViewClasses',
   // Flutter
   'sdk.replay.maskingRules',
+
+  // Network request/response
+  'sdk.replay.networkDetailAllowUrls',
+  'sdk.replay.networkDetailDenyUrls',
+  'sdk.replay.networkRequestHeaders',
+  'sdk.replay.networkResponseHeaders',
 ];
 
 const releaseKeys = ['release', 'releases'];
