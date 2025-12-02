@@ -83,6 +83,7 @@ class OrganizationMemberResponse(TypedDict):
     dateCreated: datetime
     inviteStatus: str
     inviterName: str | None
+    replayAccess: NotRequired[bool]
 
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):

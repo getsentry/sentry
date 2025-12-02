@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class TestReplayGranularPermissions(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -19,7 +19,7 @@ class TestReplayGranularPermissions(APITestCase):
             organization=self.organization, user=self.user_without_access
         )
 
-    def test_organization_replay_index_with_permission(self):
+    def test_organization_replay_index_with_permission(self) -> None:
         """User with replay permission can access org replay index"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -32,7 +32,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_organization_replay_index_without_permission(self):
+    def test_organization_replay_index_without_permission(self) -> None:
         """User without replay permission cannot access org replay index"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -45,7 +45,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_organization_replay_details_with_permission(self):
+    def test_organization_replay_details_with_permission(self) -> None:
         """User with replay permission can access org replay details (gets 404 for non-existent replay, not 403)"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -59,7 +59,7 @@ class TestReplayGranularPermissions(APITestCase):
             # Should get 404 for non-existent replay, NOT 403 Forbidden (which would indicate permission denial)
             assert response.status_code == 404
 
-    def test_organization_replay_details_without_permission(self):
+    def test_organization_replay_details_without_permission(self) -> None:
         """User without replay permission cannot access org replay details"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -72,7 +72,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_organization_replay_count_without_permission(self):
+    def test_organization_replay_count_without_permission(self) -> None:
         """User without replay permission cannot access org replay count"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -85,7 +85,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url, {"query": "issue.id:1"})
             assert response.status_code == 403
 
-    def test_project_replay_details_without_permission(self):
+    def test_project_replay_details_without_permission(self) -> None:
         """User without replay permission cannot access project replay details"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -98,7 +98,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_empty_allowlist_allows_all_users(self):
+    def test_empty_allowlist_allows_all_users(self) -> None:
         """When allowlist is empty, all org members have access"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]
@@ -108,7 +108,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_feature_flag_disabled_allows_all_users(self):
+    def test_feature_flag_disabled_allows_all_users(self) -> None:
         """When feature flag is disabled, all org members have access"""
         with self.feature("organizations:session-replay"):
             OrganizationMemberReplayAccess.objects.create(
@@ -119,7 +119,7 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_removing_last_user_from_allowlist_reopens_access(self):
+    def test_removing_last_user_from_allowlist_reopens_access(self) -> None:
         """When the last user is removed from allowlist, all org members regain access"""
         with self.feature(
             ["organizations:session-replay", "organizations:replay-granular-permissions"]

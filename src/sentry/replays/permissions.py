@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry import features
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.users.models.user import User
 
 
-def has_replay_permission(organization: Organization, user: User | None) -> bool:
+def has_replay_permission(organization: Organization, user: User | AnonymousUser | None) -> bool:
     """
     Check if a user has permission to access replay data for an organization. This
     change is backwards compatible with the existing behavior and introduces the
