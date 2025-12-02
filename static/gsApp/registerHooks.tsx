@@ -82,7 +82,7 @@ import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
-import {useMaxPickableDays} from './hooks/useMaxPickableDays';
+import {useDefaultMaxPickableDays, useMaxPickableDays} from './hooks/useMaxPickableDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
@@ -233,6 +233,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
+  'react-hook:use-default-max-pickable-days': useDefaultMaxPickableDays,
   'react-hook:use-max-pickable-days': useMaxPickableDays,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,

@@ -42,6 +42,7 @@ type Props = {
   dashboardPermissions?: DashboardPermissions;
   isEmbedded?: boolean;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
@@ -73,18 +74,20 @@ function SortableWidget(props: Props) {
     newlyAddedWidget,
     onNewWidgetScrollComplete,
     useTimeseriesVisualization,
+    isPrebuiltDashboard = false,
   } = props;
 
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
