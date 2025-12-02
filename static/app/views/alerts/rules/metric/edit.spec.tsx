@@ -267,7 +267,7 @@ describe('MetricRulesEdit', () => {
     ).toBeInTheDocument();
   });
 
-  it('preserves SERVER_WEIGHTED extrapolation mode when editing and saving', async () => {
+  it('changes SERVER_WEIGHTED extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
     const {organization, project} = initializeOrg();
     const ruleWithExtrapolation = MetricRuleFixture({
       id: '5',
@@ -317,7 +317,7 @@ describe('MetricRulesEdit', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          extrapolationMode: 'serverOnly',
+          extrapolationMode: 'sampleWeighted',
           sampling: SAMPLING_MODE.NORMAL,
         }),
       })
@@ -335,14 +335,14 @@ describe('MetricRulesEdit', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
         }),
         method: 'PUT',
       })
     );
   });
 
-  it('preserves NONE extrapolation mode when editing and saving', async () => {
+  it('changes NONE extrapolation mode to CLIENT_AND_SERVER_WEIGHTED when editing and saving', async () => {
     const {organization, project} = initializeOrg();
     const ruleWithNoExtrapolation = MetricRuleFixture({
       id: '6',
@@ -392,8 +392,8 @@ describe('MetricRulesEdit', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          extrapolationMode: 'none',
-          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          extrapolationMode: 'sampleWeighted',
+          sampling: SAMPLING_MODE.NORMAL,
         }),
       })
     );
@@ -410,7 +410,7 @@ describe('MetricRulesEdit', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          extrapolationMode: ExtrapolationMode.NONE,
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
         }),
         method: 'PUT',
       })

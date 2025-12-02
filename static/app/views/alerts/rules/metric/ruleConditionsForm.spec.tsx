@@ -7,6 +7,7 @@ import {
   AlertRuleComparisonType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
@@ -109,6 +110,33 @@ describe('RuleConditionsForm', () => {
       screen.getByText(
         'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders extrapolation mode warning', async () => {
+    render(
+      <RuleConditionsForm
+        {...props}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
+        extrapolationMode={ExtrapolationMode.SERVER_WEIGHTED}
+        organization={organization}
+        router={router}
+        isLowConfidenceChartData
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['search-query-builder-alerts', 'visibility-explore-view'],
+        },
+      }
+    );
+
+    await screen.findByPlaceholderText(
+      'Filter transactions by URL, tags, and other properties\u2026'
+    );
+    expect(
+      screen.getByText(/The thresholds on this chart may look off./)
     ).toBeInTheDocument();
   });
 });
