@@ -1,5 +1,5 @@
 from collections.abc import Callable, Generator
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -40,56 +40,51 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONAL_STORAGE
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw wsgi.input
 
-    def get(
-        self, request: Request, organization: Organization, path: str
-    ) -> Response | StreamingHttpResponse:
+    def _check_flag(self, request: Request, organization: Organization) -> Response | None:
         if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
             return Response(
                 "This endpoint requires the organizations:objectstore-endpoint feature flag.",
                 status=403,
             )
-        return self._proxy("GET", path, request)
+        return None
+
+    def get(
+        self, request: Request, organization: Organization, path: str
+    ) -> Response | StreamingHttpResponse:
+        if response := self._check_flag(request, organization):
+            return response
+        return self._proxy(request, path)
 
     def put(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
-        if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(
-                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
-                status=403,
-            )
-        return self._proxy("PUT", path, request)
+        if response := self._check_flag(request, organization):
+            return response
+        return self._proxy(request, path)
 
     def post(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
-        if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(
-                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
-                status=403,
-            )
-        return self._proxy("POST", path, request)
+        if response := self._check_flag(request, organization):
+            return response
+        return self._proxy(request, path)
 
     def delete(
         self, request: Request, organization: Organization, path: str
     ) -> Response | StreamingHttpResponse:
-        if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(
-                "This endpoint requires the organizations:objectstore-endpoint feature flag.",
-                status=403,
-            )
-        return self._proxy("DELETE", path, request)
+        if response := self._check_flag(request, organization):
+            return response
+        return self._proxy(request, path)
 
     def _proxy(
         self,
-        method: Literal["GET", "PUT", "POST", "DELETE"],
-        path: str,
         request: Request,
+        path: str,
     ) -> Response | StreamingHttpResponse:
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
-        if method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
+        if request.method in ("PUT", "POST") and not headers.get("Transfer-Encoding") == "chunked":
             return Response("Only Transfer-Encoding: chunked is supported", status=400)
 
         headers.pop("Host", None)
@@ -97,22 +92,9 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         headers.pop("Transfer-Encoding", None)
 
         stream: Generator[bytes] | ChunkedEncodingDecoder | None = None
-        if method in ("PUT", "POST"):
-            wsgi_input = request.META.get("wsgi.input")
-
-            if not wsgi_input:
-                return Response("Expected a request body", status=400)
-
-            if not uwsgi:
-                # This code path should be hit only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
-                # wsgiref doesn't handle chunked encoding automatically, and exposes different functions on the class it uses to represent the input stream.
-                # Therefore, we need to decode the chunked encoding ourselves using ChunkedEncodingDecoder.
-                if not (settings.IS_DEV or in_test_environment()):
-                    raise RuntimeError(
-                        "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
-                    )
-                stream = ChunkedEncodingDecoder(wsgi_input._read)
-            else:
+        wsgi_input = request.META.get("wsgi.input")
+        if wsgi_input:
+            if uwsgi:
 
                 def stream_generator():
                     while True:
@@ -123,8 +105,19 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
 
                 stream = stream_generator()
 
+            else:
+                # This code path should be hit only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
+                # wsgiref doesn't handle chunked encoding automatically, and exposes different functions on the class it uses to represent the input stream.
+                # Therefore, we need to decode the chunked encoding ourselves using ChunkedEncodingDecoder.
+                if not (settings.IS_DEV or in_test_environment()):
+                    raise RuntimeError(
+                        "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
+                    )
+                stream = ChunkedEncodingDecoder(wsgi_input._read)
+
+        assert request.method
         response = requests.request(
-            method,
+            request.method,
             url=target_url,
             headers=headers,
             data=stream,
@@ -179,7 +172,7 @@ class ChunkedEncodingDecoder:
     """
     Wrapper around a read function that returns chunked transfer encoded data.
     Provides a file-like interface to the decoded data stream.
-    This should only be needed in dev/test mode, to manually decode wsgi.input.
+    This should only be needed in dev/test mode, when we need to manually decode wsgi.input.
     """
 
     def __init__(self, read: Callable[[int], bytes]):
