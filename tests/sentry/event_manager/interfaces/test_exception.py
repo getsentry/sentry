@@ -166,7 +166,7 @@ def test_context_with_only_app_frames(make_exception_snapshot) -> None:
     make_exception_snapshot(exc)
 
 
-def test_context_with_raw_stacks_and_value(make_exception_snapshot) -> None:
+def test_context_with_raw_values(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -175,6 +175,8 @@ def test_context_with_raw_stacks_and_value(make_exception_snapshot) -> None:
                     "value": "hello world",
                     "module": "foobar",
                     "raw_value": "hello world raw",
+                    "raw_module": "foobar raw",
+                    "raw_type": "ValueError raw",
                     "raw_stacktrace": {
                         "frames": [
                             {

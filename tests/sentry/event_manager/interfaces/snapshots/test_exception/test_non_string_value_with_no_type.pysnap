@@ -8,7 +8,9 @@ get_api_context:
   values:
   - mechanism: null
     module: null
+    rawModule: null
     rawStacktrace: null
+    rawType: null
     rawValue: null
     stacktrace: null
     threadId: null

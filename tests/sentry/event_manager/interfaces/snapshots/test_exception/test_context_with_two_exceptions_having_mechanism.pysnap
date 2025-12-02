@@ -13,7 +13,9 @@ get_api_context:
       source: __context__
       type: chained
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
     rawValue: null
     stacktrace:
       frames:
@@ -49,7 +51,9 @@ get_api_context:
       source: __context__
       type: generic
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
     rawValue: null
     stacktrace:
       frames:

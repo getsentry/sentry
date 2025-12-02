@@ -8,7 +8,9 @@ get_api_context:
   values:
   - mechanism: null
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
     rawValue: null
     stacktrace:
       frames:
@@ -39,7 +41,9 @@ get_api_context:
     value: hello world
   - mechanism: null
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
     rawValue: null
     stacktrace:
       frames:
