@@ -569,8 +569,6 @@ class RelayRegisterTest(APITestCase):
             with override_options(
                 {
                     "relay.static_auth": static_auth,
-                    # XXX: Temporary; remove it once the endpoint is removed
-                    "issues.browser_reporting.reporting_endpoints_header_enabled": False,
                 }
             ):
                 self.register_relay(key_pair, "1.1.1", relay_id)
