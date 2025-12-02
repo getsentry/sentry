@@ -88,7 +88,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             self.detector.id,
             start="1729178100.0",
             end="1729179000.0",
-            status_code=400,
+            status_code=200,
         )
         assert response.data["detail"] == "Unable to fetch anomaly detection threshold data"
 
