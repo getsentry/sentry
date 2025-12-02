@@ -18,6 +18,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
@@ -52,6 +53,9 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+
+        if not has_replay_permission(organization, request.user):
+            return Response(status=403)
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:

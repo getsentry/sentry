@@ -40,6 +40,7 @@ from sentry.models.project import Project
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.query import search_filter_to_condition
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.utils.snuba import raw_snql_query
@@ -89,6 +90,9 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return Response(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
 
         filter_params = self.get_filter_params(request, project)
 

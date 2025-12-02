@@ -12,6 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.models.project import Project
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
@@ -43,6 +44,9 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return Response(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
 
         filter_params = self.get_filter_params(request, project)
 
@@ -92,6 +96,9 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return Response(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
 
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)

@@ -17,6 +17,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
 
@@ -52,6 +53,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return self.respond(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return self.respond(status=403)
 
         segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:

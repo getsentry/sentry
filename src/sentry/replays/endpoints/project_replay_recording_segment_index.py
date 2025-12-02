@@ -17,6 +17,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import storage
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
 
 
@@ -57,6 +58,9 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return self.respond(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return self.respond(status=403)
 
         return self.paginate(
             request=request,

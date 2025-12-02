@@ -16,6 +16,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
 from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
@@ -60,6 +61,9 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
+
         try:
             uuid.UUID(replay_id)
         except ValueError:
@@ -102,6 +106,9 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return Response(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
 
         try:
             replay_id = str(uuid.UUID(replay_id))

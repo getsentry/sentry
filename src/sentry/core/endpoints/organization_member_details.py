@@ -360,6 +360,31 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 new_role=assigned_org_role,
             )
 
+        if "replayAccess" in result:
+            if not features.has("organizations:replay-granular-permissions", organization):
+                return Response(
+                    {
+                        "detail": "Replay granular permissions are not available for this organization."
+                    },
+                    status=403,
+                )
+
+            if not request.access.has_scope("member:admin"):
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+
+            from sentry.models.organizationmemberreplayaccess import OrganizationMemberReplayAccess
+
+            replay_access_enabled = result.get("replayAccess")
+
+            if replay_access_enabled:
+                OrganizationMemberReplayAccess.objects.get_or_create(
+                    organization=organization, organizationmember=member
+                )
+            else:
+                OrganizationMemberReplayAccess.objects.filter(
+                    organization=organization, organizationmember=member
+                ).delete()
+
         self.create_audit_entry(
             request=request,
             organization=organization,

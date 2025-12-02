@@ -17,6 +17,7 @@ from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
@@ -115,6 +116,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 "organizations:replay-ai-summaries", project.organization, actor=request.user
             )
             and has_seer_access(project.organization, actor=request.user)
+            and has_replay_permission(project.organization, request.user)
         )
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:

@@ -39,6 +39,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.query import make_pagination_values
 from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import Paginators, handle_ordering, handle_search_filters
@@ -108,6 +109,10 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         """Return a list of selectors for a given organization."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+
+        if not has_replay_permission(organization, request.user):
+            return Response(status=403)
+
         try:
             filter_params = self.get_replay_filter_params(request, organization)
         except NoProjects:

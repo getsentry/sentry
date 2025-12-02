@@ -19,6 +19,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.replays.lib.eap import read as eap_read
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
@@ -173,6 +174,9 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
+
+        if not has_replay_permission(organization, request.user):
+            return Response(status=403)
 
         try:
             filter_params = self.get_filter_params(

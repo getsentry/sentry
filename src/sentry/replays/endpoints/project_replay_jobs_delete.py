@@ -11,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
 
 
@@ -67,6 +68,9 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Retrieve a collection of replay delete jobs.
         """
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
+
         queryset = ReplayDeletionJobModel.objects.filter(
             organization_id=project.organization_id, project_id=project.id
         )
@@ -85,6 +89,11 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         """
         Create a new replay deletion job.
         """
+        from sentry.replays.permissions import has_replay_permission
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
+
         serializer = ReplayDeletionJobCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -135,6 +144,11 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectEndpoint):
         """
         Fetch a replay delete job instance.
         """
+        from sentry.replays.permissions import has_replay_permission
+
+        if not has_replay_permission(project.organization, request.user):
+            return Response(status=403)
+
         try:
             job = ReplayDeletionJobModel.objects.get(
                 id=job_id, organization_id=project.organization_id, project_id=project.id

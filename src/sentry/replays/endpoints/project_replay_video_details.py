@@ -25,6 +25,7 @@ from sentry.replays.lib.http import (
     parse_range_header,
 )
 from sentry.replays.lib.storage import make_video_filename
+from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.reader import download_video, fetch_segment_metadata
 
 logger = logging.getLogger()
@@ -60,6 +61,9 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
             "organizations:session-replay", project.organization, actor=request.user
         ):
             return self.respond(status=404)
+
+        if not has_replay_permission(project.organization, request.user):
+            return self.respond(status=403)
 
         segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:
