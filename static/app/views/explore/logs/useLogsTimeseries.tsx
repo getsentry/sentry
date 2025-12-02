@@ -96,9 +96,7 @@ function useLogsTimeseriesImpl({
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const [caseInsensitive] = useCaseInsensitivity();
 
-  const [interval] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval] = useChartInterval();
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!aggregateSortBys.length) {

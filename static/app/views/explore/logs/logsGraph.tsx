@@ -127,9 +127,7 @@ function Graph({
   const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
-  });
+  const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const chartInfo: ChartInfo = useMemo(() => {
     // If the table is empty or pending, we want to withhold the chart data.
