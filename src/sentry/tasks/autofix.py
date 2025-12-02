@@ -1,9 +1,17 @@
 import logging
 from datetime import datetime, timedelta
 
+import orjson
+import requests
+from django.conf import settings
+
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import get_autofix_state
+from sentry.seer.models import SeerProjectPreference
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
@@ -94,4 +102,102 @@ def run_automation_only_task(group_id: int) -> None:
 
     run_automation(
         group=group, user=AnonymousUser(), event=event, source=SeerAutomationSource.POST_PROCESS
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.configure_seer_for_existing_org",
+    namespace=issues_tasks,
+    max_retries=1,
+)
+def configure_seer_for_existing_org(organization_id: int, project_ids: list[int]) -> None:
+    """
+    Configure Seer settings for an existing organization migrating to new Seer pricing.
+
+    Sets:
+    - Org-level: enable_seer_coding=True - to override old check
+    - Project-level: seer_scanner_automation=True, autofix_automation_tuning="medium"
+    - Seer API: automated_run_stopping_point="code_changes"
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    # Set org-level options
+    organization.update_option("sentry:enable_seer_coding", True)
+
+    projects = Project.objects.filter(id__in=project_ids, organization_id=organization_id)
+
+    successful_project_ids = []
+    failed_project_ids = []
+    skipped_project_ids = []
+
+    for project in projects:
+        # Set Sentry DB project options
+        project.update_option("sentry:seer_scanner_automation", True)
+        project.update_option("sentry:autofix_automation_tuning", "medium")
+
+        try:
+            # Get current Seer preferences
+            get_body = orjson.dumps({"project_id": project.id})
+            get_response = requests.post(
+                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference",
+                data=get_body,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(get_body),
+                },
+            )
+            get_response.raise_for_status()
+            current_prefs = get_response.json()
+
+            # Check if stopping point is already set to open_pr or code_changes
+            current_stopping_point = None
+            if current_prefs.get("preference"):
+                current_stopping_point = current_prefs["preference"].get(
+                    "automated_run_stopping_point"
+                )
+
+            if current_stopping_point in ("open_pr", "code_changes"):
+                skipped_project_ids.append(project.id)
+                continue
+
+            # Set stopping point to code_changes
+            set_body = orjson.dumps(
+                {
+                    "preference": SeerProjectPreference(
+                        organization_id=organization_id,
+                        project_id=project.id,
+                        repositories=[],
+                        automated_run_stopping_point="code_changes",
+                        automation_handoff=None,
+                    ).dict(),
+                }
+            )
+
+            set_response = requests.post(
+                f"{settings.SEER_AUTOFIX_URL}/v1/project-preference/set",
+                data=set_body,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(set_body),
+                },
+            )
+            set_response.raise_for_status()
+            successful_project_ids.append(project.id)
+        except requests.RequestException:
+            logger.exception(
+                "Failed to configure Seer preferences for project",
+                extra={"organization_id": organization_id, "project_id": project.id},
+            )
+            failed_project_ids.append(project.id)
+
+    attempted = len(project_ids) - len(skipped_project_ids)
+    logger.info(
+        "Configured Seer settings for existing org migrating to new pricing",
+        extra={
+            "organization_id": organization_id,
+            "successful_rate": len(successful_project_ids) / attempted if attempted > 0 else 1.0,
+            "successful_project_ids": successful_project_ids,
+            "skipped_project_ids": skipped_project_ids,
+            "failed_project_ids": failed_project_ids,
+        },
     )
