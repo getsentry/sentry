@@ -653,10 +653,10 @@ function DynamicGrouping() {
           <Fragment>
             <Text size="sm" variant="muted">
               {tn(
-                'Viewing %s issue in %s cluster',
-                'Viewing %s issues across %s clusters',
-                totalIssues,
-                filteredAndSortedClusters.length
+                'Viewing %s cluster containing %s issue',
+                'Viewing %s clusters containing %s issues',
+                filteredAndSortedClusters.length,
+                totalIssues
               )}
               {shouldSkipFilters && ` ${t('(filters disabled)')}`}
             </Text>
