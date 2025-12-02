@@ -140,8 +140,8 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   underlineColor="success"
                   showUnderline
                 >
-                  <Flex align="center">
-                    <Text bold variant="success" data-test-id="live-badge">
+                  <Flex align="center" gap="xs">
+                    <Text bold variant="danger" data-test-id="live-badge">
                       {t('LIVE')}
                     </Text>
                     <LiveIndicator />

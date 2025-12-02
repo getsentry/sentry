@@ -105,9 +105,14 @@ export default function ReplayBadge({replay}: Props) {
             </Text>
           </div>
           {isLive ? (
-            <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+            <LiveContainer align="center" gap="xs">
+              <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+                <Text bold variant="danger" data-test-id="live-badge">
+                  {t('LIVE')}
+                </Text>
+              </Tooltip>
               <LiveIndicator />
-            </Tooltip>
+            </LiveContainer>
           ) : null}
         </Flex>
 
@@ -137,6 +142,10 @@ export default function ReplayBadge({replay}: Props) {
     </Wrapper>
   );
 }
+
+const LiveContainer = styled(Flex)`
+  margin-left: ${p => p.theme.space.md};
+`;
 
 const Wrapper = styled(Grid)`
   white-space: nowrap;
