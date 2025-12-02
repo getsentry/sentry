@@ -15,7 +15,6 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
-import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -194,7 +193,6 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
-        <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />
