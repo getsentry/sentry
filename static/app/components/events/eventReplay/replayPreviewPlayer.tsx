@@ -103,7 +103,10 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
-          query={query}
+          to={{
+            pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+            query,
+          }}
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
           columnIndex={0}

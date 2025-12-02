@@ -12,6 +12,8 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
@@ -49,6 +51,7 @@ export default function ReplayTable({
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
+  const organization = useOrganization();
 
   if (isPending) {
     return (
@@ -126,7 +129,10 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
-                query={query}
+                to={{
+                  pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+                  query,
+                }}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}
