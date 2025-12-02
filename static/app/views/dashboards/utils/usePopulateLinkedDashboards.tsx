@@ -51,8 +51,12 @@ const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
   );
 
   return useMemo(() => {
-    if (!hasLinkedDashboards || !data) {
+    if (!hasLinkedDashboards) {
       return {dashboard, isLoading: false};
+    }
+
+    if (!data) {
+      return {dashboard, isLoading};
     }
 
     const populatedDashboard = {
