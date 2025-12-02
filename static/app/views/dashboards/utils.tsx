@@ -217,7 +217,9 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.LOGS ||
+        (widget.widgetType === WidgetType.ISSUE && isChartDisplayType(widget.displayType))
         ? 'spans'
         : 'high'
     );
