@@ -207,7 +207,11 @@ class TriggersChart extends PureComponent<Props, State> {
         this.fetchTotalCount();
       }
     }
-    if (prevProps.extrapolationMode !== this.props.extrapolationMode) {
+    if (
+      prevProps.extrapolationMode !== this.props.extrapolationMode ||
+      prevProps.dataset !== dataset ||
+      prevProps.traceItemType !== traceItemType
+    ) {
       if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
         this.setState({
           adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
