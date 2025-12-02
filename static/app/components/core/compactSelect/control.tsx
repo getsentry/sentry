@@ -125,7 +125,6 @@ export interface ControlProps
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
-  maxMenuWidth?: number | string;
   /**
    * Optional content to display below the menu's header and above the options.
    */
@@ -215,7 +214,6 @@ export function Control({
   hideOptions,
   menuTitle,
   maxMenuHeight = '32rem',
-  maxMenuWidth,
   menuWidth,
   menuHeaderTrailingItems,
   menuBody,
@@ -479,18 +477,16 @@ export function Control({
           visible={overlayIsOpen}
           zIndex={theme.zIndex?.dropdown}
           {...overlayProps}
-          style={{
-            ...overlayProps.style,
-            maxWidth: overlayProps.style?.maxWidth
-              ? `calc(${overlayProps.style.maxWidth}px * 0.9)`
-              : undefined,
-          }}
         >
           {overlayIsOpen && (
             <StyledOverlay
               width={menuWidth ?? menuFullWidth}
               minWidth={overlayProps.style!.minWidth}
-              maxWidth={maxMenuWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${overlayProps.style.maxWidth}px * 0.9)`
+                  : undefined
+              }
               maxHeight={overlayProps.style!.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
