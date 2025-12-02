@@ -129,6 +129,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     failed_project_ids = []
     skipped_project_ids = []
 
+    # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         # Set Sentry DB project options
         project.update_option("sentry:seer_scanner_automation", True)
