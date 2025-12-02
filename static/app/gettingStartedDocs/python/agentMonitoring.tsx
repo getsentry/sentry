@@ -193,8 +193,7 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    # Disable OpenAI integration for correct token accounting
-    disabled_integrations=[OpenAIIntegration()],
+
 )`,
         },
         {
@@ -234,8 +233,6 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    # Disable OpenAI integration for correct token accounting
-    disabled_integrations=[OpenAIIntegration()],
 )`,
         },
         {
@@ -279,8 +276,6 @@ sentry_sdk.init(
     integrations=[
         LiteLLMIntegration(),
     ],
-    # Disable OpenAI integration for correct token accounting
-    disabled_integrations=[OpenAIIntegration()],
 )`,
         },
         {
@@ -356,8 +351,6 @@ sentry_sdk.init(
     integrations=[
         PydanticAIIntegration(),
     ],
-    # Disable OpenAI integration for correct token accounting
-    disabled_integrations=[OpenAIIntegration()],
 )`,
         },
         {
