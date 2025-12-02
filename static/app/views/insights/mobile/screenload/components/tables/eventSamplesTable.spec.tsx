@@ -1,26 +1,31 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
 describe('EventSamplesTable', () => {
-  let mockRouter: InjectedRouter;
-  let mockLocation: ReturnType<typeof LocationFixture>;
-  let mockQuery: NewQuery;
-  let mockEventView: EventView;
-  beforeEach(() => {
-    mockRouter = RouterFixture();
-    mockLocation = LocationFixture({
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/insights/mobile/screen-loads/',
       query: {
         statsPeriod: '99d',
       },
-    });
+    },
+    route: `/organizations/:orgId/insights/mobile/screen-loads/`,
+  };
 
+  const mockLocation = LocationFixture({
+    pathname: initialRouterConfig.location.pathname,
+    query: initialRouterConfig.location.query,
+  });
+
+  let mockQuery: NewQuery;
+  let mockEventView: EventView;
+
+  beforeEach(() => {
     mockQuery = {
       name: '',
       fields: ['transaction.id'],
@@ -75,7 +80,7 @@ describe('EventSamplesTable', () => {
         }}
         sortKey=""
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
 
     expect(screen.getByText('Readable Column Name')).toBeInTheDocument();
@@ -106,7 +111,7 @@ describe('EventSamplesTable', () => {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
 
     // Test only one column to isolate event ID
@@ -143,7 +148,7 @@ describe('EventSamplesTable', () => {
           meta: {fields: {'profile.id': 'string', project: 'string'}},
         }}
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
 
     // Test only one column to isolate profile column
@@ -156,7 +161,7 @@ describe('EventSamplesTable', () => {
     const pageLinks =
       '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
       '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
-    render(
+    const {router} = render(
       <EventSamplesTable
         eventIdKey="transaction.id"
         columnNameMap={{'transaction.id': 'Event ID'}}
@@ -172,18 +177,13 @@ describe('EventSamplesTable', () => {
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
         pageLinks={pageLinks}
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(mockRouter.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/mock-pathname/',
-        query: expect.objectContaining({
-          customCursorName: '0:20:0',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(router.location.query.customCursorName).toBe('0:20:0');
+    });
   });
 
   it('uses a custom sort key for sortable headers', async () => {
@@ -210,17 +210,17 @@ describe('EventSamplesTable', () => {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
 
     // Ascending sort in transaction ID because the default is descending
     expect(await screen.findByRole('link', {name: 'Event ID'})).toHaveAttribute(
       'href',
-      '/mock-pathname/?customSortKey=transaction.id'
+      '/organizations/org-slug/insights/mobile/screen-loads/?customSortKey=transaction.id&statsPeriod=99d'
     );
     expect(screen.getByRole('link', {name: 'Duration'})).toHaveAttribute(
       'href',
-      '/mock-pathname/?customSortKey=-duration'
+      '/organizations/org-slug/insights/mobile/screen-loads/?customSortKey=-duration&statsPeriod=99d'
     );
   });
 
@@ -248,7 +248,7 @@ describe('EventSamplesTable', () => {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter, deprecatedRouterMocks: true}
+      {initialRouterConfig}
     );
 
     // Although ID is queried for, because it's not defined in the map

@@ -1,18 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('queuesLandingPage', () => {
@@ -23,17 +18,13 @@ describe('queuesLandingPage', () => {
   project.firstTransactionEvent = true;
   project.hasInsightsQueues = true;
 
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/queues/`,
+      query: {statsPeriod: '10d', project: '1'},
+    },
+    route: `/organizations/:orgId/insights/backend/queues/`,
+  };
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -76,7 +67,10 @@ describe('queuesLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<QueuesLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<QueuesLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Average Duration');
