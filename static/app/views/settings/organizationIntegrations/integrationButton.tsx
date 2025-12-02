@@ -9,13 +9,13 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  onAddIntegration: (integration: Integration) => void;
-  onExternalClick: () => void;
-  userHasAccess: boolean;
-  buttonProps?: Omit<
+  buttonProps: Omit<
     React.ComponentProps<typeof AddIntegrationButton>,
     'provider' | 'onAddIntegration' | 'organization'
   >;
+  onAddIntegration: (integration: Integration) => void;
+  onExternalClick: () => void;
+  userHasAccess: boolean;
   externalInstallText?: string;
 };
 
