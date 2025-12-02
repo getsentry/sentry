@@ -7,6 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -27,6 +28,23 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+/**
+ * Parses a string and renders backtick-wrapped text as inline code elements.
+ * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
+ */
+function renderWithInlineCode(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
+}
 
 interface AssignedEntity {
   email: string | null;
@@ -272,7 +290,7 @@ function ClusterCard({
     <CardContainer>
       {/* Zone 1: Title + Description (Primary Focus) */}
       <CardHeader>
-        <ClusterTitle>{cluster.title}</ClusterTitle>
+        <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
         <ClusterTags
           cluster={cluster}
           onTagClick={onTagClick}
@@ -759,7 +777,7 @@ const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${space(3)};
-  align-items: start;
+  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
