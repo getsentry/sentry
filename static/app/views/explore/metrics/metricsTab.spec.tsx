@@ -1,5 +1,7 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {
+  createTraceMetricFixtures,
+  initializeTraceMetricsTest,
+} from 'sentry-fixture/tracemetrics';
 
 import {
   render,
@@ -15,6 +17,7 @@ import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
+const trackAnalyticsMock = jest.mocked(trackAnalytics);
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -28,114 +31,87 @@ const datePageFilterProps: DatePageFilterProps = {
 };
 
 describe('MetricsTabContent', () => {
-  const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled'],
+  const {
+    organization,
+    project,
+    initialLocation,
+    setupPageFilters,
+    setupTraceItemsMock,
+    setupEventsMock,
+  } = initializeTraceMetricsTest({
+    orgFeatures: ['tracemetrics-enabled'],
+    routerQuery: {
+      start: '2025-04-10T14%3A37%3A55',
+      end: '2025-04-10T20%3A04%3A51',
+      metric: ['bar||distribution'],
+    },
   });
-  const project = ProjectFixture({id: '1'});
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
   }
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/explore/metrics/`,
-      query: {
-        start: '2025-04-10T14%3A37%3A55',
-        end: '2025-04-10T20%3A04%3A51',
-        project: project.id,
-      },
-    },
+    location: initialLocation,
     route: '/organizations/:orgId/explore/metrics/',
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    trackAnalyticsMock.mockClear();
+    setupPageFilters();
+
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    setupTraceItemsMock(metricFixtures.detailedFixtures);
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-options',
+      }),
+    ]);
+
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-aggregates-table',
+      }),
+    ]);
+
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-samples-table',
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+      url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [
-          {'metric.name': 'foo', 'metric.type': 'counter', 'count(metric.name)': 1},
-          {'metric.name': 'bar', 'metric.type': 'distribution', 'count(metric.name)': 2},
-          {'metric.name': 'baz', 'metric.type': 'gauge', 'count(metric.name)': 3},
-        ],
+        data: {
+          'avg(duration)': [
+            [1704067200, [{count: 100}]],
+            [1704070800, [{count: 150}]],
+          ],
+        },
         meta: {
-          fields: {},
-          units: {},
-          isMetricsData: false,
+          fields: {
+            'avg(duration)': 'duration',
+          },
+          units: {
+            'avg(duration)': 'millisecond',
+          },
+          isMetricsData: true,
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
           dataset: 'tracemetrics',
           dataScanned: 'full',
-          accuracy: {
-            confidence: [],
-          },
         },
-        confidence: [],
       },
       match: [
         MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-options',
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-          units: {},
-          isMetricsData: false,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'tracemetrics',
-          dataScanned: 'full',
-          accuracy: {
-            confidence: [],
-          },
-        },
-        confidence: [],
-      },
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-aggregates-table',
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-          units: {},
-          isMetricsData: false,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'tracemetrics',
-          dataScanned: 'full',
-          accuracy: {
-            confidence: [],
-          },
-        },
-        confidence: [],
-      },
-      match: [
-        MockApiClient.matchQuery({
-          dataset: 'tracemetrics',
-          referrer: 'api.explore.metric-samples-table',
+          referrer: 'api.explore.metric-timeseries',
         }),
       ],
     });
@@ -143,7 +119,28 @@ describe('MetricsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
-      body: {},
+      body: {
+        data: {
+          'avg(duration)': [
+            [1704067200, [{count: 100}]],
+            [1704070800, [{count: 150}]],
+          ],
+        },
+        meta: {
+          fields: {
+            'avg(duration)': 'duration',
+          },
+          units: {
+            'avg(duration)': 'millisecond',
+          },
+          isMetricsData: true,
+          isMetricsExtractedData: false,
+          tips: {},
+          datasetReason: 'unchanged',
+          dataset: 'tracemetrics',
+          dataScanned: 'full',
+        },
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -236,11 +233,7 @@ describe('MetricsTabContent', () => {
     expect(toolbars).toHaveLength(1);
 
     await waitFor(() => {
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(trackAnalytics).toHaveBeenCalledWith(
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
         'metrics.explorer.metadata',
         expect.objectContaining({
           organization,
@@ -249,6 +242,46 @@ describe('MetricsTabContent', () => {
       );
     });
 
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          organization,
+          panel_index: 0, // First panel should have index 0
+        })
+      );
+    });
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
+    trackAnalyticsMock.mockClear();
+
+    const addButton = screen.getByRole('button', {name: 'Add Metric'});
+    await userEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+    });
+
+    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+      1,
+      'metrics.explorer.panel.metadata',
+      expect.objectContaining({
+        organization,
+        panel_index: 1, // Only the new panel should fire
+      })
+    );
+
+    expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+
+    trackAnalyticsMock.mockClear();
+    // Picking a new metric on the first panel should only fire one event for the panel update
+    await userEvent.click(within(toolbars[0]!).getByRole('button', {name: 'bar'}));
+    await userEvent.click(within(toolbars[0]!).getByRole('option', {name: 'foo'}));
+    expect(within(toolbars[0]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+
+    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+      1,
+      'metrics.explorer.panel.metadata',
+      expect.objectContaining({panel_index: 0})
+    );
   });
 });
