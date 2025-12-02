@@ -38,6 +38,9 @@ def _format_eap_timestamps(data: list[dict]) -> list[dict]:
             item["finished_at"] = datetime.fromtimestamp(
                 item["finished_at"], tz=timezone.utc
             ).isoformat()
+        # Rename agg_project_id to project_id for frontend compatibility
+        if "agg_project_id" in item:
+            item["project_id"] = item.pop("agg_project_id")
     return data
 
 
