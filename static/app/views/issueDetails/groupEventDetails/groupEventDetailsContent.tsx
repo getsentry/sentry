@@ -332,7 +332,9 @@ export function EventDetailsContent({
           </ErrorBoundary>
         </Fragment>
       )}
-      <MetricDetectorTriggeredSection event={event} />
+      <ErrorBoundary customComponent={() => null}>
+        <MetricDetectorTriggeredSection event={event} />
+      </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
