@@ -300,12 +300,12 @@ function DashboardTable({
                   disabled={
                     hasReachedDashboardLimit ||
                     isLoadingDashboardsLimit ||
-                    (organization.features.includes('dashboards-prebuilt-controls') &&
-                      defined(dataRow.prebuiltId))
+                    (defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls'))
                   }
                   title={
-                    organization.features.includes('dashboards-prebuilt-controls') &&
-                    defined(dataRow.prebuiltId)
+                    defined(dataRow.prebuiltId) &&
+                    !organization.features.includes('dashboards-prebuilt-controls')
                       ? t('Prebuilt dashboards cannot be duplicated')
                       : limitMessage
                   }

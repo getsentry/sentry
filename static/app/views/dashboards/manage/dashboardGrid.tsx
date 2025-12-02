@@ -109,11 +109,11 @@ function DashboardGrid({
         disabled:
           hasReachedDashboardLimit ||
           isLoadingDashboardsLimit ||
-          (organization.features.includes('dashboards-prebuilt-controls') &&
-            defined(dashboard.prebuiltId)),
+          (defined(dashboard.prebuiltId) &&
+            !organization.features.includes('dashboards-prebuilt-controls')),
         tooltip:
-          organization.features.includes('dashboards-prebuilt-controls') &&
-          defined(dashboard.prebuiltId)
+          defined(dashboard.prebuiltId) &&
+          !organization.features.includes('dashboards-prebuilt-controls')
             ? t('Prebuilt dashboards cannot be duplicated')
             : limitMessage,
         tooltipOptions: {
