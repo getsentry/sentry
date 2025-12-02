@@ -103,7 +103,6 @@ interface BaseField {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-// Label is
 interface CollapsibleSectionType {
   fields: FieldObject[];
   type: 'collapsible';

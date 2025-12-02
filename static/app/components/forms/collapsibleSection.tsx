@@ -13,14 +13,13 @@ export interface CollapsibleSectionProps extends Omit<FieldFromConfigProps, 'fie
 export default function CollapsibleSection(props: CollapsibleSectionProps) {
   return (
     <JsonForm
+      {...props}
       disabled={
         typeof props.disabled === 'function' ? props.disabled(props) : props.disabled
       }
-      collapsible
-      initiallyCollapsed={props.initiallyCollapsed}
-      nested
       title={typeof props.label === 'function' ? props.label() : props.label}
-      fields={props.fields}
+      collapsible
+      nested
     />
   );
 }

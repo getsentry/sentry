@@ -120,16 +120,13 @@ export default function FormPanel({
           {title && (
             <Button
               priority="link"
-              onClick={collapsible ? handleCollapseToggle : undefined}
-              style={collapsible ? {cursor: 'pointer'} : undefined}
-              role={collapsible ? 'button' : undefined}
-              aria-label={collapsible ? t('Expand Options') : t('Panel')}
+              onClick={handleCollapseToggle}
+              aria-label={collapsed ? t('Expand Options') : t('Collapse Options')}
               aria-expanded={!collapsed}
             >
               <Text size="sm" bold={false}>
                 <Flex align="center" gap="xs" justify="between">
                   {title}
-
                   <IconChevron
                     data-test-id="form-panel-collapse-chevron"
                     direction={collapsed ? 'down' : 'up'}
