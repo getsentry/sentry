@@ -11,7 +11,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Backend Queries',
+  title: 'Query Details',
   filters: {
     globalFilter: [
       {
