@@ -7,8 +7,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {InlineCode} from 'sentry/components/core/code/inlineCode';
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -19,14 +19,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconClock,
-  IconClose,
-  IconFire,
-  IconFix,
-  IconUpload,
-} from 'sentry/icons';
+import {IconClose, IconFire, IconUpload} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -35,6 +28,23 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+/**
+ * Parses a string and renders backtick-wrapped text as inline code elements.
+ * Example: "Error in `Contains` filter" becomes ["Error in ", <InlineCode>Contains</InlineCode>, " filter"]
+ */
+function renderWithInlineCode(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
+}
 
 interface AssignedEntity {
   email: string | null;
@@ -278,112 +288,102 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Flex justify="between" align="start" gap="md">
-        <Flex direction="column" gap="xs" style={{flex: 1, minWidth: 0}}>
-          <Heading as="h3" size="md" style={{wordBreak: 'break-word'}}>
-            {cluster.title}
-          </Heading>
-          {cluster.description && (
-            <Fragment>
-              {showDescription ? (
-                <DescriptionText>{cluster.description}</DescriptionText>
-              ) : (
-                <ReadMoreButton onClick={() => setShowDescription(true)}>
-                  {t('View summary')}
-                </ReadMoreButton>
-              )}
-            </Fragment>
-          )}
-          <ClusterTags
-            cluster={cluster}
-            onTagClick={onTagClick}
-            selectedTags={selectedTags}
-          />
-        </Flex>
-        <IssueCountBadge>
-          <IssueCountNumber>{issueCount}</IssueCountNumber>
-          <Text size="xs" variant="muted" uppercase>
-            {tn('issue', 'issues', issueCount)}
-          </Text>
-        </IssueCountBadge>
-      </Flex>
-
-      <ClusterStatsBar>
-        {cluster.fixability_score && (
-          <StatItem>
-            <IconFix size="xs" color="gray300" style={{marginTop: 1}} />
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {Math.round(cluster.fixability_score * 100)}%
-              </Text>{' '}
-              {t('confidence')}
-            </Text>
-          </StatItem>
+      {/* Zone 1: Title + Description (Primary Focus) */}
+      <CardHeader>
+        <ClusterTitle>{renderWithInlineCode(cluster.title)}</ClusterTitle>
+        <ClusterTags
+          cluster={cluster}
+          onTagClick={onTagClick}
+          selectedTags={selectedTags}
+        />
+        {cluster.description && (
+          <Fragment>
+            {showDescription ? (
+              <DescriptionText>{cluster.description}</DescriptionText>
+            ) : (
+              <ReadMoreButton onClick={() => setShowDescription(true)}>
+                {t('View summary')}
+              </ReadMoreButton>
+            )}
+          </Fragment>
         )}
-        <StatItem>
-          <IconFire size="xs" color="gray300" />
-          {clusterStats.isPending ? (
-            <Text size="xs" variant="muted">
-              –
-            </Text>
-          ) : (
-            <Text size="xs">
-              <Text size="xs" bold as="span">
-                {clusterStats.totalEvents.toLocaleString()}
-              </Text>{' '}
+      </CardHeader>
+
+      {/* Zone 2: Stats (Secondary Context) */}
+      <StatsSection>
+        <PrimaryStats>
+          <EventsMetric>
+            <IconFire size="sm" />
+            {clusterStats.isPending ? (
+              <Text size="md" variant="muted">
+                –
+              </Text>
+            ) : (
+              <EventsCount>{clusterStats.totalEvents.toLocaleString()}</EventsCount>
+            )}
+            <Text size="sm" variant="muted">
               {tn('event', 'events', clusterStats.totalEvents)}
             </Text>
+          </EventsMetric>
+        </PrimaryStats>
+        <SecondaryStats>
+          {!clusterStats.isPending && clusterStats.lastSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Last seen')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('Last Seen')}
+                date={clusterStats.lastSeen}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
           )}
-        </StatItem>
-        {!clusterStats.isPending && clusterStats.lastSeen && (
-          <StatItem>
-            <IconClock size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('Last Seen')}
-              date={clusterStats.lastSeen}
-              suffix={t('ago')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-        {!clusterStats.isPending && clusterStats.firstSeen && (
-          <StatItem>
-            <IconCalendar size="xs" color="gray300" />
-            <TimeSince
-              tooltipPrefix={t('First Seen')}
-              date={clusterStats.firstSeen}
-              suffix={t('old')}
-              unitStyle="short"
-            />
-          </StatItem>
-        )}
-      </ClusterStatsBar>
+          {!clusterStats.isPending && clusterStats.firstSeen && (
+            <SecondaryStatItem>
+              <Text size="xs" variant="muted">
+                {t('Age')}
+              </Text>
+              <TimeSince
+                tooltipPrefix={t('First Seen')}
+                date={clusterStats.firstSeen}
+                suffix={t('old')}
+                unitStyle="short"
+              />
+            </SecondaryStatItem>
+          )}
+        </SecondaryStats>
+      </StatsSection>
 
-      <Flex direction="column" flex="1" paddingTop="md">
-        <ClusterIssues groupIds={cluster.group_ids} />
-
-        {cluster.group_ids.length > 3 && (
-          <Text
-            size="sm"
-            variant="muted"
-            align="center"
-            style={{marginTop: space(1), fontStyle: 'italic'}}
-          >
-            {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+      {/* Zone 3: Nested Issues (Detail Content) */}
+      <IssuesSection>
+        <IssuesSectionHeader>
+          <Text size="sm" bold uppercase>
+            {tn('%s Issue', '%s Issues', issueCount)}
           </Text>
-        )}
-      </Flex>
+        </IssuesSectionHeader>
+        <IssuesList>
+          <ClusterIssues groupIds={cluster.group_ids} />
+          {cluster.group_ids.length > 3 && (
+            <MoreIssuesIndicator>
+              {t('+ %s more similar issues', cluster.group_ids.length - 3)}
+            </MoreIssuesIndicator>
+          )}
+        </IssuesList>
+      </IssuesSection>
 
-      <Flex justify="end" align="center" gap="xs" paddingTop="md">
+      {/* Zone 4: Actions (Tertiary) */}
+      <CardFooter>
         <Button size="sm" priority="primary" onClick={() => onRemove(cluster.cluster_id)}>
-          {t('Resolve')}
+          {t('Resolve All')}
         </Button>
         <Link
           to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
         >
           <Button size="sm">{t('View All Issues')}</Button>
         </Link>
-      </Flex>
+      </CardFooter>
     </CardContainer>
   );
 }
@@ -395,7 +395,6 @@ function DynamicGrouping() {
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [minFixabilityScore, setMinFixabilityScore] = useState(50);
   const [removedClusterIds, setRemovedClusterIds] = useState(new Set<number>());
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInputValue, setJsonInputValue] = useState('');
@@ -522,9 +521,6 @@ function DynamicGrouping() {
     : clusterData
         .filter(cluster => {
           if (removedClusterIds.has(cluster.cluster_id)) return false;
-
-          const fixabilityScore = (cluster.fixability_score ?? 0) * 100;
-          if (fixabilityScore < minFixabilityScore) return false;
 
           // Filter by selected tags
           if (!clusterHasSelectedTags(cluster)) return false;
@@ -726,20 +722,6 @@ function DynamicGrouping() {
                           </Flex>
                         </Flex>
                       )}
-
-                      <Flex gap="sm" align="center">
-                        <Text size="sm" variant="muted">
-                          {t('Minimum fixability score (%)')}
-                        </Text>
-                        <NumberInput
-                          min={0}
-                          max={100}
-                          value={minFixabilityScore}
-                          onChange={value => setMinFixabilityScore(value ?? 0)}
-                          aria-label={t('Minimum fixability score')}
-                          size="sm"
-                        />
-                      </Flex>
                     </Flex>
                   </Disclosure.Content>
                 </Disclosure>
@@ -795,70 +777,134 @@ const CardsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${space(3)};
-  align-items: start;
+  align-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
   }
 `;
 
-// Card with hover effect
+// Card with subtle hover effect
 const CardContainer = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: ${p => p.theme.purple200};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-// Issue count badge - compact version
-const IssueCountBadge = styled('div')`
+// Zone 1: Title area - clean and prominent
+const CardHeader = styled('div')`
+  padding: ${space(3)} ${space(3)} ${space(2)};
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  flex-shrink: 0;
+  gap: ${space(1)};
 `;
 
-const IssueCountNumber = styled('div')`
-  font-size: 24px;
+const ClusterTitle = styled('h3')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
-  color: ${p => p.theme.purple400};
-  line-height: 1;
+  color: ${p => p.theme.textColor};
+  line-height: 1.3;
+  word-break: break-word;
 `;
 
-// Horizontal stats bar below header
-const ClusterStatsBar = styled('div')`
+// Zone 2: Stats section with visual hierarchy
+const StatsSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
   gap: ${space(2)};
-  padding: ${space(1.5)} 0;
-  margin-top: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  flex-wrap: wrap;
 `;
 
-const StatItem = styled('div')`
+const PrimaryStats = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(3)};
 `;
 
-// Issue preview link with hover effect
+const EventsMetric = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.red300};
+`;
+
+const EventsCount = styled('span')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: 700;
+  color: ${p => p.theme.textColor};
+  font-variant-numeric: tabular-nums;
+`;
+
+const SecondaryStats = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+`;
+
+const SecondaryStatItem = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+`;
+
+// Zone 3: Issues list with clear containment
+const IssuesSection = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const IssuesSectionHeader = styled('div')`
+  margin-bottom: ${space(1.5)};
+  color: ${p => p.theme.subText};
+  letter-spacing: 0.5px;
+`;
+
+const IssuesList = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const MoreIssuesIndicator = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  font-style: italic;
+  padding-top: ${space(1)};
+`;
+
+// Zone 4: Footer with actions
+const CardFooter = styled('div')`
+  padding: ${space(2)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+// Issue preview link with hover effect - consistent with issue feed cards
 const IssuePreviewLink = styled(Link)`
   display: block;
   padding: ${space(1.5)} ${space(2)};
@@ -878,7 +924,7 @@ const IssuePreviewLink = styled(Link)`
 // Issue title with ellipsis and nested em styling for EventOrGroupTitle
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: 1.4;
   ${p => p.theme.overflowEllipsis};
@@ -896,6 +942,7 @@ const IssueMessage = styled(EventMessage)`
   margin: 0;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
+  opacity: 0.9;
 `;
 
 // Meta separator line

@@ -335,7 +335,7 @@ def run_automation(
                 "Triage signals V0: skipping alert automation, event count < 10",
                 extra={
                     "group_id": group.id,
-                    "project_id": group.project.id,
+                    "project_slug": group.project.slug,
                     "event_count": times_seen,
                 },
             )
@@ -348,9 +348,9 @@ def run_automation(
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "Triage signals V0: %s: run_automation called: project_id=%s, source=%s, times_seen=%s",
+            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
             group.id,
-            group.project.id,
+            group.project.slug,
             source.value,
             times_seen,
         )
@@ -395,20 +395,20 @@ def run_automation(
 
     stopping_point = None
     if features.has("organizations:triage-signals-v0-org", group.organization):
-        logger.info("Triage signals V0: %s: generating stopping point", group.id)
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-        logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
 
         # Fetch user preference and apply as upper bound
         user_preference = _fetch_user_preference(group.project.id)
-        logger.info("User preference stopping point: %s", user_preference)
 
         stopping_point = _apply_user_preference_upper_bound(
             fixability_stopping_point, user_preference
         )
         logger.info(
-            "Triage signals V0: %s: Final stopping point after upper bound: %s",
+            "Triage signals V0 stopping point for group=%s project=%s: fixability=%s, user preference=%s, final=%s",
             group.id,
+            group.project.slug,
+            fixability_stopping_point,
+            user_preference,
             stopping_point,
         )
 
