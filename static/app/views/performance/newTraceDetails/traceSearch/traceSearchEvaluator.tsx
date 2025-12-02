@@ -487,14 +487,14 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
         switch (token.value.text) {
           case 'error':
           case 'errors': {
-            return node.errors.size > 0;
+            return node.hasErrors;
           }
           case 'issue':
           case 'issues':
-            return node.errors.size > 0 || node.occurrences.size > 0;
+            return node.hasIssues;
           case 'profile':
           case 'profiles':
-            return !!(node.profileId || node.profilerId);
+            return node.hasProfiles;
           default: {
             break;
           }

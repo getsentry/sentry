@@ -261,7 +261,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profileId).toBe('profile-id');
     });
 
     it('adds continuous profile to node', () => {
@@ -276,7 +276,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profilerId).toBe('profile-id');
     });
   });
 
