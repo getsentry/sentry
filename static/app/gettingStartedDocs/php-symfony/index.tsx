@@ -5,6 +5,7 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
 import {crashReport} from './crashReport';
+import {logs} from './logs';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 
@@ -14,6 +15,7 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
+  logsOnboarding: logs,
 };
 
 export default docs;
