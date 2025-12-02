@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -7,14 +6,10 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {RateUnit} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import PageWithProviders from 'sentry/views/insights/queues/views/destinationSummaryPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
@@ -23,17 +18,13 @@ describe('destinationSummaryPage', () => {
   });
   const project = ProjectFixture({firstTransactionEvent: true});
 
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d', project: project.id},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/queues/destination/`,
+      query: {statsPeriod: '10d', project: project.id},
+    },
+    route: `/organizations/:orgId/insights/backend/queues/destination/`,
+  };
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -114,7 +105,10 @@ describe('destinationSummaryPage', () => {
   });
 
   it('renders', async () => {
-    render(<PageWithProviders />, {organization, deprecatedRouterMocks: true});
+    render(<PageWithProviders />, {
+      organization,
+      initialRouterConfig,
+    });
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Average Duration');
