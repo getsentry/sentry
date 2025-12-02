@@ -203,9 +203,13 @@ type GetsentryEventParameters = {
     addOnCategory: AddOnCategory;
     isOpen: boolean;
   } & HasSub;
-  'subscription_page.usage_overview.row_clicked': {
-    dataCategory: DataCategory;
-  } & HasSub;
+  'subscription_page.usage_overview.row_clicked': (
+    | {
+        dataCategory: DataCategory;
+      }
+    | {addOnCategory: AddOnCategory}
+  ) &
+    HasSub;
   'subscription_page.usage_overview.transform_changed': {
     transform: string;
   } & HasSub;

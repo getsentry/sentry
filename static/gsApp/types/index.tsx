@@ -149,7 +149,7 @@ export type AddOnCategoryInfo = {
   productName: string;
 };
 
-type AddOn = AddOnCategoryInfo & {
+export type AddOn = AddOnCategoryInfo & {
   enabled: boolean;
 };
 
