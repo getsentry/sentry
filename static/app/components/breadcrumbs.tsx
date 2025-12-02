@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import type {LinkProps} from 'sentry/components/core/link';
 import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {IconChevron} from 'sentry/icons';
+import {IconSlashForward} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export interface Crumb {
@@ -57,7 +57,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
             />
             {index < crumbs.length - 1 ? (
               <Flex align="center" justify="center" flexShrink={0}>
-                <IconChevron size="xs" direction="right" color="subText" />
+                <IconSlashForward size="xs" color="subText" />
               </Flex>
             ) : null}
           </Fragment>

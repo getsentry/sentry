@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.preprod.models import PreprodArtifact
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -59,7 +59,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "main_binary_identifier": "test-identifier-123",
         }
         defaults.update(kwargs)
-        return PreprodArtifact.objects.create(**defaults)
+        return self.create_preprod_artifact(**defaults)
 
     def _create_ios_artifact(self, **kwargs):
         """Helper to create an iOS artifact with default values"""
@@ -77,7 +77,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             "main_binary_identifier": "test-identifier-123",
         }
         defaults.update(kwargs)
-        return PreprodArtifact.objects.create(**defaults)
+        return self.create_preprod_artifact(**defaults)
 
     def test_missing_required_parameters(self):
         """Test that missing required parameters return 400"""
@@ -329,10 +329,8 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
     def test_multiple_artifacts_same_version_different_build_configurations(self):
         """Test handling of multiple artifacts with same version but different build configurations"""
 
-        debug_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-            project=self.project, name="debug"
-        )
-        release_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+        debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
+        release_config = self.create_preprod_build_configuration(
             project=self.project, name="release"
         )
 
@@ -559,9 +557,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
 
     def test_codesigning_type_with_build_configuration(self):
         """Test that codesigning_type works correctly with build configurations"""
-        debug_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-            project=self.project, name="debug"
-        )
+        debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
 
         # Create current artifact with debug configuration and development codesigning
         self._create_ios_artifact(
