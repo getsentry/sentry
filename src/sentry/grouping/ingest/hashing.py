@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
+from django.core.cache import cache
 
 from sentry import options
 from sentry.exceptions import HashDiscarded
@@ -19,6 +20,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest.caching import get_grouphash_existence_cache_key
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
@@ -202,6 +204,49 @@ def find_grouphash_with_group(
             )
 
     return None
+
+
+def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
+    """
+    Check whether a given hash value has a corresponding `GroupHash` record in the database.
+
+    If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
+    `grouping.ingest_grouphash_existence_cache_expiry` option.
+    """
+    with metrics.timer(
+        "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
+    ) as metrics_tags:
+        # If caching is used, these will get overridden below
+        metrics_tags.update({"cache_get": False, "cache_set": False})
+
+        if use_caching:
+            cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
+            cache_expiry_seconds = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+
+            grouphash_exists = cache.get(cache_key)
+            got_cache_hit = grouphash_exists is not None
+
+            metrics_tags.update(
+                {
+                    "cache_get": True,
+                    "cache_result": "hit" if got_cache_hit else "miss",
+                    "expiry_seconds": cache_expiry_seconds,
+                    # If there's a cache miss this will be overridden below
+                    "grouphash_exists": grouphash_exists,
+                }
+            )
+
+            if got_cache_hit:
+                return grouphash_exists
+
+        grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
+        metrics_tags["grouphash_exists"] = grouphash_exists
+
+        if use_caching:
+            cache.set(cache_key, grouphash_exists, cache_expiry_seconds)
+            metrics_tags["cache_set"] = True
+
+        return grouphash_exists
 
 
 def get_or_create_grouphashes(
