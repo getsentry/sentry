@@ -10,7 +10,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import get_autofix_state
-from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
@@ -150,26 +149,24 @@ def configure_seer_for_existing_org(organization_id: int, project_ids: list[int]
             current_prefs = get_response.json()
 
             # Check if stopping point is already set to open_pr or code_changes
-            current_stopping_point = None
-            if current_prefs.get("preference"):
-                current_stopping_point = current_prefs["preference"].get(
-                    "automated_run_stopping_point"
-                )
+            # For new projects, preference is None - use empty dict to safely access fields
+            existing_pref = current_prefs.get("preference") or {}
+            current_stopping_point = existing_pref.get("automated_run_stopping_point")
 
             if current_stopping_point in ("open_pr", "code_changes"):
                 skipped_project_ids.append(project.id)
                 continue
 
-            # Set stopping point to code_changes
+            # Preserve existing repositories and automation_handoff, only update stopping point
             set_body = orjson.dumps(
                 {
-                    "preference": SeerProjectPreference(
-                        organization_id=organization_id,
-                        project_id=project.id,
-                        repositories=[],
-                        automated_run_stopping_point="code_changes",
-                        automation_handoff=None,
-                    ).dict(),
+                    "preference": {
+                        "organization_id": organization_id,
+                        "project_id": project.id,
+                        "repositories": existing_pref.get("repositories") or [],
+                        "automated_run_stopping_point": "code_changes",
+                        "automation_handoff": existing_pref.get("automation_handoff"),
+                    },
                 }
             )
 
@@ -190,7 +187,7 @@ def configure_seer_for_existing_org(organization_id: int, project_ids: list[int]
             )
             failed_project_ids.append(project.id)
 
-    attempted = len(project_ids) - len(skipped_project_ids)
+    attempted = len(successful_project_ids) + len(failed_project_ids)
     logger.info(
         "Configured Seer settings for existing org migrating to new pricing",
         extra={
