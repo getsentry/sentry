@@ -962,48 +962,40 @@ export function useQueryBuilderState({
         }
         case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN': {
-          return {
-            ...replaceTokensWithText(state, {
-              tokens: action.tokens,
-              text: action.text,
-              focusOverride: action.focusOverride,
-              getFieldDefinition,
-              shouldCommitQuery: hasReplaceRawSearchKeys ? false : true,
-            }),
-          };
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+            shouldCommitQuery: hasReplaceRawSearchKeys ? false : true,
+          });
         }
         case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
         case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT': {
-          return {
-            ...replaceTokensWithText(state, {
-              tokens: action.tokens,
-              text: action.text,
-              focusOverride: action.focusOverride,
-              getFieldDefinition,
-              shouldCommitQuery: true,
-            }),
-          };
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+            shouldCommitQuery: true,
+          });
         }
         case 'UPDATE_FILTER_KEY':
-          return {...updateFilterKey(state, action)};
+          return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return {
-            ...modifyFilterOperator(state, action, hasWildcardOperators),
-          };
+          return modifyFilterOperator(state, action, hasWildcardOperators);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
         case 'UPDATE_LOGIC_OPERATOR':
-          return {...updateLogicOperator(state, action)};
+          return updateLogicOperator(state, action);
         case 'UPDATE_AGGREGATE_ARGS':
-          return {
-            ...updateAggregateArgs(state, action, {getFieldDefinition}),
-          };
+          return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
-          return {...multiSelectTokenValue(state, action)};
+          return multiSelectTokenValue(state, action);
         case 'RESET_CLEAR_ASK_SEER_FEEDBACK':
           return {...state, clearAskSeerFeedback: false};
         default:
