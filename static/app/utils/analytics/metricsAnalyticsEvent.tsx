@@ -28,6 +28,7 @@ export type MetricsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
+    panel_index?: number;
   };
   'metrics.explorer.setup_button_clicked': {
     organization: Organization;

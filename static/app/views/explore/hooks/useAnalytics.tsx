@@ -1,4 +1,4 @@
-import {useEffect, useRef, type RefObject} from 'react';
+import {useEffect, useMemo, useRef, type RefObject} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -719,6 +719,7 @@ export function useMetricsPanelAnalytics({
   yAxis,
   sortBys,
   aggregateSortBys,
+  panelIndex,
 }: {
   aggregateSortBys: readonly Sort[];
   interval: string;
@@ -729,6 +730,7 @@ export function useMetricsPanelAnalytics({
   mode: Mode;
   sortBys: readonly Sort[];
   yAxis: string;
+  panelIndex?: number;
 }) {
   const organization = useOrganization();
 
@@ -751,22 +753,29 @@ export function useMetricsPanelAnalytics({
     metricAggregatesTableResult.result.data?.length || 0
   );
   const resultLengthBox = useBox(metricSamplesTableResult.result.data?.length || 0);
+  const formattedSortBysBox = useBox(
+    useMemo(() => JSON.stringify(sortBys.map(formatSort)), [sortBys])
+  );
+  const formattedAggregateSortBysBox = useBox(
+    useMemo(() => JSON.stringify(aggregateSortBys.map(formatSort)), [aggregateSortBys])
+  );
+  const timeseriesDataBox = useBox(metricTimeseriesResult.data);
+  const searchStringBox = useBox(useMemo(() => search.formatString(), [search]));
+  const searchTokensLengthBox = useBox(useMemo(() => search.tokens.length, [search]));
   const fieldsBox = useBox(fields);
-  const yAxesBox = useBox([yAxis]);
-  const sortBysBox = useBox(sortBys.map(formatSort));
-  const aggregateSortBysBox = useBox(aggregateSortBys.map(formatSort));
-
-  const timeseriesData = useBox(metricTimeseriesResult.data);
+  const dataScannedBox = useBox(dataScanned);
+  const yAxisBox = useBox(yAxis);
+  const intervalBox = useBox(interval);
+  const queryStatusBox = useBox(query_status);
+  const isTopNBox = useBox(isTopN);
 
   useEffect(() => {
-    if (mode !== Mode.SAMPLES) {
-      return;
-    }
-
     if (
+      mode !== Mode.SAMPLES ||
       metricSamplesTableResult.result.isFetching ||
       metricTimeseriesResult.isPending ||
-      !dataScanned
+      !dataScannedBox.current ||
+      !yAxisBox.current
     ) {
       return;
     }
@@ -774,71 +783,73 @@ export function useMetricsPanelAnalytics({
     trackAnalytics('metrics.explorer.panel.metadata', {
       organization,
       dataset,
-      dataScanned,
+      dataScanned: dataScannedBox.current,
       columns: fieldsBox.current,
       columns_count: fieldsBox.current.length,
-      confidences: computeConfidence(yAxesBox.current, timeseriesData.current),
+      confidences: computeConfidence([yAxisBox.current], timeseriesDataBox.current),
       empty_buckets_percentage: computeEmptyBuckets(
-        yAxesBox.current,
-        timeseriesData.current
+        [yAxisBox.current],
+        timeseriesDataBox.current
       ),
-      interval,
+      interval: intervalBox.current,
       query_status,
       sample_counts: computeVisualizeSampleTotals(
-        yAxesBox.current,
-        timeseriesData.current,
-        isTopN
+        [yAxisBox.current],
+        timeseriesDataBox.current,
+        isTopNBox.current
       ),
       table_result_length: resultLengthBox.current,
       table_result_missing_root: 0,
       table_result_mode: 'metric samples',
-      table_result_sort: sortBysBox.current,
-      user_queries: search.formatString(),
-      user_queries_count: search.tokens.length,
+      table_result_sort: JSON.parse(formattedSortBysBox.current),
+      user_queries: searchStringBox.current,
+      user_queries_count: searchTokensLengthBox.current,
+      panel_index: panelIndex,
     });
 
     info(
       fmt`metric.explorer.panel.metadata:
       organization: ${organization.slug}
-      dataScanned: ${dataScanned}
+      dataScanned: ${dataScannedBox.current}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
-      query_status: ${query_status}
+      query_status: ${queryStatusBox.current}
       result_length: ${String(resultLengthBox.current)}
-      user_queries: ${search.formatString()}
-      user_queries_count: ${String(search.tokens.length)}
+      user_queries: ${searchStringBox.current}
+      user_queries_count: ${String(searchTokensLengthBox.current)}
     `,
       {isAnalytics: true}
     );
   }, [
     organization,
     dataset,
-    dataScanned,
-    query,
-    fieldsBox,
-    interval,
-    query_status,
-    isTopN,
-    metricSamplesTableResult.result.isFetching,
-    search,
-    timeseriesData,
     mode,
-    resultLengthBox,
-    sortBysBox,
-    yAxesBox,
+    metricSamplesTableResult.result.isFetching,
     metricTimeseriesResult.isPending,
+    panelIndex,
+    dataScannedBox,
+    fieldsBox,
+    intervalBox,
+    queryStatusBox,
+    isTopNBox,
+    resultLengthBox,
+    formattedSortBysBox,
+    yAxisBox,
+    timeseriesDataBox,
+    searchStringBox,
+    searchTokensLengthBox,
+    query_status,
+    query,
   ]);
 
   useEffect(() => {
-    if (mode !== Mode.AGGREGATE) {
-      return;
-    }
-
     if (
+      mode !== Mode.AGGREGATE ||
       metricAggregatesTableResult.result.isPending ||
       metricTimeseriesResult.isPending ||
-      !dataScanned
+      !dataScannedBox.current ||
+      !yAxisBox.current
     ) {
       return;
     }
@@ -846,57 +857,64 @@ export function useMetricsPanelAnalytics({
     trackAnalytics('metrics.explorer.panel.metadata', {
       organization,
       dataset,
-      dataScanned,
+      dataScanned: dataScannedBox.current,
       columns: fieldsBox.current,
       columns_count: fieldsBox.current.length,
-      confidences: computeConfidence([yAxis], timeseriesData.current),
-      empty_buckets_percentage: computeEmptyBuckets([yAxis], timeseriesData.current),
-      interval,
-      query_status,
+      confidences: computeConfidence([yAxisBox.current], timeseriesDataBox.current),
+      empty_buckets_percentage: computeEmptyBuckets(
+        [yAxisBox.current],
+        timeseriesDataBox.current
+      ),
+      interval: intervalBox.current,
+      query_status: queryStatusBox.current as 'pending' | 'error' | 'success',
       sample_counts: computeVisualizeSampleTotals(
-        [yAxis],
-        timeseriesData.current,
-        isTopN
+        [yAxisBox.current],
+        timeseriesDataBox.current,
+        isTopNBox.current
       ),
       table_result_length: aggregatesResultLengthBox.current,
       table_result_missing_root: 0,
       table_result_mode: 'aggregates',
-      table_result_sort: aggregateSortBysBox.current,
-      user_queries: search.formatString(),
-      user_queries_count: search.tokens.length,
+      table_result_sort: JSON.parse(formattedAggregateSortBysBox.current),
+      user_queries: searchStringBox.current,
+      user_queries_count: searchTokensLengthBox.current,
+      panel_index: panelIndex,
     });
 
     info(
       fmt`metric.explorer.panel.metadata:
       organization: ${organization.slug}
-      dataScanned: ${dataScanned}
+      dataScanned: ${dataScannedBox.current}
       dataset: ${dataset}
       query: ${query}
       fields: ${fieldsBox.current}
-      query_status: ${query_status}
+      query_status: ${queryStatusBox.current}
       result_length: ${String(aggregatesResultLengthBox.current)}
-      user_queries: ${search.formatString()}
-      user_queries_count: ${String(search.tokens.length)}
+      user_queries: ${searchStringBox.current}
+      user_queries_count: ${String(searchTokensLengthBox.current)}
     `,
       {isAnalytics: true}
     );
   }, [
-    aggregateSortBysBox,
-    aggregatesResultLengthBox,
-    dataScanned,
-    dataset,
-    fieldsBox,
-    interval,
-    isTopN,
-    metricAggregatesTableResult.result.isPending,
-    timeseriesData,
-    mode,
     organization,
+    dataset,
+    mode,
+    metricAggregatesTableResult.result.isPending,
+    metricTimeseriesResult.isPending,
+    panelIndex,
+    formattedAggregateSortBysBox,
+    aggregatesResultLengthBox,
+    dataScannedBox,
+    fieldsBox,
+    intervalBox,
+    isTopNBox,
+    timeseriesDataBox,
+    queryStatusBox,
+    searchStringBox,
+    searchTokensLengthBox,
+    yAxisBox,
     query,
     query_status,
-    search,
-    yAxis,
-    metricTimeseriesResult.isPending,
   ]);
 }
 
