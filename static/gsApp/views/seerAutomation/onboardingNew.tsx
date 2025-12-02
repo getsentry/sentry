@@ -8,7 +8,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconCheckmark, IconGithub} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
@@ -16,6 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {CodeReviewRepositorySelector} from './onboarding/codeReviewRepositorySelector';
+import {ConnectGithubButton} from './onboarding/connectGithubButton';
 import {RepositorySelector} from './onboarding/repositorySelector';
 import {RepositoryToProjectConfiguration} from './onboarding/repositoryToProjectConfiguration';
 
@@ -46,14 +47,7 @@ export default function SeerOnboardingNew() {
                     )}
                   </p>
                   <ActionSection>
-                    <LinkButton
-                      priority="primary"
-                      size="md"
-                      icon={<IconGithub />}
-                      to={`/settings/${organization.slug}/integrations/github/`}
-                    >
-                      {t('Connect GitHub')}
-                    </LinkButton>
+                    <ConnectGithubButton />
                   </ActionSection>
                   <GuidedSteps.ButtonWrapper>
                     <GuidedSteps.BackButton size="md" />
@@ -226,7 +220,6 @@ const SuccessMessage = styled('div')`
   align-items: start;
   gap: ${space(1.5)};
   padding: ${space(2)};
-  background: ${p => p.theme.successBackground};
   border: 1px solid ${p => p.theme.success};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
