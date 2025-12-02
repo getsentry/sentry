@@ -186,12 +186,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_log_attributes: (args, isLoading) => {
-    const logMessage = args.log_message || '';
+    const message = args.log_message_substring || '';
     const traceId = args.trace_id || '';
     const shortTraceId = traceId.slice(0, 8);
     return isLoading
-      ? `Examining logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}...`
-      : `Examined logs matching '*${logMessage.slice(0, 20)}*' from trace ${shortTraceId}`;
+      ? `Examining logs matching '*${message.slice(0, 20)}*' from trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' from trace ${shortTraceId}`;
   },
 };
 
@@ -511,6 +511,28 @@ export function buildToolLinkUrl(
       return {
         pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
+      };
+    }
+    case 'get_log_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
+      return {
+        pathname: `/explore/logs/trace/${trace_id}/?tab=logs`,
+      };
+    }
+    case 'get_metric_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
+      return {
+        pathname: `/explore/metrics/trace/${trace_id}/?tab=metrics`,
       };
     }
     default:
