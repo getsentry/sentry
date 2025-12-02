@@ -1,3 +1,4 @@
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
@@ -85,29 +86,10 @@ describe('MetricsTabContent', () => {
     ]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        data: {
-          'avg(duration)': [
-            [1704067200, [{count: 100}]],
-            [1704070800, [{count: 150}]],
-          ],
-        },
-        meta: {
-          fields: {
-            'avg(duration)': 'duration',
-          },
-          units: {
-            'avg(duration)': 'millisecond',
-          },
-          isMetricsData: true,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'tracemetrics',
-          dataScanned: 'full',
-        },
+        timeSeries: [TimeSeriesFixture()],
       },
       match: [
         MockApiClient.matchQuery({
@@ -117,29 +99,10 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        data: {
-          'avg(duration)': [
-            [1704067200, [{count: 100}]],
-            [1704070800, [{count: 150}]],
-          ],
-        },
-        meta: {
-          fields: {
-            'avg(duration)': 'duration',
-          },
-          units: {
-            'avg(duration)': 'millisecond',
-          },
-          isMetricsData: true,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'tracemetrics',
-          dataScanned: 'full',
-        },
+        timeSeries: [TimeSeriesFixture()],
       },
     });
 
