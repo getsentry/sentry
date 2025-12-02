@@ -60,7 +60,11 @@ class Refresher:
                 if token is not None:
                     logger.warning(
                         "refresher.outbox-failure",
-                        extra=context,
+                        extra={
+                            **context,
+                            "token_id": token.id,
+                            "last_characters": token.token_last_characters,
+                        },
                         exc_info=e,
                     )
                     return token
