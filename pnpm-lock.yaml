@@ -322,8 +322,8 @@ importers:
         specifier: 11.1.0
         version: 11.1.0(webpack@5.99.6(esbuild@0.25.10))
       conduit-client:
-        specifier: ^0.4.0
-        version: 0.4.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       core-js:
         specifier: 3.45.0
         version: 3.45.0
@@ -4493,8 +4493,8 @@ packages:
     resolution: {integrity: sha512-MWufYdFw53ccGjCA+Ol7XJYpAlW6/prSMzuPOTRnJGcGzuhLn4Scrz7qf6o8bROZ514ltazcIFJZevcfbo0x7A==}
     engines: {'0': node >= 6.0}
 
-  conduit-client@0.4.0:
-    resolution: {integrity: sha512-M+WphX9+Ca/k+NBk4FU56z2ReUvCtg8NqZKZG04m0hAmckQ80Eh1MsO8b/luoV0eTCbNIriBqT6LT0g7jhfhww==}
+  conduit-client@1.0.0:
+    resolution: {integrity: sha512-81EyHn0I78+Lz++v3fI5774RtyEzE4wT3rdotvqa7M99ll24eknDYEXB4nHs93DEeyKnhZNgJt+9GN/+bsBWcg==}
     engines: {node: '>=18'}
     peerDependencies:
       react: '>=18'
@@ -13638,7 +13638,7 @@ snapshots:
       readable-stream: 3.6.2
       typedarray: 0.0.6
 
-  conduit-client@0.4.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  conduit-client@1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
