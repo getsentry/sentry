@@ -138,8 +138,8 @@ def test_no_meta_changes_if_no_name_changes(default_project: mock.MagicMock):
             id="matches first wildcards with suffix",
         ),
         pytest.param(
-            "/users/my-user-name/settings",
-            "/users/*/settings",
+            "/users/my-user-name/settings/",
+            "/users/*/settings/",
             "/users/*/**",
             id="matches first wildcards with suffix (trailing slash)",
         ),
@@ -218,7 +218,7 @@ def test_no_meta_changes_if_no_name_changes(default_project: mock.MagicMock):
     ],
 )
 def test_clusterer_applies_rules(
-    mock_get_sorted_rules: mock.MagicMock,
+    _mock_get_sorted_rules: mock.MagicMock,
     segment_name: str,
     expected: str,
     expected_rule: str | None,
@@ -252,7 +252,7 @@ def test_clusterer_applies_rules(
     return_value=[("/users/*/**", 0)],
 )
 def test_clusterer_works_with_scrubbing(
-    mock_get_sorted_rules: mock.MagicMock,
+    _mock_get_sorted_rules: mock.MagicMock,
     default_project: mock.MagicMock,
 ):
     segment_name = "/users/my-user-name/94576097f3a64b68b85a59c7d4e3ee2a"

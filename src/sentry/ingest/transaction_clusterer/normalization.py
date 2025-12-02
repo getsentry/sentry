@@ -1,4 +1,5 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import orjson
@@ -63,7 +64,7 @@ def normalize_segment_name(project: Project, segment_span: CompatibleSpan):
     ) or segment_span.get("name")
     if segment_name:
         _scrub_identifiers(segment_span, segment_name)
-        _apply_clustering_rule(project, segment_span, segment_name)
+        _apply_clustering_rules(project, segment_span, segment_name)
 
 
 @dataclass(frozen=True)
@@ -124,7 +125,7 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     segment_span["attributes"] = attributes
 
 
-def _apply_clustering_rule(
+def _apply_clustering_rules(
     project: Project, segment_span: CompatibleSpan, original_segment_name: str
 ):
     segment_name = attribute_value(
@@ -133,40 +134,9 @@ def _apply_clustering_rule(
     assert segment_name is not None
     segment_name_parts = segment_name.split("/")
 
-    def apply_rule(rule: str) -> str | None:
-        output = []
-        rule_parts = rule.split("/")
-        for i, rule_part in enumerate(rule_parts):
-            if i >= len(segment_name_parts):
-                # A segment name only matches a longer rule if the remainder of
-                # the rule is a multi-part wildcard (`**`).
-                if rule_part == "**":
-                    break
-                else:
-                    return None
-
-            segment_name_part = segment_name_parts[i]
-            if rule_part == "**":
-                # `**`` matches the remainder of the segment name but does not replace it.
-                output.extend([part for part in segment_name_parts[i:]])
-                break
-
-            if rule_part == "*" and segment_name_part != "":
-                # `*` matches a single part and replaces it in the output with `*`.
-                output.append("*")
-            elif rule_part == segment_name_part:
-                # The segment name part and rule part match, so keep applying this rule.
-                output.append(segment_name_part)
-            else:
-                # If the segment name part and rule part didn't match, then this
-                # whole rule doesn't match.
-                return None
-
-        return "/".join(output)
-
     rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
     for rule, _ in rules:
-        if clustered_name := apply_rule(rule):
+        if clustered_name := _apply_clustering_rule_to_segment_name(segment_name_parts, rule):
             segment_span["name"] = clustered_name
             attributes = segment_span.get("attributes") or {}
             attributes[ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME] = {
@@ -192,3 +162,40 @@ def _apply_clustering_rule(
             }
             segment_span["attributes"] = attributes
             return
+
+
+def _apply_clustering_rule_to_segment_name(
+    segment_name_parts: Sequence[str], rule: str
+) -> str | None:
+    """Tries to apply the given `rule` to the segment name given as a
+    `/`-separated sequence in `segment_name_parts`. Returns a clustered segment
+    name if the rule matches, or `None` if it does not."""
+    output = []
+    rule_parts = rule.split("/")
+    for i, rule_part in enumerate(rule_parts):
+        if i >= len(segment_name_parts):
+            # A segment name only matches a longer rule if the remainder of
+            # the rule is a multi-part wildcard (`**`).
+            if rule_part == "**":
+                break
+            else:
+                return None
+
+        segment_name_part = segment_name_parts[i]
+        if rule_part == "**":
+            # `**`` matches the remainder of the segment name but does not replace it.
+            output.extend([part for part in segment_name_parts[i:]])
+            break
+
+        if rule_part == "*" and segment_name_part != "":
+            # `*` matches a single part and replaces it in the output with `*`.
+            output.append("*")
+        elif rule_part == segment_name_part:
+            # The segment name part and rule part match, so keep applying this rule.
+            output.append(segment_name_part)
+        else:
+            # If the segment name part and rule part didn't match, then this
+            # whole rule doesn't match.
+            return None
+
+    return "/".join(output)
