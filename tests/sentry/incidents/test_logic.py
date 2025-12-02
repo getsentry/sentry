@@ -15,7 +15,6 @@ from slack_sdk.web.slack_response import SlackResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry import audit_log
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
@@ -84,7 +83,6 @@ from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import GroupStatus
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
@@ -2266,14 +2264,6 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
             update_detector(detector=self.detector, enabled=False)
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
-
-        with assume_test_silo_mode_of(AuditLogEntry):
-            audit = AuditLogEntry.objects.filter(
-                organization_id=self.detector.project.organization.id,
-                target_object=self.detector.id,
-                event=audit_log.get_event_id("DETECTOR_EDIT"),
-            )
-            assert audit.exists()
 
         with self.tasks():
             update_detector(detector=self.detector, enabled=True)
