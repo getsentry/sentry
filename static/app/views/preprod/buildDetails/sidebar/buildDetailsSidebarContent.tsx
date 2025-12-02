@@ -155,7 +155,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
           width="100%"
         >
           <Flex direction="column" gap="sm">
-            <Text bold>{t('Missing git metadata')}</Text>
+            <Text bold>{t('Missing Git metadata')}</Text>
             <Text variant="muted" size="sm">
               {t('Integrate with CI to automate uploading, diffing, and alerting')}
             </Text>
