@@ -41,7 +41,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       endTimestamp / 1e3
     );
 
-  const parentTransaction = node.findParentTransaction();
+  const parentTransaction = node.findClosestParentTransaction();
 
   const items: SectionCardKeyValueList = [
     {

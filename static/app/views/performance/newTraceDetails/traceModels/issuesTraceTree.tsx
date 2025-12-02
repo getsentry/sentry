@@ -95,8 +95,7 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction =
-        node.findParentTransaction() ?? node.findParentEapTransaction();
+      const parentTransaction = node.findClosestParentTransaction();
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }

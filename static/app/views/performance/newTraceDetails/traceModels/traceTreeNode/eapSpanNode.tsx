@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   isBrowserRequestNode,
@@ -96,6 +96,40 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return this.op + (this.description ? ' - ' + this.description : '');
   }
 
+  get profileId(): string | undefined {
+    const profileId = super.profileId;
+
+    if (profileId) {
+      return profileId;
+    }
+
+    return this.value.is_transaction
+      ? undefined
+      : this.findClosestParentTransaction()?.profileId;
+  }
+
+  get profilerId(): string | undefined {
+    const profilerId = super.profilerId;
+
+    if (profilerId) {
+      return profilerId;
+    }
+
+    return this.value.is_transaction
+      ? undefined
+      : this.findClosestParentTransaction()?.profilerId;
+  }
+
+  get transactionId(): string | undefined {
+    const transactionId = super.transactionId;
+
+    if (transactionId) {
+      return transactionId;
+    }
+
+    return this.findClosestParentTransaction()?.transactionId;
+  }
+
   get traceHeaderTitle(): {
     title: string;
     subtitle?: string;
@@ -114,14 +148,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
 
     return super.directVisibleChildren;
-  }
-
-  get transactionId(): string | null {
-    if (this.value.is_transaction) {
-      return this.value.transaction_id;
-    }
-
-    return super.transactionId;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
@@ -262,7 +288,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return <SpanNodeDetails {...props} node={this} />;
+    return <EAPSpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

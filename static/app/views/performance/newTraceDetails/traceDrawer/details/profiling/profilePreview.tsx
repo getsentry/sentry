@@ -72,10 +72,8 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    const parentTransaction =
-      missingInstrumentationNode.findParentEapTransaction() ??
-      missingInstrumentationNode.findParentTransaction();
-    return (parentTransaction?.profiles?.size ?? 0) > 0;
+    const parentTransaction = missingInstrumentationNode.findClosestParentTransaction();
+    return !!parentTransaction?.hasProfiles;
   }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {

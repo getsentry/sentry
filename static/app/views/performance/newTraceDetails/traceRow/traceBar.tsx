@@ -107,7 +107,6 @@ interface TraceBarProps {
   node: BaseNode;
   node_space: [number, number] | null;
   occurrences: BaseNode['occurrences'];
-  profiles: BaseNode['profiles'];
   virtualized_index: number;
   durationPrecision?: number;
 }
@@ -165,9 +164,7 @@ export function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.occurrences.size > 0 ||
-        props.errors.size > 0 ||
-        props.profiles.size > 0 ? (
+        {props.occurrences.size > 0 || props.errors.size > 0 || props.node.hasProfiles ? (
           <TraceBackgroundPatterns
             node_space={props.node_space}
             occurrences={props.occurrences}
@@ -191,7 +188,6 @@ interface AutogroupedTraceBarProps {
   node: BaseNode;
   node_spaces: Array<[number, number]>;
   occurrences: BaseNode['occurrences'];
-  profiles: BaseNode['profiles'];
   virtualized_index: number;
 }
 
@@ -231,7 +227,6 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         virtualized_index={props.virtualized_index}
         errors={props.errors}
         occurrences={props.occurrences}
-        profiles={props.profiles}
       />
     );
   }

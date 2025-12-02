@@ -46,7 +46,6 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -114,23 +113,17 @@ function SpanSections({
   );
 }
 
-export function SpanNodeDetails(
-  props: TraceTreeNodeDetailsProps<SpanNode | EapSpanNode>
-) {
+export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
   const {node, organization} = props;
   const location = useLocation();
   const theme = useTheme();
   const {projects} = useProjects();
   const issues = node.uniqueIssues;
 
-  const parentTransaction = isEAPSpanNode(node)
-    ? node.value.is_transaction
-      ? node
-      : node.findParentEapTransaction()
-    : node.findParentTransaction();
-  const profileId = parentTransaction?.value.profile_id;
-  const profilerId = parentTransaction?.value.profiler_id;
+  const profileId = node.profileId;
+  const profilerId = node.profilerId;
 
+  const parentTransaction = node.findClosestParentTransaction();
   const profilerStart = parentTransaction?.startTimestamp;
   const profilerEnd = parentTransaction?.endTimestamp;
 
@@ -153,26 +146,6 @@ export function SpanNodeDetails(
   const project = projects.find(proj => proj.slug === node.projectSlug);
 
   const spanId = node.id;
-
-  const content = isEAPSpanNode(node) ? (
-    <EAPSpanNodeDetails
-      {...props}
-      node={node}
-      project={project}
-      issues={issues}
-      location={location}
-      theme={theme}
-    />
-  ) : (
-    <SpanNodeDetailsContent
-      {...props}
-      node={node}
-      project={project}
-      issues={issues}
-      location={location}
-      theme={theme}
-    />
-  );
 
   return (
     <ProfilesProvider
@@ -198,7 +171,16 @@ export function SpanNodeDetails(
                 },
               }}
             >
-              <LogsPageDataProvider>{content}</LogsPageDataProvider>
+              <LogsPageDataProvider>
+                <SpanNodeDetailsContent
+                  {...props}
+                  node={node}
+                  project={project}
+                  issues={issues}
+                  location={location}
+                  theme={theme}
+                />
+              </LogsPageDataProvider>
             </LogsQueryParamsProvider>
           </ProfileGroupProvider>
         )}
@@ -323,15 +305,43 @@ function useAvgSpanDuration(
   return result.data?.[0]?.['avg(span.duration)'];
 }
 
-type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<EapSpanNode> & {
-  issues: TraceTree.TraceIssue[];
-  location: Location;
-  project: Project | undefined;
-  theme: Theme;
-};
+type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<EapSpanNode>;
 
-function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
-  const {node, organization, location, traceId} = props;
+export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
+  const {node, organization, traceId} = props;
+  const location = useLocation();
+  const {projects} = useProjects();
+  const theme = useTheme();
+
+  const profileId = node.profileId;
+  const profilerId = node.profilerId;
+
+  const transaction = node.value.is_transaction
+    ? node
+    : node.findClosestParentTransaction();
+  const profilerStart = transaction?.startTimestamp;
+  const profilerEnd = transaction?.endTimestamp;
+
+  const profileMeta = useMemo(() => {
+    if (profileId) {
+      return profileId;
+    }
+
+    if (profilerId && profilerStart && profilerEnd) {
+      return {
+        profiler_id: profilerId,
+        start: new Date(profilerStart * 1000).toISOString(),
+        end: new Date(profilerEnd * 1000).toISOString(),
+      };
+    }
+
+    return '';
+  }, [profileId, profilerId, profilerStart, profilerEnd]);
+
+  const project = projects.find(proj => proj.slug === node.projectSlug);
+
+  const issues = node.uniqueIssues;
+
   const {
     data: traceItemData,
     isPending: isTraceItemPending,
@@ -367,12 +377,46 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   }
 
   return (
-    <EAPSpanNodeDetailsContent
-      {...props}
-      traceItemData={traceItemData}
-      eventTransaction={eventTransaction}
-      avgSpanDuration={avgSpanDuration}
-    />
+    <ProfilesProvider
+      orgSlug={organization.slug}
+      projectSlug={project?.slug ?? ''}
+      profileMeta={profileMeta}
+    >
+      <ProfileContext.Consumer>
+        {profiles => (
+          <ProfileGroupProvider
+            type="flamechart"
+            input={profiles?.type === 'resolved' ? profiles.data : null}
+            traceID={profileId ?? profilerId ?? ''}
+          >
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+              source="state"
+              freeze={{
+                span: {
+                  traceId: props.traceId,
+                  spanId: node.id,
+                  projectIds: project ? [Number(project.id)] : undefined,
+                },
+              }}
+            >
+              <LogsPageDataProvider>
+                <EAPSpanNodeDetailsContent
+                  {...props}
+                  traceItemData={traceItemData}
+                  eventTransaction={eventTransaction}
+                  avgSpanDuration={avgSpanDuration}
+                  project={project}
+                  issues={issues}
+                  location={location}
+                  theme={theme}
+                />
+              </LogsPageDataProvider>
+            </LogsQueryParamsProvider>
+          </ProfileGroupProvider>
+        )}
+      </ProfileContext.Consumer>
+    </ProfilesProvider>
   );
 }
 
@@ -393,6 +437,10 @@ function EAPSpanNodeDetailsContent({
 }: EAPSpanNodeDetailsProps & {
   avgSpanDuration: number | undefined;
   eventTransaction: EventTransaction | undefined;
+  issues: TraceTree.TraceIssue[];
+  location: Location;
+  project: Project | undefined;
+  theme: Theme;
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
