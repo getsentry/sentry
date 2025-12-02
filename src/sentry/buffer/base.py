@@ -1,12 +1,19 @@
+import logging
 from datetime import datetime
 from typing import Any
 
+from django.db import DataError
 from django.db.models import Expression, F
 
 from sentry.db import models
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.services import Service
+
+logger = logging.getLogger(__name__)
+
+# Maximum value for a 32-bit signed integer
+MAX_INT32 = 2_147_483_647
 
 BufferField = models.Model | str | int
 
@@ -189,7 +196,39 @@ class Buffer(Service):
                     # continue
                     pass
                 else:
-                    group.update(using=None, **update_kwargs)
+                    try:
+                        group.update(using=None, **update_kwargs)
+                    except DataError as e:
+                        # Catch DataError: integer out of range when times_seen exceeds 32-bit limit
+                        # This happens when current_times_seen + increment > MAX_INT32
+                        if "integer out of range" in str(e) and "times_seen" in columns:
+                            # Cap times_seen to MAX_INT32 and retry the update
+                            update_kwargs["times_seen"] = MAX_INT32
+                            try:
+                                group.update(using=None, **update_kwargs)
+                                logger.warning(
+                                    "buffer.cap_times_seen_integer_overflow",
+                                    extra={
+                                        "group_id": getattr(group, "id", None),
+                                        "increment": columns.get("times_seen", 0),
+                                        "capped_times_seen": MAX_INT32,
+                                    },
+                                )
+                            except Exception as retry_error:
+                                # If the capped update also fails, log and skip
+                                logger.warning(
+                                    "buffer.skip_group_update_after_cap_failed",
+                                    extra={
+                                        "group_id": getattr(group, "id", None),
+                                        "original_error": str(e),
+                                        "retry_error": str(retry_error),
+                                        "filters": filters,
+                                    },
+                                    exc_info=True,
+                                )
+                        else:
+                            # Re-raise if it's not an integer overflow error
+                            raise
                 created = False
             elif model:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)
