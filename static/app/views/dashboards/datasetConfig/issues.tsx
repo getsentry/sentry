@@ -44,7 +44,7 @@ const DEFAULT_TABLE_WIDGET_QUERY: WidgetQuery = {
   orderby: IssueSortOptions.DATE,
 };
 
-export const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
+const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
   name: '',
   fields: ['count(new_issues)'],
   columns: [],
