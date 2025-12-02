@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -558,7 +558,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoOpenPrs: bool
-    replayAccessMembers: list[int]
+    replayAccessMembers: NotRequired[list[int]]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
