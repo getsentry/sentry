@@ -13,6 +13,7 @@ import {Link} from 'sentry/components/core/link';
 import {TextArea} from 'sentry/components/core/textarea';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -581,6 +582,16 @@ function DynamicGrouping() {
           >
             {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
           </Button>
+          <FeedbackButton
+            size="sm"
+            feedbackOptions={{
+              messagePlaceholder: t('What do you think about the new Top Issues page?'),
+              tags: {
+                ['feedback.source']: 'top-issues',
+                ['feedback.owner']: 'issues',
+              },
+            }}
+          />
         </Flex>
 
         {showJsonInput && (
