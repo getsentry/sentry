@@ -183,7 +183,7 @@ export function useAttributeBreakdownsTooltip({
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
         const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return formatter(p) + actionsHtmlRenderer?.(value);
+        return formatter(p) + (actionsHtmlRenderer?.(value) ?? '');
       },
       position(
         point: [number, number],
