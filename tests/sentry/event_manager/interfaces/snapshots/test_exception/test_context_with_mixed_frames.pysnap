@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_context_with_mixed_frames
 ---
 errors: null
 get_api_context:
@@ -9,6 +9,7 @@ get_api_context:
   - mechanism: null
     module: foo.bar
     rawStacktrace: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py
@@ -39,6 +40,7 @@ get_api_context:
   - mechanism: null
     module: foo.bar
     rawStacktrace: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py

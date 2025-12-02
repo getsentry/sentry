@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_context_with_two_exceptions_having_mechanism
 ---
 errors: null
 get_api_context:
@@ -14,6 +14,7 @@ get_api_context:
       type: chained
     module: foo.bar
     rawStacktrace: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py
@@ -49,6 +50,7 @@ get_api_context:
       type: generic
     module: foo.bar
     rawStacktrace: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py

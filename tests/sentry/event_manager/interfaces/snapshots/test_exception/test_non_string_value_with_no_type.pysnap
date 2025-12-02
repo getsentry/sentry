@@ -1,7 +1,5 @@
 ---
-created: '2019-03-14T17:12:35.317071Z'
-creator: sentry
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_non_string_value_with_no_type
 ---
 errors: null
 get_api_context:
@@ -11,6 +9,7 @@ get_api_context:
   - mechanism: null
     module: null
     rawStacktrace: null
+    rawValue: null
     stacktrace: null
     threadId: null
     type: null

@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_context_with_raw_stacks_and_value
 ---
 errors: null
 get_api_context:
@@ -32,6 +32,7 @@ get_api_context:
       framesOmitted: null
       hasSystemFrames: true
       registers: null
+    rawValue: hello world raw
     stacktrace:
       frames:
       - absPath: foo/baz.c
@@ -67,6 +68,7 @@ to_json:
       - function: <redacted>
         in_app: true
         lineno: 1
+    raw_value: hello world raw
     stacktrace:
       frames:
       - abs_path: foo/baz.c
