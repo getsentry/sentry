@@ -258,7 +258,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             return title
 
         event_type_instance = eventtypes.get(event_type)()
-        return cast(str, event_type_instance.get_title(self.get_event_metadata()))
+        return event_type_instance.get_title(self.get_event_metadata())
 
     @property
     def culprit(self) -> str | None:
@@ -273,7 +273,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         et = eventtypes.get(self.get_event_type())()
-        return cast(Optional[str], et.get_location(self.get_event_metadata()))
+        return et.get_location(self.get_event_metadata())
 
     @classmethod
     def generate_node_id(cls, project_id: int, event_id: str) -> str:
