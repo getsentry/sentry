@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -23,12 +23,6 @@ from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-)
 
 NUM_DAYS = 28
 
@@ -37,47 +31,6 @@ SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
     SnubaQueryEventType.EventType.DEFAULT: "default",
     SnubaQueryEventType.EventType.TRANSACTION: "transaction",
 }
-
-
-def get_anomaly_evaluation_from_workflow_engine(
-    detector: Detector,
-    data_packet_processing_results: list[
-        tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
-    ],
-) -> bool | DetectorEvaluationResult | None:
-    evaluation = None
-    for result in data_packet_processing_results:
-        if result[0].id == detector.id:
-            evaluation = result[1][None]
-            if evaluation:
-                return evaluation.priority == DetectorPriorityLevel.HIGH
-    return evaluation
-
-
-def has_anomaly(anomaly: TimeSeriesPoint, label: str) -> bool:
-    """
-    Helper function to determine whether we care about an anomaly based on the
-    anomaly type and trigger type.
-
-    """
-    from sentry.incidents.logic import WARNING_TRIGGER_LABEL
-
-    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-
-    if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
-        label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
-    ):
-        return True
-    return False
-
-
-def anomaly_has_confidence(anomaly: TimeSeriesPoint) -> bool:
-    """
-    Helper function to determine whether we have the 7+ days of data necessary
-    to detect anomalies/send alerts for dynamic alert rules.
-    """
-    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-    return anomaly_type != AnomalyType.NO_DATA.value
 
 
 def translate_direction(direction: int) -> str:
