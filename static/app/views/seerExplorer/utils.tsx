@@ -229,6 +229,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `${actionPresent} ${path} in ${repoName}...`
       : `${actionPast} ${path} in ${repoName}`;
   },
+
+  search_sentry_docs: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading
+      ? `Scouring Sentry docs: '${question}'...`
+      : `Scoured Sentry docs: '${question}'`;
+  },
 };
 
 /**
