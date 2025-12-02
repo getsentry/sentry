@@ -50,7 +50,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
           query: {...location.query, seerDrawer: true},
         }}
       >
-        <IconSeer size="sm" />
+        <IconSeer size="xs" />
         {seerFixable && <p>{t('Quick Fix')}</p>}
       </SeerLink>
     </Tooltip>

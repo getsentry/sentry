@@ -8,11 +8,16 @@ import {
   TIME_WINDOWS,
   type TimePeriodType,
 } from 'sentry/views/alerts/rules/metric/details/constants';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  ExtrapolationMode,
+  TimePeriod,
+  type MetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Incident} from 'sentry/views/alerts/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
  * Retrieve start/end date of a metric alert incident for the events graph
@@ -122,4 +127,18 @@ export function getViableDateRange({
     start: viableStartDate,
     end: viableEndDate,
   };
+}
+
+export function getIsMigratedExtrapolationMode(
+  extrapolationMode: ExtrapolationMode | undefined,
+  dataset: Dataset,
+  traceItemType: TraceItemDataset | undefined | null
+) {
+  return !!(
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    traceItemType === TraceItemDataset.SPANS &&
+    extrapolationMode &&
+    (extrapolationMode === ExtrapolationMode.SERVER_WEIGHTED ||
+      extrapolationMode === ExtrapolationMode.NONE)
+  );
 }

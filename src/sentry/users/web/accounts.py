@@ -195,8 +195,8 @@ def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
     return render_to_response(get_template("relocate", "sent"), {}, request)
 
 
-@set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_view
+@set_referrer_policy("strict-origin-when-cross-origin")
 def recover_confirm(
     request: HttpRequest, user_id: int, hash: str, mode: str = "recover"
 ) -> HttpResponse:
@@ -300,11 +300,11 @@ def recover_confirm(
 
 
 # Set password variation of password recovery
-set_password_confirm = partial(recover_confirm, mode="set_password")
+set_password_confirm = control_silo_view(partial(recover_confirm, mode="set_password"))
 
 
 # Relocation variation of password recovery
-relocate_confirm = partial(recover_confirm, mode="relocate")
+relocate_confirm = control_silo_view(partial(recover_confirm, mode="relocate"))
 
 
 @login_required
