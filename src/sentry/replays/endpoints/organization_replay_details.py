@@ -38,9 +38,6 @@ def _format_eap_timestamps(data: list[dict]) -> list[dict]:
             item["finished_at"] = datetime.fromtimestamp(
                 item["finished_at"], tz=timezone.utc
             ).isoformat()
-        # Rename agg_project_id to project_id for frontend compatibility
-        if "agg_project_id" in item:
-            item["project_id"] = item.pop("agg_project_id")
     return data
 
 
@@ -58,7 +55,6 @@ def query_replay_instance_eap(
 
     select = [
         Column("replay_id"),
-        Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
         Function("min", parameters=[Column("sentry.timestamp")], alias="started_at"),
         Function("max", parameters=[Column("sentry.timestamp")], alias="finished_at"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
@@ -109,7 +105,6 @@ def query_replay_instance_eap(
     settings = Settings(
         attribute_types={
             "replay_id": str,
-            "project_id": int,
             "sentry.timestamp": float,
             "segment_id": int,
             "is_archived": int,
@@ -134,7 +129,14 @@ def query_replay_instance_eap(
         request_id=str(uuid.uuid4().hex),
         trace_item_type="replay",
     )
-    return eap_read.query(snuba_query, settings, request_meta, [])
+    eap_result = eap_read.query(snuba_query, settings, request_meta, [])
+
+    # Add agg_project_id since it's not queryable as an attribute
+    if eap_result["data"] and project_ids:
+        for item in eap_result["data"]:
+            item["agg_project_id"] = project_ids[0]
+
+    return eap_result
 
 
 @region_silo_endpoint
