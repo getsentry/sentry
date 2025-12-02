@@ -5,9 +5,11 @@ Pydantic models for Seer Explorer client.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class ToolCall(BaseModel):
@@ -31,6 +33,17 @@ class Message(BaseModel):
         extra = "allow"
 
 
+class Artifact(BaseModel):
+    """An artifact generated during an Explorer run."""
+
+    key: str
+    data: dict[str, Any] | None = None
+    reason: str
+
+    class Config:
+        extra = "allow"
+
+
 class MemoryBlock(BaseModel):
     """A block in the Explorer agent's conversation/memory."""
 
@@ -38,6 +51,7 @@ class MemoryBlock(BaseModel):
     message: Message
     timestamp: str
     loading: bool = False
+    artifacts: list[Artifact] = []
 
     class Config:
         extra = "allow"
@@ -50,12 +64,39 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
-    raw_artifact: dict[str, Any] | None = None
-    artifact: BaseModel | None = None
-    artifact_reason: str | None = None
 
     class Config:
         extra = "allow"
+
+    def get_artifacts(self) -> dict[str, Artifact]:
+        """
+        Scan blocks and return the latest artifact for each key.
+
+        Returns:
+            Dict mapping artifact keys to their latest Artifact
+        """
+        result: dict[str, Artifact] = {}
+        for block in self.blocks:
+            for artifact in block.artifacts:
+                result[artifact.key] = artifact
+        return result
+
+    def get_artifact(self, key: str, schema: type[T]) -> T | None:
+        """
+        Get a typed artifact by key.
+
+        Args:
+            key: The artifact key
+            schema: The Pydantic model class to parse the artifact data into
+
+        Returns:
+            The parsed artifact as a typed Pydantic model, or None if not found or not yet generated
+        """
+        artifacts = self.get_artifacts()
+        artifact = artifacts.get(key)
+        if artifact is None or artifact.data is None:
+            return None
+        return schema.parse_obj(artifact.data)
 
 
 class CustomToolDefinition(BaseModel):
