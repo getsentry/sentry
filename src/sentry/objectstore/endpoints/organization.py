@@ -196,7 +196,6 @@ class ChunkedEncodingDecoder:
 
 def get_target_url(path: str) -> str:
     base = options.get("objectstore.config")["base_url"].rstrip("/")
-    base = "http://localhost:8888"
     base_parsed = urlparse(base)
 
     target = urljoin(base, path)
