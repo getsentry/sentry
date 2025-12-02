@@ -12,6 +12,7 @@ import type {
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
+  IssueStreamDetector,
   MetricCondition,
   MetricConditionGroup,
   MetricDetector,
@@ -95,6 +96,18 @@ export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): Error
     name: 'Error Detector',
     id: '2',
     type: 'error',
+    ...params,
+  };
+}
+
+export function IssueStreamDetectorFixture(
+  params: Partial<IssueStreamDetector> = {}
+): IssueStreamDetector {
+  return {
+    ...BASE_DETECTOR,
+    name: 'Issue Stream Detector',
+    id: '4',
+    type: 'issue_stream',
     ...params,
   };
 }

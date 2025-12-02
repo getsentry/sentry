@@ -1,30 +1,67 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {Container} from 'sentry/components/workflowEngine/ui/container';
+import Placeholder from 'sentry/components/placeholder';
+import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
+import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+
+const PROJECT_GROUPS = [
+  {key: 'member', label: t('My Projects')},
+  {key: 'all', label: t('Other')},
+];
+
+type MonitorMode = 'project' | 'specific';
 
 interface Props {
   connectedIds: Automation['detectorIds'];
   setConnectedIds: (ids: Automation['detectorIds']) => void;
+}
+
+interface ContentProps extends Props {
+  initialMode: MonitorMode;
+}
+
+function useIssueStreamDetectors() {
+  return useDetectorsQuery({
+    query: 'type:issue_stream',
+    includeIssueStreamDetectors: true,
+  });
+}
+
+function getInitialMonitorMode(
+  issueStreamDetectors: Detector[] | undefined,
+  connectedIds: Automation['detectorIds']
+): MonitorMode {
+  if (!connectedIds.length || !issueStreamDetectors) {
+    return 'project';
+  }
+
+  return connectedIds.every(id => issueStreamDetectors.find(d => d.id === id))
+    ? 'project'
+    : 'specific';
 }
 
 function ConnectedMonitors({
@@ -153,7 +190,55 @@ function ConnectMonitorsDrawer({
   );
 }
 
-export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+function AllProjectIssuesSection({
+  onProjectChange,
+  connectedIds,
+}: {
+  connectedIds: Automation['detectorIds'];
+  onProjectChange: (projectIds: string[]) => void;
+}) {
+  const issueStreamDetectorsQuery = useIssueStreamDetectors();
+  const {projects} = useProjects();
+  const {form} = useContext(FormContext);
+
+  // Sync the derived selectedProjectIds to the form model so the field can read from it
+  useEffect(() => {
+    const selectedProjectIds =
+      issueStreamDetectorsQuery.data
+        ?.filter(detector => connectedIds.includes(detector.id))
+        .map(d => d.projectId) ?? [];
+    if (form && selectedProjectIds.length > 0) {
+      form.setValue('projectIds', selectedProjectIds);
+    }
+  }, [connectedIds, form, issueStreamDetectorsQuery.data]);
+
+  return (
+    <Container maxWidth="400px">
+      <SentryProjectSelectorField
+        name="projectIds"
+        label={t('Projects')}
+        placeholder={t('Select projects')}
+        projects={projects}
+        groupProjects={p => (p.isMember ? 'member' : 'all')}
+        groups={PROJECT_GROUPS}
+        onChange={(values: string[]) => onProjectChange(values)}
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        multiple
+        disabled={issueStreamDetectorsQuery.isPending}
+      />
+    </Container>
+  );
+}
+
+function SpecificMonitorsSection({
+  connectedIds,
+  setConnectedIds,
+}: {
+  connectedIds: Automation['detectorIds'];
+  setConnectedIds: (ids: Automation['detectorIds']) => void;
+}) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const organization = useOrganization();
@@ -187,17 +272,18 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
 
   if (connectedIds.length > 0) {
     return (
-      <Container>
-        <Section title={t('Connected Monitors')}>
-          <ConnectedMonitorsList
-            detectorIds={connectedIds}
-            cursor={undefined}
-            onCursor={() => {}}
-            limit={null}
-            openInNewTab
-          />
-        </Section>
-        <ButtonWrapper justify="between">
+      <Stack gap="lg">
+        <ConnectedMonitorsList
+          detectorIds={connectedIds}
+          cursor={undefined}
+          onCursor={() => {}}
+          limit={null}
+          openInNewTab
+        />
+        <Flex gap="md">
+          <Button ref={ref} size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
+            {t('Edit Monitors')}
+          </Button>
           <LinkButton
             size="sm"
             icon={<IconAdd />}
@@ -206,29 +292,107 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
           >
             {t('Create New Monitor')}
           </LinkButton>
-          <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
-            {t('Edit Monitors')}
-          </Button>
-        </ButtonWrapper>
-      </Container>
+        </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Container>
-      <Section title={t('Connected Monitors')}>
-        <Button
-          ref={ref}
-          size="sm"
-          style={{width: 'min-content'}}
-          priority="primary"
-          icon={<IconAdd />}
-          onClick={toggleDrawer}
-        >
-          {t('Connect Monitors')}
-        </Button>
+    <Button
+      ref={ref}
+      size="sm"
+      style={{width: 'min-content'}}
+      priority="primary"
+      icon={<IconAdd />}
+      onClick={toggleDrawer}
+    >
+      {t('Connect Monitors')}
+    </Button>
+  );
+}
+
+function EditConnectedMonitorsContent({
+  initialMode,
+  connectedIds,
+  setConnectedIds,
+}: ContentProps) {
+  const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
+  const issueStreamDetectorsQuery = useIssueStreamDetectors();
+  const {form} = useContext(FormContext);
+
+  const handleModeChange = useCallback(
+    (newMode: MonitorMode) => {
+      setMonitorMode(newMode);
+      setConnectedIds([]);
+      form?.setValue('projectIds', []);
+    },
+    [form, setConnectedIds]
+  );
+
+  const handleProjectChange = useCallback(
+    (projectIds: string[]) => {
+      setConnectedIds(
+        projectIds
+          .map(
+            projectId =>
+              issueStreamDetectorsQuery?.data?.find(d => d.projectId === projectId)?.id
+          )
+          .filter(defined)
+      );
+    },
+    [issueStreamDetectorsQuery?.data, setConnectedIds]
+  );
+
+  return (
+    <WorkflowEngineContainer>
+      <Section title={t('Source')}>
+        <Stack gap="lg">
+          <RadioGroup
+            label={t('Connected monitors mode')}
+            value={monitorMode}
+            choices={[
+              ['project', t('Alert on all issues in a project')],
+              ['specific', t('Alert on specific monitors')],
+            ]}
+            onChange={handleModeChange}
+          />
+          {monitorMode === 'project' ? (
+            <AllProjectIssuesSection
+              connectedIds={connectedIds}
+              onProjectChange={handleProjectChange}
+            />
+          ) : (
+            <SpecificMonitorsSection
+              connectedIds={connectedIds}
+              setConnectedIds={setConnectedIds}
+            />
+          )}
+        </Stack>
       </Section>
-    </Container>
+    </WorkflowEngineContainer>
+  );
+}
+
+export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+  const {data: issueStreamDetectors, isPending} = useIssueStreamDetectors();
+  const initialMode = getInitialMonitorMode(issueStreamDetectors, connectedIds);
+
+  if (isPending && connectedIds.length > 0) {
+    return (
+      <WorkflowEngineContainer>
+        <Section title={t('Source')}>
+          <Placeholder width="100%" height="200px" />
+        </Section>
+      </WorkflowEngineContainer>
+    );
+  }
+
+  return (
+    <EditConnectedMonitorsContent
+      initialMode={initialMode}
+      connectedIds={connectedIds}
+      setConnectedIds={setConnectedIds}
+    />
   );
 }
 
@@ -237,12 +401,6 @@ const DrawerContent = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;
-
-const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.lg};
-  margin: -${p => p.theme.space.lg};
 `;
 
 const StyledSection = styled(Section)`

@@ -13,6 +13,11 @@ export interface AutomationFormData {
   environment: string | null;
   frequency: number | null;
   name: string;
+  /**
+   * Derived field used for project-based monitor selection.
+   * Maps to issue stream detector IDs for the selected projects.
+   */
+  projectIds: string[];
 }
 
 const stripDataConditionId = (condition: any) => {
@@ -86,6 +91,7 @@ export function getAutomationFormData(
     frequency: automation.config.frequency || null,
     name: automation.name,
     enabled: automation.enabled,
+    projectIds: [],
   };
 }
 
