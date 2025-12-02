@@ -103,7 +103,7 @@ export default function ReplayPreviewPlayer({
       )}
       <HeaderWrapper>
         <ReplaySessionColumn.Component
-          linkQuery={{
+          to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
             query,
           }}

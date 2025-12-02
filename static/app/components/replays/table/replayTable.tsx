@@ -129,7 +129,7 @@ export default function ReplayTable({
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
-                linkQuery={{
+                to={{
                   pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
                   query,
                 }}
