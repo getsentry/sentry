@@ -1,16 +1,17 @@
-import {Fragment, useContext, useEffect, type ReactNode} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {Button} from '@sentry/scraps/button/button';
+import {ExternalLink} from '@sentry/scraps/link/link';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
@@ -489,9 +490,20 @@ function DetectSection() {
             {showThresholdWarning && (
               <WarningIcon
                 id="thresholds-warning-icon"
-                title={t(
-                  'Your thresholds may need to be adjusted after the change in extrapolation mode'
-                )}
+                tooltipProps={{
+                  isHoverable: true,
+                  title: tct(
+                    'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                    {
+                      samplingLink: (
+                        <ExternalLink
+                          href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                          openInNewTab
+                        />
+                      ),
+                    }
+                  ),
+                }}
               />
             )}
           </HeadingContainer>
@@ -617,8 +629,14 @@ function MigratedAlertWarningListener() {
       <Alert.Container>
         <Alert type="info">
           {tct(
-            'This chart may look different from the alert details chart. This is expected as the extrapolation mode has been changed. Once the alert has been saved, your alert will be switched to use the extrapolation mode represented here. To be alerted correctly, please edit your [thresholdsLink:thresholds]. For more information, check out this FAQ!',
+            'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
+              samplingLink: (
+                <ExternalLink
+                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                  openInNewTab
+                />
+              ),
               thresholdsLink: (
                 <Button
                   priority="link"
@@ -640,9 +658,9 @@ function MigratedAlertWarningListener() {
   return null;
 }
 
-function WarningIcon({title, id}: {id: string; title: ReactNode}) {
+function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProps}) {
   return (
-    <Tooltip title={title} skipWrapper>
+    <Tooltip title={tooltipProps?.title} skipWrapper {...tooltipProps}>
       <StyledIconWarning id={id} size="md" color="warning" />
     </Tooltip>
   );
