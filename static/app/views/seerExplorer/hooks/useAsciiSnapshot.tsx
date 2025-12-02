@@ -299,7 +299,7 @@ function useAsciiSnapshot() {
           const dataMap = new Map<number, number>();
 
           // Extract x,y pairs from various data formats
-          for (const item of data) {
+          data.forEach((item, index) => {
             let x: number | null = null;
             let y: number | null = null;
 
@@ -315,7 +315,7 @@ function useAsciiSnapshot() {
               }
             } else if (typeof item === 'number') {
               // Format: single number (y-value, use index as x)
-              x = data.indexOf(item);
+              x = index;
               y = item;
             } else if (item && typeof item === 'object') {
               // Format: {name: timestamp, value: number}
@@ -341,7 +341,7 @@ function useAsciiSnapshot() {
               // If multiple points share the same x, take the last one
               dataMap.set(x, y);
             }
-          }
+          });
 
           if (dataMap.size > 0) {
             timeseriesData.push({name: String(seriesName), data: dataMap});
