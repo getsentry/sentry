@@ -395,7 +395,7 @@ module = [
     "sentry.dynamic_sampling.*",
     "sentry.eventstore.*",
     "sentry.eventstream.*",
-    "sentry.eventtypes.error",
+    "sentry.eventtypes.*",
     "sentry.explore.migrations.*",
     "sentry.feedback.migrations.*",
     "sentry.feedback.tasks.*",

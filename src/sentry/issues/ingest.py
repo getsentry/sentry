@@ -163,7 +163,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     """
 
     event_type = get_event_type(event.data)
-    event_metadata = dict(event_type.get_metadata(event.data))
+    event_metadata: dict[str, Any] = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     # Don't clobber existing metadata
     event_metadata.update(event.get_event_metadata())
