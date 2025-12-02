@@ -9,9 +9,9 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  buttonProps: Omit<
+  buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'provider' | 'onAddIntegration' | 'organization'
+    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
