@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
@@ -37,7 +37,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     """
     Get all the replay ids associated with a set of issues/transactions in discover,
     then verify that they exist in the replays dataset, and return the count.

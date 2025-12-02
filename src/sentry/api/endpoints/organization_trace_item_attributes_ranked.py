@@ -16,7 +16,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
