@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_context_with_only_app_frames
 ---
 errors: null
 get_api_context:
@@ -8,7 +8,10 @@ get_api_context:
   values:
   - mechanism: null
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py
@@ -38,7 +41,10 @@ get_api_context:
     value: hello world
   - mechanism: null
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
+    rawValue: null
     stacktrace:
       frames:
       - absPath: foo/baz.py
@@ -72,6 +78,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
+        data:
+          client_in_app: true
         filename: foo/baz.py
         in_app: true
         lineno: 1
@@ -81,6 +89,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
+        data:
+          client_in_app: true
         filename: foo/baz.py
         in_app: true
         lineno: 1

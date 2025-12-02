@@ -249,6 +249,9 @@ class SingleException(Interface):
 
         type = data.get("type")
         value = data.get("value")
+        raw_value = data.get("raw_value")
+        raw_module = data.get("raw_module")
+        raw_type = data.get("raw_type")
 
         if data.get("mechanism"):
             mechanism = Mechanism.to_python(data["mechanism"], **kwargs)
@@ -263,6 +266,9 @@ class SingleException(Interface):
             "stacktrace": stacktrace,
             "thread_id": data.get("thread_id"),
             "raw_stacktrace": raw_stacktrace,
+            "raw_value": raw_value,
+            "raw_module": raw_module,
+            "raw_type": raw_type,
         }
 
         return super().to_python(new_data, **kwargs)
@@ -294,6 +300,9 @@ class SingleException(Interface):
                 "stacktrace": stacktrace,
                 "thread_id": self.thread_id,
                 "raw_stacktrace": raw_stacktrace,
+                "raw_value": self.raw_value,
+                "raw_module": self.raw_module,
+                "raw_type": self.raw_type,
             }
         )
 
@@ -325,6 +334,9 @@ class SingleException(Interface):
             "module": self.module,
             "stacktrace": stacktrace,
             "rawStacktrace": raw_stacktrace,
+            "rawValue": str(self.raw_value) if self.raw_value else None,
+            "rawModule": self.raw_module,
+            "rawType": self.raw_type,
         }
 
     def get_api_meta(self, meta, is_public=False, platform=None):

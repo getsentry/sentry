@@ -1,7 +1,5 @@
 ---
-created: '2019-03-14T17:12:35.296533Z'
-creator: sentry
-source: tests/sentry/event_manager/interfaces/test_exception.py
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_args_as_keyword_args
 ---
 errors: null
 get_api_context:
@@ -10,7 +8,10 @@ get_api_context:
   values:
   - mechanism: null
     module: foo.bar
+    rawModule: null
     rawStacktrace: null
+    rawType: null
+    rawValue: null
     stacktrace: null
     threadId: null
     type: ValueError
