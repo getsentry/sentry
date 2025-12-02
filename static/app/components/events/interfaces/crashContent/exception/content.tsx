@@ -319,6 +319,10 @@ export function Content({
       />
     );
 
+    const exceptionType =
+      type === StackType.ORIGINAL ? exc.type : exc.rawType || exc.type;
+    const exceptionModule =
+      type === StackType.ORIGINAL ? exc.module : exc.rawModule || exc.module;
     if (hasChainedExceptions) {
       return (
         <StyledFoldSection
@@ -327,14 +331,12 @@ export function Content({
           dataTestId="exception-value"
           sectionKey={SectionKey.CHAINED_EXCEPTION}
           title={
-            defined(exc?.module) ? (
-              <Tooltip
-                title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}
-              >
-                <Title id={id}>{exc.type}</Title>
+            defined(exceptionModule) ? (
+              <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
+                <Title id={id}>{exceptionType}</Title>
               </Tooltip>
             ) : (
-              <Title id={id}>{exc.type}</Title>
+              <Title id={id}>{exceptionType}</Title>
             )
           }
           disableCollapsePersistence
@@ -350,12 +352,12 @@ export function Content({
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
-        {defined(exc?.module) ? (
-          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title id={id}>{exc.type}</Title>
+        {defined(exceptionModule) ? (
+          <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
+            <Title id={id}>{exceptionType}</Title>
           </Tooltip>
         ) : (
-          <Title id={id}>{exc.type}</Title>
+          <Title id={id}>{exceptionType}</Title>
         )}
         {innerContent}
       </div>
