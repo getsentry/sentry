@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
             model_name="organizationcontributors",
             name="integration_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.Integration", db_index=True, null=True, on_delete="SET_NULL"
+                "sentry.Integration", db_index=True, on_delete="DO_NOTHING"
             ),
         ),
     ]
