@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button/linkButton';
-import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -21,13 +21,11 @@ type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];
   currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
-  tooltipProps: TooltipProps;
 };
 
 export function TraceLinkNavigationButton({
   direction,
   attributes,
-  tooltipProps,
   currentTraceStartTimestamp,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
@@ -44,6 +42,7 @@ export function TraceLinkNavigationButton({
     adjacentTraceStartTimestamp,
     iconDirection,
     ariaLabel,
+    title,
   } = useMemo(() => {
     if (direction === 'previous') {
       return {
@@ -51,6 +50,11 @@ export function TraceLinkNavigationButton({
         adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
         iconDirection: 'left' as const,
         ariaLabel: t('Previous Trace'),
+        title: tct(`Go to the previous trace of the same session. [link:Learn More]`, {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+          ),
+        }),
       };
     }
     return {
@@ -58,6 +62,11 @@ export function TraceLinkNavigationButton({
       adjacentTraceStartTimestamp: currentTraceStartTimestamp,
       iconDirection: 'right' as const,
       ariaLabel: t('Next Trace'),
+      title: tct(`Go to the next trace of the same session. [link:Learn More]`, {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+        ),
+      }),
     };
   }, [direction, currentTraceStartTimestamp, linkedTraceWindowTimestamp]);
 
@@ -92,8 +101,12 @@ export function TraceLinkNavigationButton({
       size="xs"
       icon={<IconChevron direction={iconDirection} />}
       aria-label={ariaLabel}
-      tooltipProps={tooltipProps}
-      title={tooltipProps.title}
+      tooltipProps={{
+        position: 'top',
+        delay: 400,
+        isHoverable: true,
+      }}
+      title={title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({

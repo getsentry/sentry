@@ -1,7 +1,5 @@
 import {ButtonBar} from '@sentry/scraps/button';
-import {ExternalLink} from '@sentry/scraps/link';
 
-import {tct} from 'sentry/locale';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
@@ -35,19 +33,6 @@ export function TraceLinksNavigation({
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
-          tooltipProps={{
-            position: 'top',
-            delay: 400,
-            isHoverable: true,
-            title: tct(
-              `Go to the previous trace of the same session. [link:Learn More]`,
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-                ),
-              }
-            ),
-          }}
         />
         <TraceLinkNavigationButton
           direction="next"
@@ -55,16 +40,6 @@ export function TraceLinksNavigation({
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
-          tooltipProps={{
-            position: 'top',
-            delay: 400,
-            isHoverable: true,
-            title: tct(`Go to the next trace of the same session. [link:Learn More]`, {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-              ),
-            }),
-          }}
         />
       </ButtonBar>
     </div>
