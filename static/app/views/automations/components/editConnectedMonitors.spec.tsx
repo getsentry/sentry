@@ -51,7 +51,7 @@ describe('EditConnectedMonitors', () => {
     const setConnectedIds = jest.fn();
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
-    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
+    expect(screen.getByText('Source')).toBeInTheDocument();
     expect(
       await screen.findByRole('radio', {name: 'Alert on all issues in a project'})
     ).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('EditConnectedMonitors', () => {
     const setConnectedIds = jest.fn();
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
 
-    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
+    expect(screen.getByText('Source')).toBeInTheDocument();
 
     // Switch to specific monitors mode
     await userEvent.click(
@@ -136,7 +136,6 @@ describe('EditConnectedMonitors', () => {
     await screen.findByRole('radio', {name: 'Alert on specific monitors'});
 
     // Should display automation as connected
-    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
     expect(await screen.findByText(detector1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Monitors'));
