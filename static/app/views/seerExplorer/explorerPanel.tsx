@@ -2,16 +2,18 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {useBlockNavigation} from './hooks/useBlockNavigation';
-import {usePanelSizing} from './hooks/usePanelSizing';
-import {useSeerExplorer} from './hooks/useSeerExplorer';
-import BlockComponent from './blockComponents';
-import EmptyState from './emptyState';
-import {useExplorerMenu} from './explorerMenu';
-import InputSection from './inputSection';
-import PanelContainers, {BlocksContainer} from './panelContainers';
-import type {Block, ExplorerPanelProps} from './types';
+import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
+import EmptyState from 'sentry/views/seerExplorer/emptyState';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
+import FileChangeApproval from 'sentry/views/seerExplorer/fileChangeApproval';
+import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
+import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
+import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import InputSection from 'sentry/views/seerExplorer/inputSection';
+import PanelContainers, {
+  BlocksContainer,
+} from 'sentry/views/seerExplorer/panelContainers';
+import type {Block, ExplorerPanelProps} from 'sentry/views/seerExplorer/types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const organization = useOrganization({allowNull: true});
@@ -41,6 +43,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     interruptRun,
     interruptRequested,
     setRunId,
+    respondToUserInput,
   } = useSeerExplorer();
 
   // Get blocks from session data or empty array
@@ -306,6 +309,20 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [focusedBlockIndex, blocks.length]);
 
+  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
+  const pendingInput = sessionData?.pending_user_input;
+
+  const handleSubmitFileChanges = useCallback(
+    (decisions: boolean[]) => {
+      if (pendingInput?.id) {
+        respondToUserInput(pendingInput.id, {
+          decisions,
+        });
+      }
+    },
+    [pendingInput?.id, respondToUserInput]
+  );
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
@@ -314,63 +331,73 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       panelSize={panelSize}
       onUnminimize={handleUnminimize}
     >
-      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        {blocks.length === 0 ? (
-          <EmptyState />
-        ) : (
-          blocks.map((block: Block, index: number) => (
-            <BlockComponent
-              key={block.id}
-              ref={el => {
-                blockRefs.current[index] = el;
-              }}
-              block={block}
-              blockIndex={index}
-              isLast={index === blocks.length - 1}
-              isFocused={focusedBlockIndex === index}
-              isPolling={isPolling}
-              onClick={() => handleBlockClick(index)}
-              onMouseEnter={() => {
-                // Don't change focus while menu is open, if already on this block, or if hover is disabled
-                if (
-                  isMenuOpen ||
-                  hoveredBlockIndex.current === index ||
-                  !allowHoverFocusChange.current
-                ) {
-                  return;
-                }
+      {isAwaitingUserInput && pendingInput ? (
+        <FileChangeApproval
+          pendingInput={pendingInput}
+          onSubmit={handleSubmitFileChanges}
+          isMinimized={isMinimized}
+        />
+      ) : (
+        <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
+          {blocks.length === 0 ? (
+            <EmptyState />
+          ) : (
+            blocks.map((block: Block, index: number) => (
+              <BlockComponent
+                key={block.id}
+                ref={el => {
+                  blockRefs.current[index] = el;
+                }}
+                block={block}
+                blockIndex={index}
+                isLast={index === blocks.length - 1}
+                isFocused={focusedBlockIndex === index}
+                isPolling={isPolling}
+                onClick={() => handleBlockClick(index)}
+                onMouseEnter={() => {
+                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
+                  if (
+                    isMenuOpen ||
+                    hoveredBlockIndex.current === index ||
+                    !allowHoverFocusChange.current
+                  ) {
+                    return;
+                  }
 
-                hoveredBlockIndex.current = index;
-                setFocusedBlockIndex(index);
-                textareaRef.current?.blur();
-              }}
-              onMouseLeave={() => {
-                if (hoveredBlockIndex.current === index) {
-                  hoveredBlockIndex.current = -1;
-                }
-              }}
-              onDelete={() => deleteFromIndex(index)}
-              onNavigate={() => setIsMinimized(true)}
-              onRegisterEnterHandler={handler => {
-                blockEnterHandlers.current.set(index, handler);
-              }}
-            />
-          ))
-        )}
-      </BlocksContainer>
-      <InputSection
-        menu={menu}
-        onMenuButtonClick={onMenuButtonClick}
-        focusedBlockIndex={focusedBlockIndex}
-        inputValue={inputValue}
-        interruptRequested={interruptRequested}
-        isPolling={isPolling}
-        onClear={() => setInputValue('')}
-        onInputChange={handleInputChange}
-        onInputClick={handleInputClick}
-        textAreaRef={textareaRef}
-        onKeyDown={handleInputKeyDown}
-      />
+                  hoveredBlockIndex.current = index;
+                  setFocusedBlockIndex(index);
+                  textareaRef.current?.blur();
+                }}
+                onMouseLeave={() => {
+                  if (hoveredBlockIndex.current === index) {
+                    hoveredBlockIndex.current = -1;
+                  }
+                }}
+                onDelete={() => deleteFromIndex(index)}
+                onNavigate={() => setIsMinimized(true)}
+                onRegisterEnterHandler={handler => {
+                  blockEnterHandlers.current.set(index, handler);
+                }}
+              />
+            ))
+          )}
+        </BlocksContainer>
+      )}
+      {!(isAwaitingUserInput && pendingInput) && (
+        <InputSection
+          menu={menu}
+          onMenuButtonClick={onMenuButtonClick}
+          focusedBlockIndex={focusedBlockIndex}
+          inputValue={inputValue}
+          interruptRequested={interruptRequested}
+          isPolling={isPolling}
+          onClear={() => setInputValue('')}
+          onInputChange={handleInputChange}
+          onInputClick={handleInputClick}
+          textAreaRef={textareaRef}
+          onKeyDown={handleInputKeyDown}
+        />
+      )}
     </PanelContainers>
   );
 

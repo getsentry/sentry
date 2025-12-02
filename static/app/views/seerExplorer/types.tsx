@@ -17,7 +17,7 @@ interface ToolResult {
   // other fields are unused for now.
 }
 
-interface ToolCall {
+export interface ToolCall {
   args: string;
   function: string;
   id: string;

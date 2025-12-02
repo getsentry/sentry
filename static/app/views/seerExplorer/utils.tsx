@@ -1,13 +1,17 @@
 import type {LocationDescriptor} from 'history';
 
-import type {Block, ToolLink} from './types';
+import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
  * Tool formatter function type.
- * Takes parsed args and loading state, returns the display message.
+ * Takes parsed args, loading state, and optional tool link metadata.
  * Implement one for each tool that needs custom display.
  */
-type ToolFormatter = (args: Record<string, any>, isLoading: boolean) => string;
+type ToolFormatter = (
+  args: Record<string, any>,
+  isLoading: boolean,
+  toolLinkParams?: Record<string, any> | null
+) => string;
 
 /**
  * Registry of custom tool formatters.
@@ -193,6 +197,38 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
       : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
   },
+
+  code_file_edit: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+
+    if (toolLinkParams?.empty_results) {
+      return `Edit to ${path} in ${repoName} was rejected`;
+    }
+    return isLoading
+      ? `Editing ${path} in ${repoName}...`
+      : `Edited ${path} in ${repoName}`;
+  },
+
+  code_file_write: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    const content = args.content;
+
+    // Determine action based on content
+    const isDelete = content === '';
+    const action = isDelete ? 'Delete' : 'Write';
+    const actionPast = isDelete ? 'Deleted' : 'Wrote';
+    const actionPresent = isDelete ? 'Deleting' : 'Writing';
+
+    if (toolLinkParams?.empty_results) {
+      return `${action} to ${path} in ${repoName} was rejected`;
+    }
+
+    return isLoading
+      ? `${actionPresent} ${path} in ${repoName}...`
+      : `${actionPast} ${path} in ${repoName}`;
+  },
 };
 
 /**
@@ -209,18 +245,23 @@ function parseToolArgs(argsString: string): Record<string, any> {
 /**
  * Get display strings for all tool calls in a block.
  * Uses custom formatters from TOOL_FORMATTERS registry, falls back to generic message.
+ * Tool links are aligned with tool calls by index and contain metadata like rejection status.
  */
 export function getToolsStringFromBlock(block: Block): string[] {
   const tools: string[] = [];
   const isLoading = block.loading ?? false;
+  const toolCalls = block.message.tool_calls || [];
+  const toolLinks = block.tool_links || [];
 
-  for (const tool of block.message.tool_calls || []) {
+  for (let i = 0; i < toolCalls.length; i++) {
+    const tool = toolCalls[i] as ToolCall;
+    const toolLink = toolLinks[i];
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
-      // Use custom formatter
+      // Use custom formatter with tool link params for metadata like rejection status
       const args = parseToolArgs(tool.args);
-      tools.push(formatter(args, isLoading));
+      tools.push(formatter(args, isLoading, toolLink?.params));
     } else {
       // Fall back to generic message
       const verb = isLoading ? 'Using' : 'Used';
