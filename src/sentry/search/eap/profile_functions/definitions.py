@@ -9,7 +9,6 @@ from sentry.search.eap.profile_functions.attributes import (
 
 PROFILE_FUNCTIONS_DEFINITIONS = ColumnDefinitions(
     aggregates=PROFILE_FUNCTIONS_AGGREGATE_DEFINITIONS,
-    conditional_aggregates={},
     formulas={},
     columns=PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS,
     contexts=PROFILE_FUNCTIONS_VIRTUAL_CONTEXTS,
