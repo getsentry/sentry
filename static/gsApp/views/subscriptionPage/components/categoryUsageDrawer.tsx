@@ -9,6 +9,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
 
+import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {
   PlanTier,
   type BillingMetricHistory,
@@ -19,7 +20,6 @@ import {
 import {addBillingStatTotals, isAm2Plan} from 'getsentry/utils/billing';
 import {
   getChunkCategoryFromDuration,
-  getPlanCategoryName,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -55,12 +55,8 @@ function CategoryUsageDrawer({
   const transform = selectedTransform(location);
   const {category, usage: billedUsage} = categoryInfo;
 
-  const displayName = getPlanCategoryName({
-    plan: subscription.planDetails,
-    category,
-    title: true,
-  });
-
+  // XXX(isabella): using this to make knip happy til the hook is used in other places
+  const {displayName} = useProductBillingMetadata(subscription, category);
   const usageStats = {
     [category]: stats,
   };
