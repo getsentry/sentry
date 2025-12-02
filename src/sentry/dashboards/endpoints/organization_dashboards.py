@@ -80,6 +80,7 @@ class PrebuiltDashboard(TypedDict):
 # deprecate once this feature is released.
 # Note B: Consider storing all dashboard and widget data in the database instead of relying on matching
 # prebuilt_id on the frontend, if there are issues.
+# Note C: These titles should match the titles in the frontend so that the results returned by the API match the titles in the frontend.
 PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
@@ -87,11 +88,11 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES,
-        "title": "Queries Overview",
+        "title": "Queries",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
-        "title": "Query Summary",
+        "title": "Query Details",
     },
 ]
 
@@ -446,16 +447,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        dashboard_count = Dashboard.objects.filter(
-            organization=organization, prebuilt_id=None
-        ).count()
-        dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
-        if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
-            return Response(
-                f"You may not exceed {dashboard_limit} dashboards on your current plan.",
-                status=400,
-            )
-
         serializer = DashboardSerializer(
             data=request.data,
             context={
@@ -469,8 +460,30 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        # We need to acquire a lock so that a burst of concurrent create requests doesn't read
+        # stale count data and bypass the dashboard limit for an org.
+        dashboard_create_lock = locks.get(
+            f"dashboard:create:{organization.id}",
+            duration=5,
+            name="dashboard_create",
+        )
+
         try:
-            with transaction.atomic(router.db_for_write(Dashboard)):
+            with (
+                dashboard_create_lock.acquire(),
+                transaction.atomic(router.db_for_write(Dashboard)),
+            ):
+
+                dashboard_count = Dashboard.objects.filter(
+                    organization=organization, prebuilt_id=None
+                ).count()
+                dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+                if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
+                    return Response(
+                        f"You may not exceed {dashboard_limit} dashboards on your current plan.",
+                        status=400,
+                    )
+
                 dashboard = serializer.save()
 
                 if features.has(
@@ -498,3 +511,5 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
 
             return self.post(request, organization, retry=retry + 1)
+        except UnableToAcquireLock:
+            return Response("Unable to create dashboard, please try again", status=503)

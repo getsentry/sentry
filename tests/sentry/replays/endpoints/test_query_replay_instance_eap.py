@@ -1,7 +1,11 @@
 import datetime
+from typing import Any
 from uuid import uuid4
 
-from sentry.replays.endpoints.organization_replay_details import query_replay_instance_eap
+from sentry.replays.endpoints.organization_replay_details import (
+    _format_eap_timestamps,
+    query_replay_instance_eap,
+)
 from sentry.testutils.cases import ReplayBreadcrumbType, ReplayEAPTestCase, TestCase
 
 
@@ -125,3 +129,37 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         replay2_data = res2["data"][0]
         assert replay2_data["count_dead_clicks"] == 3, "1 DEAD_CLICK + 2 RAGE_CLICK = 3 dead"
         assert replay2_data["count_rage_clicks"] == 2, "2 RAGE_CLICK = 2 rage"
+
+    def test_format_eap_timestamps(self) -> None:
+        """Test that float timestamps are correctly converted to ISO strings."""
+        start_ts = 1690182000.0
+        end_ts = 1690185600.0
+
+        data: list[dict[str, Any]] = [
+            {
+                "replay_id": "test123",
+                "started_at": start_ts,
+                "finished_at": end_ts,
+            },
+            {
+                "replay_id": "test456",
+                "started_at": None,
+                "finished_at": None,
+            },
+        ]
+
+        formatted = _format_eap_timestamps(data)
+
+        assert isinstance(formatted[0]["started_at"], str)
+        assert isinstance(formatted[0]["finished_at"], str)
+
+        assert formatted[1]["started_at"] is None
+        assert formatted[1]["finished_at"] is None
+
+        parsed_start = datetime.datetime.fromisoformat(formatted[0]["started_at"])
+        parsed_end = datetime.datetime.fromisoformat(formatted[0]["finished_at"])
+
+        assert parsed_start.timestamp() == start_ts
+        assert parsed_end.timestamp() == end_ts
+
+        assert (parsed_end - parsed_start).total_seconds() == 3600

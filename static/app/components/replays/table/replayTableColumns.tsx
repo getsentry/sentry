@@ -52,10 +52,10 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  linkQuery: string | LocationDescriptor;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  to: string | LocationDescriptor;
   className?: string;
 }
 
@@ -315,9 +315,9 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({linkQuery}) => {
+  Component: ({to}) => {
     return (
-      <DetailsLink to={linkQuery}>
+      <DetailsLink to={to}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -505,7 +505,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, linkQuery, className}) => {
+  Component: ({replay, to, className}) => {
     const routes = useRoutes();
     const referrer = getRouteStringFromRoutes(routes);
 
@@ -531,7 +531,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       });
 
     return (
-      <CellLink className={className} to={linkQuery} onClick={trackNavigationEvent}>
+      <CellLink className={className} to={to} onClick={trackNavigationEvent}>
         <ReplayBadge replay={replay} />
       </CellLink>
     );

@@ -81,10 +81,12 @@ function MetricDetectorForm() {
 }
 
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
+  const metricDetector = detector.type === 'metric_issue' ? detector : undefined;
+
   return (
     <EditDetectorLayout
       detector={detector}
-      previewChart={<MetricDetectorPreviewChart />}
+      previewChart={<MetricDetectorPreviewChart detector={metricDetector} />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       savedDetectorToFormData={metricSavedDetectorToFormData}
       mapFormErrors={mapMetricDetectorFormErrors}

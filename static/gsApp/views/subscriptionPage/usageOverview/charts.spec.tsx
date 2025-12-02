@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingStatFixture} from 'getsentry-test/fixtures/billingStat';
+import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,10 +11,10 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
+import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/charts';
+import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
-import CategoryUsageDrawer from './categoryUsageDrawer';
-
-describe('CategoryUsageDrawer', () => {
+describe('UsageCharts', () => {
   const organization = OrganizationFixture();
   const totals = UsageTotalFixture({
     accepted: 50,
@@ -28,10 +29,10 @@ describe('CategoryUsageDrawer', () => {
     organization.features.push('subscriptions-v3');
   });
 
-  function renderComponent(props: any) {
+  function renderComponent(props: Omit<BreakdownPanelProps, 'organization'>) {
     return render(
       <OrganizationContext value={organization}>
-        <CategoryUsageDrawer {...props} />
+        <UsageCharts {...props} organization={organization} />
       </OrganizationContext>
     );
   }
@@ -45,15 +46,19 @@ describe('CategoryUsageDrawer', () => {
       usage: 50,
     };
     SubscriptionStore.set(organization.slug, subscription);
+    const usageData = CustomerUsageFixture({
+      totals: {
+        [DataCategory.ERRORS]: totals,
+      },
+      stats: {
+        [DataCategory.ERRORS]: stats,
+      },
+    });
     await act(async () => {
       renderComponent({
         subscription,
-        categoryInfo: subscription.categories.errors,
-        eventTotals: {[DataCategory.ERRORS]: totals},
-        totals,
-        stats,
-        periodEnd: '2021-02-01',
-        periodStart: '2021-01-01',
+        usageData,
+        selectedProduct: DataCategory.ERRORS,
       });
 
       // filter values are asynchronously persisted
@@ -81,18 +86,27 @@ describe('CategoryUsageDrawer', () => {
       usage: 50,
     };
     SubscriptionStore.set(organization.slug, subscription);
-    await act(async () => {
-      renderComponent({
-        subscription,
-        categoryInfo: subscription.categories.transactions,
-        eventTotals: {
+    const usageData = CustomerUsageFixture({
+      totals: {
+        [DataCategory.TRANSACTIONS]: totals,
+        [DataCategory.PROFILES]: totals,
+      },
+      stats: {
+        [DataCategory.TRANSACTIONS]: stats,
+        [DataCategory.PROFILES]: stats,
+      },
+      eventTotals: {
+        [DataCategory.TRANSACTIONS]: {
           [DataCategory.TRANSACTIONS]: totals,
           [DataCategory.PROFILES]: totals,
         },
-        totals,
-        stats,
-        periodEnd: '2021-02-01',
-        periodStart: '2021-01-01',
+      },
+    });
+    await act(async () => {
+      renderComponent({
+        subscription,
+        selectedProduct: DataCategory.TRANSACTIONS,
+        usageData,
       });
       await tick();
     });
