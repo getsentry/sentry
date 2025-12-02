@@ -2,6 +2,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
+  DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -59,6 +60,32 @@ export const onboarding: OnboardingConfig = {
           text: t("And that's it! Now Sentry can capture errors automatically."),
         },
         {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable performance monitoring, set the [code:TracesSampleRate] option in the Sentry configuration window. For example, set it to [code:1.0] to capture 100% of transactions.',
+                {code: <code />}
+              ),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable structured logging, check the [code:Enable Logs] option in the Sentry configuration window.',
+                {code: <code />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             'If you like additional contexts you could enable [link:Screenshots].',
@@ -72,7 +99,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -89,6 +116,87 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isPerformanceSelected
+      ? ([
+          {
+            title: t('Tracing'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: `using Sentry;
+
+// Transaction can be started by providing, at minimum, the name and the operation
+var transaction = SentrySdk.StartTransaction(
+    "test-transaction-name",
+    "test-transaction-operation"
+);
+
+// Transactions can have child spans (and those spans can have child spans as well)
+var span = transaction.StartChild("test-child-operation");
+
+// ... Perform the operation
+
+span.Finish(); // Mark the span as finished
+transaction.Finish(); // Mark the transaction as finished and send it to Sentry`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/unity/tracing/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'Once logging is enabled, you can send logs using the Debug.Log API or directly via the SDK:'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: `using Sentry;
+using UnityEngine;
+
+// Unity's Debug.Log will automatically be captured
+Debug.Log("This log will be sent to Sentry");
+
+// Or use the SDK directly
+SentrySdk.Logger.LogInfo("A simple log message");
+SentrySdk.Logger.LogError("An error log message");`,
+              },
+              {
+                type: 'text',
+                text: tct('Check out [link:the Logs documentation] to learn more.', {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/unity/logs/" />
+                  ),
+                }),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Troubleshooting'),
       content: [

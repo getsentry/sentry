@@ -3,9 +3,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {getConfigureSnippet, getExcimerInstallSteps} from './utils';
 
@@ -67,7 +68,7 @@ SENTRY_DSN="${params.dsn.public}"
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -117,6 +118,50 @@ SENTRY_DSN="${params.dsn.public}"
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'Once configured, you can send logs using the standard PSR-3 logger interface:'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'php',
+                code: `use Psr\\Log\\LoggerInterface;
+
+class SomeService
+{
+    public function __construct(
+        private LoggerInterface $logger
+    ) {}
+
+    public function someMethod(): void
+    {
+        $this->logger->info('A test log message');
+        $this->logger->error('An error log message', ['context' => 'value']);
+    }
+}`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the Logs documentation] to learn more about Monolog integration.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/php/guides/symfony/logs/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
   ],
   nextSteps: () => [],
 };
