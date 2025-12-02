@@ -143,10 +143,17 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             query_end=end,
             limit=limit,
         )
+        # need to pass start, end to serializer
         return self.paginate(
             request=request,
             queryset=open_periods,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, time_window=int(bucket_size_param)),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                time_window=int(bucket_size_param),
+                query_start=start,
+                query_end=end,
+            ),
             count_hits=True,
         )
