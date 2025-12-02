@@ -276,7 +276,7 @@ describe('MetricRulesEdit', () => {
       aggregate: 'count()',
       query: '',
       eventTypes: [EventTypes.TRACE_ITEM_SPAN],
-      extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+      extrapolationMode: ExtrapolationMode.SERVER_WEIGHTED,
     });
 
     MockApiClient.addMockResponse({
