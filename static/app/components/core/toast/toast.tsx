@@ -1,28 +1,19 @@
-import {ThemeProvider} from '@emotion/react';
-import styled from '@emotion/styled';
+import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import {motion} from 'framer-motion';
+import {motion, type HTMLMotionProps} from 'framer-motion';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
+import {chonkFor} from 'sentry/components/core/chonk';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
-
-import {
-  ChonkToastContainer,
-  ChonkToastIconContainer,
-  ChonkToastLoadingIndicator,
-  ChonkToastMessage,
-  ChonkToastUndoButton,
-  ChonkToastUndoButtonContainer,
-} from './toast.chonk';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 export interface ToastProps {
   indicator: Indicator;
@@ -30,40 +21,34 @@ export interface ToastProps {
 }
 
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
-  const theme = useInvertedTheme();
-
-  const Wrapper = theme.isChonk ? React.Fragment : ThemeProvider;
-
   return (
-    <Wrapper theme={theme}>
-      <ToastContainer
-        onClick={
-          indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
-        }
-        data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
-        className={classNames('ref-toast', `ref-${indicator.type}`)}
-        type={indicator.type}
-        {...TOAST_TRANSITION}
-        {...props}
-      >
-        <ToastIcon type={indicator.type} />
-        <ToastMessage>
-          <TextOverflow>{indicator.message}</TextOverflow>
-        </ToastMessage>
-        {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
-          <ToastUndoButtonContainer type={indicator.type}>
-            <ToastUndoButton
-              priority={theme.isChonk ? 'default' : 'link'}
-              size={theme.isChonk ? 'xs' : undefined}
-              onClick={indicator.options.undo}
-              icon={<IconRefresh size="xs" />}
-            >
-              {t('Undo')}
-            </ToastUndoButton>
-          </ToastUndoButtonContainer>
-        ) : null}
-      </ToastContainer>
-    </Wrapper>
+    <ToastContainer
+      onClick={
+        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
+      }
+      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
+      className={classNames('ref-toast', `ref-${indicator.type}`)}
+      type={indicator.type}
+      {...TOAST_TRANSITION}
+      {...props}
+    >
+      <ToastIcon type={indicator.type} />
+      <Container padding="lg">
+        <TextOverflow>{indicator.message}</TextOverflow>
+      </Container>
+      {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
+        <Flex align="center" justify="center" padding="0 lg">
+          <Button
+            priority="default"
+            size="xs"
+            onClick={indicator.options.undo}
+            icon={<IconRefresh size="xs" />}
+          >
+            {t('Undo')}
+          </Button>
+        </Flex>
+      ) : null}
+    </ToastContainer>
   );
 }
 
@@ -108,82 +93,106 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-const ToastContainer = withChonk(
-  styled(motion.div)<React.HTMLAttributes<HTMLDivElement> & {type: Indicator['type']}>`
-    display: flex;
-    align-items: center;
-    height: 40px;
-    max-width: calc(100vw - ${space(4)} * 2);
-    padding: 0 15px 0 10px;
-    margin-top: 15px;
-    background: ${p => p.theme.background};
-    color: ${p => p.theme.textColor};
-    border-radius: 44px 7px 7px 44px;
-    box-shadow: ${p => p.theme.dropShadowHeavy};
-    position: relative;
-  `,
-  ChonkToastContainer
-);
+function getContainerTheme(
+  theme: DO_NOT_USE_ChonkTheme,
+  type: Indicator['type']
+): React.CSSProperties {
+  switch (type) {
+    case 'success':
+      return {
+        background: theme.colors.green100,
+        borderBottom: `2px solid ${theme.colors.border.success}`,
+        border: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
+        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.green400)}`,
+      };
+    case 'error':
+      return {
+        background: theme.colors.red100,
+        borderBottom: `2px solid ${theme.colors.border.danger}`,
+        border: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
+        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.red400)}`,
+      };
+    default:
+      return {
+        background: theme.colors.background.primary,
+        borderBottom: `2px solid ${theme.colors.border.accent}`,
+        border: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+        boxShadow: `0 3px 0 0px ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+      };
+  }
+}
 
-const ToastIconContainer = withChonk(
-  styled('div')<{type: Indicator['type']}>`
-    margin-right: ${space(0.75)};
+interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
+  children: React.ReactNode;
+  type: Indicator['type'];
+}
 
-    svg {
-      width: 16px;
-      height: 16px;
-      color: ${p =>
-        p.type === 'success'
-          ? p.theme.successText
-          : p.type === 'error'
-            ? p.theme.errorText
-            : p.theme.textColor};
-    }
-  `,
-  ChonkToastIconContainer
-);
+export const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
+  const {type, children, ...rest} = props;
+  return (
+    <ToastOuterContainer type={type} {...rest}>
+      <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
+    </ToastOuterContainer>
+  );
+})<ChonkToastContainerProps>``;
 
-const ToastMessage = withChonk(
-  styled('div')`
-    flex: 1;
-  `,
-  ChonkToastMessage
-);
+const ToastOuterContainer = chonkStyled(motion.div)<{type: Indicator['type']}>`
+  overflow: hidden;
+  /* The outer container is a separate element because the colors are not opaque,
+   * so we set the background color here to the background color so that the
+   * toast is not see-through.
+   */
+  background: ${p => p.theme.colors.background.primary};
+  border-radius: ${p => p.theme.radius.lg};
+  border: ${p => getContainerTheme(p.theme, p.type).border};
+  box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
+`;
 
-const ToastUndoButton = withChonk(
-  styled(Button)`
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-    color: ${p => p.theme.linkColor};
-    margin-left: ${space(2)};
+const ToastInnerContainer = chonkStyled('div')<{type: Indicator['type']}>`
+  display: flex;
+  align-items: stretch;
+  background: ${p => getContainerTheme(p.theme, p.type).background};
+`;
 
-    &:hover {
-      color: ${p => p.theme.linkHoverColor};
-    }
-  `,
-  ChonkToastUndoButton
-);
+function getToastIconContainerTheme(
+  theme: DO_NOT_USE_ChonkTheme,
+  type: Indicator['type']
+): React.CSSProperties {
+  switch (type) {
+    case 'success':
+      return {
+        background: theme.colors.chonk.green400,
+        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.green400)}`,
+      };
+    case 'error':
+      return {
+        background: theme.colors.chonk.red400,
+        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.red400)}`,
+      };
+    default:
+      return {
+        background: theme.colors.background.primary,
+        borderRight: `1px solid ${chonkFor(theme, theme.colors.chonk.blue400)}`,
+      };
+  }
+}
+export const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  position: relative;
+  ${p => ({...getToastIconContainerTheme(p.theme, p.type)})};
 
-const ToastUndoButtonContainer = withChonk(
-  styled('div')<{type: Indicator['type']}>`
-    color: ${p => p.theme.linkColor};
+  svg {
+    width: 16px;
+    height: 16px;
+    color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
+`;
 
-    &:hover {
-      color: ${p => p.theme.linkHoverColor};
-    }
-  `,
-  ChonkToastUndoButtonContainer
-);
+export const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
+  margin: 0;
+  .loading-indicator {
 
-const ToastLoadingIndicator = withChonk(
-  styled(LoadingIndicator)`
-    margin: 0;
-
-    .loading-indicator {
-      border-color: ${p => p.theme.border};
-      border-left-color: ${p => p.theme.purple300};
-    }
-  `,
-  ChonkToastLoadingIndicator
-);
+  }
+`;
