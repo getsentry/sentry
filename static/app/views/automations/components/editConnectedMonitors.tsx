@@ -318,13 +318,15 @@ function EditConnectedMonitorsContent({
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const issueStreamDetectorsQuery = useIssueStreamDetectors();
+  const {form} = useContext(FormContext);
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
       setMonitorMode(newMode);
       setConnectedIds([]);
+      form?.setValue('projectIds', []);
     },
-    [setConnectedIds]
+    [form, setConnectedIds]
   );
 
   const handleProjectChange = useCallback(
