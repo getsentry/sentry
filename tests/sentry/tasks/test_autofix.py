@@ -150,11 +150,11 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
+        # Set to non-off value so we can verify it gets changed to medium
+        project1.update_option("sentry:autofix_automation_tuning", "low")
+        project2.update_option("sentry:autofix_automation_tuning", "high")
 
-        configure_seer_for_existing_org(
-            organization_id=self.organization.id,
-            project_ids=[project1.id, project2.id],
-        )
+        configure_seer_for_existing_org(organization_id=self.organization.id)
 
         # Check org-level option
         assert self.organization.get_option("sentry:enable_seer_coding") is True
@@ -169,6 +169,24 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert mock_post.call_count == 4
 
     @patch("sentry.tasks.autofix.requests.post")
+    def test_keeps_autofix_off_if_explicitly_disabled(self, mock_post: MagicMock) -> None:
+        """Test that projects with autofix explicitly set to off keep it off."""
+        mock_get_response = MagicMock()
+        mock_get_response.json.return_value = {"preference": None}
+        mock_set_response = MagicMock()
+        mock_post.side_effect = [mock_get_response, mock_set_response]
+
+        project = self.create_project(organization=self.organization)
+        project.update_option("sentry:autofix_automation_tuning", "off")
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        # autofix_automation_tuning should stay off
+        assert project.get_option("sentry:autofix_automation_tuning") == "off"
+        # But scanner should still be enabled
+        assert project.get_option("sentry:seer_scanner_automation") is True
+
+    @patch("sentry.tasks.autofix.requests.post")
     def test_skips_projects_with_existing_stopping_point(self, mock_post: MagicMock) -> None:
         """Test that projects with open_pr or code_changes stopping point are skipped."""
         mock_get_open_pr = MagicMock()
@@ -181,13 +199,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         }
         mock_post.side_effect = [mock_get_open_pr, mock_get_code_changes]
 
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
 
-        configure_seer_for_existing_org(
-            organization_id=self.organization.id,
-            project_ids=[project1.id, project2.id],
-        )
+        configure_seer_for_existing_org(organization_id=self.organization.id)
 
         # Only GET calls, no SET calls (both skipped)
         assert mock_post.call_count == 2
@@ -210,10 +225,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        configure_seer_for_existing_org(
-            organization_id=self.organization.id,
-            project_ids=[project1.id, project2.id],
-        )
+        configure_seer_for_existing_org(organization_id=self.organization.id)
 
         # Both projects should still have their Sentry DB options set
         assert project1.get_option("sentry:seer_scanner_automation") is True
@@ -221,23 +233,3 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # 1 failed GET + 1 GET + 1 SET = 3 calls
         assert mock_post.call_count == 3
-
-    @patch("sentry.tasks.autofix.requests.post")
-    def test_ignores_projects_from_other_orgs(self, mock_post: MagicMock) -> None:
-        """Test that projects from other orgs are filtered out."""
-        mock_get_response = MagicMock()
-        mock_get_response.json.return_value = {"preference": None}
-        mock_set_response = MagicMock()
-        mock_post.side_effect = [mock_get_response, mock_set_response]
-
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        my_project = self.create_project(organization=self.organization)
-
-        configure_seer_for_existing_org(
-            organization_id=self.organization.id,
-            project_ids=[my_project.id, other_project.id],
-        )
-
-        # Only 2 API calls for my_project (GET + SET)
-        assert mock_post.call_count == 2

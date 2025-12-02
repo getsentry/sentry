@@ -107,23 +107,23 @@ def run_automation_only_task(group_id: int) -> None:
 @instrumented_task(
     name="sentry.tasks.autofix.configure_seer_for_existing_org",
     namespace=issues_tasks,
-    max_retries=1,
+    max_retries=3,
 )
-def configure_seer_for_existing_org(organization_id: int, project_ids: list[int]) -> None:
+def configure_seer_for_existing_org(organization_id: int) -> None:
     """
     Configure Seer settings for an existing organization migrating to new Seer pricing.
 
     Sets:
     - Org-level: enable_seer_coding=True - to override old check
-    - Project-level: seer_scanner_automation=True, autofix_automation_tuning="medium"
-    - Seer API: automated_run_stopping_point="code_changes"
+    - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium"
+    - Seer API (all projects): automated_run_stopping_point="code_changes"
     """
     organization = Organization.objects.get(id=organization_id)
 
     # Set org-level options
     organization.update_option("sentry:enable_seer_coding", True)
 
-    projects = Project.objects.filter(id__in=project_ids, organization_id=organization_id)
+    projects = Project.objects.filter(organization_id=organization_id, status=0)
 
     successful_project_ids = []
     failed_project_ids = []
@@ -132,7 +132,10 @@ def configure_seer_for_existing_org(organization_id: int, project_ids: list[int]
     for project in projects:
         # Set Sentry DB project options
         project.update_option("sentry:seer_scanner_automation", True)
-        project.update_option("sentry:autofix_automation_tuning", "medium")
+        # For existing projects, if autofix is off we keep it off (user explicitly disabled it)
+        current_tuning = project.get_option("sentry:autofix_automation_tuning")
+        if current_tuning != "off":
+            project.update_option("sentry:autofix_automation_tuning", "medium")
 
         try:
             # Get current Seer preferences
