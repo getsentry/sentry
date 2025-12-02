@@ -147,14 +147,14 @@ def poll_until_done(
     poll_interval: float,
     poll_timeout: float,
 ) -> SeerRunState:
-    """Poll the run status until completion or timeout."""
+    """Poll the run status until completion, error, awaiting_user_input, or timeout."""
     start_time = time.time()
 
     while True:
         result = fetch_run_status(run_id, organization)
 
         # Check if run is complete
-        if result.status in ("completed", "error"):
+        if result.status in ("completed", "error", "awaiting_user_input"):
             return result
 
         # Check timeout
