@@ -481,8 +481,9 @@ export function Control({
           {...overlayProps}
           style={{
             ...overlayProps.style,
-            paddingLeft: '15%',
-            paddingRight: '15%',
+            maxWidth: overlayProps.style?.maxWidth
+              ? `calc(${overlayProps.style.maxWidth}px * 0.9)`
+              : undefined,
           }}
         >
           {overlayIsOpen && (
