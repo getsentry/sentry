@@ -92,6 +92,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  autoOpenPrs?: boolean;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
