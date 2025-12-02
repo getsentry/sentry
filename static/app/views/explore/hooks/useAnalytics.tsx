@@ -933,7 +933,6 @@ export function useMetricsAnalytics({
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
 
-  const metricQueriesCount = useBox(metricQueries.length);
   const metricPanelsWithGroupBysCount = useBox(
     metricQueries.filter(mq =>
       mq.queryParams.groupBys.some((gb: string) => gb.trim().length > 0)
@@ -960,7 +959,7 @@ export function useMetricsAnalytics({
       interval,
       metric_panels_with_filters_count: metricPanelsWithFiltersCount.current,
       metric_panels_with_group_bys_count: metricPanelsWithGroupBysCount.current,
-      metric_queries_count: metricQueriesCount.current,
+      metric_queries_count: metricQueries.length,
       project_count: projectCount,
     });
 
@@ -970,7 +969,7 @@ export function useMetricsAnalytics({
       datetime_selection: ${datetimeSelection}
       environment_count: ${String(environmentCount)}
       interval: ${interval}
-      metric_queries_count: ${String(metricQueriesCount.current)}
+      metric_queries_count: ${String(metricQueries.length)}
       metric_panels_with_group_bys_count: ${String(metricPanelsWithGroupBysCount.current)}
       metric_panels_with_filters_count: ${String(metricPanelsWithFiltersCount.current)}
       project_count: ${String(projectCount)}
@@ -982,7 +981,7 @@ export function useMetricsAnalytics({
     hasExceededPerformanceUsageLimit,
     interval,
     isLoadingSubscriptionDetails,
-    metricQueriesCount,
+    metricQueries.length,
     metricPanelsWithGroupBysCount,
     metricPanelsWithFiltersCount,
     organization,
