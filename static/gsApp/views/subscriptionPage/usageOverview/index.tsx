@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -14,7 +14,7 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -61,7 +61,9 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import CategoryUsageDrawer from 'getsentry/views/subscriptionPage/components/categoryUsageDrawer';
-import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/actions';
+import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
+import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 interface UsageOverviewProps {
   organization: Organization;
@@ -103,7 +105,11 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
   );
 }
 
-function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
+function LegacyUsageOverviewTable({
+  subscription,
+  organization,
+  usageData,
+}: UsageOverviewProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
@@ -821,11 +827,30 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
         </Flex>
         {hasBillingPerms && <UsageOverviewActions organization={organization} />}
       </Flex>
-      <UsageOverviewTable
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />
+      {/* XXX(isabella): this is temporary until the panel is used in the new usage overview so knip stays happy */}
+      {organization.features.includes('usage-overview-v2') ? (
+        <Fragment>
+          <UsageOverviewTable
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+            onRowClick={() => {}}
+            selectedProduct={DataCategory.ERRORS}
+          />
+          <ProductBreakdownPanel
+            organization={organization}
+            subscription={subscription}
+            usageData={usageData}
+            selectedProduct={DataCategory.ERRORS}
+          />
+        </Fragment>
+      ) : (
+        <LegacyUsageOverviewTable
+          subscription={subscription}
+          organization={organization}
+          usageData={usageData}
+        />
+      )}
     </Container>
   );
 }
