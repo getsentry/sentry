@@ -35,7 +35,7 @@ def _update_workflow_engine_models(
         if alert_rule_detector and alert_rule_detector.detector:
             detector = alert_rule_detector.detector
             detector.update(enabled=is_enabled)
-            if isinstance(requesting_user, User):
+            if isinstance(requesting_user, User) or isinstance(requesting_user, RpcUser):
                 assert not isinstance(requesting_user, AnonymousUser)
                 create_audit_entry_from_user(
                     user=requesting_user,
