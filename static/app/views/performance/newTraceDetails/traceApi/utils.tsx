@@ -3,7 +3,6 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
-  isEAPTransaction,
   isRootEvent,
   isTraceNode,
   isTraceSplitResult,
@@ -57,7 +56,8 @@ export const getRepresentativeTraceEvent = (
     return {type: 'uptime_check', event: traceChild.value};
   }
 
-  let rootEvent: TraceTree.TraceEvent | null = null;
+  let preferredRootEvent: TraceTree.TraceEvent | null = null;
+  let firstRootEvent: TraceTree.TraceEvent | null = null;
   let candidateEvent: TraceTree.TraceEvent | null = null;
   let firstEvent: TraceTree.TraceEvent | null = null;
 
@@ -67,15 +67,12 @@ export const getRepresentativeTraceEvent = (
     : [...traceNode.value.transactions, ...traceNode.value.orphan_errors];
   for (const event of events) {
     if (isRootEvent(event)) {
-      rootEvent = event;
-
-      if (!isEAP) {
-        // For non-EAP traces, we return the first root event.
-        break;
+      if (!firstRootEvent) {
+        firstRootEvent = event;
       }
 
-      if (isEAPTransaction(event)) {
-        // If we find a root EAP transaction, we can stop looking and use it for the title.
+      if (hasPreferredOp(event)) {
+        preferredRootEvent = event;
         break;
       }
       // Otherwise we keep looking for a root eap transaction. If we don't find one, we use other roots, like standalone spans.
@@ -85,13 +82,7 @@ export const getRepresentativeTraceEvent = (
       // with an op that we care about, we can use it for the title. We keep looking for
       // a root.
       !candidateEvent &&
-      CANDIDATE_TRACE_TITLE_OPS.includes(
-        'transaction.op' in event
-          ? event['transaction.op']
-          : 'op' in event
-            ? event.op
-            : ''
-      )
+      hasPreferredOp(event)
     ) {
       candidateEvent = event;
       continue;
@@ -103,7 +94,7 @@ export const getRepresentativeTraceEvent = (
   }
 
   return {
-    event: rootEvent ?? candidateEvent ?? firstEvent,
+    event: preferredRootEvent ?? firstRootEvent ?? candidateEvent ?? firstEvent,
     type: 'span',
   };
 };
@@ -119,3 +110,18 @@ export const isValidEventUUID = (id: string): boolean => {
     /^[0-9a-f]{8}[0-9a-f]{4}[1-5][0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 };
+
+/**
+ * Prefer "special" root events over generic root events when generating a title
+ * for the waterfall view. Picking these improves contextual navigation for linked
+ * traces, resulting in more meaningful waterfall titles.
+ */
+function hasPreferredOp(event: TraceTree.TraceEvent): boolean {
+  const op =
+    'op' in event
+      ? event.op
+      : 'transaction.op' in event
+        ? event['transaction.op']
+        : undefined;
+  return !!op && CANDIDATE_TRACE_TITLE_OPS.includes(op);
+}
