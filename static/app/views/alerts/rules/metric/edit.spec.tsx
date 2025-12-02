@@ -335,7 +335,7 @@ describe('MetricRulesEdit', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          extrapolationMode: ExtrapolationMode.UNKNOWN,
+          extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
         }),
         method: 'PUT',
       })

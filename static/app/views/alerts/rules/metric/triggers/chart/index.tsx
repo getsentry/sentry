@@ -184,8 +184,17 @@ class TriggersChart extends PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate, projects, showTotalCount} =
-      this.props;
+    const {
+      query,
+      environment,
+      timeWindow,
+      aggregate,
+      projects,
+      showTotalCount,
+      extrapolationMode,
+      dataset,
+      traceItemType,
+    } = this.props;
     const {statsPeriod} = this.state;
     if (
       !isEqual(prevProps.projects, projects) ||
@@ -196,6 +205,15 @@ class TriggersChart extends PureComponent<Props, State> {
     ) {
       if (showTotalCount && !isSessionAggregate(aggregate)) {
         this.fetchTotalCount();
+      }
+    }
+    if (prevProps.extrapolationMode !== this.props.extrapolationMode) {
+      if (getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)) {
+        this.setState({
+          adjustedExtrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+        });
+      } else {
+        this.setState({adjustedExtrapolationMode: extrapolationMode});
       }
     }
   }
