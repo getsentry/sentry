@@ -17,10 +17,6 @@ uwsgi: Any = None
 try:
     import uwsgi
 except ImportError:
-    if not (settings.IS_DEV or in_test_environment()):
-        raise RuntimeError(
-            "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
-        )
     pass
 
 from sentry import features, options
@@ -108,9 +104,13 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
                 return Response("Expected a request body", status=400)
 
             if not uwsgi:
-                # This is needed only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
+                # This code path should be hit only in test/dev mode, where the wsgi implementation is wsgiref, not uwsgi.
                 # wsgiref doesn't handle chunked encoding automatically, and exposes different functions on the class it uses to represent the input stream.
                 # Therefore, we need to decode the chunked encoding ourselves using ChunkedEncodingDecoder.
+                if not (settings.IS_DEV or in_test_environment()):
+                    raise RuntimeError(
+                        "This module assumes that uWSGI is used in production, and it seems that this is not true anymore. Adapt the module to the new server."
+                    )
                 stream = ChunkedEncodingDecoder(wsgi_input._read)
             else:
 
