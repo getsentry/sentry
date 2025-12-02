@@ -111,7 +111,7 @@
     "classnames": "2.3.1",
     "color": "5.0.2",
     "compression-webpack-plugin": "11.1.0",
-    "conduit-client": "^0.4.0",
+    "conduit-client": "^1.0.0",
     "core-js": "3.45.0",
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
