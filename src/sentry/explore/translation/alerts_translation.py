@@ -61,7 +61,15 @@ def _get_old_query_info(snuba_query: SnubaQuery):
 
 
 def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
-    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query)
+    query_subscription_qs = QuerySubscription.objects.filter(
+        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+    )
+    query_subscription = query_subscription_qs.first()
+
+    if not query_subscription:
+        logger.info("No active query subscription found for snuba query %s", snuba_query.id)
+        return
+
     data_source: DataSource = DataSource.objects.get(
         source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     )
@@ -166,7 +174,15 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
 
 def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
-    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query)
+    query_subscription_qs = QuerySubscription.objects.filter(
+        snuba_query_id=snuba_query.id, status=QuerySubscription.Status.ACTIVE.value
+    )
+    query_subscription = query_subscription_qs.first()
+
+    if not query_subscription:
+        logger.info("No active query subscription found for snuba query %s", snuba_query.id)
+        return
+
     data_source: DataSource = DataSource.objects.get(
         source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     )

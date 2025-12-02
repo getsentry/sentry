@@ -182,6 +182,7 @@ def create_snuba_subscription(
     subscription_type: str,
     snuba_query: SnubaQuery,
     query_extra: str | None = None,
+    status: QuerySubscription.Status = QuerySubscription.Status.CREATING.value,
 ) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
@@ -193,7 +194,7 @@ def create_snuba_subscription(
     :return: The QuerySubscription representing the subscription
     """
     subscription = QuerySubscription.objects.create(
-        status=QuerySubscription.Status.CREATING.value,
+        status=status,
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
