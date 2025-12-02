@@ -3,9 +3,8 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry import analytics
-from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
-from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import APITestCase
 
 
@@ -22,8 +21,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.org.id,
+        commit_comparison = self.create_commit_comparison(
+            organization=self.org,
             head_sha="1234567890098765432112345678900987654321",
             base_sha="9876543210012345678998765432100123456789",
             provider="github",
@@ -35,7 +34,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
 
         # Create multiple artifacts for testing pagination
-        self.artifact1 = PreprodArtifact.objects.create(
+        self.artifact1 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -49,7 +48,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             commit_comparison=commit_comparison,
         )
 
-        self.artifact2 = PreprodArtifact.objects.create(
+        self.artifact2 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -63,7 +62,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             commit_comparison=commit_comparison,
         )
 
-        self.artifact3 = PreprodArtifact.objects.create(
+        self.artifact3 = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADED,
@@ -392,12 +391,12 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     # Build configuration filtering tests
     def test_list_builds_filter_by_build_configuration(self) -> None:
         # Create a build configuration and artifact with it
-        build_config = PreprodBuildConfiguration.objects.create(
+        build_config = self.create_preprod_build_configuration(
             name="Release",
             project=self.project,
         )
 
-        PreprodArtifact.objects.create(
+        self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -590,7 +589,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     # Test with artifacts without commit comparison
     def test_list_builds_without_commit_comparison(self) -> None:
         # Create an artifact without commit comparison
-        PreprodArtifact.objects.create(
+        self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,

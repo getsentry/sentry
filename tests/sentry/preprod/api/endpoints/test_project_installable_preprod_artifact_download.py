@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import TestCase
 
 
@@ -15,7 +15,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             type="application/octet-stream",
         )
 
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -26,7 +26,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             app_name="TestApp",
         )
 
-        self.installable = InstallablePreprodArtifact.objects.create(
+        self.installable = self.create_installable_preprod_artifact(
             preprod_artifact=self.preprod_artifact,
             url_path="test-url-path-123",
             expiration_date=timezone.now() + timedelta(hours=24),

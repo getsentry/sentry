@@ -13,8 +13,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
-        self.preprod_artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        self.preprod_artifact = self.create_preprod_artifact(
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )

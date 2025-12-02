@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 
@@ -18,8 +17,8 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.org.id,
+        commit_comparison = self.create_commit_comparison(
+            organization=self.org,
             head_sha="1234567890098765432112345678900987654321",
             base_sha="9876543210012345678998765432100123456789",
             provider="github",
@@ -30,10 +29,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             pr_number=123,
         )
 
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
             app_name="TestApp",
@@ -130,9 +128,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_pending(self) -> None:
         """Test that pending size analysis returns SizeInfoPending."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
@@ -150,9 +148,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_processing(self) -> None:
         """Test that processing size analysis returns SizeInfoProcessing."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
         )
 
@@ -173,9 +171,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_completed(self) -> None:
         """Test that completed size analysis returns SizeInfoComplete with data."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
             max_download_size=512000,
@@ -195,9 +193,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_size_info_failed(self) -> None:
         """Test that failed size analysis returns SizeInfoFailed."""
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
             error_code=1,
             error_message="Analysis failed due to invalid artifact",

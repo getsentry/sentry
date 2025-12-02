@@ -12,7 +12,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
-        self.artifact = PreprodArtifact.objects.create(
+        self.artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.UPLOADING,
@@ -73,7 +73,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_mark_as_failed(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(preprod_artifact=self.artifact)
+        self.create_preprod_artifact_size_metrics(self.artifact)
 
         response = self._put(
             orjson.dumps({"state": 3, "error_code": 2, "error_message": "detailed reason"})
@@ -88,9 +88,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_mark_as_failed_with_identifier(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.artifact, identifier="some_feature"
-        )
+        self.create_preprod_artifact_size_metrics(self.artifact, identifier="some_feature")
 
         response = self._put(
             orjson.dumps({"state": 3, "error_code": 3, "error_message": "another detailed reason"}),
@@ -107,10 +105,8 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_mark_as_failed_multiple(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.artifact, identifier="some_feature"
-        )
-        PreprodArtifactSizeMetrics.objects.create(preprod_artifact=self.artifact)
+        self.create_preprod_artifact_size_metrics(self.artifact, identifier="some_feature")
+        self.create_preprod_artifact_size_metrics(self.artifact)
 
         self._put(orjson.dumps({"state": 3, "error_code": 2, "error_message": "detailed reason"}))
 
@@ -133,9 +129,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_will_create(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=self.artifact, identifier="wrong_one"
-        )
+        self.create_preprod_artifact_size_metrics(self.artifact, identifier="wrong_one")
 
         self._put(orjson.dumps({"state": 3, "error_code": 2, "error_message": "detailed reason"}))
 
@@ -146,7 +140,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_pending(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(preprod_artifact=self.artifact)
+        self.create_preprod_artifact_size_metrics(self.artifact)
 
         self._put(orjson.dumps({"state": 0}))
 
@@ -155,7 +149,7 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_processing(self) -> None:
-        PreprodArtifactSizeMetrics.objects.create(preprod_artifact=self.artifact)
+        self.create_preprod_artifact_size_metrics(self.artifact)
 
         self._put(orjson.dumps({"state": 1}))
 

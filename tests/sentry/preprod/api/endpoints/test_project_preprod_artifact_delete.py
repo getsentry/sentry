@@ -21,10 +21,9 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_delete_artifact_success(self):
-        main_file = File.objects.create(name="test_artifact.zip", type="application/zip")
-        installable_file = File.objects.create(name="test_app.ipa", type="application/octet-stream")
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        main_file = self.create_file(name="test_artifact.zip", type="application/zip")
+        installable_file = self.create_file(name="test_app.ipa", type="application/octet-stream")
+        artifact = self.create_preprod_artifact(
             file_id=main_file.id,
             installable_app_file_id=installable_file.id,
             app_name="test_artifact",
@@ -32,12 +31,14 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
             build_version="1.0.0",
             build_number=1,
         )
-        analysis_file = File.objects.create(name="analysis.json", type="application/json")
-        size_metric = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            analysis_file_id=analysis_file.id,
+        analysis_file = self.create_file(name="analysis.json", type="application/json")
+        size_metric = self.create_preprod_artifact_size_metrics(
+            artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
-        installable = InstallablePreprodArtifact.objects.create(
+        size_metric.analysis_file_id = analysis_file.id
+        size_metric.save()
+        installable = self.create_installable_preprod_artifact(
             preprod_artifact=artifact,
             url_path="test-url-path",
         )
@@ -83,8 +84,7 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": False})
     def test_delete_artifact_feature_disabled(self):
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        artifact = self.create_preprod_artifact(
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
@@ -103,8 +103,7 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
     def test_delete_artifact_minimal(self):
         """Test deleting an artifact with only the minimum required fields"""
         # Create the preprod artifact without optional files
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
+        artifact = self.create_preprod_artifact(
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
