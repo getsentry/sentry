@@ -215,10 +215,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         return results
 
-
-class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.DATA_BROWSING
-
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
@@ -776,7 +772,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return serialized_values
 
 
-class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+class KeyTransactionBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:performance-view", organization, actor=request.user)
 

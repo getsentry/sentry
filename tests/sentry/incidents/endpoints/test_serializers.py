@@ -931,6 +931,50 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Verify the mock was called with correct project IDs
         mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
 
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self):
+        alert_rule = self.create_alert_rule()
+
+        alert_rule.snuba_query.query_snapshot = {
+            "type": alert_rule.snuba_query.type,
+            "dataset": alert_rule.snuba_query.dataset,
+            "query": alert_rule.snuba_query.query,
+            "aggregate": alert_rule.snuba_query.aggregate,
+        }
+        alert_rule.snuba_query.save()
+
+        params = self.valid_params.copy()
+        params["name"] = "Updated Alert Name"
+
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+
+        updated_alert_rule = serializer.save()
+        updated_alert_rule.snuba_query.refresh_from_db()
+
+        assert updated_alert_rule.snuba_query.query_snapshot is not None
+        assert updated_alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
+    def test_update_does_not_mark_user_updated_when_no_snapshot(self):
+        alert_rule = self.create_alert_rule()
+
+        alert_rule.snuba_query.query_snapshot = None
+        alert_rule.snuba_query.save()
+
+        params = self.valid_params.copy()
+        params["name"] = "Updated Alert Name"
+
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+
+        updated_alert_rule = serializer.save()
+        updated_alert_rule.snuba_query.refresh_from_db()
+
+        assert updated_alert_rule.snuba_query.query_snapshot is None
+
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property

@@ -75,6 +75,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     yAxis: traceMetric.name || '',
     sortBys,
     aggregateSortBys,
+    panelIndex: queryIndex,
   });
 
   return (

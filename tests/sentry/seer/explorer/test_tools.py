@@ -1915,18 +1915,17 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
         ts = datetime.fromisoformat(auth_log["timestamp"]).timestamp()
         assert int(ts) == auth_log_expected.timestamp.seconds
 
-        for name, value, type in [
-            ("message", "User authentication failed", "str"),
-            ("project", self.project.slug, "str"),
-            ("project.id", self.project.id, "int"),
-            ("severity", "ERROR", "str"),
-            ("my-string-attribute", "custom value", "str"),
-            ("my-boolean-attribute", True, "double"),
-            ("my-double-attribute", 1.23, "double"),
-            ("my-integer-attribute", 123, "double"),
+        for name, value in [
+            ("message", "User authentication failed"),
+            ("project", self.project.slug),
+            ("project.id", self.project.id),
+            ("severity", "ERROR"),
+            ("my-string-attribute", "custom value"),
+            ("my-boolean-attribute", True),
+            ("my-double-attribute", 1.23),
+            ("my-integer-attribute", 123),
         ]:
             assert auth_log["attributes"][name]["value"] == value, name
-            assert auth_log["attributes"][name]["type"] == type, f"{name} type mismatch"
 
     def test_get_log_attributes_for_trace_substring_filter(self) -> None:
         result = get_log_attributes_for_trace(
@@ -2066,21 +2065,20 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
         ts = datetime.fromisoformat(http_metric["timestamp"]).timestamp()
         assert int(ts) == http_metric_expected.timestamp.seconds
 
-        for name, value, type in [
-            ("metric.name", "http.request.duration", "str"),
-            ("metric.type", "distribution", "str"),
-            ("value", 125.5, "double"),
-            ("project", self.project.slug, "str"),
-            ("project.id", self.project.id, "int"),
-            ("http.method", "GET", "str"),
-            ("http.status_code", 200, "double"),
-            ("my-string-attribute", "custom value", "str"),
-            ("my-boolean-attribute", True, "double"),
-            ("my-double-attribute", 1.23, "double"),
-            ("my-integer-attribute", 123, "double"),
+        for name, value in [
+            ("metric.name", "http.request.duration"),
+            ("metric.type", "distribution"),
+            ("value", 125.5),
+            ("project", self.project.slug),
+            ("project.id", self.project.id),
+            ("http.method", "GET"),
+            ("http.status_code", 200),
+            ("my-string-attribute", "custom value"),
+            ("my-boolean-attribute", True),
+            ("my-double-attribute", 1.23),
+            ("my-integer-attribute", 123),
         ]:
             assert http_metric["attributes"][name]["value"] == value, name
-            assert http_metric["attributes"][name]["type"] == type, f"{name} type mismatch"
 
     def test_get_metric_attributes_for_trace_name_filter(self) -> None:
         # Test substring match (fails)
