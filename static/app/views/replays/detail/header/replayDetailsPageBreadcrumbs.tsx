@@ -173,4 +173,5 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
+  height: 34px;
 `;
