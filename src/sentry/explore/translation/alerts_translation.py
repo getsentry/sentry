@@ -79,7 +79,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
     if snapshot.get("user_updated"):
         logger.info(
-            "Skipping rollback for user-updated query", extra={"snuba_query_id": snuba_query.id}
+            "Skipping roll forward for user-updated query", extra={"snuba_query_id": snuba_query.id}
         )
         return
 
