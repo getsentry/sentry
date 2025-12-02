@@ -109,7 +109,9 @@ def _ensure_detector(project: Project, type: str) -> Detector:
         raise UnableToAcquireLockApiError
 
 
-def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) -> Detector:
+def _ensure_metric_detector(
+    project: Project, owner_team_id: int | None = None, enabled: bool = True
+) -> Detector:
     """
     Creates an default anomaly detection metric monitor for high error count.
     """
@@ -125,13 +127,11 @@ def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) 
             transaction.atomic(router.db_for_write(Detector)),
         ):
 
-            # Create condition group
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,
                 organization_id=project.organization_id,
             )
 
-            # Create anomaly detection condition
             DataCondition.objects.create(
                 comparison={
                     "sensitivity": "low",
@@ -143,7 +143,6 @@ def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) 
                 condition_group=condition_group,
             )
 
-            # Create detector
             detector = Detector.objects.create(
                 project=project,
                 name="High Error Count (Default)",
@@ -155,9 +154,9 @@ def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) 
                     "comparison_delta": None,
                 },
                 owner_team_id=owner_team_id,
+                enabled=enabled,
             )
 
-            # Create Snuba query for error count monitoring
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.ERROR,
                 dataset=Dataset.Events,
@@ -169,21 +168,18 @@ def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) 
                 event_types=[SnubaQueryEventType.EventType.ERROR],
             )
 
-            # Create query subscription
             query_subscription = create_snuba_subscription(
                 project=project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=snuba_query,
             )
 
-            # Create data source
             data_source = DataSource.objects.create(
                 organization_id=project.organization_id,
                 source_id=str(query_subscription.id),
                 type="snuba_query_subscription",
             )
 
-            # Link data source to detector
             DataSourceDetector.objects.create(
                 data_source=data_source,
                 detector=detector,
@@ -195,7 +191,6 @@ def _ensure_metric_detector(project: Project, owner_team_id: int | None = None) 
 
 
 def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
-    """Creates default error and issue stream detectors for a project."""
     return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
         project, IssueStreamGroupType.slug
     )

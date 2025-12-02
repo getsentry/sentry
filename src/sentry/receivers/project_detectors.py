@@ -52,16 +52,16 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
     Creates default metric detector when project is created, with the team as owner.
     This listens to project_created signal which provides user information.
     """
-    # Get the first team assigned to the project
+
     owner_team = project.teams.first()
 
-    # Check if feature flag is enabled for the organization, passing user as actor
-    # This allows enabling the feature by user email in Flagpole
     if not features.has("organizations:default-anomaly-detector", project.organization, actor=user):
         return
 
     try:
-        _ensure_metric_detector(project, owner_team_id=owner_team.id if owner_team else None)
+        _ensure_metric_detector(
+            project, owner_team_id=owner_team.id if owner_team else None, enabled=False
+        )
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
 
