@@ -23,7 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -59,6 +59,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    HOST_RESPONSE_ERROR = "host_response_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
 
@@ -327,6 +328,22 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
+        elif isinstance(exc, ApiError):
+            status_code = exc.code or 502
+            failure_tags = {"status": str(status_code)}
+            logger.info(
+                "hybrid_cloud.integration_proxy.host_response_error",
+                extra={**self.log_extra, **failure_tags},
+            )
+            self._add_failure_metric(
+                IntegrationProxyFailureMetricType.HOST_RESPONSE_ERROR,
+                additional_tags=failure_tags,
+            )
+            if exc.json is not None:
+                return DRFResponse(exc.json, status=status_code)
+            if exc.text:
+                return self.respond({"detail": exc.text}, status=status_code)
+            return self.respond(status=status_code)
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
