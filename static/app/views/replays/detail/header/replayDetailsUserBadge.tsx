@@ -1,9 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -13,8 +9,7 @@ import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingSt
 import {
   getLiveDurationMs,
   getReplayExpiresAtMs,
-  LIVE_TOOLTIP_MESSAGE,
-  LiveIndicator,
+  LiveBadge,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
@@ -134,20 +129,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {showLiveIndicator ? (
-                <Tooltip
-                  title={LIVE_TOOLTIP_MESSAGE}
-                  underlineColor="danger"
-                  showUnderline
-                >
-                  <Flex align="center" gap="xs">
-                    <Text bold variant="danger" data-test-id="live-badge">
-                      {t('LIVE')}
-                    </Text>
-                    <LiveIndicator />
-                  </Flex>
-                </Tooltip>
-              ) : null}
+              {showLiveIndicator ? <LiveBadge /> : null}
               <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
                 data-test-id="refresh-button"

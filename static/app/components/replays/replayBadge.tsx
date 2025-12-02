@@ -106,12 +106,12 @@ export default function ReplayBadge({replay}: Props) {
           </div>
           {isLive ? (
             <Flex align="center" gap="xs">
-              <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="danger">
-                <Text bold variant="danger" data-test-id="live-badge">
-                  {t('LIVE')}
-                </Text>
+              <Text bold variant="danger" data-test-id="live-badge">
+                {t('LIVE')}
+              </Text>
+              <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+                <LiveIndicator />
               </Tooltip>
-              <LiveIndicator />
             </Flex>
           ) : null}
         </Flex>

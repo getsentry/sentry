@@ -1,6 +1,10 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -30,6 +34,19 @@ const pulse = keyframes`
     opacity: 0;
   }
 `;
+
+export function LiveBadge() {
+  return (
+    <Flex align="center" gap="xs">
+      <Text bold variant="danger" data-test-id="live-badge">
+        {t('LIVE')}
+      </Text>
+      <Tooltip title={LIVE_TOOLTIP_MESSAGE} underlineColor="danger" showUnderline>
+        <LiveIndicator />
+      </Tooltip>
+    </Flex>
+  );
+}
 
 export const LiveIndicator = styled('div')`
   background: ${p => p.theme.danger};
