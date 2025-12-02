@@ -1,5 +1,10 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout/container';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Text} from '@sentry/scraps/text';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Panel from 'sentry/components/panels/panel';
@@ -27,12 +32,19 @@ export interface FormPanelProps {
    * Disables the entire form
    */
   disabled?: boolean;
+
   features?: Record<string, any>;
+
   /**
    * The name of the field that should be highlighted
    */
   highlighted?: string;
   initiallyCollapsed?: boolean;
+
+  /**
+   * Used by the `collapsible` field type to adjust rendering of the form title
+   */
+  nested?: boolean;
   /**
    * Renders inside of PanelBody before PanelBody close
    */
@@ -47,7 +59,7 @@ export interface FormPanelProps {
   title?: React.ReactNode;
 }
 
-function FormPanel({
+export default function FormPanel({
   additionalFieldProps = {},
   title,
   fields,
@@ -57,10 +69,82 @@ function FormPanel({
   renderHeader,
   collapsible,
   initiallyCollapsed = false,
+  nested = false,
   ...otherProps
 }: FormPanelProps) {
   const [collapsed, setCollapse] = useState(initiallyCollapsed);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
+
+  const panelBody = (
+    <Fragment>
+      {typeof renderHeader === 'function' && renderHeader({title, fields})}
+
+      {fields.map(field => {
+        if (typeof field === 'function') {
+          return field();
+        }
+
+        const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+        const fieldConfig =
+          field.type === 'boolean' || field.type === 'bool'
+            ? field
+            : fieldWithoutDefaultValue;
+
+        // Allow the form panel disabled prop to override the fields
+        // disabled prop, with fallback to the fields disabled state.
+        if (disabled === true) {
+          fieldWithoutDefaultValue.disabled = true;
+          fieldWithoutDefaultValue.disabledReason = undefined;
+        }
+
+        return (
+          <FieldFromConfig
+            access={access}
+            disabled={disabled}
+            key={field.name}
+            {...otherProps}
+            {...additionalFieldProps}
+            field={fieldConfig}
+            highlighted={otherProps.highlighted === `#${field.name}`}
+          />
+        );
+      })}
+      {typeof renderFooter === 'function' && renderFooter({title, fields})}
+    </Fragment>
+  );
+
+  if (nested) {
+    return (
+      <Container padding="lg xl">
+        <Flex padding="sm 0">
+          {title && (
+            <Button
+              priority="link"
+              onClick={handleCollapseToggle}
+              aria-label={collapsed ? t('Expand Options') : t('Collapse Options')}
+              aria-expanded={!collapsed}
+            >
+              <Text size="sm" bold={false}>
+                <Flex align="center" gap="xs">
+                  <IconChevron
+                    data-test-id="form-panel-collapse-chevron"
+                    direction={collapsed ? 'right' : 'down'}
+                    size="xs"
+                  />
+                  {title}
+                </Flex>
+              </Text>
+            </Button>
+          )}
+        </Flex>
+        <PanelBody hidden={collapsed}>
+          <Container border="primary" radius="md" padding="sm" data-test-id="body">
+            {panelBody}
+          </Container>
+        </PanelBody>
+      </Container>
+    );
+  }
 
   return (
     <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
@@ -89,46 +173,10 @@ function FormPanel({
           )}
         </PanelHeader>
       )}
-      <PanelBody hidden={collapsed}>
-        {typeof renderHeader === 'function' && renderHeader({title, fields})}
-
-        {fields.map(field => {
-          if (typeof field === 'function') {
-            return field();
-          }
-
-          const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
-          const fieldConfig =
-            field.type === 'boolean' || field.type === 'bool'
-              ? field
-              : fieldWithoutDefaultValue;
-
-          // Allow the form panel disabled prop to override the fields
-          // disabled prop, with fallback to the fields disabled state.
-          if (disabled === true) {
-            fieldWithoutDefaultValue.disabled = true;
-            fieldWithoutDefaultValue.disabledReason = undefined;
-          }
-
-          return (
-            <FieldFromConfig
-              access={access}
-              disabled={disabled}
-              key={field.name}
-              {...otherProps}
-              {...additionalFieldProps}
-              field={fieldConfig}
-              highlighted={otherProps.highlighted === `#${field.name}`}
-            />
-          );
-        })}
-        {typeof renderFooter === 'function' && renderFooter({title, fields})}
-      </PanelBody>
+      <PanelBody hidden={collapsed}>{panelBody}</PanelBody>
     </Panel>
   );
 }
-
-export default FormPanel;
 
 const Collapse = styled('span')`
   cursor: pointer;
