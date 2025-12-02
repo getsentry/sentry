@@ -968,7 +968,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
 
-        assert mock_metrics.incr.call_count == 0
+        assert mock_metrics.incr.call_count == 1
 
     def assert_group_link(self, group, pr):
         link = GroupLink.objects.get()
