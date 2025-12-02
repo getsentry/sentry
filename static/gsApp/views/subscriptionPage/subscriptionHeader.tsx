@@ -229,7 +229,7 @@ function SubscriptionHeader(props: Props) {
           </Flex>
         </Flex>
       </Flex>
-      <Flex direction="column" padding="0 2xl xl" gap="xl">
+      <Flex direction="column" padding="0 2xl xl" gap="xl" borderBottom="primary">
         <SubscriptionUpsellBanner
           organization={organization}
           subscription={subscription}
