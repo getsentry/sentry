@@ -9,17 +9,18 @@ import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel
 
-from sentry import options
+from sentry import features, options
 from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.explorer.index_data import get_trace_for_transaction, get_transactions_for_project
+from sentry.seer.explorer.index_data import get_transactions_for_project
 from sentry.seer.models import SeerApiError
-from sentry.seer.sentry_data_models import TraceData
+from sentry.seer.sentry_data_models import EvidenceTraceData
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.llm_issue_detection.trace_data import get_evidence_trace_for_llm_detection
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
 
@@ -73,7 +74,7 @@ class LLMIssueDetectionError(SeerApiError):
 
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
-    trace: TraceData,
+    trace: EvidenceTraceData,
     project_id: int,
     transaction_name: str,
 ) -> None:
@@ -180,7 +181,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     Process a single project for LLM issue detection.
     """
     project = Project.objects.get_from_cache(id=project_id)
-    organization_id = project.organization_id
+    organization = project.organization
+    organization_id = organization.id
+
+    has_access = features.has("organizations:gen-ai-features", organization) and not bool(
+        organization.get_option("sentry:hide_ai_features")
+    )
+    if not has_access:
+        return
 
     transactions = get_transactions_for_project(
         project_id, limit=50, start_time_delta={"minutes": 30}
@@ -197,9 +205,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             break
 
         try:
-            trace: TraceData | None = get_trace_for_transaction(
-                transaction.name, transaction.project_id
-            )
+            trace = get_evidence_trace_for_llm_detection(transaction.name, transaction.project_id)
+
             if (
                 not trace
                 or trace.total_spans < LOWER_SPAN_LIMIT

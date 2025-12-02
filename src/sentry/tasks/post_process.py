@@ -1283,7 +1283,11 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
         return
 
+    if not features.has("organizations:data-forwarding", event.project.organization):
+        return
+
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.data_forwarding.base import BaseDataForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
@@ -1296,18 +1300,19 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         provider = data_forwarder_project.data_forwarder.provider
         try:
             # GroupEvent is compatible with Event for all operations forwarders need
-            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]
+            forwarder().post_process(event, data_forwarder_project)
             metrics.incr(
-                "data_forwarding.forward_event",
+                "data_forwarding.post_process",
                 tags={"provider": provider},
             )
         except Exception:
             metrics.incr(
-                "data_forwarding.forward_event.error",
+                "data_forwarding.post_process.error",
                 tags={"provider": provider},
             )
             logger.exception(
-                "data_forwarding.forward_event.error",
+                "data_forwarding.post_process.error",
                 extra={"provider": provider, "project_id": event.project_id},
             )
 
@@ -1613,7 +1618,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     # Default behaviour
-    if not features.has("projects:triage-signals-v0", group.project):
+    if not features.has("organizations:triage-signals-v0-org", group.organization):
         # Only run on issues with no existing scan
         if group.seer_fixability_score is not None:
             return
@@ -1638,7 +1643,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Check if summary exists in cache
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
-                logger.info("Triage signals V0: %s: summary already exists, skipping", group.id)
                 return
 
             # Early returns for eligibility checks (cheap checks first)
@@ -1653,7 +1657,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
             if is_seer_scanner_rate_limited(group.project, group.organization):
                 return
-            logger.info("Triage signals V0: %s: generating summary", group.id)
+            logger.info(
+                "Triage signals V0:group=%s project=%s: generating summary",
+                group.id,
+                group.project.slug,
+                extra={"group_id": group.id, "project_slug": group.project.slug},
+            )
             generate_issue_summary_only.delay(group.id)
         else:
             # Event count >= 10: run automation
@@ -1682,7 +1691,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             cache_key = get_issue_summary_cache_key(group.id)
             if cache.get(cache_key) is not None:
                 # Summary exists, run automation directly
-                logger.info("Triage signals V0: %s: summary exists, running automation", group.id)
+                logger.info(
+                    "Triage signals V0:group=%s project=%s: summary exists, running automation",
+                    group.id,
+                    group.project.slug,
+                    extra={"group_id": group.id, "project_slug": group.project.slug},
+                )
                 run_automation_only_task.delay(group.id)
             else:
                 # Rate limit check before generating summary
@@ -1691,8 +1705,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
                 # No summary yet, generate summary + run automation in one go
                 logger.info(
-                    "Triage signals V0: %s: no summary, generating summary + running automation",
+                    "Triage signals V0:group=%s project=%s: no summary, generating summary + running automation",
                     group.id,
+                    group.project.slug,
+                    extra={"group_id": group.id, "project_slug": group.project.slug},
                 )
                 generate_summary_and_run_automation.delay(group.id)
 

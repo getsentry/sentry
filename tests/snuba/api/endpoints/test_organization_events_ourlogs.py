@@ -562,7 +562,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "dataset": self.dataset,
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
         assert response.status_code == 200, response.content
 
@@ -601,7 +600,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "dataset": self.dataset,
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
         assert response.status_code == 200, response.content
 
@@ -616,7 +614,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "dataset": self.dataset,
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -647,7 +644,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
                 "per_page": 10,
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -680,7 +676,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
                 "per_page": 5,
             },
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -715,7 +710,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "per_page": 5,
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert [row["message"] for row in response.data["data"]] == [
@@ -731,7 +726,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -801,7 +795,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "end": hour_4.isoformat(),
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert [row["message"] for row in response.data["data"]] == ["log 1"]
@@ -815,7 +809,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -878,7 +871,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "end": hour_4.isoformat(),
         }
 
-        response = self.do_request(request, features={"organizations:ourlogs-high-fidelity": True})
+        response = self.do_request(request)
 
         assert response.status_code == 200, response.content
         assert response.data["data"] == []
@@ -892,7 +885,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         response = self.do_request(
             {**request, "cursor": links["next"]["cursor"]},
-            features={"organizations:ourlogs-high-fidelity": True},
         )
 
         assert response.status_code == 200, response.content
@@ -904,19 +896,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         }
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
-
-    def test_high_accuracy_flex_time_without_feature_flag(self):
-        request = {
-            "field": ["timestamp", "message"],
-            "orderby": "-timestamp",
-            "project": self.project.id,
-            "dataset": self.dataset,
-            "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
-            "per_page": 5,
-        }
-
-        response = self.do_request(request)
-        assert response.status_code == 400
 
     def test_bytes_scanned(self):
         self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
