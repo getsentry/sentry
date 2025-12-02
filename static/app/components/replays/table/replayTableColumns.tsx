@@ -52,6 +52,7 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
+  linkQuery: string | LocationDescriptor;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
