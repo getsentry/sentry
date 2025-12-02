@@ -380,7 +380,7 @@ describe('LogsInfiniteTable', () => {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'ourlogs',
+          dataset: 'logs',
           dataScanned: 'full',
           accuracy: {
             confidence: [{}, {}],

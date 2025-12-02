@@ -113,7 +113,7 @@ describe('useLogsTimeseries', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'ourlogs',
+          dataset: 'logs',
           sampling: SAMPLING_MODE.NORMAL,
         }),
       })
@@ -126,7 +126,7 @@ describe('useLogsTimeseries', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'ourlogs',
+          dataset: 'logs',
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
         }),
       })

@@ -53,7 +53,7 @@ export function useLogsSearchQueryBuilderProps({
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
-    searchSource: 'ourlogs',
+    searchSource: 'logs',
     onSearch,
     numberAttributes,
     stringAttributes,
