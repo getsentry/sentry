@@ -935,7 +935,7 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
 
-    it('changes SERVER_WEIGHTED extrapolation mode to UNKNOWN when editing and saving', async () => {
+    it('changes SERVER_WEIGHTED extrapolation mode to CLIEND_AND_SERVER_WEIGHTED when editing and saving', async () => {
       const spanDetectorWithExtrapolation = MetricDetectorFixture({
         id: '1',
         name: 'Span Detector with Extrapolation',
@@ -1021,7 +1021,7 @@ describe('DetectorEdit', () => {
             data: expect.objectContaining({
               dataSources: expect.arrayContaining([
                 expect.objectContaining({
-                  extrapolationMode: ExtrapolationMode.UNKNOWN,
+                  extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
                 }),
               ]),
             }),

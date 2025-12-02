@@ -316,7 +316,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     extrapolationMode: data.extrapolationMode,
   });
   const adjustedExtrapolationMode = isUsingMigratedExtrapolation
-    ? ExtrapolationMode.UNKNOWN
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : data.extrapolationMode;
 
   return {

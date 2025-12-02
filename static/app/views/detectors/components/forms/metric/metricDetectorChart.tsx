@@ -167,7 +167,7 @@ export function MetricDetectorChart({
   });
 
   const adjustedExtrapolationMode = shouldAlterExtrapolationMode
-    ? ExtrapolationMode.UNKNOWN
+    ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : extrapolationMode;
 
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
