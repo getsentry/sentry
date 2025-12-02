@@ -12,10 +12,7 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 describe('Breadcrumb Data Http', () => {
   const project = ProjectFixture({id: '0'});
 
-  const {organization, router} = initializeOrg({
-    router: {
-      location: {query: {project: project.id}},
-    },
+  const {organization} = initializeOrg({
     projects: [project],
   });
 
@@ -65,8 +62,13 @@ describe('Breadcrumb Data Http', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 
@@ -101,8 +103,13 @@ describe('Breadcrumb Data Http', () => {
       />,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 

@@ -51,10 +51,7 @@ describe('Exception Content', () => {
       body: projectDetails,
     });
 
-    const {organization: org, router} = initializeOrg({
-      router: {
-        location: {query: {project: project.id}},
-      },
+    const {organization: org} = initializeOrg({
       projects: [project],
     });
 
@@ -147,8 +144,13 @@ describe('Exception Content', () => {
       />,
       {
         organization: org,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${org.slug}/issues/`,
+            query: {project: project.id},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 
@@ -214,7 +216,13 @@ describe('Exception Content', () => {
         newestFirst
       />,
       {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       }
     );
 
@@ -285,7 +293,15 @@ describe('Exception Content', () => {
         projectSlug={project.slug}
         newestFirst
       />,
-      {deprecatedRouterMocks: true}
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
+      }
     );
 
     expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
@@ -331,7 +347,13 @@ describe('Exception Content', () => {
 
     it('displays exception group tree under first exception', () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       expect(
@@ -349,7 +371,13 @@ describe('Exception Content', () => {
 
     it('displays exception group tree in first frame when there is no other context', () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -362,7 +390,13 @@ describe('Exception Content', () => {
 
     it('hides sub-groups by default', async () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       // There are 4 values, but 1 should be hidden
@@ -388,7 +422,13 @@ describe('Exception Content', () => {
 
     it('auto-opens sub-groups when clicking link in tree', async () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
@@ -439,7 +479,13 @@ describe('Exception Content', () => {
 
     it('only expands the first 3 exceptions by default', () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       // both toggle headings are visible because they are not exception group chained exceptions
@@ -458,7 +504,13 @@ describe('Exception Content', () => {
 
     it('can expand and collapse all exceptions', async () => {
       render(<Content {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {},
+          },
+          route: '/organizations/:orgId/issues/',
+        },
       });
 
       const collapseButtons = screen.getAllByRole('button', {name: 'Collapse Section'});
@@ -540,7 +592,13 @@ describe('Exception Content', () => {
         </LineCoverageProvider>,
         {
           organization: orgWithCodecov,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${orgWithCodecov.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
+          },
         }
       );
 
