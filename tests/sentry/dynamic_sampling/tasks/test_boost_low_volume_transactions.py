@@ -6,16 +6,11 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     FetchProjectTransactionTotals,
     FetchProjectTransactionVolumes,
     ProjectIdentity,
-    ProjectTransactions,
-    ProjectTransactionsTotals,
     is_project_identity_before,
     is_same_project,
-    merge_transactions,
-    next_totals,
-    transactions_zip,
 )
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -48,7 +43,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
                     self.store_performance_metric(
-                        name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
                         minutes_before_now=30,
                         value=num_transactions,
@@ -140,146 +135,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert totals["total_num_classes"] == num_classes
 
 
-def test_merge_transactions_full() -> None:
-    t1: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    t2: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    counts: ProjectTransactionsTotals = {
-        "project_id": 1,
-        "org_id": 2,
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
-    }
-    actual = merge_transactions(t1, t2, counts)
-
-    expected = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
-    }
-
-    assert actual == expected
-
-
-def test_merge_transactions_missing_totals() -> None:
-    t1: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    t2: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-
-    actual = merge_transactions(t1, t2, None)
-
-    expected: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-
-    assert actual == expected
-
-
-def test_merge_transactions_missing_right() -> None:
-    t1: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    counts: ProjectTransactionsTotals = {
-        "project_id": 1,
-        "org_id": 2,
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
-    }
-    actual = merge_transactions(t1, None, counts)
-
-    expected: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
-    }
-
-    assert actual == expected
-
-
-def test_transactions_zip() -> None:
-    high = 1
-    low = 2
-    both = 3
-
-    def pt(org_id: int, proj_id: int, what: int, add_totals: bool = False):
-        if what == high:
-            transaction_counts = [("tm2", 100), ("tl3", 1000)]
-        elif what == low:
-            transaction_counts = [("ts1", 10), ("tm2", 100)]
-        else:  # what == both
-            transaction_counts = [("ts1", 10), ("tm2", 100), ("tl3", 1000)]
-        return {
-            "project_id": proj_id,
-            "org_id": org_id,
-            "transaction_counts": transaction_counts,
-            "total_num_transactions": 5000 if add_totals else None,
-            "total_num_classes": 5 if add_totals else None,
-        }
-
-    def tot(org_id, proj_id):
-        return {
-            "project_id": proj_id,
-            "org_id": org_id,
-            "total_num_transactions": 5000,
-            "total_num_classes": 5,
-        }
-
-    trans_low = [pt(1, 1, low), pt(1, 2, low), pt(2, 1, low), pt(2, 3, low), pt(3, 2, low)]
-    trans_high = [pt(2, 1, high), (pt(2, 2, high)), pt(3, 1, high), pt(3, 2, high), pt(3, 3, high)]
-    totals = [tot(1, 0), tot(1, 2), tot(1, 3), tot(2, 1), tot(2, 4), tot(3, 1), tot(3, 3)]
-
-    expected = [
-        pt(1, 1, low),
-        pt(1, 2, low, True),
-        pt(2, 1, both, True),
-        pt(2, 2, high),
-        pt(2, 3, low),
-        pt(3, 1, high, True),
-        pt(3, 2, both),
-        pt(3, 3, high, True),
-    ]
-
-    actual = list(
-        transactions_zip((x for x in totals), (x for x in trans_low), (x for x in trans_high))
-    )
-
-    assert actual == expected
-
-
 def test_same_project() -> None:
     p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
@@ -315,48 +170,3 @@ def test_project_before() -> None:
     # just different
     assert is_project_identity_before(p4, p1)
     assert not is_project_identity_before(p1, p4)
-
-
-def test_next_totals() -> None:
-    def ct(org_id: int, project_id: int) -> ProjectTransactionsTotals:
-        return {
-            "project_id": project_id,
-            "org_id": org_id,
-            "total_num_transactions": 123,
-            "total_num_classes": 5,
-        }
-
-    def pi(org_id: int, project_id: int) -> ProjectIdentity:
-        return {
-            "project_id": project_id,
-            "org_id": org_id,
-        }
-
-    my_totals = iter([ct(1, 2), ct(1, 4), ct(1, 5), ct(1, 6), ct(1, 9), ct(2, 1)])
-
-    get_totals = next_totals(my_totals)
-
-    # current should be 1,2
-    # ask for something before 1,2
-    assert get_totals(pi(0, 1)) is None
-    assert get_totals(pi(0, 2)) is None
-    assert get_totals(pi(1, 1)) is None
-
-    # ask for 1.2
-    assert get_totals(pi(1, 2)) == ct(1, 2)
-    # ask again
-    assert get_totals(pi(1, 2)) is None
-    # jump a few totals
-    assert get_totals(pi(1, 6)) == ct(1, 6)
-    # make sure we don't go back
-    assert get_totals(pi(1, 5)) is None
-    # forcing it to go forward jumps just enough
-    assert get_totals(pi(1, 10)) is None
-    # but not too much
-    assert get_totals(pi(1, 11)) is None
-    assert get_totals(pi(1, 12)) is None
-    assert get_totals(pi(2, 1)) == ct(2, 1)
-    # and from now on we return None
-    assert get_totals(pi(3, 1)) is None
-    assert get_totals(pi(3, 2)) is None
-    assert get_totals(pi(3, 3)) is None

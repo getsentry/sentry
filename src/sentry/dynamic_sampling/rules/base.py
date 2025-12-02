@@ -63,29 +63,20 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
             organization_id=organization.id, project=project
         )
 
-    # get_blended_sample_rate returns None if the organization doesn't have dynamic sampling
     if sample_rate is None:
         sample_rate = TARGET_SAMPLE_RATE_DEFAULT
 
-    # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:
         return float(sample_rate)
 
-    # For now, we will keep this new boost for orgs with the sliding window enabled.
-    #
-    # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
-    # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
     if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
-    # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
-    # any issues.
     sample_rate, _ = get_boost_low_volume_projects_sample_rate(
         org_id=organization.id,
         project_id=project.id,
         error_sample_rate_fallback=sample_rate,
     )
-
     return float(sample_rate)
 
 

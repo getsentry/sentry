@@ -9,7 +9,7 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     get_organization_volume,
 )
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -28,7 +28,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             for i in range(10):
                 project = self.create_project(organization=org)
                 self.store_performance_metric(
-                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                     tags={"transaction": "foo_transaction", "decision": "keep"},
                     minutes_before_now=30,
                     value=1,

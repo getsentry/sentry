@@ -76,7 +76,7 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         self.disable_all_biases(project=proj)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
             tags=tags,
             minutes_before_now=30,
             value=count,
@@ -343,7 +343,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
                     self.store_performance_metric(
-                        name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
                         minutes_before_now=30,
                         value=num_transactions,

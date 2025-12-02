@@ -52,10 +52,10 @@ class TransactionsRebalancingModel(
         classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
         # total count for the explicitly specified classes
-        total_explicit = sum_classes_counts(classes)
+        total_specified = sum_classes_counts(classes)
 
         if total is None:
-            total = total_explicit
+            total = total_specified
 
         # invariant violation: total number of classes should be at least the number of specified classes
         # sometimes (maybe due to running the queries at slightly different times), the totals number might be less.
@@ -64,43 +64,47 @@ class TransactionsRebalancingModel(
             total_num_classes = len(classes)
 
         # total count for the unspecified classes
-        total_implicit = total - total_explicit
+        total_unspecified = total - total_specified
         # total number of specified classes
-        num_explicit_classes = len(classes)
+        num_specified_classes = len(classes)
         # total number of unspecified classes
-        num_implicit_classes = total_num_classes - num_explicit_classes
+        num_unspecified_classes = total_num_classes - num_specified_classes
 
+        # the total budget is the total traffic allowed after sampling
         total_budget = total * sample_rate
-        budget_per_class = total_budget / total_num_classes
 
-        implicit_budget = budget_per_class * num_implicit_classes
-        explicit_budget = budget_per_class * num_explicit_classes
+        # there is a budget per class that is the same for each class - budget is the total traffic is allowed?
+        budget_per_class = total_budget / total_num_classes
+        # for both the specified and unspecified classes, we have a budget that is the same for each class
+        unspecified_budget = budget_per_class * num_unspecified_classes
+        explicit_budget = budget_per_class * num_specified_classes
 
         full_rebalancing = FullRebalancingModel()
 
-        if num_explicit_classes == total_num_classes:
-            # we have specified all classes
+        # if there are no unspecified classes, we have specified all classes
+        if num_specified_classes == total_num_classes:
             explicit_rates, _used = full_rebalancing.run(
                 FullRebalancingInput(classes=classes, sample_rate=sample_rate, intensity=intensity)
             )
-            implicit_rate = sample_rate  # doesn't really matter since everything is explicit
-        elif total_implicit < implicit_budget:
+            implicit_rate = sample_rate  # the implicit rate is irrelevant, because there are no implicit classes
+        # isn't this always the case when the budget is 1 or more? total_unspecified is the number of classes
+        elif total_unspecified < unspecified_budget:
             # we would not be able to spend all implicit budget we can only spend
             # a maximum of total_implicit, set the implicit rate to 1
             # and reevaluate the available budget for the explicit classes
             implicit_rate = 1
             # we spent all we could on the implicit classes see what budget we
             # have left
-            explicit_budget = total_budget - total_implicit
+            explicit_budget = total_budget - total_unspecified
             # calculate the new global rate for the explicit transactions that
             # would bring the overall rate to the desired rate
-            explicit_rate = explicit_budget / total_explicit
+            explicit_rate = explicit_budget / total_specified
             explicit_rates, _used = full_rebalancing.run(
                 FullRebalancingInput(
                     classes=classes, sample_rate=explicit_rate, intensity=intensity
                 )
             )
-        elif total_explicit < explicit_budget:
+        elif total_specified < explicit_budget:
             # we would not be able to spend all explicit budget we can only
             # send a maximum of total_explicit so set the explicit rate to 1 for
             # all explicit classes and reevaluate the available budget for the implicit classes
@@ -110,8 +114,8 @@ class TransactionsRebalancingModel(
             ]
 
             # calculate the new global rate for the implicit transactions
-            implicit_budget = total_budget - total_explicit
-            implicit_rate = implicit_budget / total_implicit
+            unspecified_budget = total_budget - total_specified
+            implicit_rate = unspecified_budget / total_unspecified
         else:
             # we can spend all the implicit budget on the implicit classes
             # and all the explicit budget on the explicit classes
@@ -121,8 +125,8 @@ class TransactionsRebalancingModel(
             # calculate what is the minimum amount we need to spend on the
             # explicit classes (so that we maintain the overall rate)
             # if it is <= 0 then we don't have a minimum
-            minimum_explicit_budget = total_budget - total_implicit
-            explicit_rate = explicit_budget / total_explicit
+            minimum_explicit_budget = total_budget - total_unspecified
+            explicit_rate = explicit_budget / total_specified
 
             explicit_rates, used = full_rebalancing.run(
                 FullRebalancingInput(
@@ -133,7 +137,7 @@ class TransactionsRebalancingModel(
                 )
             )
             # recalculate implicit_budget based on used
-            implicit_budget = total_budget - used
-            implicit_rate = implicit_budget / total_implicit
+            unspecified_budget = total_budget - used
+            implicit_rate = unspecified_budget / total_unspecified
 
         return explicit_rates, implicit_rate

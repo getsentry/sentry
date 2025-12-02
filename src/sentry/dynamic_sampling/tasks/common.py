@@ -24,7 +24,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_mon
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -51,9 +51,7 @@ class GetActiveOrgs:
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ) -> None:
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+        self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         self.offset = 0
         self.last_result: list[tuple[int, int]] = []
         self.has_more_results = True
@@ -104,7 +102,7 @@ class GetActiveOrgs:
                 app_id="dynamic_sampling",
                 query=query,
                 tenant_ids={
-                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "use_case_id": UseCaseID.SPANS.value,
                     "cross_org_query": 1,
                 },
             )

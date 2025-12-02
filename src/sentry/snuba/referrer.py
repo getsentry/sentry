@@ -636,6 +636,9 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_SPAN_TOTALS = (
+        "dynamic_sampling.counters.fetch_projects_with_span_totals"
+    )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
         "dynamic_sampling.tasks.custom_rule_notifications"
