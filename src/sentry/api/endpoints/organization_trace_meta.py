@@ -2,6 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -220,6 +221,20 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
         }
+
+        sentry_sdk.metrics.distribution(
+            "performance.trace.logs.count",
+            response["logs"],
+        )
+        sentry_sdk.metrics.distribution(
+            "performance.trace.span.count",
+            response["span_count"],
+        )
+        sentry_sdk.metrics.distribution(
+            "performance.trace.errors.count",
+            response["errors"],
+        )
+
         if uptime_count is not None:
             response["uptime_checks"] = uptime_count
         return response

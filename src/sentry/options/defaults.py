@@ -1996,6 +1996,19 @@ register(
 
 # Adjusting some time buffers in the trace endpoint
 register(
+    "performance.traces.pagination.max-iterations",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.pagination.max-timeout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "performance.traces.transaction_query_timebuffer_days",
     type=Float,
     default=1.5,
