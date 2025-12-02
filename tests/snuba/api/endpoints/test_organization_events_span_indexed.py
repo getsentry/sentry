@@ -6911,3 +6911,67 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.data
         assert response.data["data"] == [{"project.name": self.project.slug, "id": span["span_id"]}]
+
+    def test_in_query_matches_is_query_with_truncated_strings(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo *"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        is_query = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"foo \\*"',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert is_query.status_code == 200, is_query.content
+
+        in_query = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:["foo \\*"]',
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert in_query.status_code == 200, in_query.content
+        assert is_query.data["data"] == in_query.data["data"]
+
+    def test_in_query_with_numeric_values(self) -> None:
+        span1 = self.create_span(
+            {"data": {"ai_total_tokens_used": 100}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2 = self.create_span(
+            {"data": {"ai_total_tokens_used": 200}},
+            start_ts=self.ten_mins_ago,
+        )
+        span3 = self.create_span(
+            {"data": {"ai_total_tokens_used": 300}},
+            start_ts=self.ten_mins_ago,
+        )
+
+        self.store_spans([span1, span2, span3], is_eap=True)
+
+        in_query = self.do_request(
+            {
+                "field": ["id", "ai.total_tokens.used"],
+                "query": "ai.total_tokens.used:[100, 200]",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert in_query.status_code == 200, in_query.content
+        assert len(in_query.data["data"]) == 2
+
+        returned_ids = {row["id"] for row in in_query.data["data"]}
+        assert returned_ids == {span1["span_id"], span2["span_id"]}
+
+        assert span3["span_id"] not in returned_ids
