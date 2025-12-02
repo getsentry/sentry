@@ -313,9 +313,11 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const pendingInput = sessionData?.pending_user_input;
 
   const handleSubmitFileChanges = useCallback(
-    (allApproved: boolean, decisions: boolean[]) => {
+    (decisions: boolean[]) => {
       if (pendingInput?.id) {
-        respondToUserInput(pendingInput.id, allApproved, {decisions});
+        respondToUserInput(pendingInput.id, {
+          decisions,
+        });
       }
     },
     [pendingInput?.id, respondToUserInput]

@@ -259,7 +259,7 @@ export const useSeerExplorer = () => {
   }, [api, orgSlug, runId, interruptRequested]);
 
   const respondToUserInput = useCallback(
-    async (inputId: string, accepted: boolean, responseData?: Record<string, any>) => {
+    async (inputId: string, responseData?: Record<string, any>) => {
       if (!orgSlug || !runId) {
         return;
       }
@@ -275,7 +275,6 @@ export const useSeerExplorer = () => {
               payload: {
                 type: 'user_input_response',
                 input_id: inputId,
-                accepted,
                 response_data: responseData,
               },
             },

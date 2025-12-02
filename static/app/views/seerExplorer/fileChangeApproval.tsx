@@ -28,7 +28,7 @@ interface FileChangeApprovalData {
 }
 
 interface FileChangeApprovalProps {
-  onSubmit: (allApproved: boolean, decisions: boolean[]) => void;
+  onSubmit: (decisions: boolean[]) => void;
   isMinimized?: boolean;
   pendingInput?: PendingUserInput | null;
 }
@@ -147,7 +147,7 @@ function FileChangeApproval({
             )
           );
         }
-        onSubmit(allApproved, newDecisions);
+        onSubmit(newDecisions);
       }
     },
     [decisions, currentIndex, totalPatches, onSubmit]
