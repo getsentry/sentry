@@ -115,8 +115,8 @@ export default function FormPanel({
 
   if (nested) {
     return (
-      <Container padding="lg xl" data-test-id="collapsible-section-container">
-        <Flex padding="sm 0" data-test-id="header">
+      <Container padding="lg xl">
+        <Flex padding="sm 0">
           {title && (
             <Button
               priority="link"
@@ -125,13 +125,13 @@ export default function FormPanel({
               aria-expanded={!collapsed}
             >
               <Text size="sm" bold={false}>
-                <Flex align="center" gap="xs" justify="between">
-                  {title}
+                <Flex align="center" gap="xs">
                   <IconChevron
                     data-test-id="form-panel-collapse-chevron"
-                    direction={collapsed ? 'down' : 'up'}
+                    direction={collapsed ? 'right' : 'down'}
                     size="xs"
                   />
+                  {title}
                 </Flex>
               </Text>
             </Button>
