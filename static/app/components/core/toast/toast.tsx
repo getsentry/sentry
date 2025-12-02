@@ -127,7 +127,7 @@ interface ChonkToastContainerProps extends HTMLMotionProps<'div'> {
   type: Indicator['type'];
 }
 
-export const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
+const ToastContainer = chonkStyled((props: ChonkToastContainerProps) => {
   const {type, children, ...rest} = props;
   return (
     <ToastOuterContainer type={type} {...rest}>
@@ -176,7 +176,7 @@ function getToastIconContainerTheme(
       };
   }
 }
-export const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
+const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,7 +190,7 @@ export const ToastIconContainer = chonkStyled('div')<{type: Indicator['type']}>`
     color: ${p => (p.type === 'success' ? p.theme.colors.black : p.type === 'error' ? p.theme.colors.white : undefined)} !important;
 `;
 
-export const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
+const ToastLoadingIndicator = chonkStyled(LoadingIndicator)`
   margin: 0;
   .loading-indicator {
 
